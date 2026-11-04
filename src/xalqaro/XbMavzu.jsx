@@ -53,11 +53,17 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
         <p>{oldi && <b>{d.nom}. </b>}{T("Dunyo bo‘yicha to‘g‘ri yechganlar")}: <b>{d.xalqaro_foiz}%</b>{d.maqsad ? <> · {d.maqsad}</> : null}</p>
       </div>
     </div>
+    {!oldi && (d.dars_kodi || onMashq) && <div className="xb-tez-tugmalar">   {/* REV307: asosiy ishlar tepada */}
+      {d.dars_kodi && onDars && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDars(d); }}>🧑‍🏫 {T("Xalqaro darajadagi dars")}</button>}
+      {onMashq && <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); onMashq(d); }}>✍️ {T("Mashq (8 savol)")}</button>}
+      {d.maktab_darslari?.length > 0 && <a className="xb-btn xb-btn-yengil" href="#xb-maktab">📚 {T("Maktab darslari")} ({d.maktab_darslari.length})</a>}
+    </div>}
     <div className="xb-kartalar">
       <div className="xb-karta"><small>{T("Sizning o‘zlashtirishingiz")}</small><b>{h.foiz ?? 0}%</b><span className="xb-progress"><i style={{ width: `${h.foiz || 0}%` }} /></span><small>{h.ozlashtirgan || 0}/{h.jami || 0} {T("savol")}{h.aniqlik !== null && h.aniqlik !== undefined ? ` · ${T("aniqlik")} ${h.aniqlik}%` : ""}</small></div>
       <div className="xb-karta"><small>{T("Sinfdoshlar orasida")}</small><b>{d.reyting?.orin ? `${d.reyting.orin}/${d.reyting.jami}` : "—"}</b><small>{d.reyting?.orin ? `${T("eng ko‘p")}: ${d.reyting.eng_kop}` : T("reyting uchun kamida 3 o‘quvchi kerak")}</small></div>
-      <div className="xb-karta"><small>{T("Fikrlash darajalari")}</small>
-        {Object.entries(d.fikrlash || {}).map(([k, v]) => <small key={k}>{T(FIKRLASH[k] || k)}: <b>{v.ozlashtirgan}/{v.jami}</b></small>)}</div>
+      <div className="xb-karta xb-karta-keng"><small>{T("Fikrlash darajalari")}</small>
+        <div className="xb-fikr-grafik">{Object.entries(d.fikrlash || {}).map(([k, v]) => { const f = Math.round(100 * (v.ozlashtirgan || 0) / Math.max(1, v.jami || 0));
+          return <div key={k} className="xb-fikr-q"><span>{T(FIKRLASH[k] || k)}</span><span className="xb-progress"><i style={{ width: `${f}%` }} /></span><b>{v.ozlashtirgan}/{v.jami}</b></div>; })}</div></div>
     </div>
     {d.pisa_qiyinlik && <section className="xb-blok"><h4>📏 {T("PISA qiyinligi")}</h4>
       <p>{T("Bu mavzu savollari PISA shkalasida")} <b>{d.pisa_qiyinlik.min}–{d.pisa_qiyinlik.max}</b> {T("ball oralig‘ida, o‘rtacha")} <b>{d.pisa_qiyinlik.ortacha}</b> ({d.pisa_qiyinlik.daraja}).
@@ -65,8 +71,8 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
     {d.davlatlar?.length > 0 && <section className="xb-blok"><h4>🏆 {T("Davlatlar: shu mavzu savollarini to‘g‘ri yechganlar (%) — TIMSS 2011")}</h4>
       <div className="xb-ustunlar">{[...d.davlatlar, [T("Dunyo o‘rtachasi"), d.xalqaro_foiz]].map(([n, f]) => <div key={n} className="xb-ustun-q"><span>{n}</span>
         <span className="xb-progress"><i style={{ width: `${f}%` }} /></span><b>{f}%</b></div>)}</div></section>}
-    {!oldi && d.strategiyalar?.length > 0 && <section className="xb-blok"><h4>🧭 {T("Xalqaro savollarni yechish yo‘llari")}</h4><ul>{d.strategiyalar.map((s) => <li key={s}>{s}</li>)}</ul></section>}
-    {d.tipik_xatolar?.length > 0 && <section className="xb-blok"><h4>⚠️ {T("Ko‘p uchraydigan xatolar")}</h4><ul>{d.tipik_xatolar.slice(0, oldi ? 3 : 8).map((s) => <li key={s}>{s}</li>)}</ul></section>}
+    {!oldi && d.strategiyalar?.length > 0 && <details className="xb-blok xb-yigma"><summary><h4>🧭 {T("Xalqaro savollarni yechish yo‘llari")} <small>({d.strategiyalar.length})</small></h4></summary><ul>{d.strategiyalar.map((s) => <li key={s}>{s}</li>)}</ul></details>}
+    {d.tipik_xatolar?.length > 0 && <details className="xb-blok xb-yigma" open={oldi}><summary><h4>⚠️ {T("Ko‘p uchraydigan xatolar")} <small>({Math.min(d.tipik_xatolar.length, oldi ? 3 : 8)})</small></h4></summary><ul>{d.tipik_xatolar.slice(0, oldi ? 3 : 8).map((s) => <li key={s}>{s}</li>)}</ul></details>}
     {d.namuna?.length > 0 && <section className="xb-blok"><h4>📝 {T("Namuna savollar — har darajadan bittadan")}</h4>
       {d.namuna.map((s, k) => <div key={s.savol_id} className="xb-namuna">
         <XbSavol savol={s} javob={namuna?.[k]?.javob || ""} holat={namuna?.[k]?.holat || null} ovoz={ovoz} raqam={k + 1}
@@ -86,9 +92,12 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
             : <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setNamuna((n) => ({ ...n, [k]: { ...n[k], doska: true } })); }}>🧑‍🏫 {T("Yechimni doskada ko‘rish")}</button>}
         </>}
       </div>)}</section>}
-    {!oldi && d.maktab_darslari?.length > 0 && <section className="xb-blok"><h4>📚 {T("Kerakli maktab darslari (1–11 sinf) — takrorlash uchun")}</h4>
-      <div className="xb-maktab">{d.maktab_darslari.map((m) => <button key={m.topic_code} type="button" className="xb-btn xb-btn-yengil" onClick={() => onMaktabDarsi?.(m)}>
-        <small>{tf("{n}-sinf", { n: m.sinf })} · {String(m.fan || "").replace(/\s*\(izoh: (rus|ingliz)\)/i, "")}</small> {m.nom}</button>)}</div></section>}
+    {!oldi && d.maktab_darslari?.length > 0 && <section className="xb-blok" id="xb-maktab"><h4>📚 {T("Kerakli maktab darslari (1–11 sinf) — takrorlash uchun")}</h4>
+      {[...new Set(d.maktab_darslari.map((m) => m.sinf))].map((g) => <div key={g} className="xb-maktab-guruh">
+        <b className="xb-maktab-sinf">{tf("{n}-sinf", { n: g })} · {String(d.maktab_darslari.find((m) => m.sinf === g)?.fan || "").replace(/\s*\(izoh: (rus|ingliz)\)/i, "")}</b>
+        <ol className="xb-maktab-royxat">{d.maktab_darslari.filter((m) => m.sinf === g).map((m) => <li key={m.topic_code}>
+          <button type="button" onClick={() => onMaktabDarsi?.(m)}><span>{String(m.nom || "").charAt(0).toUpperCase() + String(m.nom || "").slice(1)}</span><i aria-hidden="true">▶</i></button></li>)}</ol>
+      </div>)}</section>}
     <div className="xb-tug-qator">
       {oldi && onDavom && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDavom(); }}>▶ {T("Maktab darsini boshlash")}</button>}
       {d.dars_kodi && onDars && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDars(d); }}>🧑‍🏫 {T("Xalqaro darajadagi dars")}</button>}

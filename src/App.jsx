@@ -1,4 +1,5 @@
 import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
+import { yuklaQayta as _kbYuklaQayta } from "./workspace/lazyQayta.js";
 import __kbEmblema from "./brand/emblema.webp";
 import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
 import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
@@ -487,7 +488,8 @@ const AdminSertifikat = React.lazy(() => import("./admin/AdminSertifikat.jsx"));
 
 // Deploydan keyin brauzer eski chunk nomini eslab qolsa oq ekran bermaydi:
 // bir marta yangilanadi, qayta xato bo'lsa haqiqiy xato ko'rsatiladi.
-const _samtmLazyRetry = (loader) => React.lazy(() => loader().then((mod) => {
+// REV307: avval tarmoq uzilishi uchun 3 marta qayta urinish (1, 2, 4 s), keyin — sahifani bir marta yangilash
+const _samtmLazyRetry = (loader) => React.lazy(() => _kbYuklaQayta(loader).then((mod) => {
   try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ }
   return mod;
 }).catch((err) => {

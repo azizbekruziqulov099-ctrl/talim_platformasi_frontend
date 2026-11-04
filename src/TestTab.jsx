@@ -1,4 +1,5 @@
 import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
+import { lazyQayta } from "./workspace/lazyQayta.js";
 import { splitSpeechText, selectBrowserVoice, stripSpeechTags } from "./speech/language.js";
 import TranslatedContent from './interface/TranslatedContent.jsx';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
@@ -30,9 +31,9 @@ import { screenTime } from "./kid/screenTime.js";
 import QuestionNavigator from "./test/QuestionNavigator.jsx";
 import { displayTextKeepingLatex } from "./test/latexTextRules.js";
 
-const TestGameArena = React.lazy(() => import("./TestGameArena.jsx"));
+const TestGameArena = lazyQayta(() => import("./TestGameArena.jsx"));
 // REV297: Miya'dagi darsi bor mavzuning testi — dars xonasining Kabular muhitida (faqat test)
-const DarsXonasiTest = React.lazy(() => import("./lesson/DarsXonasi.jsx"));
+const DarsXonasiTest = lazyQayta(() => import("./lesson/DarsXonasi.jsx"));
 // Savollar soni yoshi va sinfiga qarab: bog'cha 2–3 yosh 20, 4–5 yosh 30, 6–7 yosh 40; 1–4-sinf 40, 5–9-sinf 60, 10–11-sinf 80
 export function testSoniYosh(sinf = "") {
   const t = String(sinf || "").toLowerCase();

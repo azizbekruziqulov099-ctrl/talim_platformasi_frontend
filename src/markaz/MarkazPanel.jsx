@@ -1,13 +1,14 @@
 // REV270: O'quv markazi — ikki yo'l: «Sertifikat» va «Erkin til». Yozilish (yo'l → til/imtihon → maqsad → jadval) va
 // shaxsiy panel: holat xabari (eslatma / motivatsiya / tanbeh — raqamlar bilan), imtihongacha kunlar, ochiq bo'limlar.
 import React, { useEffect, useMemo, useState } from "react";
+import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./markaz.css";
 import { natija as darsNatijasi } from "../curriculum/kidProgress.js";
-const KonikmaMashq = React.lazy(() => import("./KonikmaMashq.jsx"));
-const DarsXonasi = React.lazy(() => import("../lesson/DarsXonasi.jsx"));
-const SinovImtihon = React.lazy(() => import("./SinovImtihon.jsx"));   // REV278
-const Strategiyalar = React.lazy(() => import("./Strategiyalar.jsx"));   // REV282   // REV277: kurs darsi — saytning dars xonasida
+const KonikmaMashq = lazyQayta(() => import("./KonikmaMashq.jsx"));
+const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
+const SinovImtihon = lazyQayta(() => import("./SinovImtihon.jsx"));   // REV278
+const Strategiyalar = lazyQayta(() => import("./Strategiyalar.jsx"));   // REV282   // REV277: kurs darsi — saytning dars xonasida
 
 const TILLAR = { en: "🇬🇧 Ingliz tili", ru: "🇷🇺 Rus tili", de: "🇩🇪 Nemis tili", fr: "🇫🇷 Fransuz tili", es: "🇪🇸 Ispan tili", ar: "🇸🇦 Arab tili",
   tr: "🇹🇷 Turk tili", ko: "🇰🇷 Koreys tili", ja: "🇯🇵 Yapon tili", zh: "🇨🇳 Xitoy tili" };

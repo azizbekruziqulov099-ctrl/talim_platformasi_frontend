@@ -18,9 +18,10 @@ try { if (document.readyState === "loading") document.addEventListener("DOMConte
 // o'zi yangilanadi (aks holda darsni bosganda hech narsa bo'lmay qolardi). Qayta xato bo'lsa — odatdagi xato ekrani.
 try {
   window.addEventListener("vite:preloadError", (event) => {
-    let avval = false;
-    try { avval = window.sessionStorage.getItem("samtm_chunk_reload") === "1"; window.sessionStorage.setItem("samtm_chunk_reload", "1"); } catch { /* jim */ }
-    if (!avval) { event.preventDefault?.(); window.location.reload(); }
+    // REV307: faqat CSS yuklanmasa jim davom etamiz (JS ishlayveradi). JS bo'lagi yuklanmasa — xato yashirilmaydi
+    // (aks holda Vite bo'sh modul qaytarib, «reading 'default'» xatosi chiqardi): qayta urinish va kerak bo'lsa
+    // sahifani bir marta yangilashni lazy yuklovchilar (_samtmLazyRetry, lazyQayta) va bo'lim xato oynasi qiladi.
+    if (/preload CSS/i.test(String(event?.payload?.message || ""))) event.preventDefault?.();
   });
   // sahifa yaxshi ochilgach belgi tozalanadi — keyingi deployda ham bir marta yangilansin
   window.setTimeout(() => { try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ } }, 20000);

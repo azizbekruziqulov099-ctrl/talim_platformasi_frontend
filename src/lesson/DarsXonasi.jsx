@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
@@ -27,9 +28,9 @@ import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
 import { maktabDarsSozlari } from "./maktabDarsSozlari.js";
 import { sanaQadami, sinfJoyi, mashqMateriali, tilLugati, testOvozi } from "./maktabMashqRules.js";
 import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
-const MaktabMashqlar = React.lazy(() => import("./MaktabMashqlar.jsx"));
-const Repetitor = React.lazy(() => import("../maktab/Repetitor.jsx"));
-const DarsOldiTakror = React.lazy(() => import("./DarsOldiTakror.jsx"));   // REV177: yangi darsdan oldin Kabu bilan spiral takror
+const MaktabMashqlar = lazyQayta(() => import("./MaktabMashqlar.jsx"));
+const Repetitor = lazyQayta(() => import("../maktab/Repetitor.jsx"));
+const DarsOldiTakror = lazyQayta(() => import("./DarsOldiTakror.jsx"));   // REV177: yangi darsdan oldin Kabu bilan spiral takror
 import UstozSahna from "../kid/UstozSahna.jsx";
 import { useKeepLight } from "../kid/useKeepLight.js";
 import { havoTuri, quyoshVaqti, ustozFor, xonaKaliti, ikkinchiUstoz, XONA } from "../kid/ustozRules.js";

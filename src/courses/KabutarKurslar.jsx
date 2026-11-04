@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import KursTolov, { somFmt } from "./KursTolov.jsx";
 import "./kabutarKurslar.css";
 
-const DarsXonasi = React.lazy(() => import("../lesson/DarsXonasi.jsx"));
-const MarkazPanel = React.lazy(() => import("../markaz/MarkazPanel.jsx"));
-const XalqaroBaholash = React.lazy(() => import("../xalqaro/XalqaroBaholash.jsx"));
+const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
+const MarkazPanel = lazyQayta(() => import("../markaz/MarkazPanel.jsx"));
+const XalqaroBaholash = lazyQayta(() => import("../xalqaro/XalqaroBaholash.jsx"));
 
 export const sinfYozuv = (s) => (/^\d+$/.test(String(s)) ? `${s}-sinf` : String(s));
 // Bolalar kurslari yoshga bo'linmaydi; faqat matematikada dastur yoshi yoziladi

@@ -1,4 +1,5 @@
 import TranslatedContent from '../interface/TranslatedContent.jsx';
+import { lazyQayta } from "../workspace/lazyQayta.js";
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -122,7 +123,7 @@ export default function CourseWorkspace(props) {
   return <CourseWorkspaceSession key={identity} {...props} />;
 }
 
-const KabutarKurslar = React.lazy(() => import("./KabutarKurslar.jsx"));
+const KabutarKurslar = lazyQayta(() => import("./KabutarKurslar.jsx"));
 
 function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initialCourseId, initialMode, onLogin, onClose, active = true }) {
   useKbInterfaceLocale();

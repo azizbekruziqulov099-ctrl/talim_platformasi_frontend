@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { lazyQayta } from "../workspace/lazyQayta.js";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import { ustozFor } from "../kid/ustozRules.js";
@@ -13,7 +14,7 @@ import XbQollanma from "./XbQollanma.jsx";   // REV262
 import { XB_TILLAR, XB_TIL_BAYROQ, XB_TIL_NOMI } from "./xbTil.js";
 import "./xalqaro.css";
 
-const DarsXonasi = React.lazy(() => import("../lesson/DarsXonasi.jsx"));
+const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
 const TABLAR = [["qollanma", "📖 Qo‘llanma"], ["kurs", "📚 Kurs"], ["imtihon", "📝 Imtihonlar"], ["xato", "❌ Xatolarim"], ["takror", "🔁 Takrorlash"], ["reyting", "🏅 Reyting"], ["dunyo", "🌍 Dunyo natijalari"]];
 const ESLA = "kabutar:xb:toplam";
 

@@ -187,3 +187,25 @@
 .xb-root .xb-ogoh-panel{border-left:4px solid #c77d00}
 .xb-root .xb-metodlar ol{margin:4px 0 8px 18px;padding:0}
 .xb-root .xb-metodlar a{color:#1b6fd8;text-decoration:underline}
+
+/* REV307: mavzu sahifasi — tartibli: asosiy tugmalar tepada, fikrlash darajalari grafikda, maktab darslari sinf bo'yicha ro'yxat */
+.xb-tez-tugmalar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.xb-tez-tugmalar .xb-btn{flex:1 1 150px;text-align:center;text-decoration:none}
+.xb-fikr-grafik{display:grid;gap:6px;margin-top:6px}
+.xb-fikr-q{display:grid;grid-template-columns:minmax(70px,auto) 1fr auto;align-items:center;gap:8px;font-size:13px}
+.xb-fikr-q .xb-progress{height:8px}
+.xb-yigma summary{cursor:pointer;list-style:none}
+.xb-yigma summary::-webkit-details-marker{display:none}
+.xb-yigma summary h4{display:flex;align-items:center;gap:6px;margin:0}
+.xb-yigma summary h4::after{content:"▾";margin-left:auto;color:#8a8578;transition:transform .2s}
+.xb-yigma:not([open]) summary h4::after{transform:rotate(-90deg)}
+.xb-yigma ul{margin-top:8px}
+.xb-maktab-guruh{margin-top:10px}
+.xb-maktab-sinf{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#1b4b7a;margin:6px 2px}
+.xb-maktab-royxat{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.xb-maktab-royxat button{width:100%;display:flex;align-items:center;gap:10px;justify-content:space-between;padding:11px 14px;border-radius:12px;border:1px solid #e2e8f0;background:#fff;text-align:left;font-size:14px;color:#1f2a37}
+.xb-maktab-royxat button:hover{border-color:#1b4b7a;background:#f4f8fc}
+.xb-maktab-royxat button i{font-style:normal;color:#1b4b7a;font-size:12px}
+.xb-karta.xb-karta-keng{grid-column:1/-1}
+.xb-karta .xb-fikr-q b{font-size:14px!important;line-height:1.2}
+.xb-karta .xb-fikr-q span:first-child{font-size:13px;color:#475569}
