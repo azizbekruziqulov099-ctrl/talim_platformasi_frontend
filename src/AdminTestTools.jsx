@@ -749,6 +749,9 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
   const [darslar, setDarslar] = useState([]);
   const [darsQidiruv, setDarsQidiruv] = useState("");
   const [korish, setKorish] = useState(null);
+  // REV300: bo'limlar alohida — faqat bosilgani ochiladi (uzun sahifa o'rniga)
+  const [bolim, setBolimState] = useState(() => { try { return globalThis.localStorage?.getItem("kabutar:miya_bolim") || "tarkib"; } catch { return "tarkib"; } });
+  const setBolim = (b) => { setBolimState(b); try { globalThis.localStorage?.setItem("kabutar:miya_bolim", b); } catch { /* */ } };
 
   const tarixniYukla = () => {
     fetch(`${API_BASE}/api/admin/ai_miya_importlar?token=${encodeURIComponent(token)}`)
@@ -868,11 +871,24 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
         </div>
       </div>
 
-      <MiyaTarkibi apiBase={API_BASE} token={token} />
+      {/* REV300: bo'lim tugmalari — har biri alohida sahifa */}
+      <div role="tablist" aria-label={__kbUi("Miya bo‘limlari")} className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        {[["tarkib", "🧠", "Miya tarkibi", "ko‘rish va o‘chirish"], ["paket", "📦", "Paket yuklash", "ZIP / ko‘p Excel"],
+          ["kitob", "📥", "Bitta kitob", "shablon · tekshirish · nashr"], ["darslar", "📚", "Nashr qilingan darslar", `${darslar.length} ta`],
+          ["tarix", "🕘", "Importlar tarixi", `${importlar.length} ta`]].map(([k, e, t, s2]) => (
+          <button key={k} type="button" role="tab" aria-selected={bolim === k} onClick={() => setBolim(k)}
+            className="rounded-xl border p-3 text-left transition" style={{ borderColor: bolim === k ? "#1B4B7A" : "#E5E1D8", background: bolim === k ? "#EAF1F7" : "#fff", boxShadow: bolim === k ? "0 0 0 2px #1B4B7A33" : "none" }}>
+            <span className="text-xl" aria-hidden="true">{e}</span>
+            <b className="block text-sm mt-1" style={{ color: "#1B4B7A" }}>{__kbUi(t)}</b>
+            <small className="block text-[11px] text-slate-500">{__kbUi(s2)}</small></button>))}
+      </div>
+
+      {bolim === "tarkib" && <MiyaTarkibi apiBase={API_BASE} token={token} />}
 
       {/* REV121: bitta ZIP (papkalari bilan) yoki ko'p Excel — mavzular va miyalar birdan o'rnatiladi */}
-      <PaketYuklash token={token} onDone={() => { tarixniYukla(); darslarniYukla(); }} />
+      {bolim === "paket" && <PaketYuklash token={token} onDone={() => { tarixniYukla(); darslarniYukla(); }} />}
 
+      {bolim === "kitob" && <>
       <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
@@ -1016,7 +1032,9 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
         </div>
       )}
 
-      <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
+      </>}
+
+      {bolim === "darslar" && <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h3 className="font-bold text-sm">{__kbUi("Nashr qilingan kitob darslari")} <span className="font-normal" style={{ color: "#8A8578" }}>({darslar.length})</span></h3>
           <input type="search" value={darsQidiruv} onChange={(e) => setDarsQidiruv(e.target.value)} placeholder={__kbUi("Mavzu yoki kod…")}
@@ -1041,9 +1059,9 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
-      {korish && (
+      {bolim === "darslar" && korish && (
         <div className="rounded-2xl border p-3 bg-white" style={{ borderColor: "#1E3A32" }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-semibold">{__kbUi("O‘quvchi ko‘radigan dars")}: {korish.mavzu || korish.topic_code}</p>
@@ -1055,11 +1073,12 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
         </div>
       )}
 
-      {importlar.length > 0 && (
+      {bolim === "tarix" && !importlar.length && <p className="rounded-2xl bg-white border p-4 text-sm text-slate-500" style={{ borderColor: "#E5E1D8" }}>{__kbUi("Hali import yo‘q")}</p>}
+      {bolim === "tarix" && importlar.length > 0 && (
         <div className="rounded-2xl bg-white border p-4" style={{ borderColor: "#E5E1D8" }}>
           <h3 className="font-bold text-sm mb-3">{__kbUi("So'nggi kitob importlari")}</h3>
           <div className="space-y-2">
-            {importlar.slice(0, 8).map((item) => {
+            {importlar.slice(0, 50).map((item) => {
               const s = statusUslubi(item.status);
               return (
                 <div key={item.id} className="rounded-xl border p-3 flex items-center justify-between gap-3"
