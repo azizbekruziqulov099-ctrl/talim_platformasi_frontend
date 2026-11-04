@@ -26,6 +26,8 @@ const stars = (n) => (n ? "⭐".repeat(n) + "☆".repeat(Math.max(0, 3 - n)) : "
 const daq = (n) => __kbUi(minutesText(n));
 
 /** Ichma-ich ochiladigan bo'lim: sarlavhada qisqa xulosa, ichida — batafsil. */
+import { QobiliyatKorinish, useQobiliyat } from "./QobiliyatXaritasi.jsx";   // REV329
+
 function Bolim({ id, open, onToggle, emoji, title, summary, children }) {
   return <section className={`ff-sec ${open ? "is-open" : ""}`} id={`ff-${id}`}>
     <button type="button" className="ff-sec-head" aria-expanded={open} onClick={() => onToggle(id)}>
@@ -286,6 +288,7 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
   const [kun, setKun] = useState("");
   const [reload, setReload] = useState(0);
   const rootRef = useRef(null);
+  const qob = useQobiliyat(apiBase, token, childId);   // REV329
   useEffect(() => {
     let stop = false;
     setData(null); setOpenKey(""); setKun("");
@@ -362,6 +365,11 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
       {bugun.length > 0 && <p className="ff-muted">{__kbUi("Darsni bosing — natija, aytgan so‘zlari va uyda nima qilish kerakligi ochiladi.")}</p>}
     </Bolim>
 
+    {/* REV329: bola miyasi xaritasi — o'yinlardan qobiliyatlar */}
+    <Bolim id="qobiliyat" open={ochiq.has("qobiliyat")} onToggle={toggle} emoji="🧠" title="Qobiliyatlar xaritasi"
+      summary={qob?.kuchli ? `💪 ${__kbUi(qob.qobiliyatlar?.[qob.kuchli]?.nom || "")}` : qob?.jami_oyin ? `${qob.jami_oyin} ${__kbUi("o‘yin")}` : __kbUi("hali yo‘q")}>
+      <QobiliyatKorinish data={qob} />
+    </Bolim>
     {data.kundalik?.haftalar && <Bolim id="kundalik" open={ochiq.has("kundalik")} onToggle={toggle} emoji="📒" title="Haftalik kundalik"
       summary={`⭐ ${data.kundalik.haftalar[0]?.yulduz || 0} · ${data.kundalik.haftalar[0]?.darslar || 0} ${__kbUi("dars")}`}>
       <BolalarKundaligi haftalar={data.kundalik.haftalar} nomlar={rj?.nomlar} rejim="ota" />

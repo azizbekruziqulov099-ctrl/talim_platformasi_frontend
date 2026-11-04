@@ -28,7 +28,8 @@ import UstozXonacha from "../kid/UstozXonacha.jsx";
 import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
 import { maktabDarsSozlari } from "./maktabDarsSozlari.js";
 import { sanaQadami, sinfJoyi, mashqMateriali, tilLugati, testOvozi } from "./maktabMashqRules.js";
-import Oyin from "../kid/oyin/index.js";   // REV325: o'yin dvigateli
+import Oyin from "../kid/oyin/index.js";
+import { oyinNatijaYoz } from "../kid/kidActivity.js";   // REV329   // REV325: o'yin dvigateli
 import { qadamOyini, yoshGuruh } from "./oyinQadam.js";
 import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
 import { DAVOM_GAPI } from "../kid/izohTil.js";
@@ -1726,7 +1727,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam">
               <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh={yoshGuruh(grade)} til={darsTil || "uz"} izoh={tIzoh}
                 onSay={(t) => say(t)}
-                onNatija={() => { const my = oyinQ.stepIdx; setOyinQ(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }} />
+                onNatija={(togri, xatolar, info) => {
+                  if (kidPlan) oyinNatijaYoz(apiBase, token, { darsKod: topicCode, oyinId: oyinQ.id, togri, xato: Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0, soniya: info?.soniya });   // REV329
+                  const my = oyinQ.stepIdx; setOyinQ(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }} />
             </div>}
             {mikSoz && mode === "lesson" && <div className={`dx-mic-soz is-${mikSoz.holat}`} role="status" aria-live="polite">
               <span className="dx-mic-ikon" aria-hidden="true"><B e={mikSoz.holat === "ok" ? "⭐" : mikSoz.holat === "no" ? "💛" : "🎤"} /></span>

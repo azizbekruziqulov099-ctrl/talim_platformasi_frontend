@@ -140,3 +140,13 @@ export const kidTracker = {
   finish() { send(); clearInterval(state.timer); state.timer = null; state.code = ''; },
   active() { return state.code; },
 };
+
+
+/** REV329: o'yin natijasi — bola miyasi xaritasi uchun (tarmoq xatosi darsni to'xtatmaydi). */
+export async function oyinNatijaYoz(apiBase, token, { darsKod = "", oyinId, togri = 0, xato = 0, soniya = 0 }) {
+  if (!token || !oyinId) return;
+  try {
+    await post(apiBase, token, '/api/bola/oyin_natija', { dars_kod: String(darsKod || '').slice(0, 120), oyin_id: Number(oyinId),
+      togri: Math.max(0, Math.min(50, togri | 0)), xato: Math.max(0, Math.min(50, xato | 0)), soniya: Math.max(0, Math.min(1800, Math.round(soniya || 0))) });
+  } catch { /* ixtiyoriy */ }
+}

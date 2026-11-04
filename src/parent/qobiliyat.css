@@ -1,0 +1,14 @@
+/* REV329: qobiliyatlar xaritasi */
+.qx-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.qx-list li{display:grid;grid-template-columns:minmax(120px,1.3fr) 2fr 48px;align-items:center;gap:4px 10px}
+.qx-list li small{grid-column:1/-1;color:#64748b;font-size:12px;margin-top:-4px}
+.qx-nom{display:flex;align-items:center;gap:6px;font-weight:600}
+.qx-nom i{font-style:normal}
+.qx-bar{height:12px;border-radius:6px;background:#eef2f7;overflow:hidden}
+.qx-bar b{display:block;height:100%;border-radius:6px;transition:width .6s ease}
+.qx-foiz{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.qx-list li.is-kam .qx-nom{opacity:.6}
+.qx-xulosa{margin-top:12px;padding:10px 12px;border-radius:12px;background:#f6f8fc;display:grid;gap:4px}
+.qx-xulosa p{margin:0}
+.qx-maslahat{color:#334155}
+.qx-izoh,.qx-bosh{color:#64748b;font-size:12.5px;margin:10px 0 0}
