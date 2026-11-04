@@ -5,7 +5,7 @@ import RobotKabu from "./RobotKabu.jsx";
 import { KID_PITCH, kidRate } from "../lesson/kidLessonRules.js";
 import { chime, soft } from "./kidSounds.js";
 import { uiSpeech } from "../interface/interfaceRuntime.js";
-import { guardView, hoursText, screenCategory, screenName, screenTime, tashkentDay, timeText, warnText } from "./screenTime.js";
+import { qolganVaqt, qisqaVaqt, guardView, hoursText, screenCategory, screenName, screenTime, tashkentDay, timeText, warnText } from "./screenTime.js";
 import "./kidTimeGuard.css";
 import { B } from "./Belgi.jsx";
 
@@ -20,9 +20,16 @@ function rememberWarning(key) {
 
 /** REV103: bog'cha bolasining kunlik vaqti. Kichiklar (2–5 yosh): 1 soat dars + 1 soat erkin o'yin;
  *  6–7 yosh: 2 soat dars + 1 soat o'yin. Vaqt tugasa — robot aytadi va ekran yopiladi; hammasi tugasa — «Ertaga uchrashamiz». */
+// REV326: taymer birliklari (tarjima ro'yxatiga kirishi uchun shu yerda yozilgan)
+// eslint-disable-next-line no-unused-vars
+const _BIRLIKLAR = () => [__kbUi("soniya"), __kbUi("soat"), __kbUi("daq")];
+
 export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay = "", busy = false, jins = "qiz", grade = "", onGo, onLogout }) {
   useKbInterfaceLocale();
-  const [status, setStatus] = useState(() => screenTime.current());
+  const [status, setStatusRaw] = useState(() => screenTime.current());
+  const statusAt = useRef(Date.now());   // REV326: taymer server holatidan keyin o'zi sanaydi
+  const setStatus = useCallback((x) => { statusAt.current = Date.now(); setStatusRaw(x); }, []);
+  const [ochiq, setOchiq] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [toast, setToast] = useState("");
   const [gate, setGate] = useState(null);
@@ -44,7 +51,7 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
     return () => { off(); screenTime.stop(); };
   }, [apiBase, token]);
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 15000);
+    const id = setInterval(() => setNow(Date.now()), 1000);   // REV326: taymer har soniyada
     return () => clearInterval(id);
   }, []);
 
@@ -110,7 +117,22 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
     </div>;
   }
   if (!view) {
-    return toast ? <div className="ktg-toast" role="status" onClick={() => setToast("")}><span aria-hidden="true"><B e="⏳" /></span>{__kbUi(toast)}</div> : null;
+    // REV326: burchakda bugungi qolgan vaqt — bola ham, ota-ona ham ko'radi; halqa kamayib boradi
+    const qv = qolganVaqt(status, cat, statusAt.current, now);
+    const r = 15.5, uz = 2 * Math.PI * r;
+    const taymer = qv ? <button type="button" className={`ktg-taymer is-${cat} ${qv.cat.qoldi <= 300 ? "is-oz" : ""}`} onClick={() => setOchiq((o) => !o)}
+      aria-label={`${__kbUi(cat === "dars" ? "Dars vaqti" : "O‘yin vaqti")}: ${qisqaVaqt(qv.cat.qoldi, __kbUi)}`}>
+      <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r={r} className="ktg-t-fon" />
+        <circle cx="18" cy="18" r={r} className="ktg-t-halqa" strokeDasharray={uz} strokeDashoffset={uz * (1 - qv.cat.ulush)} /></svg>
+      <span className="ktg-t-belgi" aria-hidden="true"><B e={cat === "dars" ? "📚" : "🎮"} /></span>
+      <span className="ktg-t-matn">{qisqaVaqt(qv.cat.qoldi, __kbUi)}</span>
+      {ochiq && <span className="ktg-t-batafsil">
+        <span>📚 {__kbUi("Dars")}: <b>{qisqaVaqt(qolganVaqt(status, "dars", statusAt.current, now)?.cat.qoldi, __kbUi)}</b></span>
+        <span>🎮 {__kbUi("O‘yin")}: <b>{qisqaVaqt(qolganVaqt(status, "oyin", statusAt.current, now)?.cat.qoldi, __kbUi)}</b></span>
+        <span>⏳ {__kbUi("Jami qoldi")}: <b>{qisqaVaqt(qv.jami.qoldi, __kbUi)}</b></span>
+      </span>}
+    </button> : null;
+    return <>{taymer}{toast ? <div className="ktg-toast" role="status" onClick={() => setToast("")}><span aria-hidden="true"><B e="⏳" /></span>{__kbUi(toast)}</div> : null}</>;
   }
 
   const openGate = () => {

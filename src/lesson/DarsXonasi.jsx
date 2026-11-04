@@ -30,6 +30,8 @@ import { maktabDarsSozlari } from "./maktabDarsSozlari.js";
 import { sanaQadami, sinfJoyi, mashqMateriali, tilLugati, testOvozi } from "./maktabMashqRules.js";
 import Oyin from "../kid/oyin/index.js";   // REV325: o'yin dvigateli
 import { qadamOyini, yoshGuruh } from "./oyinQadam.js";
+import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
+import { DAVOM_GAPI } from "../kid/izohTil.js";
 import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
 const MaktabMashqlar = lazyQayta(() => import("./MaktabMashqlar.jsx"));
 const Repetitor = lazyQayta(() => import("../maktab/Repetitor.jsx"));
@@ -728,6 +730,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setMenu(false); setVariant(null); setAskReply(""); setFeedback(null); setAnswer("");
     clearTimeout(gameTimer.current); gameRef.current = null; setGame(null);   // o'yin qadamidan chiqildi
     if (next >= steps.length) {
+      if (topicCode) davomTozala(topicCode);   // REV326: dars oxirigacha o'tildi
       hush(); setPlaying(false); setStepFinished(true);
       // REV105: avval ovozli tekshiruv — ustoz aytadi, mikrofon yoqiladi, takrorlanadi; keyin odatdagi davom.
       if (voiceReady && !voiceRef.current) { setMode("ovoz"); return; }
@@ -737,8 +740,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (next < 0) return;
     if (next === 0) { sorilgan.current = new Set(); jimSanoq.current = 0; aytganlar.current = {}; voiceRef.current = null; setVoice(null); gameRes.current = {}; setGameScore(0); setGameTotal(0); }   // dars qaytadan — tekshiruv va o'yin hisobi ham qaytadan
     setIdx(next); setMode("lesson"); setStepFinished(false);
+    if (kid && topicCode && next > opening.length) davomSaqla(topicCode, next, steps.length, opening.length);   // REV326
     runStepRef.current(next, autoplay);
-  }, [steps, hush, voiceReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [steps, hush, voiceReady, kid, topicCode, opening]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const afterLesson = () => {
     {
@@ -1293,7 +1297,15 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         return;
       }
       if (res.tracked) kidTracker.start({ apiBase, token, darsKod: topicCode, isPlaying: () => playingRef.current || speakingRef.current || modeRef.current === "test" || modeRef.current === "ovoz" });
-      setTimeout(() => { if (!stop && modeRef.current === "idle") { beep(); setPlaying(true); go(0, true); } }, 700);
+      setTimeout(() => {
+        if (stop || modeRef.current !== "idle") return;
+        beep(); setPlaying(true);
+        // REV326: dars yarim qolgan bo'lsa — o'sha joydan; ustoz necha foiz o'tilganini aytadi
+        const d = kid && topicCode ? davomOl(topicCode) : null;
+        const joy = davomJoyi(d, steps.length, opening.length);
+        if (joy) { setIdx(joy); setMode("lesson"); say(gap(tIzoh, DAVOM_GAPI, { p: String(davomFoiz(d)) }), () => go(joy, true)); return; }
+        go(0, true);
+      }, 700);
     })();
     return () => { stop = true; };
   }, [kid, lesson]); // eslint-disable-line react-hooks/exhaustive-deps

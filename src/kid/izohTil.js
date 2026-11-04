@@ -272,3 +272,20 @@ for (const [til, t] of Object.entries(DIQQAT_TARJIMA)) { if (GAPLAR[til]) Object
 for (const [til, fel] of Object.entries(FEL_IZOH)) {
   for (const k of Object.keys(ISMLAR)) if (fel && fel.nilufar && !fel[k]) fel[k] = klonla(fel.nilufar, k, til);
 }
+
+// REV326: yarim qolgan dars — davom ettirish gapi (hamma izoh va immersiya tillarida)
+const DAVOM_GAP = "O'tgan safar darsning {p} foizini o'tgan eding. Qolgan joyidan davom etamiz!";
+const DAVOM_TARJIMA = {
+  ru: "В прошлый раз ты прошёл {p} процентов урока. Продолжим с того места!",
+  en: "Last time you finished {p} percent of the lesson. Let's continue from there!",
+  de: "Letztes Mal hast du {p} Prozent der Stunde geschafft. Wir machen dort weiter!",
+  fr: "La dernière fois, tu as fait {p} pour cent de la leçon. On continue à partir de là !",
+  es: "La última vez hiciste el {p} por ciento de la lección. ¡Seguimos desde ahí!",
+  ar: "في المرة الماضية أنهيت {p} بالمئة من الدرس. لنكمل من هناك!",
+  tr: "Geçen sefer dersin yüzde {p} kısmını bitirdin. Kaldığımız yerden devam edelim!",
+  zh: "上次你学完了课程的百分之{p}。我们接着学吧！",
+  ja: "前回はレッスンの{p}パーセントまで進んだね。続きからやろう！",
+  ko: "지난번에 수업의 {p}퍼센트를 했어. 이어서 해 보자!",
+};
+for (const [til, t] of Object.entries(DAVOM_TARJIMA)) { GAPLAR[til] = GAPLAR[til] || {}; GAPLAR[til][DAVOM_GAP] = t; }
+export const DAVOM_GAPI = DAVOM_GAP;

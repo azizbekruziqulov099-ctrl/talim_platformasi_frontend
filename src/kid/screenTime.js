@@ -186,3 +186,24 @@ export const screenTime = {
   onBlock(fn) { st.blockSubs.add(fn); return () => st.blockSubs.delete(fn); },
   current() { return st.status; },
 };
+
+/** REV326: burchakdagi taymer — server holatidan keyin o'tgan vaqtni hisobga olib, qolgan soniyalar.
+ *  Qaytaradi: { cat: {qoldi, limit, ulush}, jami: {qoldi, limit, ulush} } (soniyada; ulush 0..1 — qancha qolgani) yoki null. */
+export function qolganVaqt(status, cat, statusAt, now = Date.now()) {
+  if (!status || status.kuzatilmaydi || !status.jami || !status[cat]) return null;
+  const otdi = Math.max(0, Math.min(45, Math.floor((now - (statusAt || now)) / 1000)));   // signallar orasida ko'pi bilan 45 s
+  const q = (b) => {
+    const limit = Math.max(1, Number(b?.limit) || 0) * 60;
+    const qoldi = Math.max(0, (Number(b?.qoldi) || 0) * 60 - otdi);
+    return { qoldi, limit, ulush: Math.max(0, Math.min(1, qoldi / limit)) };
+  };
+  return { cat: q(status[cat]), jami: q(status.jami) };
+}
+
+/** «1 soat 05 daq» / «23 daq» / «45 s» */
+export function qisqaVaqt(soniya, t = (x) => x) {
+  const s = Math.max(0, Math.floor(Number(soniya) || 0));
+  if (s < 60) return `${s} ${t("soniya")}`;
+  const m = Math.floor(s / 60), h = Math.floor(m / 60);
+  return h ? `${h} ${t("soat")} ${String(m % 60).padStart(2, "0")} ${t("daq")}` : `${m} ${t("daq")}`;
+}

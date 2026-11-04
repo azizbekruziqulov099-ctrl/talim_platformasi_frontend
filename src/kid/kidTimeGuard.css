@@ -43,3 +43,18 @@
 /* REV318: «Avval dars» — iliq, rag'batlantiruvchi (jazo emas) */
 .ktg-veil.is-avval .ktg-card{background:linear-gradient(180deg,#fffaf0,#fff)}
 .ktg-veil.is-avval h2{color:#1b4b7a}
+/* REV326: burchakdagi taymer — qolgan vaqt halqasi */
+.ktg-taymer{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:60;display:flex;align-items:center;gap:6px;
+  padding:4px 12px 4px 4px;border:0;border-radius:999px;background:#ffffffee;box-shadow:0 4px 14px #0002;cursor:pointer;font:600 14px/1.1 inherit;color:#2b3452}
+.ktg-taymer svg{width:36px;height:36px;transform:rotate(-90deg)}
+.ktg-t-fon{fill:none;stroke:#e6ebf3;stroke-width:4}
+.ktg-t-halqa{fill:none;stroke:#2ec4b6;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.ktg-taymer.is-oyin .ktg-t-halqa{stroke:#9b7bff}
+.ktg-taymer.is-oz .ktg-t-halqa{stroke:#ff8a3d}
+.ktg-taymer.is-oz{animation:ktg-t-urg 1.6s ease-in-out infinite}
+@keyframes ktg-t-urg{50%{box-shadow:0 0 0 6px #ff8a3d33}}
+.ktg-t-belgi{position:absolute;left:4px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.ktg-t-belgi img{width:18px;height:18px}
+.ktg-t-batafsil{position:absolute;top:calc(100% + 6px);right:0;display:flex;flex-direction:column;gap:4px;min-width:190px;padding:10px 12px;
+  border-radius:14px;background:#fff;box-shadow:0 8px 22px #0003;font-weight:500;text-align:left}
+@media (prefers-reduced-motion:reduce){.ktg-taymer.is-oz{animation:none}.ktg-t-halqa{transition:none}}
