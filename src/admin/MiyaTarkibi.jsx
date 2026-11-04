@@ -142,6 +142,7 @@ export default function MiyaTarkibi({ apiBase, token }) {
             }}>🔧 {__kbUi("Ko‘rinmayotganlarni ulash")}</button>
         </div>
         <div className="flex flex-wrap gap-3 items-center text-sm rounded-xl p-2" style={{ background: "#FBF7F2" }}>
+          <span className="w-full text-xs" style={{ color: "#25683B" }}>📥 {__kbUi("Tozalashdan oldin har qatordagi 📥 tugmasi bilan testlarni Excel'ga saqlab oling (DTS test miyasi). Testi bor mavzu «Testlar» belgilanmaguncha o‘chirilmaydi — testlar yo‘qolmaydi.")}</span>
           <span className="font-semibold">{__kbUi("O‘chirilganda nima ketadi:")}</span>
           {[["miya", "Miya darslari va kitob"], ["mavzular", "Mavzular"], ["testlar", "Testlar"]].map(([k, t]) => (
             <label key={k} className="flex items-center gap-1.5"><input type="checkbox" checked={what[k]} onChange={(e) => setWhat((w) => ({ ...w, [k]: e.target.checked }))} />{__kbUi(t)}</label>))}
@@ -188,6 +189,9 @@ export default function MiyaTarkibi({ apiBase, token }) {
                         try { const res = await fetch(`${base.replace(/miya_tarkibi$/, "miya_diagnoz")}?${new URLSearchParams({ token, sinf: r.sinf, fan: r.fan })}`);
                           const d = await res.json(); setDiag({ key: k, d: res.ok ? d : { sabablar: [d.detail || `Xato ${res.status}`] } });
                         } catch (er) { setDiag({ key: k, d: { sabablar: [er.message] } }); } }}>🔍</button>
+                    {/* REV330: DTS test miyasi — shu qator testlarini Excel'ga saqlash (tozalashdan oldin zaxira) */}
+                    {Number(r.testlar) > 0 && <a className="rounded border px-1.5 py-0.5 mr-1 inline-block" style={{ borderColor: "#B9D6C2", color: "#25683B" }}
+                      title={__kbUi("Testlarni Excel'ga saqlash (DTS test miyasi)")} href={`${base}/testlar_excel?${new URLSearchParams({ token, sinf: r.sinf, fan: r.fan })}`}>📥</a>}
                     <button type="button" disabled={busy || !sum.any} title={__kbUi("Faqat shu qatorni o‘chirish")} className="rounded border px-1.5 py-0.5" style={{ borderColor: "#E4B9A8", color: "#B0553A" }} onClick={() => remove(r)}>🗑</button>
                   </td></tr>
                 {diag?.key === k && <tr><td colSpan={9} className="px-3 pb-2"><div className="rounded-lg p-2 text-xs" style={{ background: "#FFF8E6" }}>
