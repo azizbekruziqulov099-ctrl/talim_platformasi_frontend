@@ -1,0 +1,42 @@
+.kk{padding:14px 4px 90px;max-width:1100px;margin:0 auto}
+.kk-p{padding:14px;color:#6b6658}
+.kk-xato{color:#a32d2d;padding:8px}
+.kk-kategoriyalar{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:10px}
+.kk-kategoriyalar button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px;border-radius:14px;border:1px solid #e5e1d8;background:#fff;text-align:left}
+.kk-kategoriyalar button b{font-size:22px;line-height:1}
+.kk-kategoriyalar button span{font-weight:700;font-size:13px;color:#1b4b7a}
+.kk-kategoriyalar button small{font-size:11px;color:#8a8578}
+.kk-kategoriyalar button.is-faol{border-color:#1b4b7a;background:#eaf1f7;box-shadow:0 0 0 2px #1b4b7a33}
+.kk-qidir{width:100%;min-height:42px;border-radius:12px;border:1px solid #d8d3c7;padding:0 12px;margin-bottom:8px;font-size:14px}
+.kk-izoh{font-size:13px;color:#5a5648;margin:4px 2px 10px}
+.kk-panjara{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.kk-karta{display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:16px;border:1px solid #e5e1d8;background:#fff;text-align:left;min-height:120px;transition:transform .15s,box-shadow .15s}
+.kk-karta:hover{transform:translateY(-2px);box-shadow:0 8px 20px #0000000f}
+.kk-karta b{font-size:15px;color:#2b2b2b}
+.kk-karta small{color:#8a8578;font-size:12px}
+.kk-kat{font-size:24px;line-height:1}
+.kk-narx{margin-top:auto;font-size:12px;font-weight:700;color:#8a5a1c;background:#fff4d8;border-radius:999px;padding:4px 10px;align-self:flex-start}
+.kk-narx.is-ochiq{color:#25683b;background:#e7f4ec}
+.kk-ortga{border:0;background:none;color:#1b4b7a;font-weight:700;padding:6px 2px;margin-bottom:6px}
+.kk-kurs-bosh h2,.kk-bolim-nom{font-size:20px;font-weight:800;color:#1b4b7a;margin:0 0 4px}
+.kk-kurs-bosh p{color:#5a5648;font-size:13px;margin:0 0 12px}
+.kk-darslar{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.kk-dars{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid #ece8df;background:#fff;text-align:left}
+.kk-dars.is-qulf{background:#f7f5f0;color:#8a8578}
+.kk-raqam{min-width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#eaf1f7;color:#1b4b7a;font-weight:700;font-size:12px}
+.kk-dars-nom{flex:1;font-size:14px}
+.kk-dars-nom small{color:#2d8b8b;font-weight:700}
+.kk-belgi{font-size:18px}
+.kk-toliq{position:fixed;inset:0;z-index:60;background:#fff;overflow:auto}
+.kt-oyna{position:fixed;inset:0;z-index:80;background:#0008;display:grid;place-items:center;padding:16px}
+.kt-karta{background:#fff;border-radius:20px;padding:22px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px #0004}
+.kt-karta h2{font-size:18px;font-weight:800;color:#1b4b7a;margin:6px 0}
+.kt-karta p{font-size:14px;color:#5a5648}
+.kt-qulf{font-size:40px}
+.kt-narx{font-size:22px!important;font-weight:800;color:#2b2b2b!important;margin:10px 0}
+.kt-narx small{font-size:13px;color:#8a8578;font-weight:600}
+.kt-tugma{display:inline-block;min-width:160px;padding:12px 18px;border-radius:14px;border:0;background:#1b4b7a;color:#fff;font-weight:800;margin:6px;text-decoration:none}
+.kt-payme{background:#00b4c8}
+.kt-havolalar small{display:block;color:#8a8578;margin-top:6px}
+.kt-xabar{color:#8a4b12!important;background:#fff4e6;border-radius:12px;padding:10px;margin-top:10px}
+.kt-yopish{display:block;margin:12px auto 0;border:0;background:none;color:#5a5648;text-decoration:underline}

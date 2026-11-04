@@ -141,6 +141,8 @@ export function teglarniAjrat(d) {
     : { ...x, doskaTeg: x.doska, sarlavhaTeg: x.sarlavha, doska: stripSpeechTags(x.doska || ""), sarlavha: stripSpeechTags(x.sarlavha || "") })) };
 }
 
+import KursTolov from "../courses/KursTolov.jsx";
+import "../courses/kabutarKurslar.css";
 export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
@@ -176,7 +178,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV121: «Top-chi» o'yini — ustoz so'zni aytadi va bola bosishini KUTADI; to'g'ri (birinchi urinishda) — yulduz,
   // xato yoki bosmasa — yulduz yo'q. game: { stepIdx, targets, holat, kutish } · natijalar har o'yin qadami bo'yicha.
   const [game, setGame] = useState(null);
-  const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
+  const [sanoq, setSanoq] = useState(null);
+  const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
   const gameRef = useRef(null);
   const gameTimer = useRef(0);
   const gameRes = useRef({});
@@ -664,7 +667,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const yol = faqatTest ? `${encodeURIComponent(topicCode)}/test` : encodeURIComponent(topicCode);
     const qs = new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2), ...(faqatTest ? { soni: String(faqatTest) } : {}) });
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${yol}?${qs}`, { signal: controller.signal })
-      .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) { if (faqatTest && r.status === 404) onTestYoq?.(); throw new Error(d.detail || "Dars yuklanmadi"); } return d; })
+      .then(async (r) => { const d = await r.json().catch(() => ({}));
+        if (r.status === 402 && d.detail?.kod === "kurs_tolov") { setKursQulf(d.detail); throw new Error(d.detail.xabar || "Kurs yopiq"); }   // REV301
+        if (!r.ok) { if (faqatTest && r.status === 404) onTestYoq?.(); throw new Error(typeof d.detail === "string" ? d.detail : d.detail?.xabar || "Dars yuklanmadi"); } return d; })
       .then((d1) => { const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(kabuIsmiQoy(d, uiLocale))); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
@@ -1427,6 +1432,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     <div className="dx-loading-stage" aria-hidden="true"><span className="dx-loading-board">{kid ? "✏️ 🍎 ⭐" : "📘"}</span><span className="dx-loading-teacher">{kid ? "👩‍🏫" : "🧑‍🏫"}</span></div>
     <p>{__kbUi(kid ? "Ustoz darsni tayyorlayapti…" : "Dars yuklanmoqda…")}</p>
   </div>;
+  if (kursQulf) return <KursTolov apiBase={apiBase} token={token} kurs={kursQulf} onClose={onClose} />;
   if (error) return <div className="dx-empty"><p>{__kbUi(error)}</p>{onChat && <button type="button" className="dx-btn dx-primary" onClick={onChat}>{__kbUi("AI ustoz bilan suhbatda o‘rganish")}</button>}</div>;
 
   const range = step ? sceneRange(steps, idx) : [];

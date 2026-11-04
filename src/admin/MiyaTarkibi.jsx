@@ -16,6 +16,7 @@ export default function MiyaTarkibi({ apiBase, token }) {
   const [qidir, setQidir] = useState("");
   const [bolim, setBolim] = useState("hammasi");
   const [tilF, setTilF] = useState("hammasi");
+  const [ochiq, setOchiq] = useState({});   // REV302: ochilgan guruhlar (bo'lim va fan) — boshida hammasi yig'iq
   const [prog, setProg] = useState(null);   // REV190: {i, n, nom} — o'chirish jarayoni
   const stopRef = React.useRef(false);
 
@@ -42,6 +43,18 @@ export default function MiyaTarkibi({ apiBase, token }) {
   const jami = (rows) => rows.reduce((a, r) => ({ d: a.d + (Number(r.miya_darslar) || 0), m: a.m + (Number(r.mavzular) || 0), t: a.t + (Number(r.testlar) || 0), k: a.k + (r.kitoblar || []).length }), { d: 0, m: 0, t: 0, k: 0 });
   const jf = jami(filtered); const ja = jami(data?.qatorlar || []);
   const hammasiTanlangan = filtered.length > 0 && filtered.every((r) => picked[rowKey(r)]);
+  // REV302: bo'lim → fan → (guruh × til) daraxti; har darajada jami
+  const BOLIM_NOM = { bogcha: "🧒 Bog‘cha (bolalar)", maktab: "🏫 Maktab (1–11-sinf)", boshqa: "🎓 Markaz va boshqalar" };
+  const asos = (fan) => String(fan || "").replace(/\s*\(izoh: (rus|ingliz)\)/i, "").trim();
+  const guruhlar = ["bogcha", "maktab", "boshqa"].map((b) => {
+    const rows = filtered.filter((r) => bolimOf(r.sinf) === b);
+    const fmap = new Map();
+    for (const r of rows) { const n = asos(r.fan); if (!fmap.has(n)) fmap.set(n, []); fmap.get(n).push(r); }
+    const sinfTartib = (x) => { const m = String(x.sinf).match(/\d+/); return m ? Number(m[0]) : 999; };
+    const fanlar = [...fmap.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([nom, rs]) => ({ nom, j: jami(rs),
+      rows: rs.sort((x, y) => sinfTartib(x) - sinfTartib(y) || "uzruen".indexOf(tilOf(x.fan)) - "uzruen".indexOf(tilOf(y.fan))) }));
+    return { bolim: b, nom: BOLIM_NOM[b], rows, fanlar, j: jami(rows) };
+  }).filter((g) => g.rows.length);
 
   const toggle = (r) => setPicked((p) => ({ ...p, [rowKey(r)]: !p[rowKey(r)] }));
   const toggleGroup = (rows) => {
@@ -50,8 +63,9 @@ export default function MiyaTarkibi({ apiBase, token }) {
   };
   const pickOld = () => setPicked(Object.fromEntries((data?.qatorlar || []).filter((r) => r.eski_yosh).map((r) => [rowKey(r), true])));
 
-  const remove = async (faqat = null) => {
-    const chosen = faqat ? [faqat] : chosenAll;
+  const removeRows = (rows) => remove(null, rows);
+  const remove = async (faqat = null, toplam = null) => {
+    const chosen = toplam || (faqat ? [faqat] : chosenAll);
     if (!chosen.length) return;
     const list = chosen.slice(0, 8).map((r) => `• ${r.sinf} — ${r.fan}`).join("\n") + (chosen.length > 8 ? `\n… va yana ${chosen.length - 8} ta` : "");
     const word = window.prompt(__kbUi(`Quyidagilar o‘chiriladi:\n${list}\n\n${selectionSummary(chosen, what).text}\n\nQaytarib bo‘lmaydi. Tasdiqlash uchun O'CHIRISH deb yozing:`));
@@ -142,10 +156,28 @@ export default function MiyaTarkibi({ apiBase, token }) {
               <th className={th}>{__kbUi("Guruh")}</th><th className={th}>{__kbUi("Fan")}</th><th className={th}>{__kbUi("Til")}</th><th className={th}>{__kbUi("Kitob")}</th>
               <th className={`${th} text-right`}>🧠</th><th className={`${th} text-right`}>📚</th><th className={`${th} text-right`}>✍️</th><th className={th}></th></tr></thead>
             <tbody>
-              {filtered.map((r) => { const k = rowKey(r); return <React.Fragment key={k}>
+              {guruhlar.map((g) => { const bk = `b:${g.bolim}`; const bOchiq = !!ochiq[bk] || !!qidir.trim();
+                const bTan = g.rows.length > 0 && g.rows.every((r) => picked[rowKey(r)]);
+                return <React.Fragment key={bk}>
+                <tr className="border-t" style={{ background: "#EEF3F9", borderColor: "#D9E3EE" }}>
+                  <td className={td}><input type="checkbox" aria-label={g.nom} checked={bTan} onChange={() => setPicked((p) => ({ ...p, ...Object.fromEntries(g.rows.map((r) => [rowKey(r), !bTan])) }))} /></td>
+                  <td className={`${td} font-bold text-sm`} colSpan={4}><button type="button" className="flex items-center gap-2" onClick={() => setOchiq((o) => ({ ...o, [bk]: !o[bk] }))} aria-expanded={bOchiq}>
+                    <span aria-hidden="true">{bOchiq ? "▾" : "▸"}</span>{__kbUi(g.nom)} <small className="font-normal text-slate-500">({g.fanlar.length} {__kbUi("fan")}, {g.rows.length} {__kbUi("qator")})</small></button></td>
+                  <td className={`${td} text-right font-bold`}>{g.j.d}</td><td className={`${td} text-right font-bold`}>{g.j.m}</td><td className={`${td} text-right font-bold`}>{g.j.t}</td>
+                  <td className={td}><button type="button" disabled={busy || !sum.any} title={__kbUi("Butun bo‘limni o‘chirish")} className="rounded border px-1.5 py-0.5" style={{ borderColor: "#E4B9A8", color: "#B0553A" }} onClick={() => removeRows(g.rows)}>🗑</button></td></tr>
+                {bOchiq && g.fanlar.map((f) => { const fk = `f:${g.bolim}:${f.nom}`; const fOchiq = !!ochiq[fk] || !!qidir.trim();
+                  const fTan = f.rows.every((r) => picked[rowKey(r)]);
+                  return <React.Fragment key={fk}>
+                  <tr className="border-t" style={{ background: "#FAF8F3", borderColor: "#EEE9DF" }}>
+                    <td className={td}><input type="checkbox" aria-label={f.nom} checked={fTan} onChange={() => setPicked((p) => ({ ...p, ...Object.fromEntries(f.rows.map((r) => [rowKey(r), !fTan])) }))} /></td>
+                    <td className={`${td} font-semibold`} colSpan={4}><button type="button" className="flex items-center gap-2 pl-4" onClick={() => setOchiq((o) => ({ ...o, [fk]: !o[fk] }))} aria-expanded={fOchiq}>
+                      <span aria-hidden="true">{fOchiq ? "▾" : "▸"}</span>{f.nom} <small className="font-normal text-slate-500">· {[...new Set(f.rows.map((r) => r.sinf))].length} {__kbUi("guruh")} · {[...new Set(f.rows.map((r) => tilOf(r.fan)))].map((t) => t.toUpperCase()).join("/")}</small></button></td>
+                    <td className={`${td} text-right`}>{f.j.d}</td><td className={`${td} text-right`}>{f.j.m}</td><td className={`${td} text-right`}>{f.j.t}</td>
+                    <td className={td}><button type="button" disabled={busy || !sum.any} title={__kbUi("Shu fanni (hamma guruh va tilda) o‘chirish")} className="rounded border px-1.5 py-0.5" style={{ borderColor: "#E4B9A8", color: "#B0553A" }} onClick={() => removeRows(f.rows)}>🗑</button></td></tr>
+                  {fOchiq && f.rows.map((r) => { const k = rowKey(r); return <React.Fragment key={k}>
                 <tr className="border-t" style={{ borderColor: "#EEE9DF", background: picked[k] ? "#FFF5EC" : r.eski_yosh ? "#FDF8EC" : "#fff" }}>
                   <td className={td}><input type="checkbox" aria-label={`${r.sinf} ${r.fan}`} checked={!!picked[k]} onChange={() => toggle(r)} /></td>
-                  <td className={`${td} whitespace-nowrap font-semibold`}>{r.sinf}{r.eski_yosh ? " ⚠" : ""}</td>
+                  <td className={`${td} whitespace-nowrap font-semibold pl-10`}>{/^\d+$/.test(r.sinf) ? `${r.sinf}-sinf` : r.sinf}{r.eski_yosh ? " ⚠" : ""}</td>
                   <td className={td}>{String(r.fan).replace(/\s*\(izoh: (rus|ingliz)\)/i, "")}</td>
                   <td className={td}><span className="rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "#EEF3F9", color: "#1B4B7A" }}>{tilOf(r.fan).toUpperCase()}</span></td>
                   <td className={`${td} text-slate-500`} title={(r.kitoblar || []).map((x) => x.nomi).join("\n")}>{(r.kitoblar || []).length ? `${r.kitoblar.length} · ${String(r.kitoblar[0].nomi || "").slice(0, 28)}${r.kitoblar.length > 1 ? "…" : ""}` : "—"}</td>
@@ -163,6 +195,8 @@ export default function MiyaTarkibi({ apiBase, token }) {
                     <ul className="list-disc pl-4 mt-1">{(diag.d.sabablar || []).map((x, i) => <li key={i}>{x}</li>)}</ul></>}
                   <button type="button" className="ml-2 underline" onClick={() => setDiag(null)}>{__kbUi("Yopish")}</button></div></td></tr>}
               </React.Fragment>; })}
+                  </React.Fragment>; })}
+                </React.Fragment>; })}
               {!filtered.length && <tr><td colSpan={9} className="p-4 text-center text-sm text-slate-500">{__kbUi("Hech narsa topilmadi")}</td></tr>}
             </tbody>
             <tfoot className="sticky bottom-0" style={{ background: "#F3F0E8" }}><tr className="border-t font-bold" style={{ borderColor: "#E5E1D8" }}>

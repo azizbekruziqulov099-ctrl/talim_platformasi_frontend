@@ -750,7 +750,7 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
   const [darsQidiruv, setDarsQidiruv] = useState("");
   const [korish, setKorish] = useState(null);
   // REV300: bo'limlar alohida — faqat bosilgani ochiladi (uzun sahifa o'rniga)
-  const [bolim, setBolimState] = useState(() => { try { return globalThis.localStorage?.getItem("kabutar:miya_bolim") || "tarkib"; } catch { return "tarkib"; } });
+  const [bolim, setBolimState] = useState("");   // REV302: avval bo'limlar ro'yxati; bosilgani alohida sahifa bo'lib ochiladi
   const setBolim = (b) => { setBolimState(b); try { globalThis.localStorage?.setItem("kabutar:miya_bolim", b); } catch { /* */ } };
 
   const tarixniYukla = () => {
@@ -849,6 +849,7 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
 
   return (
     <div className="space-y-4">
+      {!bolim && <>
       <div className="rounded-2xl overflow-hidden text-white"
         style={{ background: "linear-gradient(135deg,#153A55 0%,#1B4B7A 58%,#2D8B8B 100%)" }}>
         <div className="p-5">
@@ -871,17 +872,24 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
         </div>
       </div>
 
-      {/* REV300: bo'lim tugmalari — har biri alohida sahifa */}
-      <div role="tablist" aria-label={__kbUi("Miya bo‘limlari")} className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      </>}
+
+      {/* REV302: bo'lim ichida — faqat o'sha bo'lim (boshqalari aralashmaydi), tepada orqaga qaytish */}
+      {bolim && <div className="flex items-center gap-3 rounded-2xl bg-white border px-3 py-2 sticky top-0 z-20" style={{ borderColor: "#E5E1D8" }}>
+        <button type="button" onClick={() => setBolim("")} className="rounded-xl border px-3 py-2 text-sm font-semibold" style={{ borderColor: "#D8D3C7", color: "#1B4B7A" }}>← {__kbUi("Bo‘limlar")}</button>
+        <b className="text-sm" style={{ color: "#1B4B7A" }}>{__kbUi({ tarkib: "🧠 Miya tarkibi", paket: "📦 Paket yuklash", kitob: "📥 Bitta kitob", darslar: "📚 Nashr qilingan darslar", tarix: "🕘 Importlar tarixi" }[bolim])}</b>
+      </div>}
+      {!bolim && <div role="list" aria-label={__kbUi("Miya bo‘limlari")} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[["tarkib", "🧠", "Miya tarkibi", "ko‘rish va o‘chirish"], ["paket", "📦", "Paket yuklash", "ZIP / ko‘p Excel"],
           ["kitob", "📥", "Bitta kitob", "shablon · tekshirish · nashr"], ["darslar", "📚", "Nashr qilingan darslar", `${darslar.length} ta`],
           ["tarix", "🕘", "Importlar tarixi", `${importlar.length} ta`]].map(([k, e, t, s2]) => (
-          <button key={k} type="button" role="tab" aria-selected={bolim === k} onClick={() => setBolim(k)}
-            className="rounded-xl border p-3 text-left transition" style={{ borderColor: bolim === k ? "#1B4B7A" : "#E5E1D8", background: bolim === k ? "#EAF1F7" : "#fff", boxShadow: bolim === k ? "0 0 0 2px #1B4B7A33" : "none" }}>
-            <span className="text-xl" aria-hidden="true">{e}</span>
-            <b className="block text-sm mt-1" style={{ color: "#1B4B7A" }}>{__kbUi(t)}</b>
-            <small className="block text-[11px] text-slate-500">{__kbUi(s2)}</small></button>))}
-      </div>
+          <button key={k} type="button" role="listitem" onClick={() => setBolim(k)}
+            className="rounded-2xl border p-4 text-left transition flex items-center gap-3 hover:shadow" style={{ borderColor: "#E5E1D8", background: "#fff" }}>
+            <span className="text-3xl" aria-hidden="true">{e}</span>
+            <span className="flex-1"><b className="block text-base" style={{ color: "#1B4B7A" }}>{__kbUi(t)}</b>
+              <small className="block text-xs text-slate-500">{__kbUi(s2)}</small></span>
+            <span className="text-slate-400" aria-hidden="true">›</span></button>))}
+      </div>}
 
       {bolim === "tarkib" && <MiyaTarkibi apiBase={API_BASE} token={token} />}
 

@@ -122,10 +122,13 @@ export default function CourseWorkspace(props) {
   return <CourseWorkspaceSession key={identity} {...props} />;
 }
 
+const KabutarKurslar = React.lazy(() => import("./KabutarKurslar.jsx"));
+
 function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initialCourseId, initialMode, onLogin, onClose, active = true }) {
   useKbInterfaceLocale();
   const authToken = readOnly ? "" : token;
-  const [view, setView] = useState(initialMode === "teaching" || initialMode === "newcourse" ? "teaching" : courseId(initialCourseId) ? "detail" : "catalog");
+  // REV301: birinchi bo'lim — platformaning darsli kurslari (fan, til, erkin til, sertifikat, xalqaro, bolalar)
+  const [view, setView] = useState(initialMode === "teaching" || initialMode === "newcourse" ? "teaching" : courseId(initialCourseId) ? "detail" : initialMode === "teachers" ? "catalog" : "kabutar");
   const [selectedCourse, setSelectedCourse] = useState(courseId(initialCourseId));
   const [studioId, setStudioId] = useState(null);
   const [revision, setRevision] = useState(0);
@@ -147,13 +150,15 @@ function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initia
     </header>
     {readOnly && <Notice>{__kbUi("Ko‘rib chiqish rejimi. Kursga yozilish va natijalarni saqlash uchun o‘z hisobingizga kiring.")}</Notice>}
     {view !== "studio" && view !== "detail" && <nav className="course-tabs" aria-label={__kbUi("Kurs bo‘limlari")}>
-      <button className={view === "catalog" ? "is-active" : ""} onClick={() => setView("catalog")}><Search size={17} />{__kbUi("Kurs topish")}</button>
+      {authToken && <button className={view === "kabutar" ? "is-active" : ""} onClick={() => setView("kabutar")}><BookOpen size={17} />{__kbUi("Kabutar kurslari")}</button>}
+      <button className={view === "catalog" ? "is-active" : ""} onClick={() => setView("catalog")}><Search size={17} />{__kbUi("O‘qituvchilar kurslari")}</button>
       {authToken && <button className={view === "learning" ? "is-active" : ""} onClick={() => setView("learning")}><BookOpen size={17} />{__kbUi("Mening kurslarim")}</button>}
       {canTeach && <button className={view === "teaching" ? "is-active" : ""} onClick={() => setView("teaching")}><GraduationCap size={17} />{__kbUi("O‘qituvchi xonasi")}</button>}
       {!authToken && onLogin && <button className="course-login-link" onClick={() => onLogin?.(selectedCourse)}>{__kbUi("Hisobga kirish")}<ArrowRight size={16} /></button>}
     </nav>}
     {capabilities.error && <Notice error>{__kbUi("Hisob imkoniyatlari olinmadi. ")}<button onClick={() => setRetryCapability((n) => n + 1)}>{__kbUi("Qayta tekshirish")}</button></Notice>}
-    {view === "catalog" && <Catalog apiBase={apiBase} token={authToken} onOpen={openCourse} />}
+    {view === "kabutar" && authToken && <React.Suspense fallback={<Notice>{__kbUi("Yuklanmoqda…")}</Notice>}><KabutarKurslar apiBase={apiBase} token={authToken} user={user} /></React.Suspense>}
+    {(view === "catalog" || (view === "kabutar" && !authToken)) && <Catalog apiBase={apiBase} token={authToken} onOpen={openCourse} />}
     {(view === "learning" || view === "teaching") && <MyCourses key={`${view}:${revision}`} apiBase={apiBase} token={authToken} teaching={view === "teaching"} canTeach={canTeach} capabilityLoading={capabilities.loading} onCreate={() => openStudio()} onOpen={openCourse} onEdit={openStudio} onCatalog={() => setView("catalog")} onLogin={onLogin} />}
     {view === "detail" && selectedCourse && <CourseDetail key={`${selectedCourse}:${revision}`} active={active} apiBase={apiBase} token={authToken} user={user} id={selectedCourse} readOnly={readOnly} onBack={() => setView("catalog")} onLogin={() => onLogin?.(selectedCourse)} onEdit={() => openStudio(selectedCourse)} />}
     {view === "studio" && (canTeach ? <CourseStudio apiBase={apiBase} token={authToken} courseId={studioId} onBack={() => setView("teaching")} onSaved={() => setRevision((n) => n + 1)} /> : capabilities.loading ? <Loading /> : <Empty>{__kbUi("Kurs yaratish uchun o‘qituvchi hisobiga kirish kerak.")}</Empty>)}

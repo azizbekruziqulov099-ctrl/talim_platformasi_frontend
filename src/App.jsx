@@ -532,6 +532,7 @@ const BOLA_QURILMA = "kabutar:bola-qurilma";
 const bolaQurilmasi = () => { try { return window.localStorage.getItem(BOLA_QURILMA) === "1"; } catch { return false; } };
 // REV162: ota-ona markazi — kundalik (AI bahosi), haftalik reja, kurslar (narx, rozilik, to'lov), «O'zingiz sinab ko'ring».
 const BolaMarkazi = _samtmLazyRetry(() => import("./parent/BolaMarkazi.jsx"));
+const KursNarxlar = React.lazy(() => import("./admin/KursNarxlar.jsx"));   // REV301
 const BogchaNarxlar = _samtmLazyRetry(() => import("./admin/BogchaNarxlar.jsx"));
 const BazaHolati = _samtmLazyRetry(() => import("./admin/BazaHolati.jsx"));   // REV248
 const MarkazPanel = _samtmLazyRetry(() => import("./markaz/MarkazPanel.jsx"));   // REV270: o'quv markazi
@@ -13106,7 +13107,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
 function menyuBandlariniOl(rol, qoshimchaBand) {
   if (rol === "admin") {
     return [
-      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
+      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: GraduationCap },
       { kalit: "admin", nom: "Shablon", ikon: FileSpreadsheet },
       { kalit: "admin_muassasalar", nom: "Muassasalar", ikon: Building2 },
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
@@ -13118,7 +13119,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_tv", nom: "Kabutar TV", ikon: Tv },   // REV187
       { kalit: "admin_sertifikat", nom: "Sertifikat guruhlari", ikon: GraduationCap },   // REV209
       { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV270
-      { kalit: "admin_bogcha", nom: "Bog‘cha narxlari", ikon: Wallet },   // REV162
+      { kalit: "admin_bogcha", nom: "Narxlar", ikon: Wallet },   // REV301: umumiy narxlar (kurslar) + bog'cha tariflari
       { kalit: "admin_statistikalar", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "admin_baza", nom: "Baza holati", ikon: BarChart3 },   // REV248
       { kalit: "admin_moderatsiya", nom: "Moderatsiya", ikon: AlertTriangle },
@@ -13137,8 +13138,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "ovoz", nom: "Ovoz ⇄ Matn", ikon: Mic },
       { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
       { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
-      { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: sinf natijalari
-      { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV280: o'qituvchi ham sertifikat/til kursiga yozila oladi
+      { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: sinf natijalari (o'qituvchi paneli)
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
             { kalit: "profil", nom: "Profil", ikon: User },
@@ -13148,20 +13148,18 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     return [
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       { kalit: "farzand", nom: "Farzand tahlili", ikon: Heart },
-      { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV280: ota-ona ham o'zi til o'rganishi mumkin
             { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
   // O'quvchi / talaba / bog'cha / markaz: asosiy yo'l — O'rganish (fan → mavzu → dars → test).
   return [
+    // REV301: hamma o'qish (fan, til, erkin til, sertifikat, xalqaro baholash, bolalar kurslari) — «Kurslar» ichida
+    { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: GraduationCap },
     { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
-    { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV270: sertifikat va erkin til
-    { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: TIMSS/PISA darajasida kurs, imtihonlar, reyting
     { kalit: "test", nom: "Testlar", ikon: PencilLine },
     { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
-    { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
     { kalit: "profil", nom: "Profil", ikon: User },
   ];
 }
@@ -14931,7 +14929,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_sertifikat" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminSertifikat token={token} /></React.Suspense>}
       {tab === "oquv_markaz" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><MarkazPanel apiBase={API_BASE} token={token} adminMi={korinishRoli === "admin"} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_baza" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BazaHolati apiBase={API_BASE} token={token} /></React.Suspense>}
-      {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
+      {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><KursNarxlar apiBase={API_BASE} token={token} /><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode, scopeId) => { setShablonOldindanTanlangan({scopeId,codes:[topicCode]}); setTab("admin"); }} />
       )}
