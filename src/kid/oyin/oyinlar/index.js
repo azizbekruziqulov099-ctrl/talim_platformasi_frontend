@@ -1,0 +1,39 @@
+// REV324: o'yin id → React komponent. Hammasi bir xil props oladi (Oyin.jsx beradi).
+import EshitVaBos from "./EshitVaBos.jsx";
+import AytVaOch from "./AytVaOch.jsx";
+import OxshashiniTop from "./OxshashiniTop.jsx";
+import JuftKartalar from "./JuftKartalar.jsx";
+import KimYashirindi from "./KimYashirindi.jsx";
+import OrtiqchasiniTop from "./OrtiqchasiniTop.jsx";
+import KabuKetmaKetligi from "./KabuKetmaKetligi.jsx";
+import HikoyaTartibi from "./HikoyaTartibi.jsx";
+import SavatgaSol from "./SavatgaSol.jsx";
+import BosibSana from "./BosibSana.jsx";
+import QaysiKop from "./QaysiKop.jsx";
+import YoqolganSon from "./YoqolganSon.jsx";
+import KabuXatoQildi from "./KabuXatoQildi.jsx";
+import HaYokiYoq from "./HaYokiYoq.jsx";
+import SehrliQuti from "./SehrliQuti.jsx";
+
+export const OYIN_KOMPONENTLAR = {
+  116: EshitVaBos,
+  117: AytVaOch,
+  83: OxshashiniTop,
+  89: JuftKartalar,
+  88: KimYashirindi,
+  86: OrtiqchasiniTop,
+  90: KabuKetmaKetligi,
+  91: HikoyaTartibi,
+  32: SavatgaSol,
+  31: BosibSana,
+  35: QaysiKop,
+  38: YoqolganSon,
+  55: KabuXatoQildi,
+  97: HaYokiYoq,
+  33: SehrliQuti,
+};
+
+export {
+  EshitVaBos, AytVaOch, OxshashiniTop, JuftKartalar, KimYashirindi, OrtiqchasiniTop, KabuKetmaKetligi, HikoyaTartibi,
+  SavatgaSol, BosibSana, QaysiKop, YoqolganSon, KabuXatoQildi, HaYokiYoq, SehrliQuti,
+};

@@ -1,0 +1,56 @@
+// REV325: Miya qadamidagi «O'yin» raqami → o'yin dvigateli uchun ma'lumot (elementlar, sonlar). Sof funksiyalar.
+import { oyinMosmi, oyinOl } from "../kid/oyin/oyinRules.js";   // sof qoidalar (JSX emas — node testida ham ishlaydi)
+
+const EMOJI = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu;
+const TEG = /\[(\w\w)\](.+?)\[\/\1\]/;
+
+/** «A) 🍐 nok», «🍎 olma», «👋 [en]Hello![/en] / salom» → { emoji, say?, uz? } */
+export function qatorElementi(qator) {
+  const s = String(qator || "").replace(/^\s*[A-Ea-e]\)\s*/, "").trim();
+  const em = s.match(EMOJI);
+  if (!em) return null;
+  const t = s.match(TEG);
+  const qolgan = s.replace(TEG, "").replace(EMOJI, "").replace(/[\/|—–-]+/g, " ").replace(/\s+/g, " ").trim();
+  return { emoji: em[0], ...(t ? { say: t[2].trim() } : {}), ...(qolgan ? { uz: qolgan } : {}) };
+}
+
+/** Qadamdan elementlar: variantlar, doska qatorlari (va darsning so'zlari — ko'proq xilma-xillik uchun). */
+export function qadamElementlari(step, darsSozlari = []) {
+  const out = [];
+  const qator = [...String(step?.variantlar || "").split("\n"), ...String(step?.doska || "").split("\n")];
+  for (const q of qator) {
+    const e = qatorElementi(q);
+    if (e) out.push(e);
+    else {   // «🍎🍎🍎» yoki «🍎 🍌 🍇» — har emoji alohida element
+      for (const m of String(q || "").matchAll(EMOJI)) out.push({ emoji: m[0] });
+    }
+  }
+  for (const w of darsSozlari || []) if (w?.emoji) out.push({ emoji: w.emoji, say: w.say || "", uz: w.uz || "" });
+  const kor = new Set();
+  return out.filter((e) => { const k = e.emoji + "|" + (e.say || e.uz || ""); if (kor.has(e.emoji) || kor.has(k)) return false; kor.add(e.emoji); kor.add(k); return true; });
+}
+
+/** Qadamdagi sonlar (javob, doska, matn) — sanash o'yinlari uchun. */
+export function qadamSonlari(step) {
+  const t = `${step?.javob || ""} ${step?.doska || ""} ${step?.ovoz || ""}`;
+  const s = [...t.matchAll(/\b(\d{1,2})\b/g)].map((m) => Number(m[1])).filter((n) => n >= 1 && n <= 20);
+  const emo = String(step?.doska || "").split("\n").map((l) => (l.match(EMOJI) || []).length).filter((n) => n > 1);
+  return [...new Set([...s, ...emo])];
+}
+
+/** O'ynaladigan o'yin: Miya'dagi raqam mos kelsa — o'sha; aks holda null (qadam avvalgidek o'tadi). */
+export function qadamOyini(step, { yosh, darsSozlari = [] } = {}) {
+  const id = Number(step?.oyin);
+  if (!id || !oyinOl(id)) return null;
+  const elementlar = qadamElementlari(step, darsSozlari);
+  const sonlar = qadamSonlari(step);
+  const sl = sonlar.length ? sonlar : undefined;
+  if (!oyinMosmi(id, { elementlar, yosh, sonlar: sl })) return null;
+  return { id, elementlar, sonlar: sl };
+}
+
+export const yoshGuruh = (grade) => {
+  const m = String(grade || "").match(/(\d)\s*[-–]\s*(\d)/);
+  const a = m ? Number(m[1]) : 4;
+  return a <= 3 ? "2-3" : a <= 5 ? "4-5" : "6-7";
+};
