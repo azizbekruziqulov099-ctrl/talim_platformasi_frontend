@@ -204,7 +204,11 @@ export function gap(izoh, tpl, vars = {}) {
   const parts = marked.split(/(\u0000\w+\u0001)/);
   return birlashtir(parts.map((part) => {
     const v = /^\u0000(\w+)\u0001$/.exec(part);
-    return v ? String(vars[v[1]] ?? "") : izohTeg(part, izoh);
+    if (!v) return izohTeg(part, izoh);
+    const q = String(vars[v[1]] ?? "");
+    // REV321: teglanmagan qiymat (son: «3», oddiy so'z) — gapning O'Z tilida o'qilsin. Oldin «3» tegdan tashqarida qolib,
+    // o'zbek ovozida aytilardi: «…{n}…» fransuzcha gapning o'rtasida o'zbekcha «uch» eshitilardi.
+    return izoh && izoh !== "uz" && q && !/\[\/?[a-z]{2}\]/.test(q) ? `[${izoh}]${q}[/${izoh}]` : q;
   }).join(""));
 }
 

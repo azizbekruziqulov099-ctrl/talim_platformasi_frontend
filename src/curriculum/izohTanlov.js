@@ -23,10 +23,19 @@ export const fanNomi = (nom) => String(nom || '').replace(IZOH_RE, ' ').replace(
 const tilKodi = (locale) => String(locale || 'uz').toLowerCase().split(/[-_]/)[0];
 
 /** Fanlar ro'yxatidan interfeys tiliga mos izohli variantlarni tanlaydi (tartib saqlanadi). */
+// REV321: til fanining o'z tilida izohli varianti mantiqsiz («Ingliz tili (izoh: ingliz)», «Rus tili (izoh: rus)») — ko'rsatilmaydi
+const FAN_TILI = [[/^ingliz|^english|^англ/i, 'en'], [/^rus\b|^rus tili|^russian|^русск/i, 'ru'], [/^nemis|^german|^deutsch|^немец/i, 'de'],
+  [/^ispan|^spanish|^español|^испан/i, 'es']];
+export function ozTilidami(nom) {
+  const asos = fanNomi(nom);
+  const t = FAN_TILI.find(([re]) => re.test(asos))?.[1];
+  return Boolean(t) && fanIzohi(nom) === t;
+}
+
 export function izohTanla(fanlar = [], locale = 'uz') {
   const til = tilKodi(locale);
   const guruh = new Map();
-  for (const f of fanlar) {
+  for (const f of fanlar.filter((x) => !ozTilidami(x?.nom))) {
     const key = `${fanNomi(f?.nom).toLowerCase()}|${f?.dars_turi || ''}|${f?.institution_type || ''}`;
     if (!guruh.has(key)) guruh.set(key, []);
     guruh.get(key).push(f);
