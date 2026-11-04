@@ -77,10 +77,10 @@ export function kalitniEslab(code, kalit, storage = store()) {
 export function tilniBelgila(code, til, storage = store()) {
   const kalit = jread(MKEY, storage)[code];
   const t = String(til || 'uz').slice(0, 2);
-  if (!kalit || !['uz', 'ru', 'en'].includes(t)) return [];
+  if (!kalit || !TILLAR.includes(t)) return [];
   const all = jread(LKEY, storage);
   const list = new Set(all[kalit] || []); list.add(t);
-  all[kalit] = ['uz', 'ru', 'en'].filter((x) => list.has(x));
+  all[kalit] = TILLAR.filter((x) => list.has(x));
   jwrite(LKEY, all, storage);
   return all[kalit];
 }
@@ -88,4 +88,5 @@ export function tilniBelgila(code, til, storage = store()) {
 export function organilganTillar(kalit, storage = store()) {
   return kalit ? (jread(LKEY, storage)[kalit] || []) : [];
 }
-export const TIL_BELGI = { uz: '🇺🇿', ru: '🇷🇺', en: '🇬🇧' };
+export const TIL_BELGI = { uz: '🇺🇿', ru: '🇷🇺', en: '🇬🇧', de: '🇩🇪', es: '🇪🇸' };   // REV328: 5 til
+const TILLAR = Object.keys(TIL_BELGI);

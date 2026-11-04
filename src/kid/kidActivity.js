@@ -32,9 +32,10 @@ export async function fetchDayPlan(apiBase, token) {
 
 /** Darsni boshlash. Kunlik reja tugagan bo'lsa — {limit: true, xabar}; REV103: bugungi dars VAQTI tugagan bo'lsa —
  *  {limit: true, vaqt: true, xabar}. Tarmoq xatosida dars baribir ochiladi. */
-export async function startLesson(apiBase, token, { darsKod, fan, mavzu, jamiQadam }) {
+export async function startLesson(apiBase, token, { darsKod, fan, mavzu, jamiQadam, boshqaTil = false }) {
   try {
-    const d = await post(apiBase, token, '/api/bola/dars/boshla', { dars_kod: darsKod, fan: fan || '', mavzu: String(mavzu || '').slice(0, 200), jami_qadam: jamiQadam || 0 });
+    // REV328: boshqaTil — o'tilgan darsni boshqa tilda takrorlash (yangi dars kvotasiga kirmaydi)
+    const d = await post(apiBase, token, '/api/bola/dars/boshla', { dars_kod: darsKod, fan: fan || '', mavzu: String(mavzu || '').slice(0, 200), jami_qadam: jamiQadam || 0, boshqa_til: Boolean(boshqaTil) });
     return { ok: true, tracked: !d.kuzatilmaydi, reja: d.reja || null };
   } catch (e) {
     // REV162: 'reja' — haftalik reja bo'yicha bugun shu fandan yangi dars yo'q (yakshanba, keyingi kun yoki navbatda)

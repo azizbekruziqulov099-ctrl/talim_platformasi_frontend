@@ -14,7 +14,8 @@ import { capitalizeTopic, isReviewTopic, kidSubjectEmoji, kidTopicColor, kidTopi
 import { lessonDone, lessonStars, kalitniEslab, organilganTillar, tilKalit, TIL_BELGI } from './kidProgress.js';
 import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
-import { davomOl, davomFoiz } from '../lesson/darsDavomi.js';   // REV326: yarim qolgan dars foizi
+import { davomOl, davomFoiz } from '../lesson/darsDavomi.js';
+import { tilVariantlari, moslar } from './boshqaTil.js';   // REV328: shu darsni boshqa tilda   // REV326: yarim qolgan dars foizi
 import { KURS, SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
@@ -95,7 +96,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  // REV168: fan ixtiyoriy — bosh sahifadagi «Bugungi darslar»dan boshqa fanning darsi ham shu yo'l bilan ochiladi
  const unlockOf=(group,sub=current)=>unlockLessons(group.mavzular.map(t=>t.dars_bor?topicTarget(sub,group,t,type).lesson_code:''),plan,sub?.nom||'');
  // REV81: uzluksiz o'rganish — dars tugagach keyingi darsga o'tish (guruh ichidagi tartib bo'yicha).
- const openLesson=(group,topic,sub=current)=>{
+ const openLesson=(group,topic,sub=current,opts={})=>{
   const fanNom=sub?.nom||'';
   const list=group.mavzular.filter(t=>t.dars_bor);const i=list.indexOf(topic);let next=i>=0?list[i+1]:null;
   if(kid&&plan?.bogcha&&next){
@@ -105,7 +106,9 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
   }
   // REV130: dars boshida takrorlanadigan «o'tgan mavzu» — ro'yxatdagi oldingi oddiy dars (takror darslari hisoblanmaydi)
   const prevTopic=i>0?[...list.slice(0,i)].reverse().find(t=>!isReviewTopic(t.nomi)):null;
-  const target={...topicTarget(sub,group,topic,type),_topic:topic.nomi,_prev:prevTopic?topicTarget(sub,group,prevTopic,type).lesson_code:'',_next:next?{title:next.nomi,open:()=>openLesson(group,next,sub)}:null};
+  // REV328: shu darsning boshqa tildagi nusxalari (fan bir necha izoh tilida o'rnatilgan bo'lsa) — dars oxirida bayroqlar
+  const boshqa=kid?tilVariantlari(catalog?.fanlar||[],fanNom).map(v=>{const m=moslar(v.sub,group,topic);return m?{til:v.til,belgi:v.belgi,nomi:v.nomi,open:()=>openLesson(m.group,m.topic,v.sub,{boshqaTil:true})}:null;}).filter(Boolean):[];
+  const target={...topicTarget(sub,group,topic,type),_topic:topic.nomi,_fan:fanNom,_boshqaTil:Boolean(opts.boshqaTil),_boshqa:boshqa,_prev:prevTopic?topicTarget(sub,group,prevTopic,type).lesson_code:'',_next:opts.boshqaTil?null:next?{title:next.nomi,open:()=>openLesson(group,next,sub)}:null};
   // REV260: maktab fan darsidan oldin — «Mavzu oldidan: xalqaro baholashda» (TIMSS statistikasi, daraja, reyting, namuna savollar)
   // REV274: xalqaro baholash maktab darslariga aralashmaydi — u menyuda alohida bo'lim (Azizjon talabi). Blok kodi saqlangan.
   if(XB_OLDI_YOQ&&!kid&&!teacher&&!preview&&type==='maktab'&&XB_FAN.test(fanNom)){setOldi({target,fan:fanNom,sinf:String(group.sinf||''),nomi:topic.nomi});return;}
@@ -148,7 +151,8 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
     oldingiKod={classroom._prev||''}
     nextLesson={classroom._next?{title:capitalizeTopic(classroom._next.title),open:classroom._next.open}:null}
     onChat={onOpenLesson?()=>onOpenLesson(classroom):undefined}
-    kidPlan={kid&&!preview?{fan:planFan,mavzu:capitalizeTopic(classroom._topic||'')}:null}
+    kidPlan={kid&&!preview?{fan:classroom._fan||planFan,mavzu:capitalizeTopic(classroom._topic||''),boshqaTil:classroom._boshqaTil}:null}
+    boshqaTillar={classroom._boshqa||[]}
     onKidFinished={(_,reja)=>{if(reja)setPlan(p=>p?{...p,...reja}:p);}}
     cheklovsiz={Boolean(preview||user?.is_admin)}
     onClose={()=>setClassroom(null)}/>

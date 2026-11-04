@@ -151,7 +151,7 @@ export function teglarniAjrat(d) {
 }
 
 import KursTolov from "../courses/KursTolov.jsx";
-export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
+export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, boshqaTillar = [], cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
   const uiT = (m) => (m && ["ru", "en"].includes(uiLocale) && !/\[[a-z]{2}\]/.test(m) ? `[${uiLocale}]${m}[/${uiLocale}]` : m);
@@ -1282,7 +1282,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     let stop = false;
     (async () => {
       const today = screenTime.current();
-      const res = kidPlan ? await startLesson(apiBase, token, { darsKod: topicCode, fan: kidPlan.fan, mavzu: kidPlan.mavzu || lesson.topic?.mavzu, jamiQadam: steps.length })
+      const res = kidPlan ? await startLesson(apiBase, token, { boshqaTil: Boolean(kidPlan.boshqaTil), darsKod: topicCode, fan: kidPlan.fan, mavzu: kidPlan.mavzu || lesson.topic?.mavzu, jamiQadam: steps.length })
         : !cheklovsiz && today?.tugadi?.dars && !today.kuzatilmaydi   // REV103: reja tashqarisidan ochilgan dars ham dars vaqti tugagan bo'lsa ochilmaydi
           ? { ok: false, limit: true, vaqt: true, xabar: __kbUi("Bugungi dars vaqti tugadi. Barakalla! Endi biroz o‘ynasang bo‘ladi.") }
           : { ok: true, tracked: false };
@@ -1876,6 +1876,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {nextLesson && !kidResult?.bugunTugadi
               ? <button type="button" className="dx-kid-go" onClick={() => { hush(); nextLesson.open(); }}>▶ {__kbUi("Keyingi dars")}</button>
               : <p className="dx-kid-note">🌙 {__kbUi("Bugungi darslar tugadi. Ertaga yangi dars ochiladi!")}</p>}
+            {/* REV328: shu darsni boshqa tilda — bola bayroqni bosadi, o'sha dars shu tilda ochiladi */}
+            {boshqaTillar?.length > 0 && <div className="dx-boshqa-til" role="group" aria-label={__kbUi("Shu darsni boshqa tilda o‘tish")}>
+              <small>🌍 {__kbUi("Shu darsni boshqa tilda o‘tish")}</small>
+              <div>{boshqaTillar.map((v) => <button key={v.til} type="button" className="dx-til-btn" onClick={() => { hush(); v.open(); }}
+                aria-label={__kbUi(v.nomi)}><span aria-hidden="true">{v.belgi}</span><b>{__kbUi(v.nomi)}</b></button>)}</div>
+            </div>}
             <div className="dx-row">
               <button type="button" className="dx-btn" onClick={() => { setScore(0); setKidResult(null); gameRes.current = {}; setGameScore(0); setGameTotal(0); setPlaying(true); go(0, true); }}>🔁 {__kbUi("Yana bir bor")}</button>
               {onClose && <button type="button" className="dx-btn" onClick={() => { hush(); onClose(); }}>🏠 {__kbUi("Darslar")}</button>}
