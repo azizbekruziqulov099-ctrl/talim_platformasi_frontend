@@ -4,6 +4,9 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   build: {
+    // REV308: rasmlar JS ichiga base64 bo'lib kirmasin — aks holda dars xonasi bilan 2+ MB yuklanardi (684 ta ustoz
+    // yuzi kadri va kutubxona rasmlari). Endi har rasm alohida fayl: faqat kerakli ustoz/rasm yuklanadi.
+    assetsInlineLimit: (file) => (/\.(webp|png|jpe?g|gif)$/i.test(file) ? false : undefined),
     rollupOptions: {
       output: {
         manualChunks(id) {

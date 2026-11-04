@@ -52,6 +52,8 @@ function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mou
   const poza = pozaFor(mood, { hasPics, listening });
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
   const p = t[poza];
+  // REV308: yuz kadrlari endi alohida fayl — shu pozaning kadrlari oldindan yuklanadi (gapirganda og'iz miltillamasin)
+  useEffect(() => { try { (p?.yuz?.kadr || []).forEach((src) => { const im = new Image(); im.decoding = "async"; im.src = src; }); } catch { /* */ } }, [p]);
   const ogRasm = OG_RASM[t.lab] || OG_RASM.ayol;
   const [kadr, setKadr] = useState(1);
   // REV153: gapirganda og'iz — lab varag'idagi 10 shakldan (ovoz balandligi + aytilayotgan so'zning unlilari). -1 — chizilgan og'iz.
