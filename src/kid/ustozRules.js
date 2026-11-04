@@ -24,7 +24,7 @@ export function ustozFor(fan = "", iz = "uz") {
  * REV181: ikki ustozli til darsi — izoh tili ustozi: o'zbekcha — Nilufar opa, ruscha — Anna, inglizcha — Emily.
  * O'rganilayotgan til izoh tili bilan bir xil bo'lsa (yoki ustoz bitta odam bo'lsa) — ikkinchi ustoz yo'q ("").
  */
-export const IZOH_USTOZ = { uz: "nilufar", ru: "olga", en: "sarah" };   // REV240: izoh — alohida ustozlar (til ustozi bilan chalkashmasin)
+export const IZOH_USTOZ = { uz: "nilufar", ru: "olga", en: "sarah", de: "lukas", es: "carlos" };   // REV317: nemis/ispan izohi   // REV240: izoh — alohida ustozlar (til ustozi bilan chalkashmasin)
 export function ikkinchiUstoz({ til = "", iz = "uz", ustoz = "" } = {}) {
   if (!til) return "";
   const izL = IZOH_USTOZ[iz] ? iz : "uz";

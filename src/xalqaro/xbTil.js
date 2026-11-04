@@ -29,7 +29,7 @@ export function T(s) {
 
 /** Shablonli gap: tf("{n}-sinf", {n: 8}) → «8-sinf» / «8 класс» / «Grade 8». Ovoz uchun ham (yangi alifbosiz). */
 export function tf(uz, vars = {}, til = xbTil()) {
-  const shablon = til === "uz" ? uz : (MATNLAR[uz]?.[til] ?? uz);
+  const shablon = til === "uz" ? uz : (MATNLAR[uz]?.[til] ?? uiText(uz));   // REV317: nemis/ispan — interfeys tarjimasi
   return String(shablon).replace(/\{(\w+)\}/g, (m, k) => (Object.hasOwn(vars, k) ? String(vars[k] ?? "") : m));
 }
 
@@ -37,5 +37,5 @@ export function tf(uz, vars = {}, til = xbTil()) {
 export function ovozMatni(text, til = xbTil()) {
   const t = String(text || "").trim();
   if (!t || til === "uz") return t;
-  return `[${til}]${t.replace(/\[\/?(?:uz|ru|en)\]/g, "")}[/${til}]`;
+  return `[${til}]${t.replace(/\[\/?(?:uz|ru|en|de|es)\]/g, "")}[/${til}]`;
 }

@@ -36,7 +36,7 @@ export const subscribeTranslation=callback=>{listeners.add(callback);return()=>l
 export const translationSnapshot=()=>revision;
 export const translationStatus=()=>status;
 export const setInterfaceRuntimeLocale=value=>{locale=value;};
-export const interfaceLocaleTag=()=>({uz:'uz-UZ','uz-Cyrl':'uz-Cyrl-UZ',ru:'ru-RU',en:'en-US',tr:'tr-TR',kk:'kk-KZ'}[locale]||'uz-UZ');
+export const interfaceLocaleTag=()=>({uz:'uz-UZ','uz-Cyrl':'uz-Cyrl-UZ',ru:'ru-RU',en:'en-US',de:'de-DE',es:'es-ES',tr:'tr-TR',kk:'kk-KZ'}[locale]||'uz-UZ');
 export const translationSession=()=>({token,revision:sessionRevision});
 export const onTranslationSessionChange=cb=>{sessionListeners.add(cb);return()=>sessionListeners.delete(cb);};
 export function setTranslationSession(value){if(token===(value||''))return;token=value||'';sessionRevision++;for(const cb of sessionListeners)cb();emit();}
@@ -149,7 +149,7 @@ export function translateUi(text,target='uz',values){
 export const uiText=text=>translateUi(text,locale);
 // REV125: ovoz uchun — interfeys tiliga o'giriladi va o'sha til tegiga olinadi (rus/ingliz gap o'zbek ovozida o'qilmasin)
 export const interfaceLocale=()=>locale;
-export const uiSpeech=text=>{const t=translateUi(String(text||''),locale);return (locale==='ru'||locale==='en')&&t?`[${locale}]${t}[/${locale}]`:t;};
+export const uiSpeech=text=>{const t=translateUi(String(text||''),locale);return ['ru','en','de','es'].includes(locale)&&t?`[${locale}]${t}[/${locale}]`:t;};   // REV317: 5 til
 // ── REV121: to'liq oflayn tarjima paketlari (ru, en) ───────────────────────
 // Interfeys matnlari oldindan tarjima qilingan; paket faqat shu til tanlanganda yuklanadi (alohida chunk).
 // Paketda yo'q matnlar (yangi qo'shilganlari) — avvalgidek brauzer tarjimasi orqali.

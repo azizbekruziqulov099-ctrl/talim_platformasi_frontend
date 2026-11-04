@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { INTERFACE_LOCALES, normalizeInterface } from './interface/interfaceRules.js';
 import { ensureLocalePack, localePackReady, translateUi } from './interface/interfaceRuntime.js';
 
-test('REV121: sayt uch tilda; eski tanlov o\'zbekchaga qaytadi', () => {
-  assert.deepEqual(INTERFACE_LOCALES.map((l) => l.value), ['uz', 'ru', 'en']);
+test('REV121/REV317: sayt 5 tilda (uz, ru, en, de, es); eski tanlov o\'zbekchaga qaytadi', () => {
+  assert.deepEqual(INTERFACE_LOCALES.map((l) => l.value), ['uz', 'ru', 'en', 'de', 'es']);
   assert.equal(normalizeInterface({ locale: 'tr' }).locale, 'uz');
   assert.equal(normalizeInterface({ locale: 'en' }).locale, 'en');
 });

@@ -14,7 +14,7 @@ test('ikkinchi ustoz: izoh tiliga qarab (uz — Nilufar, ru — Olga, en — Sar
   assert.equal(ikkinchiUstoz({ til: 'ru', iz: 'ru', ustoz: 'anna' }), '');
   assert.equal(ikkinchiUstoz({ til: '', iz: 'uz', ustoz: 'sardor' }), '');
   assert.equal(ikkinchiUstoz({ til: 'en', iz: 'xx', ustoz: 'emily' }), 'nilufar');   // noma'lum izoh — o'zbek
-  assert.deepEqual(Object.keys(IZOH_USTOZ).sort(), ['en', 'ru', 'uz']);
+  assert.deepEqual(Object.keys(IZOH_USTOZ).sort(), ['de', 'en', 'es', 'ru', 'uz']);   // REV317: 5 til
   assert.equal(XONA.lukas, 'til_lukas');
 });
 

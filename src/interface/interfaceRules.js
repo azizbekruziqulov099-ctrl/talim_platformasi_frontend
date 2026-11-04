@@ -12,6 +12,9 @@ export const INTERFACE_LOCALES = Object.freeze([
   { value: 'uz', label: 'O‘zbekcha', lang: 'uz-Latn' },
   { value: 'ru', label: 'Русский', lang: 'ru' },
   { value: 'en', label: 'English', lang: 'en' },
+  // REV317: nemis va ispan — tayyor tarjima paketi bo'lmagan matnlar brauzerda avtomatik tarjima qilinib saqlanadi
+  { value: 'de', label: 'Deutsch', lang: 'de' },
+  { value: 'es', label: 'Español', lang: 'es' },
 ]);
 export const DEFAULT_INTERFACE = Object.freeze({ locale: 'uz', theme: 'system', motion: 'system', translateContent: false });
 export const normalizeInterfaceKey = text => String(text).trim().replace(/[‘’ʻʼ`]/g, "'").replace(/\s+/g, ' ');
