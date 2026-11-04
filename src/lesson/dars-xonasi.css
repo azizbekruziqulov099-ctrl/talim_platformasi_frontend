@@ -967,3 +967,31 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-yotiq.dx-klav-ochiq .dx-board{padding-bottom:12px!important}
 
 /* REV312: telefon (yotqizilgan dars) — klaviatura ustoz turgan chap ustunda (doska va savol ochiq qoladi) */
+
+/* REV313: zamonaviy elektron doska (interaktiv panel) — maktab sinfxonasi: to'q ko'k ekran, ingichka qora ramka,
+   aniq shrift, tepada mavzu nomi yorlig'i, pastda asboblar; to'lsa yangi sahifa */
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-frame{background:#111418!important;padding:1.1cqh!important;border-radius:1.2cqh!important;box-shadow:0 1.4cqh 3.6cqh #0007,inset 0 0 0 .25cqh #2a2f36!important;gap:.6cqh}
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board{background:linear-gradient(180deg,#0f2c4b,#0b2440)!important;color:#f1f5fb!important;border-radius:.6cqh!important;
+  font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,sans-serif!important;padding:6.2cqh 3cqw 2.4cqh!important;box-shadow:inset 0 0 4cqh #0006}
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .dx-title,.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board h3{font-family:inherit!important;color:#ffd56b!important;font-weight:800}
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .dx-line,.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .mdx-line,.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .dx-task{font-family:inherit!important;color:#f1f5fb}
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .katex{color:#ffffff}
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .dx-line.is-new,.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .dx-line.is-hozir{color:#ffd56b}
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-board .dx-task{background:#ffffff10;border:1px solid #ffffff22;border-radius:1cqh}
+.dx-root.dx-sinf:not(.dx-aud-bogcha) .dx-ledge{display:none}
+.dx-panel-chip{position:absolute;top:1.4cqh;left:1.6cqw;z-index:2;max-width:60%;padding:.6cqh 1.2cqw;border-radius:.6cqh;background:#1f4f7d;color:#fff;font:700 max(11px,2.2cqh) system-ui,sans-serif;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 .3cqh 1cqh #0005}
+.dx-board .is-sahifa-yashirin{display:none!important}
+.dx-board.is-korish{overflow:auto!important}
+.dx-board.is-yangi-sahifa{animation:dx-sahifa .55s ease-out}
+.dx-board.is-yangi-sahifa::after{content:"+";position:absolute;right:2cqw;bottom:1.4cqh;width:5cqh;height:5cqh;border-radius:50%;display:grid;place-items:center;background:#1f4f7d;color:#fff;font:800 3.4cqh system-ui;animation:dx-plus .9s ease-out forwards;pointer-events:none}
+@keyframes dx-sahifa{from{transform:translateX(3%);opacity:.4}to{transform:none;opacity:1}}
+@keyframes dx-plus{0%{transform:scale(.4);opacity:0}30%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:0}}
+.dx-panel-asboblar{display:flex;align-items:center;gap:.8cqw;min-height:4.6cqh;padding:0 .6cqw}
+.dx-pa-t{min-width:5.2cqh;height:4.4cqh;border-radius:.8cqh;border:1px solid #3b434d;background:#1b2027;color:#e6edf5;font:700 max(11px,2.1cqh) system-ui,sans-serif;padding:0 1cqw;cursor:pointer}
+.dx-pa-t:disabled{opacity:.35}
+.dx-pa-son{color:#aab6c4;font:600 max(10px,2cqh) system-ui,sans-serif;min-width:6cqw;text-align:center}
+.dx-pa-bosh{flex:1}
+.dx-pa-yoz{background:#1f4f7d;border-color:#2c6aa3}
+.dx-pa-t[hidden]{display:none}
+.dx-root:not(.dx-sinf) .dx-panel-chip{display:none}

@@ -248,6 +248,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV175: maktabda ham haqiqiy sinfxona — ustoz o'z xonasida (deraza, ob-havo, soat), doska xona o'rtasida katta
   const sinfXona = !kid && Boolean(USTOZLAR[ustozRef.current]);
   const doskaRef = useRef(null);
+  // REV313: elektron doska — to'lsa yangi sahifa (eski qatorlar oldingi sahifaga o'tadi), ◀ ▶ bilan ko'rish
+  const sahifaRef = useRef(0);
+  const [sahifa, setSahifa] = useState({ n: 0, korish: false });
   // REV177: test, ovozli tekshiruv va natija — sinfxonadan chiqib, robot Kabuning o'z muhitida (ustoz yo'q, faqat Kabu)
   const darsTilRef = useRef("");   // REV180: o'rganilayotgan til (ikki Kabu va ovoz uchun)
   const kabuMuhit = sinfXona && ["test", "ovoz", "result"].includes(mode);
@@ -1331,11 +1334,28 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   useLayoutEffect(() => {
     const el = doskaRef.current;
     if (!sinfXona || !el) return undefined;
+    sahifaRef.current = 0; setSahifa({ n: 0, korish: false });
+    el.querySelectorAll(".is-sahifa-yashirin").forEach((x) => { x.classList.remove("is-sahifa-yashirin"); delete x.dataset.sahifa; });
     const sigdir = () => {
+      if (el.classList.contains("is-korish")) return;   // o'quvchi oldingi sahifani ko'ryapti — tegmaymiz
       let z = 1;
       el.style.setProperty("--dx-sig", "1");
-      // REV181: yozuv o'qiladigan bo'lib qolsin — 0.7 dan kichraymaydi; baribir sig'masa doska suriladi va hozirgi qator ko'rinadi
-      for (let k = 0; k < 24 && el.scrollHeight > el.clientHeight + 2 && z > 0.7; k++) { z = Math.round((z - 0.05) * 100) / 100; el.style.setProperty("--dx-sig", String(z)); }
+      // REV313: yozuv yirik qoladi (0.85 dan kichraymaydi); baribir sig'masa — YANGI SAHIFA: oldingi qatorlar yashiriladi,
+      // doskada hozirgi qator qoladi (haqiqiy elektron panel kabi «+»), oldingi sahifani ◀ bilan ko'rish mumkin
+      for (let k = 0; k < 24 && el.scrollHeight > el.clientHeight + 2 && z > 0.85; k++) { z = Math.round((z - 0.05) * 100) / 100; el.style.setProperty("--dx-sig", String(z)); }
+      if (el.scrollHeight > el.clientHeight + 2) {
+        // yangi sahifa: eng eski qatorlar bittalab oldingi sahifaga o'tadi — doskaga sig'guncha (yangi qatorlar ko'rinib turadi)
+        const qatorlar = [...new Set(el.querySelectorAll(".dx-line:not(.is-sahifa-yashirin), .mdx-line:not(.is-sahifa-yashirin)"))]
+          .filter((x) => !x.closest(".dx-task") && !x.parentElement?.closest(".dx-line, .mdx-line"));
+        if (qatorlar.length >= 2) {
+          const n = ++sahifaRef.current;
+          for (let k = 0; k < qatorlar.length - 1 && el.scrollHeight > el.clientHeight + 2; k++) {
+            qatorlar[k].classList.add("is-sahifa-yashirin"); qatorlar[k].dataset.sahifa = String(n);
+          }
+          el.classList.remove("is-yangi-sahifa"); void el.offsetWidth; el.classList.add("is-yangi-sahifa");
+          setSahifa({ n, korish: false });
+        }
+      }
       const sigmas = el.scrollHeight > el.clientHeight + 2;
       el.classList.toggle("is-sigmas", sigmas);
       if (sigmas) { const h = el.querySelector(".dx-line.is-hozir") || [...el.querySelectorAll(".dx-line")].pop(); try { h?.scrollIntoView({ block: "nearest" }); } catch { /* */ } }
@@ -1654,6 +1674,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         </> : <div className="dx-kabu-robot"><KidStage compact tur={String(uiLocale || "uz").slice(0, 2)} mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div>}</div>}
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
         <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
+          {sinfXona && !kid && <div className="dx-panel-chip" aria-hidden="true">{lesson.topic?.mavzu}</div>}
           {matem && mode === "lesson" && <EsdaTut qoidalar={esdaTut(steps, stepFinished || !speaking ? idx : idx - 1)} sarlavha={__kbUi("Esda tut")} />}
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan, uiLocale)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
@@ -1801,6 +1822,25 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             </div>
           </div>}
         </div>
+        {/* REV313: elektron panel asboblari — sahifalar (◀ 2/3 ▶), yangi sahifa belgisi, javob yozish (klaviaturani ochadi) */}
+        {sinfXona && !kid && mode === "lesson" && (sahifa.n > 0 || step?.turi === "amaliy") && <div className="dx-panel-asboblar" role="toolbar" aria-label={__kbUi("Doska asboblari")}>
+          {sahifa.n > 0 && <>
+            <button type="button" className="dx-pa-t" disabled={sahifa.korish} aria-label={__kbUi("Oldingi sahifa")} onClick={() => {
+              const el = doskaRef.current; if (!el) return;
+              el.classList.add("is-korish"); el.querySelectorAll(".is-sahifa-yashirin").forEach((x) => x.classList.remove("is-sahifa-yashirin"));
+              el.scrollTop = 0; setSahifa((x) => ({ ...x, korish: true }));
+            }}>◀</button>
+            <span className="dx-pa-son">{sahifa.korish ? "…" : sahifa.n + 1} / {sahifa.n + 1}</span>
+            <button type="button" className="dx-pa-t" disabled={!sahifa.korish} aria-label={__kbUi("Hozirgi sahifa")} onClick={() => {
+              const el = doskaRef.current; if (!el) return;
+              el.classList.remove("is-korish"); el.querySelectorAll("[data-sahifa]").forEach((x) => x.classList.add("is-sahifa-yashirin"));
+              setSahifa((x) => ({ ...x, korish: false }));
+            }}>▶</button>
+          </>}
+          <span className="dx-pa-bosh" />
+          <button type="button" className="dx-pa-t dx-pa-yoz" aria-label={__kbUi("Javob yozish")} title={__kbUi("Javob yozish")} onClick={() => doskaRef.current?.querySelector(".dx-javob-quti")?.click()}
+            hidden={!(step && step.turi === "amaliy")}>✏️ {__kbUi("Yozish")}</button>
+        </div>}
         <div className="dx-ledge" aria-hidden="true" />
       </div>
 

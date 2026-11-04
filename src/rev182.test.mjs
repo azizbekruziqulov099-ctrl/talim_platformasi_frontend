@@ -10,9 +10,10 @@ test('telefonda dars sahifasi ochilishi bilan to\'liq ekran (surib qidirish kera
   assert.match(dx, /focus && !\(mode === "idle" && onClose\) \? exitLesson/);
 });
 
-test('doska yozuvi 0.7 dan kichraymaydi; sig\'masa doska suriladi va hozirgi qator ko\'rinadi', () => {
+test('REV313: doska yozuvi 0.85 dan kichraymaydi; sig\'masa — yangi sahifa (eski qatorlar oldingi sahifaga)', () => {
   const dx = o('./lesson/DarsXonasi.jsx');
-  assert.match(dx, /z > 0\.7; k\+\+/);
+  assert.match(dx, /z > 0\.85; k\+\+/);
+  assert.match(dx, /is-sahifa-yashirin/);
   assert.match(dx, /is-sigmas/);
 });
 
