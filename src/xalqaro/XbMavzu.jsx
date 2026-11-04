@@ -88,7 +88,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
       </div>)}</section>}
     {!oldi && d.maktab_darslari?.length > 0 && <section className="xb-blok"><h4>📚 {T("Kerakli maktab darslari (1–11 sinf) — takrorlash uchun")}</h4>
       <div className="xb-maktab">{d.maktab_darslari.map((m) => <button key={m.topic_code} type="button" className="xb-btn xb-btn-yengil" onClick={() => onMaktabDarsi?.(m)}>
-        <small>{tf("{n}-sinf", { n: m.sinf })} · {m.fan}</small> {m.nom}</button>)}</div></section>}
+        <small>{tf("{n}-sinf", { n: m.sinf })} · {String(m.fan || "").replace(/\s*\(izoh: (rus|ingliz)\)/i, "")}</small> {m.nom}</button>)}</div></section>}
     <div className="xb-tug-qator">
       {oldi && onDavom && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDavom(); }}>▶ {T("Maktab darsini boshlash")}</button>}
       {d.dars_kodi && onDars && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDars(d); }}>🧑‍🏫 {T("Xalqaro darajadagi dars")}</button>}
