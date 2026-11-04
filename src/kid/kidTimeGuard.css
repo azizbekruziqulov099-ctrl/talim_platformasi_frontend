@@ -40,3 +40,6 @@
 /* REV167: uxlash vaqti — tungi osmon */
 .ktg-veil.is-tun{background:radial-gradient(circle at 50% 20%,#2a3a6b 0%,#141c38 70%)}
 .ktg-veil.is-tun .ktg-card{background:linear-gradient(180deg,#f5f3ff,#e9e5ff)}
+/* REV318: «Avval dars» — iliq, rag'batlantiruvchi (jazo emas) */
+.ktg-veil.is-avval .ktg-card{background:linear-gradient(180deg,#fffaf0,#fff)}
+.ktg-veil.is-avval h2{color:#1b4b7a}

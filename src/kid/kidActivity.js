@@ -65,6 +65,8 @@ export async function finishLesson(apiBase, token, { darsKod, togri = 0, jami = 
   const paket = sozlarPaketi(sozlar);
   // REV171: diqqat — darsdan necha marta chiqdi, qisqa «kirib-chiqish»lar, yo'q bo'lgan soniyalar (ota-onaga hisobot)
   const d = diqqat ? { chiqish: Math.min(200, Math.max(0, diqqat.chiqish | 0)), qisqa: Math.min(200, Math.max(0, diqqat.qisqa | 0)), yoq_soniya: Math.min(86400, Math.max(0, Math.round((diqqat.yoqMs || 0) / 1000))) } : null;
+  // REV318: dars tugadi — «avval dars» qulfi darhol ochilsin (keyingi signalni kutmasdan)
+  setTimeout(() => { import('./screenTime.js').then((m) => m.screenTime.refresh()).catch(() => {}); }, 1200);
   try { return await post(apiBase, token, '/api/bola/dars/tugat', { dars_kod: darsKod, togri, jami, ortacha_ms, ...(ovoz_jami ? { ovoz_togri, ovoz_jami } : {}), ...(paket.length ? { sozlar: paket } : {}), ...(d && d.chiqish ? d : {}) }); } catch { return null; }
 }
 

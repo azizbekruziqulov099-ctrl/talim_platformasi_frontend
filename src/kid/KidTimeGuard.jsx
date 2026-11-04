@@ -93,6 +93,22 @@ export default function KidTimeGuard({ apiBase, token, userId = "", tab, overlay
     return () => clearTimeout(t);
   }, [toast]);
 
+  // REV318: kunning birinchi darsi — eng muhimi. Bola uni oxirigacha o'tib, Kabu bilan testni yechmaguncha
+  // o'yinlar va boshqa bo'limlar ochilmaydi (faqat «Darslar»). Dars ketayotgan bo'lsa — hech narsa yopilmaydi.
+  const avvalDars = !view && status?.birinchi_dars?.kerak && !(busy || lessonBusy) && (tab !== "mavzular" || Boolean(overlay));
+  if (!view && avvalDars) {
+    const matn = "Avval bugungi darsni oxirigacha o‘tamiz va Kabu bilan testni yechamiz. Keyin o‘yinlar ochiladi!";
+    return <div className="ktg-veil is-avval" role="dialog" aria-modal="true" aria-label={__kbUi("Avval dars")}>
+      <div className="ktg-card">
+        <div className="ktg-sky" aria-hidden="true"><B e="📚" /> <B e="⭐" /> <B e="🎮" /></div>
+        <div className="ktg-robot"><RobotKabu mood="happy" /></div>
+        <h2>{__kbUi("Avval dars")}</h2>
+        <p className="ktg-text">{__kbUi(matn)}</p>
+        <button type="button" className="ktg-listen" onClick={() => say(matn)} aria-label={__kbUi("Qayta eshitish")}><B e="🔊" /></button>
+        <button type="button" className="ktg-go" onClick={() => onGo?.("mavzular")}>📚 {__kbUi("Darsga o‘tish")}</button>
+      </div>
+    </div>;
+  }
   if (!view) {
     return toast ? <div className="ktg-toast" role="status" onClick={() => setToast("")}><span aria-hidden="true"><B e="⏳" /></span>{__kbUi(toast)}</div> : null;
   }
