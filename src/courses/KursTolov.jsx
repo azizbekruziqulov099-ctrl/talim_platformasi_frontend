@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
+import "./kursTolov.css";
 
 /** REV301: kurs yopiq darsi — narx va to'lov (Click / Payme). Onlayn to'lov ulanmagan bo'lsa — admin bilan bog'lanish. */
 export const somFmt = (n) => `${Number(n || 0).toLocaleString("ru-RU").replace(/,/g, " ")} so‘m`;

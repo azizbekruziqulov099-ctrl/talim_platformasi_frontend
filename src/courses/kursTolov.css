@@ -1,0 +1,12 @@
+.kt-oyna{position:fixed;inset:0;z-index:80;background:#0008;display:grid;place-items:center;padding:16px}
+.kt-karta{background:#fff;border-radius:20px;padding:22px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px #0004}
+.kt-karta h2{font-size:18px;font-weight:800;color:#1b4b7a;margin:6px 0}
+.kt-karta p{font-size:14px;color:#5a5648}
+.kt-qulf{font-size:40px}
+.kt-narx{font-size:22px!important;font-weight:800;color:#2b2b2b!important;margin:10px 0}
+.kt-narx small{font-size:13px;color:#8a8578;font-weight:600}
+.kt-tugma{display:inline-block;min-width:160px;padding:12px 18px;border-radius:14px;border:0;background:#1b4b7a;color:#fff;font-weight:800;margin:6px;text-decoration:none}
+.kt-payme{background:#00b4c8}
+.kt-havolalar small{display:block;color:#8a8578;margin-top:6px}
+.kt-xabar{color:#8a4b12!important;background:#fff4e6;border-radius:12px;padding:10px;margin-top:10px}
+.kt-yopish{display:block;margin:12px auto 0;border:0;background:none;color:#5a5648;text-decoration:underline}
