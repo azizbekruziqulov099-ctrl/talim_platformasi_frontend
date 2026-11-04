@@ -132,9 +132,18 @@ export function dialoglash(matn, { til = "", iz = "uz", ulush: u = 0.5, kor = {}
   const izohlangan = new Set();   // bir gapda bir so'z bir marta izohlanadi
   const glossla = (ws, n) => ws.filter((w) => !izohlangan.has(w)).map((w) => [w, gloss.get(w)]).filter(([, t]) => t).slice(0, n)
     .map(([w, t]) => { izohlangan.add(w); return sozIzohGapi(iz, til, w, t); });
+  // REV314: o'zbekcha gap ichiga qo'shilgan qisqa chet so'z («Kelganda [en]Hello[/en], ketganda…») — TARJIMA EMAS:
+  // undan keyingi o'zbekcha bo'lak o'sha gapning davomi, «O'zbekchada:» kabi yorliq qo'shilmaydi, tashlab ham yuborilmaydi
+  const ichki = (i) => {
+    const x = seg[i];
+    if (!x?.t || String(x.matn).trim().split(/\s+/).length > 3) return false;
+    const old = seg[i - 1], keyin = seg[i + 1];
+    return Boolean((old && !old.t && !/[.!?…:]\s*$/.test(old.matn)) || (keyin && !keyin.t && /^\s*[,;—–-]|^\s*[a-zа-яё‘'ʻ]/u.test(keyin.matn)));
+  };
   for (let i = 0; i < seg.length; i += 1) {
     const x = seg[i];
     if (x.t) { out.push(asl(x)); continue; }
+    if (i > 0 && ichki(i - 1)) { out.push(asl(x)); continue; }
     const oldingi = i > 0 && seg[i - 1].t ? seg[i - 1] : null;
     const nativ = x.matn;
     if (MUHIM.test(nativ)) { out.push(asl(x)); continue; }
@@ -173,8 +182,9 @@ export function dialoglash(matn, { til = "", iz = "uz", ulush: u = 0.5, kor = {}
       // to'liq tarjima: yangi gapda izoh ustozi til ustoziga ishora qiladi
       const gapYangi = tg.some((g) => gapNecha(kor, til, g) < 2);
       const turi = gapYangi && ramkaN === 0 ? "uzun" : tanishmi ? "" : "qisqa";
-      const r = turi ? ramka(iz, { ism, erkak, turi, n: ramkaN++ }) : "";
-      out.push(qism(r ? `${r} ${tarjima}` : tarjima));
+      // REV314: «O'zbekchada:», «In English:» kabi yorliq aytilmaydi va yozilmaydi — kim gapirgani ovozdan va bayroqdan ko'rinadi
+      if (turi) ramkaN += 1;
+      out.push(qism(tarjima));
     }
     if (qolgan) {
       const qolsin = u < 0.6 || xesh(qolgan) < 1 - u + 0.1;

@@ -21,7 +21,7 @@ test('ikkinchi ustoz: izoh tiliga qarab (uz — Nilufar, ru — Olga, en — Sar
 test('ikki ustozda doska ular orasidagi butun joyni egallaydi, pastda alohida yozuv oynasi yo\'q', () => {
   for (const x of ['til_lukas', 'onatili', 'atrofolam', 'matematika']) {
     const j = sinfJoyi(x, { juft: true });
-    assert.equal(j.doska.l, 19); assert.equal(j.doska.w, 62);
+    assert.equal(j.doska.l, 16.5); assert.equal(j.doska.w, 67);   // REV314: doska kengroq, ustozlar chetroqda
     assert.ok(j.doska.t + j.doska.h <= 95.01, x);
     assert.ok(j.doska.h >= 60, x);
     assert.ok(j.gap.h <= 1);

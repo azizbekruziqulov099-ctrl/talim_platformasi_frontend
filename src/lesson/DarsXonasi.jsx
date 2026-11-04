@@ -296,7 +296,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const ikkinchiRef = useRef("");
   ikkinchiRef.current = ikkinchi;
   const [ustozKim, setUstozKim] = useState(null);   // "til" | "iz" — qaysi ustoz gapiryapti
-  const [nutqI, setNutqI] = useState(-1);   // REV181: hozir aytilayotgan bo'lak tartibi (doskada yonadi)
+  const [nutqI, setNutqI] = useState(-1);
+  const tartibRef = useRef({ qadam: null, m: new Map(), n: 0 });   // REV314: doskadagi qatorlar paydo bo'lish tartibi   // REV181: hozir aytilayotgan bo'lak tartibi (doskada yonadi)
   const ustozBayroq = ikkinchi ? { til: flagSrc(TIL_BAYROQ[darsTil] || ""), iz: flagSrc(TIL_BAYROQ[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"]) } : null;
   // REV184: ikki ustoz — immersiya ulushi (sinf/yosh va mavzu raqami bo'yicha), bola eshitgan so'zlar, dars lug'ati
   const izTilU = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
@@ -1723,11 +1724,36 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
                 if (!juftDoska || i !== idx) return qatorlar;
                 // doskada yozilmagan, lekin ustoz aytadigan gaplar — aytila boshlaganda doskaga yoziladi (pastda alohida yozuv yo'q)
                 const doskaMatni = solishtir(cue.lines.join(" "));
-                // gap-gap solishtiriladi: doskada bor gap qayta yozilmaydi, faqat yangisi qo'shiladi
-                const qoshimcha = nutqQismlar.map((q, k) => ({ ...q, k, matn: tegsiz(q.matn).split(/(?<=[.!?…])\s+/).filter((g) => solishtir(g) && !doskaMatni.includes(solishtir(g))).join(" ") }))
-                  .filter((q) => solishtir(q.matn) && (stepFinished || !speaking ? true : q.k <= nutqI));
-                return [...qatorlar, ...qoshimcha.map((q) => <div key={`${steps[i].id}-n${q.k}`}
-                  className={`dx-line dx-nutq is-kim-${q.kim} ${speaking && q.k === nutqI ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}<BordaYozish faol={speaking && q.k === nutqI} text={tegsiz(q.matn).replace(/\s+/g, " ").trim()}>{(t) => (q.kim === "til" ? <BosiladiganQator text={t} onSoz={sozBosildi} /> : <BoardText text={t} />)}</BordaYozish></div>)];
+                // REV314: ikki ustozli doska — gaplar NAVBAT BILAN, kim gapirsa o'shaning gapi, gapirilgan tartibda yoziladi.
+                // Ichiga qo'shilgan chet so'zlar («Kelganda Hello, ketganda Goodbye deymiz») bo'laklarga bo'linmaydi — bitta gap.
+                // «O'zbekchada:», «In English:» kabi ortiqcha yorliqlar doskada ko'rsatilmaydi.
+                const YORLIQ = /^\s*(?:o[‘'’ʻ`]?zbekchada|inglizchada|ruschada|nemischada|ispanchada|fransuzchada|in english|in uzbek|in russian|in german|in spanish|по-русски|по-узбекски|по-английски|на английском|на узбекском|на русском)\s*[:—–-]\s*/i;
+                const sozSon = (t) => tegsiz(t).split(/\s+/).filter(Boolean).length;
+                const birlash = [];
+                nutqQismlar.forEach((q, k) => {
+                  const last = birlash[birlash.length - 1];
+                  const lastT = last ? tegsiz(last.matn).trim() : "";
+                  const ichiga = last && last.kim === "iz" && q.kim === "til" && (!/[.!?…:]$/.test(lastT) || sozSon(q.matn) <= 3);
+                  const davom = last && last.kim === "iz" && last.davom && q.kim === "iz" && /^[\s,;:—–-]*(?:[,;—–-]|[a-zа-яё\u0101-\u017f‘'’ʻ])/u.test(tegsiz(q.matn));
+                  if (ichiga || davom) { last.matn = `${last.matn} ${q.matn}`; last.ks.push(k); last.davom = q.kim === "til"; }
+                  else birlash.push({ kim: q.kim, matn: q.matn, ks: [k], davom: false });
+                });
+                const qoshimcha = birlash.map((q, j) => {
+                  const matn = tegsiz(q.matn).replace(/\s+([,.!?;:])/g, "$1").replace(/\s+/g, " ").trim()
+                    .split(/(?<=[.!?…])\s+/).map((g) => g.replace(YORLIQ, "")).filter((g) => solishtir(g) && !doskaMatni.includes(solishtir(g))).join(" ");
+                  return { ...q, j, matn, bosh: Math.min(...q.ks) };
+                }).filter((q) => solishtir(q.matn) && (stepFinished || !speaking ? true : q.bosh <= nutqI));
+                // doska qatorlari va aytilgan gaplar — PAYDO BO'LGAN tartibida (avval aytilgani tepada)
+                const tartib = tartibRef.current;
+                if (tartib.qadam !== steps[i].id) { tartib.qadam = steps[i].id; tartib.m = new Map(); tartib.n = 0; }
+                const joyla = (key) => { if (!tartib.m.has(key)) tartib.m.set(key, tartib.n++); return tartib.m.get(key); };
+                const elementlar = [
+                  ...qatorlar.map((el) => ({ el, o: joyla(String(el.key)) })),
+                  ...qoshimcha.map((q) => { const hozir = speaking && q.ks.includes(nutqI);
+                    return { o: joyla(`${steps[i].id}-n${q.j}`), el: <div key={`${steps[i].id}-n${q.j}`}
+                      className={`dx-line dx-nutq is-kim-${q.kim} ${hozir ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}<BordaYozish faol={hozir} text={q.matn}>{(t) => (q.kim === "til" ? <BosiladiganQator text={t} onSoz={sozBosildi} /> : <BoardText text={t} />)}</BordaYozish></div> }; }),
+                ];
+                return elementlar.sort((a, b) => a.o - b.o).map((x) => x.el);
               })}
             </div>
             {range.filter((i) => steps[i].rasm).map((i) => <img key={`img-${steps[i].id}`} className="dx-pic" src={mediaUrl(steps[i].rasm)} alt="" loading="lazy" />)}

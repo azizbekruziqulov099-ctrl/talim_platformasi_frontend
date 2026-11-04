@@ -100,7 +100,8 @@ export function sinfJoyi(xonaKey = "", { juft = false } = {}) {
     // tepasi xonaning devor soatini ochiq qoldiradi, pastida ustoz gapi uchun joy qoladi
     // REV181: ustoz gapi pastda alohida yozilmaydi (hammasi doskada) — doska pastgacha cho'ziladi
     const t = j0.doska.t, h = Math.min(95 - t, 90);
-    j = { ...j0, doska: { l: 19, t, w: 62, h } };
+    // REV314: ustozlar chetroqda (oyoqlari ko'rinadi), doska kengroq — yozuv sig'adi
+    j = { ...j0, doska: { l: 16.5, t, w: 67, h } };
   }
   const tepa = j.doska.t + j.doska.h + 2;
   // juftda ustoz gapi oynasi yo'q — joy faqat «Savol berish» oynasi uchun (doska ustida ochiladi)

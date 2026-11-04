@@ -995,3 +995,11 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-pa-yoz{background:#1f4f7d;border-color:#2c6aa3}
 .dx-pa-t[hidden]{display:none}
 .dx-root:not(.dx-sinf) .dx-panel-chip{display:none}
+
+/* REV314: ikki ustozli dars — ustozlar chetroqda va biroz kichikroq (oyoqlari ko'rinadi), doska kengroq */
+.dx-root.dx-sinf.dx-ikki-ustoz:not(.dx-kabu-muhit):not(.dx-aud-bogcha) .dx-frame{left:20.5%!important;width:59%!important;top:17%!important;height:79%!important}
+.dx-root.dx-sinf.dx-ikki-ustoz .us-stage.is-juft .us-teacher,.dx-root.dx-sinf.dx-ikki-ustoz .dx-sinf-fon .us-teacher{height:76%!important;bottom:3%;left:.2%}
+.dx-root.dx-sinf.dx-ikki-ustoz .us-stage.is-juft .us-teacher.is-rol-iz{left:auto;right:.2%}
+.dx-root.dx-sinf.dx-ikki-ustoz .dx-board .dx-line{line-height:1.35;margin:.35em 0}
+.dx-root.dx-sinf.dx-ikki-ustoz .dx-board .dx-line.dx-nutq{opacity:.96}
+.dx-root.dx-sinf.dx-ikki-ustoz .dx-board .dx-line.is-hozir{background:#ffffff12;border-radius:.6cqh;padding:.2em .4em;margin-left:-.4em}
