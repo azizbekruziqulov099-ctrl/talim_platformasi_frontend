@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { lazyQayta } from "../workspace/lazyQayta.js";
-import Yuklanmoqda from "../workspace/Yuklanmoqda.jsx";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import { ustozFor } from "../kid/ustozRules.js";
@@ -75,14 +74,14 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
 
   if (ekran?.tur === "dars") return <div className="xb-root">
     <button type="button" className="xb-btn" onClick={orqaga}>← {T("Xalqaro baholashga qaytish")}</button>
-    <React.Suspense fallback={<Yuklanmoqda />}>
+    <React.Suspense fallback={<p className="xb-muted">{T("Dars yuklanmoqda…")}</p>}>
       <DarsXonasi apiBase={apiBase} token={token} topicCode={ekran.kod} fan={ekran.fan} grade={`${ekran.sinf}-sinf`} jins={jins}
         learnerGender={user?.jins || ""} cheklovsiz={cheklovsiz} onOpenTest={() => ochMashq({ kalit: ekran.mavzu })} onClose={orqaga} />
     </React.Suspense>
   </div>;
   if (ekran?.tur === "maktab") return <div className="xb-root">
     <button type="button" className="xb-btn" onClick={() => setEkran(ekran.qayt || null)}>← {T("Mavzuga qaytish")}</button>
-    <React.Suspense fallback={<Yuklanmoqda />}>
+    <React.Suspense fallback={<p className="xb-muted">{T("Dars yuklanmoqda…")}</p>}>
       <DarsXonasi apiBase={apiBase} token={token} topicCode={ekran.kod} fan={ekran.fan} grade={`${ekran.sinf}-sinf`} jins={jins} cheklovsiz={cheklovsiz} onClose={() => setEkran(ekran.qayt || null)} />
     </React.Suspense>
   </div>;
