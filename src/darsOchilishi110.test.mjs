@@ -12,8 +12,9 @@ test('salom, ob-havo va o‘tgan dars — o‘rganilayotgan tilda, ustozning o�
   assert.equal(st.length, 3);
   assert.ok(st[0].ovoz.startsWith(FEL.sardor.salom[0]));
   assert.match(st[0].ovoz, /\[ru\]Привет!\[\/ru\]/);
-  assert.match(st[1].ovoz, /\[ru\]Идёт снег\.\[\/ru\]/);
-  assert.match(st[1].ovoz, /sovuq/);
+  const havoTola = `${st[1].ovoz} ${st[1].tanlov?.javob || ''}`;   // REV324: javob — bola tanlagandan keyin
+  assert.match(havoTola, /\[ru\]Идёт снег\.\[\/ru\]/);
+  assert.match(havoTola, /sovuq/);
   assert.match(st[2].ovoz, /🐱 Bu — \[ru\]кошка\[\/ru\]\./);   // REV140: avval ustoz nomini aytadi
   assert.ok(st.every((s) => s.turi === 'kirish' && s.doska));
 });

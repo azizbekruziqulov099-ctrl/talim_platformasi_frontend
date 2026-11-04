@@ -39,6 +39,17 @@ for (const k of Object.keys(ISMLAR)) if (!FEL[k]) FEL[k] = klonla(FEL.nilufar, k
 const HAVO_KEY = { quyosh: "sunny", bulut: "cloudy", yomgir: "rainy", qor: "snowy" };
 const HAVO_EMOJI = { quyosh: "☀️", bulut: "☁️", yomgir: "🌧️", qor: "❄️" };
 
+/** REV324: ob-havo tanlovi — to'g'ri belgi + boshqalari; 2–3 yosh 2 ta, 4–5 yosh 3 ta, 6–7 yosh 4 ta; tartibi kunga qarab. */
+export function havoTanlovi({ togri, yosh = 4, kun = 0 }) {
+  const hovuz = ["☀️", "☁️", "🌧️", "❄️", "🌅", "🌇"].filter((e) => e !== togri && !(["🌅", "🌇"].includes(e)));
+  const soni = yosh < 4 ? 2 : yosh < 6 ? 3 : 4;
+  const boshqa = [...hovuz].sort((a, b) => ((hovuz.indexOf(a) * 7 + kun) % 5) - ((hovuz.indexOf(b) * 7 + kun) % 5)).slice(0, soni - 1);
+  const variantlar = [...boshqa];
+  const joy = Math.abs(Number(kun) || 0) % soni;
+  variantlar.splice(joy, 0, togri);
+  return { variantlar, togri: joy };
+}
+
 /** REV121: kun vaqtiga mos ob-havo gapi (ertalab, kechqurun, kechasi). Kunduzi — ustozning o'z gapi (FEL). */
 export const VAQT_HAVO = {
   uz: {
@@ -174,11 +185,16 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
   const vh = (VAQT_HAVO[izoh] || VAQT_HAVO.uz)[vaqt]?.[h];
   const havoGapi = vh ? z(vh) : z(fel.havo[h]);
   const chiroq = kechki ? ` ${z(CHIROQ[izoh] || CHIROQ.uz)}` : "";
+  // REV324: bola havoni O'ZI tanlaydi — ustoz faqat so'raydi, bola derazaga qarab belgini bosadi, keyin ustoz tasdiqlaydi.
+  // Tunda (oy va yulduzlar) — tanlov yo'q, avvalgidek aytiladi.
+  const havoOvoz = L
+    ? `${g("Derazaga qara! {p} ⏸", { p: t("weather") })} ${havoGapi} ${t(hk)}${qoshimcha}${chiroq} ${g("Endi sen ayt: {p}", { p: t(hk) })} ⏸`
+    : `${g("Derazaga qara! Bugun havo qanday? ⏸")} ${havoGapi}${chiroq}`;
+  const tanlov = !tunda ? havoTanlovi({ togri: belgi, yosh: yoshi(grade), kun }) : null;
   out.push({
-    turi: "kirish", _ochilish: "havo", sarlavha: `${belgi} ${gap(izoh, "Bugungi ob-havo").replace(/\[\/?\w\w\]/g, "")}`,
-    ovoz: L
-      ? `${g("Derazaga qara! {p} ⏸", { p: t("weather") })} ${havoGapi} ${t(hk)}${qoshimcha}${chiroq} ${g("Endi sen ayt: {p}", { p: t(hk) })} ⏸`
-      : `${g("Derazaga qara! Bugun havo qanday? ⏸")} ${havoGapi}${chiroq}`,
+    turi: "kirish", _ochilish: "havo", ...(tanlov ? { tanlov: { ...tanlov, javob: havoOvoz.slice(havoOvoz.indexOf("⏸") + 1).trim() } } : {}),
+    sarlavha: `${belgi} ${gap(izoh, "Bugungi ob-havo").replace(/\[\/?\w\w\]/g, "")}`,
+    ovoz: tanlov ? havoOvoz.slice(0, havoOvoz.indexOf("⏸")).trim() : havoOvoz,
     doska: L ? `${belgi} ${L[hk]}` : `${belgi}`,
     // REV154: deraza oldida ko'rsatiladigan ob-havo rasmi (havo_quyosh, havo_tun, havo_kech …)
     _havo: tunda ? (h === "quyosh" ? "tun" : h) : vaqt === "kech" && h === "quyosh" ? "kech" : vaqt === "tong" && h === "quyosh" ? "tong" : h,

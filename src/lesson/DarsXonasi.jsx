@@ -182,6 +182,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV121: «Top-chi» o'yini — ustoz so'zni aytadi va bola bosishini KUTADI; to'g'ri (birinchi urinishda) — yulduz,
   // xato yoki bosmasa — yulduz yo'q. game: { stepIdx, targets, holat, kutish } · natijalar har o'yin qadami bo'yicha.
   const [game, setGame] = useState(null);
+  const [tanlov, setTanlov] = useState(null);   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
   const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi
   // REV305: dars ketayotganda sarlavha (mavzu nomi, qadam) 3 soniyadan keyin yig'iladi — faqat ✕ qoladi, doskani to'smaydi;
@@ -830,6 +831,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const runStep = (next, autoplay) => {
     const s = steps[next];
     setSanoq((x) => (x && x.stepIdx !== next ? null : x));
+    setTanlov((x) => (x && x.stepIdx !== next ? null : x));
     const spoken = stepSpeech(s, next);
     [next + 1, next + 2].forEach((j) => prefetchQadam(j));
     if (kid && next > 0 && kinds[next] !== kinds[next - 1]) { if (kinds[next] === "new") chime(); else if (kinds[next] === "review") soft(); }
@@ -838,6 +840,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       setStepFinished(true);
       // «birga» va «amaliy» qadamida o'quvchi o'zi ishlaydi — dars shu yerda kutadi.
       // REV121: «Top-chi» o'yini — so'zlar bilan bog'langan rasmlar bo'lsa, bola bosishini kutadigan haqiqiy o'yin
+      // REV324: ochilishdagi tanlov — bola belgini bosmaguncha kutiladi
+      if (autoplay && kid && s.tanlov?.variantlar?.length) { setTanlov({ stepIdx: next, ...s.tanlov, holat: {}, xato: 0 }); return; }
       const targets = autoplay && kid && s.turi === "amaliy" && next >= opening.length ? gameTargets(s, steps, kinds) : [];
       if (targets.length) { gameApi.current.start(next, targets); return; }
       // REV291: «Bitta bananni bos!» — bola aytilgan sonidagi narsani bosadi, bosmaguncha kutiladi
@@ -1376,7 +1380,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     mo?.observe(el, { childList: true, subtree: true, characterData: true });
     el.querySelectorAll("img").forEach((im) => { if (!im.complete) im.addEventListener("load", sigdir, { once: true }); });
     return () => { clearTimeout(t); ro?.disconnect(); mo?.disconnect(); cancelAnimationFrame(kut); };
-  }, [sinfXona, idx, mode, testIndex, picked, variant, yotiq]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sinfXona, idx, mode, testIndex, picked, variant, yotiq, tanlov]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     document.body.classList.toggle("kb-focus-dars", focus);
     return () => document.body.classList.remove("kb-focus-dars");
@@ -1517,6 +1521,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (variant?.rasm) return [pic(variant.rasm, 0)];
     // REV140: salomlashish va ob-havo qadamida doskaga belgi-stikerlar (👋 🙂 😊) chiqmaydi — ustoz qo'l silkitadi,
     // ob-havoda bola derazaga qaraydi (deraza nurlanadi)
+    if (tanlov && tanlov.stepIdx === idx) return tanlov.variantlar.map((e, i) => karta(e, { label: `tanlov ${i + 1}`, holat: tanlov.holat[i] || "wait" }));
     if (step._ochilish === "salom" || step._ochilish === "havo") return [];
     // REV291: «N tasini bos» — har narsa alohida rasm (bosilgani ✓)
     if (sanoq && sanoq.stepIdx === idx) {
@@ -1604,6 +1609,19 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     if (!p) return;
     // REV121: o'yinda — javob sifatida tekshiriladi (to'g'ri — yulduz, xato — yulduz yo'q)
     if (game && game.stepIdx === idx) { if (!gameApi.current.tap(i)) pop(); return; }
+    if (tanlov && tanlov.stepIdx === idx) {
+      if (tanlov.tugadi) return;
+      const my = idx;
+      if (i === tanlov.togri) {
+        setTanlov({ ...tanlov, tugadi: true, holat: { ...tanlov.holat, [i]: "ok" } }); pop();
+        say(`${gap(tIzoh, "Zo‘r! Ana shunday!")} ${tanlov.javob || ""}`.trim(), () => setTimeout(() => { setTanlov(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }, 700));
+      } else {
+        const xato = tanlov.xato + 1;
+        setTanlov({ ...tanlov, xato, holat: { ...tanlov.holat, [i]: "no", ...(xato >= 2 ? { [tanlov.togri]: "hint" } : {}) } });
+        say(gap(tIzoh, "Yaxshi harakat!"));
+      }
+      return;
+    }
     if (sanoq && sanoq.stepIdx === idx) {
       if (sanoq.tanlangan.includes(i) || sanoq.tanlangan.length >= sanoq.kerak) return;
       const tanlangan = [...sanoq.tanlangan, i]; pop(); setSanoq({ ...sanoq, tanlangan });

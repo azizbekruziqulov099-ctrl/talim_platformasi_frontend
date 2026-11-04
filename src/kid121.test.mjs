@@ -56,7 +56,7 @@ test('REV121: kechasi ustoz «quyosh charaqlayapti» demaydi, chiroq yoqiladi', 
   assert.match(havo.ovoz, /chiroq/i);
   assert.match(tun[0].ovoz, /Good evening/);
   const kun = ochilish({ ustoz: 'sardor', til: 'en', izoh: 'uz', havo: 'quyosh', vaqt: 'kun' });
-  assert.match(kun.find((s) => s._ochilish === 'havo').ovoz, /sunny/);
+  const kh = kun.find((s) => s._ochilish === 'havo'); assert.match(`${kh.ovoz} ${kh.tanlov?.javob || ''}`, /sunny/);   // REV324
   const ru = ochilish({ ustoz: 'malika', izoh: 'ru', havo: 'quyosh', vaqt: 'kech' });
-  assert.match(ru.find((s) => s._ochilish === 'havo').ovoz, /Солнце садится/);
+  const rh = ru.find((s) => s._ochilish === 'havo'); assert.match(`${rh.ovoz} ${rh.tanlov?.javob || ''}`, /Солнце садится/);
 });
