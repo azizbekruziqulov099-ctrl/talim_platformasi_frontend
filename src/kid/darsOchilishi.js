@@ -6,6 +6,7 @@ import { kalendarQadami } from "./kalendar.js";
 import { FEL_IZOH, birlashtir, gap, izohTeg } from "./izohTil.js";
 import { iboraNorm, sinfIborasimi } from "./sinfIboralari.js";
 import { ISMLAR, klonla } from "./tilUstozlari.js";
+import { bayramGapi, bayramHozir } from "./bayram/bayramRules.js";
 
 const FOREIGN = /\[(en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;
 const NOT_TARGET = /^(?:say it together|say it with me|repeat after me|look|listen|listen and repeat|again|one more time|your turn|now you|good job|well done|great job|hello everyone)$/i;
@@ -153,6 +154,11 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
       : `${vaqtSalom}${z(pick(fel.salom))} ${g("Qalaysan? ⏸")} ${z(fel.javob)}`,
     doska: L ? (kichik ? `👋 ${L[salom]}` : `👋 ${L[salom]}\n🙂 ${L.how}\n😊 ${L.fine}`) : "👋",
   });
+
+  // REV323: bayram kuni — salomdan keyin bayram gapi (izoh tilida; tarjimasi bo'lmagan tilda aytilmaydi)
+  const bayram = bayramHozir(sana || new Date());
+  const bg = bayram ? bayramGapi(bayram, IZOH_PERSONA[izoh] ? izoh : (izoh === "uz" ? "uz" : izoh)) : null;
+  if (bg && out[0]) out[0] = { ...out[0], ovoz: `${out[0].ovoz} ${z(bg)}`, _bayram: bayram };
 
   // 2) Ob-havo
   const h = HAVO_KEY[havo] ? havo : havo === "momaqaldiroq" ? "yomgir" : "quyosh";

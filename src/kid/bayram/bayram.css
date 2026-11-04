@@ -1,0 +1,33 @@
+/* REV323: bayram bezagi — sahna ustidagi bosilmaydigan qatlam */
+.bz-qatlam{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.bz-gulchambar{position:absolute;left:0;top:0;width:100%;height:17%}
+.bz-bayroqcha{animation:bz-tebran 2.4s ease-in-out var(--d,0s) infinite alternate}
+@keyframes bz-tebran{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+.bz-chiroq ellipse{animation:bz-yon 1.6s ease-in-out var(--d,0s) infinite}
+@keyframes bz-yon{0%,100%{opacity:1;filter:brightness(1.25)}50%{opacity:.35;filter:none}}
+.bz-qor i{position:absolute;top:-6%;border-radius:50%;background:#fff;box-shadow:0 0 4px rgba(255,255,255,.9);opacity:.9;animation:bz-tush linear infinite}
+@keyframes bz-tush{from{transform:translate(0,0)}50%{transform:translate(14px,55vh)}to{transform:translate(-8px,110vh)}}
+.bz-burchak{position:absolute;bottom:1%;width:16%;height:auto}
+.bz-chap{left:.5%}.bz-ong{right:.5%}
+.bz-shar{animation:bz-yon 2s ease-in-out var(--d,0s) infinite}
+.bz-yulduz{transform-origin:70px 19px;animation:bz-yaltira 1.8s ease-in-out infinite}
+@keyframes bz-yaltira{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.bz-pastki{position:absolute;left:0;bottom:0;width:100%;height:16%}
+.bz-lola{animation:bz-tebran 3s ease-in-out var(--d,0s) infinite alternate}
+.bz-bug{animation:bz-bugla 2.7s ease-in-out var(--d,0s) infinite}
+@keyframes bz-bugla{0%{opacity:0;transform:translateY(8px)}40%{opacity:.8}100%{opacity:0;transform:translateY(-16px)}}
+.bz-qushlar{position:absolute;inset:0}
+.bz-qush{position:absolute;top:var(--y,10%);left:-8%;width:5%;animation:bz-uch 10s linear var(--d,0s) infinite}
+@keyframes bz-uch{0%{transform:translate(0,0)}25%{transform:translate(30vw,-12px)}50%{transform:translate(60vw,10px)}75%{transform:translate(90vw,-8px)}100%{transform:translate(125vw,0)}}
+.bz-salyut{position:absolute;inset:0}
+.bz-portlash{position:absolute;width:0;height:0}
+.bz-portlash i{position:absolute;left:0;top:0;width:4px;height:44px;margin-left:-2px;transform-origin:50% 0;background:var(--c);border-radius:2px;opacity:1}
+.bz-portlash{animation:bz-portla 4.4s ease-out var(--d,0s) infinite}
+@keyframes bz-portla{0%,60%{transform:scale(.1);opacity:0}64%{opacity:1}85%{transform:scale(1.4);opacity:.9}100%{transform:scale(1.6);opacity:0}}
+.bz-sharlar{position:absolute;inset:0}
+.bz-havoshar{position:absolute;bottom:-25%;width:5%;animation:bz-kotaril var(--t,12s) linear var(--d,0s) infinite}
+@keyframes bz-kotaril{from{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-70vh) rotate(4deg)}to{transform:translateY(-140vh) rotate(-4deg)}}
+.bz-qongiroq{transform-origin:120px 24px;animation:bz-tebran 1.4s ease-in-out infinite alternate}
+.bz-yuraklar{position:absolute;inset:0}
+.bz-yurak{position:absolute;bottom:-10%;width:3.2%;opacity:.85;animation:bz-kotaril 9s linear var(--d,0s) infinite}
+@media (prefers-reduced-motion:reduce){.bz-qatlam *{animation:none!important}.bz-qor,.bz-qushlar,.bz-sharlar,.bz-salyut,.bz-yuraklar{display:none}}

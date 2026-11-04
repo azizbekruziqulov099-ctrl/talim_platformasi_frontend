@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { OG_RASM, USTOZLAR, XONALAR } from "./ustozlar.js";
 import { BELGI } from "./Belgi.jsx";
+import BayramBezak from "./bayram/BayramBezak.jsx";   // REV323: bayram bezagi
+import { bayramHozir } from "./bayram/bayramRules.js";
 import { GAPIR, KULGI, PIRPIRAT, XONA, blinkDelay, kokrak, pozaFor, xonaKaliti } from "./ustozRules.js";
 import { detallar } from "./madaniyat.js";
 import { cardSize } from "./kidStageRules.js";
@@ -170,6 +172,7 @@ export default function UstozSahna({ ustoz = "nilufar", ikkinchi = "", ikkinchiK
   }, [xona?.src]);
   return <div className={`us-stage vaqt-${vaqt} ${speaking && ochiq ? "is-speaking" : ""} ${juft ? "is-juft" : ""} ${chiroqYoniq ? "is-lamp" : ""} ${derazaga ? "is-deraza" : ""}`} style={{ "--cel": celebrate, "--lx": `${xona.chiroq?.x ?? 50}%` }}>
     <img className="us-bg" src={xona.src} srcSet={`${xona.src} 960w, ${xona.src2x} 1600w`} sizes="(max-width: 900px) 100vw, 900px" alt="" decoding="async" />
+    <BayramBezak bayram={bayramHozir()} />
     {xona.soat && <DevorSoat soat={xona.soat} />}
     <div className="us-light" aria-hidden="true" />
     {dz && xona.osmon && <div className={`us-tint ${holat}`} style={{ ...box(dz), ...niqob }} aria-hidden="true" />}
