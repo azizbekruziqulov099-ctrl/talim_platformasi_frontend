@@ -739,6 +739,8 @@ function AiMiyaFanShabloni({ token }) {
   );
 }
 
+const XalqaroSavollar = React.lazy(() => import("./admin/XalqaroSavollar.jsx"));   // REV319
+
 export function KitobMiyaBolimi({ token, fanTanlash = false }) {
   useKbInterfaceLocale();
   const [fayl, setFayl] = useState(null);
@@ -877,12 +879,12 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
       {/* REV302: bo'lim ichida — faqat o'sha bo'lim (boshqalari aralashmaydi), tepada orqaga qaytish */}
       {bolim && <div className="flex items-center gap-3 rounded-2xl bg-white border px-3 py-2 sticky top-0 z-20" style={{ borderColor: "#E5E1D8" }}>
         <button type="button" onClick={() => setBolim("")} className="rounded-xl border px-3 py-2 text-sm font-semibold" style={{ borderColor: "#D8D3C7", color: "#1B4B7A" }}>← {__kbUi("Bo‘limlar")}</button>
-        <b className="text-sm" style={{ color: "#1B4B7A" }}>{__kbUi({ tarkib: "🧠 Miya tarkibi", paket: "📦 Paket yuklash", kitob: "📥 Bitta kitob", darslar: "📚 Nashr qilingan darslar", tarix: "🕘 Importlar tarixi" }[bolim])}</b>
+        <b className="text-sm" style={{ color: "#1B4B7A" }}>{__kbUi({ tarkib: "🧠 Miya tarkibi", paket: "📦 Paket yuklash", kitob: "📥 Bitta kitob", darslar: "📚 Nashr qilingan darslar", tarix: "🕘 Importlar tarixi", xalqaro: "🌍 Xalqaro savollar" }[bolim])}</b>
       </div>}
       {!bolim && <div role="list" aria-label={__kbUi("Miya bo‘limlari")} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[["tarkib", "🧠", "Miya tarkibi", "ko‘rish va o‘chirish"], ["paket", "📦", "Paket yuklash", "ZIP / ko‘p Excel"],
           ["kitob", "📥", "Bitta kitob", "shablon · tekshirish · nashr"], ["darslar", "📚", "Nashr qilingan darslar", `${darslar.length} ta`],
-          ["tarix", "🕘", "Importlar tarixi", `${importlar.length} ta`]].map(([k, e, t, s2]) => (
+          ["tarix", "🕘", "Importlar tarixi", `${importlar.length} ta`], ["xalqaro", "🌍", "Xalqaro savollar", "Excel · 5 til"]].map(([k, e, t, s2]) => (
           <button key={k} type="button" role="listitem" onClick={() => setBolim(k)}
             className="rounded-2xl border p-4 text-left transition flex items-center gap-3 hover:shadow" style={{ borderColor: "#E5E1D8", background: "#fff" }}>
             <span className="text-3xl" aria-hidden="true">{e}</span>
@@ -892,6 +894,7 @@ export function KitobMiyaBolimi({ token, fanTanlash = false }) {
       </div>}
 
       {bolim === "tarkib" && <MiyaTarkibi apiBase={API_BASE} token={token} />}
+      {bolim === "xalqaro" && <React.Suspense fallback={<p className="text-sm">…</p>}><XalqaroSavollar apiBase={API_BASE} token={token} /></React.Suspense>}
 
       {/* REV121: bitta ZIP (papkalari bilan) yoki ko'p Excel — mavzular va miyalar birdan o'rnatiladi */}
       {bolim === "paket" && <PaketYuklash token={token} onDone={() => { tarixniYukla(); darslarniYukla(); }} />}
