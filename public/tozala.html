@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kabutar — tozalash</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f3f7f6;color:#16353e;display:grid;place-items:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box}
+main{background:#fff;border-radius:22px;padding:28px;max-width:420px;box-shadow:0 16px 50px #183d3a18;text-align:center}
+h1{font-size:22px;margin:8px 0}
+p{line-height:1.6}
+.k{width:40px;height:40px;border-radius:50%;border:5px solid #dbe4ee;border-top-color:#087f79;animation:a .9s linear infinite;margin:10px auto}
+@keyframes a{to{transform:rotate(360deg)}}
+a{display:inline-block;margin-top:10px;background:#087f79;color:#fff;padding:12px 20px;border-radius:12px;text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+<main>
+  <div class="k" id="k"></div>
+  <h1 id="h">Telefondagi eski fayllar tozalanmoqda…</h1>
+  <p id="p">Bir necha soniya kuting.</p>
+  <a id="a" href="/" style="display:none">Saytni ochish</a>
+</main>
+<script>
+(async function () {
+  var natija = [];
+  try {
+    if ("serviceWorker" in navigator) {
+      var regs = await navigator.serviceWorker.getRegistrations();
+      for (var i = 0; i < regs.length; i++) { await regs[i].unregister(); }
+      natija.push("xizmat: " + regs.length);
+    }
+  } catch (e) { natija.push("xizmat xato"); }
+  try {
+    if (window.caches) {
+      var keys = await caches.keys();
+      for (var j = 0; j < keys.length; j++) { await caches.delete(keys[j]); }
+      natija.push("kesh: " + keys.length);
+    }
+  } catch (e) { natija.push("kesh xato"); }
+  try {
+    // kirish (token) saqlanadi — faqat sahifa holati va eski belgilar o'chadi
+    var saqla = {};
+    ["samtm_login_token_v1"].forEach(function (k) { var v = localStorage.getItem(k); if (v) saqla[k] = v; });
+    localStorage.clear();
+    Object.keys(saqla).forEach(function (k) { localStorage.setItem(k, saqla[k]); });
+    sessionStorage.clear();
+    natija.push("sahifa holati");
+  } catch (e) { natija.push("holat xato"); }
+  document.getElementById("k").style.display = "none";
+  document.getElementById("h").textContent = "✅ Tozalandi";
+  document.getElementById("p").textContent = "Endi saytni oching. (" + natija.join(", ") + ")";
+  var a = document.getElementById("a"); a.style.display = "inline-block"; a.href = "/?v=" + Date.now();
+  setTimeout(function () { location.replace("/?v=" + Date.now()); }, 2500);
+})();
+</script>
+</body>
+</html>

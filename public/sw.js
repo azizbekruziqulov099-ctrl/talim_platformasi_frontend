@@ -50,7 +50,7 @@ self.addEventListener("fetch", event => {
     event.respondWith(
       fetch(request).then(async response => {
         const contentType = response.headers.get("Content-Type") || "";
-        if (mayStore(response) && contentType.includes("text/html")) {
+        if (mayStore(response) && contentType.includes("text/html") && (url.pathname === "/" || url.pathname === "/index.html")) {
           await caches.open(CACHE).then(cache => cache.put("/", response.clone())).catch(() => {});
         }
         return response;
