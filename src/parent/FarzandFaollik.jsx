@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { DARS_TILLARI, fanIzohi } from "../curriculum/izohTanlov.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { bahoInfo, kunXulosa, levelDots, maslahat, minutesText, presence, ratingText, usageRows, weekStack } from "./farzandVaqtRules.js";
 import { BAHO_MATN, KURS, QISMLAR, bahoRangi, fanKaliti, haftaKuni, ozgarish } from "./bogchaReja.js";
@@ -7,8 +8,9 @@ import BolalarKundaligi from "../kid/BolalarKundaligi.jsx";
 import { bugungiXulosa, ertangiFanlar } from "../kid/kundalikRules.js";
 import "./farzandFaollik.css";
 // REV257: ota-ona ko'rsin — dars qaysi tilda o'tildi (fan nomidagi «izoh: rus / ingliz» bo'yicha; izohsiz — o'zbekcha)
-const DARS_TILI = { uz: ["🇺🇿", "o‘zbekcha"], ru: ["🇷🇺", "ruscha"], en: ["🇬🇧", "inglizcha"] };
-function darsTili(fan = "") { const f = String(fan || "").toLowerCase(); return /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : "uz"; }
+// REV315: 5 til (uz, ru, en, de, es) — bitta umumiy qoida (curriculum/izohTanlov.js)
+const DARS_TILI = DARS_TILLARI;
+const darsTili = (fan = "") => fanIzohi(fan);
 const fanNomi = (fan = "") => String(fan || "").replace(/\s*\(\s*izoh\s*:[^)]*\)/i, "").trim();
 
 // REV145: matnning o'zgarmas qismi tarjima qilinadi, mavzu nomi va raqamlar — alohida (aks holda tarjima topilmasdi)

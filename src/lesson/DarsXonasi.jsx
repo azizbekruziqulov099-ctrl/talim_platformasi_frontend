@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { fanIzohi } from "../curriculum/izohTanlov.js";
 import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
@@ -55,7 +56,7 @@ function eskiYozuv(w = "") {
     .replace(/Ö/g, "O‘").replace(/ö/g, "o‘").replace(/Ğ/g, "G‘").replace(/ğ/g, "g‘");
 }
 // REV255: dars qaysi tilda o'tildi — fan nomidagi «(izoh: rus / ingliz)» bo'yicha; izohsiz — o'zbekcha
-function darsIzohTili(fan = "") { const f = String(fan || "").toLowerCase(); return /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : "uz"; }
+function darsIzohTili(fan = "") { return fanIzohi(fan); }   // REV315: 5 til
 // REV269: doskaga bo'r bilan yozilgandek — yangi qator harfma-harf chiqadi (≈28 harf/soniya, uzun qator ~4 s ichida);
 // formula/LaTeX bo'lsa (yarim yozilgan ifoda buziladi) yoki «harakatni kamaytirish» yoqilgan bo'lsa — darhol to'liq.
 function BordaYozish({ text = "", faol = false, children }) {

@@ -105,8 +105,31 @@ export function felFor(ustoz, izoh = "uz") {
   return FEL[ustoz] || FEL.nilufar;
 }
 
+// REV315: til darsida izoh ustozi (o'zbekcha — Nilufar opa, ruscha — Olga, inglizcha — Sarah) O'ZI salomlashadi va
+// til ustozini tanishtiradi («Bugun yonimda Lukas aka — u bizga nemis tilini o'rgatadi»). Oldin izoh ustozi til ustozining
+// nomidan gapirardi («Lukas akang keldi»).
+const IZOH_PERSONA = { uz: "nilufar", ru: "olga", en: "sarah" };
+const TIL_NOMI_UCHUN = {
+  uz: { en: "ingliz tilini", ru: "rus tilini", de: "nemis tilini", fr: "fransuz tilini", es: "ispan tilini", ar: "arab tilini", tr: "turk tilini", zh: "xitoy tilini", ja: "yapon tilini", ko: "koreys tilini" },
+  ru: { en: "английскому языку", ru: "русскому языку", de: "немецкому языку", fr: "французскому языку", es: "испанскому языку", ar: "арабскому языку", tr: "турецкому языку", zh: "китайскому языку", ja: "японскому языку", ko: "корейскому языку" },
+  en: { en: "English", ru: "Russian", de: "German", fr: "French", es: "Spanish", ar: "Arabic", tr: "Turkish", zh: "Chinese", ja: "Japanese", ko: "Korean" },
+};
+export function tanishtiruv(ustoz, til, izoh = "uz") {
+  const i = ISMLAR[ustoz];
+  const tn = TIL_NOMI_UCHUN[izoh]?.[til];
+  if (!i || !tn) return "";
+  const [uz, lat, ru, , , , , erkak] = i;
+  if (izoh === "ru") return `Сегодня со мной ${ru} — ${erkak ? "он" : "она"} научит нас ${tn}.`;
+  if (izoh === "en") return `Today ${lat} is here with me — ${erkak ? "he" : "she"} will teach us ${tn}.`;
+  return `Bugun yonimda ${uz} ${erkak ? "aka" : "opa"} — u bizga ${tn} o'rgatadi.`;
+}
+
 export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", harorat = null, oldingi = null, grade = "", kun = 0, izoh = "uz", vaqt = "kun", aslIzoh = null, sana = null } = {}) {
-  const fel = felFor(ustoz, izoh);
+  const tilUstozi = Boolean(til && ISMLAR[ustoz] && IZOH_PERSONA[izoh]);
+  const fel = tilUstozi ? felFor(IZOH_PERSONA[izoh], izoh) : felFor(ustoz, izoh);
+  const tanish = tilUstozi ? tanishtiruv(ustoz, til, izoh) : "";
+  // til darsida — oddiy tanishuv salomi («Salom, quyoshim! Men Nilufar opangman.»), «yangi ertak bilan keldi» emas
+  const salomGapi = (arr) => (tilUstozi ? arr[0] : arr[Math.abs(kun) % arr.length]);
   const L = til && OCHILISH_LUGAT[til] ? OCHILISH_LUGAT[til] : null;
   const t = (k) => (L ? `[${til}]${L[k]}[/${til}]` : "");
   const z = (text) => izohTeg(text, izoh);                 // ustozning o'z gapi — izoh tilida
@@ -125,8 +148,8 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
     turi: "kirish", _ochilish: "salom", sarlavha: gap(izoh, "👋 Salom!").replace(/\[\/?\w\w\]/g, ""),
     ovoz: L
       ? (kichik
-        ? `${vaqtSalom}${z(pick(fel.salom))} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸`
-        : `${vaqtSalom}${z(pick(fel.salom))} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸ ${t("how")} ⏸ ${z(fel.javob)} ${g("Sen ham shunday javob ber: {p} ⏸", { p: t("fine") })}`)
+        ? `${vaqtSalom}${z(salomGapi(fel.salom))}${tanish ? ` ${z(tanish)}` : ""} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸`
+        : `${vaqtSalom}${z(salomGapi(fel.salom))}${tanish ? ` ${z(tanish)}` : ""} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸ ${t("how")} ⏸ ${z(fel.javob)} ${g("Sen ham shunday javob ber: {p} ⏸", { p: t("fine") })}`)
       : `${vaqtSalom}${z(pick(fel.salom))} ${g("Qalaysan? ⏸")} ${z(fel.javob)}`,
     doska: L ? (kichik ? `👋 ${L[salom]}` : `👋 ${L[salom]}\n🙂 ${L.how}\n😊 ${L.fine}`) : "👋",
   });

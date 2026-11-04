@@ -194,7 +194,9 @@ function gapTarjima(izoh, tpl) {
 }
 
 export function gap(izoh, tpl, vars = {}) {
-  const src = (izoh && izoh !== "uz" && gapTarjima(izoh, tpl)) || tpl;
+  const tr = izoh && izoh !== "uz" ? gapTarjima(izoh, tpl) : null;
+  const src = tr || tpl;
+  if (izoh && izoh !== "uz" && !tr) izoh = "uz";   // REV315: tarjimasi yo'q gap — o'zbekcha ovozda (fransuz ovozida o'zbekcha so'z aytilmaydi)
   const keys = Object.keys(vars);
   if (!keys.length) return birlashtir(izohTeg(src, izoh));
   // avval shablonni teglaymiz (o'zgaruvchilar belgisi bilan), keyin o'zgaruvchilarni qo'yamiz — ular tegdan tashqarida qoladi

@@ -3,7 +3,12 @@
 // Mos variant o'rnatilmagan bo'lsa — o'zbekchasi, u ham bo'lmasa — bori (fan yo'qolib qolmasin).
 
 const IZOH_RE = /\s*\(\s*izoh\s*:\s*([^)]+?)\s*\)\s*/i;
-const NOMDAN = { rus: 'ru', ruscha: 'ru', ru: 'ru', 'русский': 'ru', ingliz: 'en', inglizcha: 'en', en: 'en', english: 'en', uz: 'uz', "o'zbek": 'uz', 'o‘zbek': 'uz' };
+const NOMDAN = { rus: 'ru', ruscha: 'ru', ru: 'ru', 'русский': 'ru', ingliz: 'en', inglizcha: 'en', en: 'en', english: 'en', uz: 'uz', "o'zbek": 'uz', 'o‘zbek': 'uz',
+  nemis: 'de', nemischa: 'de', de: 'de', german: 'de', deutsch: 'de', 'немецкий': 'de', ispan: 'es', ispancha: 'es', es: 'es', spanish: 'es', 'español': 'es', 'испанский': 'es' };
+
+/** REV315: 5 til — dars qaysi tilda o'tilgani (fan nomidagi izoh bo'yicha) ko'rsatish uchun bayroq va nom. */
+export const DARS_TILLARI = { uz: ['🇺🇿', 'o‘zbekcha'], ru: ['🇷🇺', 'ruscha'], en: ['🇬🇧', 'inglizcha'], de: ['🇩🇪', 'nemischa'], es: ['🇪🇸', 'ispancha'] };
+export function darsTiliBelgisi(fan) { const t = fanIzohi(fan); return DARS_TILLARI[t] || ['🌐', t]; }
 
 /** «Arab tili (izoh: rus)» → "ru"; izohsiz → "uz". */
 export function fanIzohi(nom) {
