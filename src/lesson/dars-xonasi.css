@@ -933,3 +933,37 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root.dx-yotiq .dx-controls select,.dx-root.dx-root.dx-yotiq .dx-controls label{font-size:10px!important;max-width:62px!important}
 .dx-root.dx-root.dx-yotiq>.dx-head{left:22px!important;top:4px!important;max-width:calc(100% - 110px)!important}
 .dx-root.dx-root.dx-yotiq>.dx-head.is-yigiq{left:auto!important;right:80px!important}
+
+/* REV312: javob maydoni va matematik klaviatura */
+.dx-amaliy .dx-btn{color:#1C2926!important;background:#fff!important}
+.dx-amaliy .dx-btn.dx-primary{color:#fff!important;background:#1E3A32!important;border-color:#1E3A32!important}
+.dx-javob-maydon{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dx-javob-quti{min-width:170px;min-height:48px;padding:8px 14px;border-radius:12px;border:2px dashed #ffffff66;background:#ffffff14;color:#fff;font:600 18px system-ui,sans-serif;text-align:left;cursor:text;display:flex;align-items:center}
+.dx-javob-quti.is-ochiq{border-style:solid;border-color:#ffd56b;background:#ffffff22}
+.dx-javob-natija{font:700 14px system-ui,sans-serif;padding:6px 10px;border-radius:10px}
+.dx-javob-natija.is-ok{background:#e7f6ec;color:#1f6b3a}
+.dx-javob-natija.is-no{background:#fdecea;color:#9b2c22}
+.mk-javob-bosh{opacity:.7;font-weight:500}
+.mk-javob-formula .katex{font-size:1.45em}
+.mk-panel{position:fixed;left:0;right:0;bottom:0;z-index:2147483100;background:#f4f6f8;border-top:1px solid #d5dde6;box-shadow:0 -8px 24px #0002;
+  padding:8px max(10px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-right));font-family:system-ui,sans-serif}
+.mk-panel-bosh{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mk-panel-javob{flex:1;min-height:40px;display:flex;align-items:center;padding:4px 12px;border-radius:10px;background:#fff;border:1px solid #d5dde6;color:#111;font-size:18px;overflow-x:auto}
+.mk-panel-javob .mk-javob-bosh{color:#6b7280}
+.mk-yop{width:40px;height:40px;border-radius:10px;border:1px solid #d5dde6;background:#fff;font-size:20px;color:#334155}
+.mk-tugmalar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.mk-t{min-height:44px;border-radius:10px;border:1px solid #d5dde6;background:#fff;color:#111827;font:600 18px system-ui,sans-serif;touch-action:manipulation}
+.mk-t.is-amal{background:#eaf1f7;color:#1b4b7a}
+.mk-t.is-och{background:#eef0f3;color:#475569;font-size:15px}
+.mk-pastki{display:grid;grid-template-columns:1fr 2fr;gap:6px;margin-top:6px}
+.mk-tekshir{min-height:46px;border-radius:10px;border:0;background:#1E3A32;color:#fff;font:800 16px system-ui,sans-serif}
+.mk-tekshir:disabled{opacity:.45}
+@media (min-width:900px){.mk-panel{left:16px;right:auto;bottom:16px;width:380px;border-radius:16px;border:1px solid #d5dde6}}   /* ustoz tomonda — doska va tugmalarni yopmaydi */
+/* klaviatura ochiq — doska pastki qismi panel ostida qolmasin */
+.dx-root.dx-klav-ochiq .dx-board,.dx-root.dx-klav-ochiq .dx-room{padding-bottom:250px!important}
+.dx-root.dx-yotiq .mk-panel{position:absolute;left:20px;right:auto;width:min(230px,30%);top:8px;bottom:8px;border-radius:14px;border:1px solid #d5dde6;padding:6px;display:flex;flex-direction:column;justify-content:center;overflow-y:auto}
+.dx-root.dx-yotiq .mk-t{min-height:32px;font-size:14px}.dx-root.dx-yotiq .mk-tugmalar,.dx-root.dx-yotiq .mk-pastki{gap:4px}.dx-root.dx-yotiq .mk-panel-javob{min-height:32px}
+.dx-root.dx-yotiq .mk-tekshir{min-height:36px}
+.dx-root.dx-yotiq.dx-klav-ochiq .dx-board{padding-bottom:12px!important}
+
+/* REV312: telefon (yotqizilgan dars) — klaviatura ustoz turgan chap ustunda (doska va savol ochiq qoladi) */

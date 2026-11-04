@@ -9,10 +9,39 @@ const norm = (value) => String(value ?? "")
   .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "$1/$2");
 
 // «kutilgan_javob»da bir nechta to'g'ri javob | yoki ; bilan ajratiladi: 2/6|1/3
+// REV312: son qiymati — «5/8», «5:8», «0,625», «1 1/2» (aralash son), «-3» bir xil qiymat sifatida solishtiriladi
+export function sonQiymat(v) {
+  let t = String(v ?? "").trim().replace(/\$/g, "").replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "$1/$2").replace(/[−–]/g, "-").replace(/,/g, ".").replace(/\s+/g, " ");
+  let m = t.match(/^(-?\d+) (\d+)\/(\d+)$/);
+  if (m) { const b = Number(m[1]); const f = Number(m[2]) / Number(m[3]); return b < 0 ? b - f : b + f; }
+  t = t.replace(/\s/g, "");
+  m = t.match(/^(-?\d+(?:\.\d+)?)[/:](-?\d+(?:\.\d+)?)$/);
+  if (m) return Number(m[2]) === 0 ? null : Number(m[1]) / Number(m[2]);
+  return /^-?\d+(?:\.\d+)?$/.test(t) ? Number(t) : null;
+}
+
 export function checkAnswer(given, expected) {
   const answer = norm(given);
   if (!answer) return false;
-  return String(expected ?? "").split(/[|;]/).map(norm).filter(Boolean).includes(answer);
+  const kutilgan = String(expected ?? "").split(/[|;]/).map((x) => x.trim()).filter(Boolean);
+  if (kutilgan.map(norm).includes(answer)) return true;
+  const g = sonQiymat(given);
+  // «12 ta olma» kabi javobda boshidagi son ham qabul qilinadi
+  const sonli = (k) => { const v = sonQiymat(k); if (v !== null) return v; const m = String(k).replace(/\$/g, "").match(/^\s*(-?\d+(?:[.,]\d+)?(?:\s*[/:]\s*\d+)?)(?=\s|$)/); return m ? sonQiymat(m[1]) : null; };
+  return g !== null && kutilgan.some((k) => { const v = sonli(k); return v !== null && Math.abs(v - g) < 1e-9; });
+}
+
+/** REV312: misolning kutilgan javobi — yechimning «Javob: …» qatoridan (javob maydoni bo'sh bo'lsa). */
+export function javobYechimdan(steps = []) {
+  for (let i = steps.length - 1; i >= 0; i -= 1) {
+    const t = String(steps[i]?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "");
+    const m = t.match(/(?:^|\n|\|\|)\s*(?:javob|ответ|answer)\s*:\s*([^\n|]+)/i);
+    if (m) {
+      const j = m[1].trim().replace(/^\$|\$$/g, "").replace(/\.\s*$/, "").trim();
+      if (j && j.length <= 40) return j;
+    }
+  }
+  return "";
 }
 
 // Bir xil «sahna»dagi ketma-ket qadamlar bitta doskada yig'iladi.

@@ -3,7 +3,8 @@ import katex from "katex";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import { splitCourseMath } from "../courses/CourseText.jsx";
-import { checkAnswer, speakableText } from "./darsXonasiRules.js";
+import { checkAnswer, javobYechimdan, speakableText } from "./darsXonasiRules.js";
+import MatKlaviatura, { JavobKorinishi } from "./MatKlaviatura.jsx";
 import { stripSpeechTags } from "../speech/language.js";
 import { conditionLines, nextShown, optionState } from "./kitobKodRules.js";
 import { MatQator } from "./MatDoska.jsx";   // REV269: matematika — yechim qatorlari jonli yoziladi
@@ -67,12 +68,19 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [maslahatN, setMaslahatN] = useState(0);   // REV269: nechta maslahat ochilgan
+  const [klav, setKlav] = useState(false);   // REV312: matematik klaviatura ochiqmi
+  const kutilgan = item?.javob || javobYechimdan(steps);
+  useEffect(() => {   // klaviatura ochiq — dars oynasi pastdan joy qoldiradi (doska yopilmaydi)
+    const el = typeof document !== "undefined" ? document.querySelector(".dx-root") : null;
+    el?.classList.toggle("dx-klav-ochiq", klav);
+    return () => el?.classList.remove("dx-klav-ochiq");
+  }, [klav]);
   const runRef = useRef(0);
 
   const stop = useCallback(() => { runRef.current += 1; setRunning(false); hush?.(); }, [hush]);
   // REV93: yangi topshiriq ochilganda o'qituvchi ovozini O'CHIRMAYMIZ (dars xonasi shu payt shartni o'qiyapti) —
   // faqat o'zimizning yechim ko'rsatishni to'xtatamiz. Oldin bu ovozni kesib, dars shu qadamda to'xtab qolardi.
-  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); setMaslahatN(0); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); setMaslahatN(0); setKlav(false); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { runRef.current += 1; }, []);
 
   const reveal = useCallback((from = 0) => {
@@ -107,8 +115,9 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
     else say(__kbUi("Javob noto‘g‘ri. Yechimni ko‘rib chiqamiz."), () => reveal(0));
   };
   const submit = (event) => {
-    event.preventDefault();
-    if (checkAnswer(answer, item.javob)) { setFeedback({ ok: true, text: __kbUi("To‘g‘ri!") }); say(__kbUi("Barakalla, to‘g‘ri!")); }
+    event?.preventDefault?.();
+    if (!answer.trim()) return;
+    if (checkAnswer(answer, kutilgan)) { setFeedback({ ok: true, text: __kbUi("✅ To‘g‘ri!") }); setKlav(false); say(__kbUi("Barakalla, to‘g‘ri!")); }
     else { setFeedback({ ok: false, text: __kbUi("Yana bir bor urinib ko‘ring yoki yechimni oching.") }); say(__kbUi("Deyarli! Yana bir bor o‘ylab ko‘ring.")); }
   };
 
@@ -128,11 +137,14 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       return <button key={k} type="button" onClick={() => pick(k)} className={state === "ok" ? "is-ok" : state === "no" ? "is-no" : state === "picked" ? "is-picked" : ""}>
         {"ABCDE"[k]}) <BoardText text={o} /></button>;
     })}</div>}
-    {!options.length && item.javob && <form className="dx-answer" onSubmit={submit}>
-      <input value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label={__kbUi("Javobingiz")} placeholder={__kbUi("Javob")} autoComplete="off" />
-      <button type="submit" className="dx-btn dx-primary">{__kbUi("Tekshirish")}</button>
-      {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
-    </form>}
+    {/* REV312: javob — doskadagi quti (telefon klaviaturasi chiqmaydi), bosilsa pastda matematik klaviatura */}
+    {!options.length && kutilgan && !kid && <div className="dx-javob-maydon">
+      <button type="button" className={`dx-javob-quti ${klav ? "is-ochiq" : ""}`} onClick={() => setKlav(true)} aria-label={__kbUi("Javobingiz")}>
+        <JavobKorinishi qiymat={answer} bosh="✏️ Javobni yozing" /></button>
+      <button type="button" className="dx-btn dx-primary" disabled={!answer} onClick={submit}>{__kbUi("Tekshirish")}</button>
+      {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}
+    </div>}
+    {klav && <MatKlaviatura qiymat={answer} onChange={(v) => { setAnswer(v); setFeedback(null); }} onTekshir={submit} onYop={() => setKlav(false)} />}
     {picked !== null && picked !== item.togri && item.xatolar?.[String(picked)] && <p className="mdx-xato">⚠ <BoardText text={stripSpeechTags(item.xatolar[String(picked)])} /></p>}
     {maslahatN > 0 && <div className="mdx-maslahatlar">{(item.maslahat || []).slice(0, maslahatN).map((m, i) => <p key={i}>💡 <BoardText text={m} /></p>)}</div>}
     {shown > 0 && <div className="dx-solution" aria-live="polite">
