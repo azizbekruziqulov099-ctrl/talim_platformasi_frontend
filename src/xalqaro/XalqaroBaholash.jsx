@@ -34,8 +34,6 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   const [tab, setTab] = useState(() => { try { return localStorage.getItem("kabutar:xb:qollanma") ? "kurs" : "qollanma"; } catch { return "kurs"; } });   // REV262: birinchi kirishda — Qo'llanma
   useEffect(() => { try { localStorage.setItem("kabutar:xb:qollanma", "1"); } catch { /* */ } }, []);
   const [kat, setKat] = useState(null);
-  // REV304: dars xonasi kodini oldindan yuklab qo'yamiz — sekin internetda dars bosilganda uzoq «Dars yuklanmoqda…» bo'lmasin
-  useEffect(() => { const t = setTimeout(() => { import("../lesson/DarsXonasi.jsx").catch(() => {}); }, 1500); return () => clearTimeout(t); }, []);
   const [xato, setXato] = useState("");
   const [toplam, setToplam] = useState(() => { try { return localStorage.getItem(ESLA) || ""; } catch { return ""; } });
   const [ekran, setEkran] = useState(null);   // {tur: mavzu|dars|mashq|imtihon|natija|maktab, ...}

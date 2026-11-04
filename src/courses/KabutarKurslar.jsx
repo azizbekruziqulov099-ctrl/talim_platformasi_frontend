@@ -18,8 +18,6 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   const til = String(locale || "uz").slice(0, 2);
   const base = String(apiBase || "").replace(/\/+$/, "");
   const [data, setData] = useState(null);
-  // REV304: dars xonasi kodini oldindan yuklab qo'yamiz — sekin internetda dars bosilganda uzoq «Dars yuklanmoqda…» bo'lmasin
-  useEffect(() => { const t = setTimeout(() => { import("../lesson/DarsXonasi.jsx").catch(() => {}); }, 1500); return () => clearTimeout(t); }, []);
   const [xato, setXato] = useState("");
   const [kat, setKat] = useState(null);
   const [qidir, setQidir] = useState("");
