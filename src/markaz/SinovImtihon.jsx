@@ -11,7 +11,7 @@ export default function SinovImtihon({ k, base, token, onYop }) {
   const BOLIMLAR = turi === "toliq" ? BOLIMLAR_TOLIQ : BOLIMLAR_MINI;
   const [s, setS] = useState(null); const [bolim, setBolim] = useState("listening"); const [javob, setJavob] = useState({}); const [matn, setMatn] = useState({});
   const [natija, setNatija] = useState({}); const [band, setBand] = useState(""); const [xato, setXato] = useState("");
-  const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; })();
+  const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en", "de", "es"].includes(t) ? t : "uz"; })();
   useEffect(() => { if (!turi) return; setS(null); setJavob({}); setNatija({});
     fetch(`${base}/api/markaz/sinov?${new URLSearchParams({ token, turi, yozilish_id: String(k.id) })}`).then((r) => (r.ok ? r.json() : Promise.reject())).then(setS).catch(() => setXato(__kbUi("Sinov yuklanmadi"))); }, [turi]); // eslint-disable-line
   const post = async (url, body) => { const r = await fetch(`${base}${url}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, yozilish_id: k.id, ...body }) }); const d = await r.json(); if (!r.ok) throw new Error(d.detail || r.status); return d; };

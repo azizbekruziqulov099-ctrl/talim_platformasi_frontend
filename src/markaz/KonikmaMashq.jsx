@@ -21,7 +21,7 @@ export default function KonikmaMashq({ k, base, token, onYop }) {
   const [m, setM] = useState(null);
   const [tur, setTur] = useState("tinglash");
   const [xato, setXato] = useState("");
-  const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; })();
+  const iz = (() => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en", "de", "es"].includes(t) ? t : "uz"; })();
   useEffect(() => {
     setM(null);
     fetch(`${base}/api/markaz/mashq?${new URLSearchParams({ til: k.til, daraja, dars: String(dars), iz })}`)

@@ -24,7 +24,7 @@ export function jadvalMatni(j = {}) {
 // REV287: kurs darajalari (har biri 2 bo'lim: 1–10, 11–20); o'quvchining daraja testi natijasiga qarab boshlang'ich daraja
 export const KURS_DARAJALAR = ["A1", "A2", "B1"];
 export const boshDaraja = (d = "") => { const x = String(d).toUpperCase(); return ["B1", "B2", "C1", "C2"].includes(x) ? "B1" : x === "A2" ? "A2" : "A1"; };
-const uiTil = () => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en"].includes(t) ? t : "uz"; };
+const uiTil = () => { const t = String(document.documentElement.lang || "uz").slice(0, 2); return ["ru", "en", "de", "es"].includes(t) ? t : "uz"; };
 
 export default function MarkazPanel({ apiBase = "", token = "", adminMi = false }) {
   const base = String(apiBase).replace(/\/+$/, "");
