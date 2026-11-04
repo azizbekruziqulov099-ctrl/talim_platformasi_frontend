@@ -197,7 +197,26 @@ const bosh = (t) => String(t).charAt(0).toLocaleUpperCase() + String(t).slice(1)
  * Bitta «vaqt» qadami (dars qadamlari formatida) yoki null.
  * til — o'rganilayotgan til (til darsi bo'lmasa null); izoh — tushuntirish tili (uz/ru/en); yosh — 2…7.
  */
-export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new Date() } = {}) {
+// REV331: fasl tanlovi — bola faslni o'zi topadi (11 tilda savol)
+export const FASL_SAVOL = {
+  uz: "Hozir yilning qaysi fasli? Derazaga qarab top!", ru: "Какое сейчас время года? Посмотри в окно и найди!",
+  en: "What season is it now? Look out of the window and find it!", de: "Welche Jahreszeit ist jetzt? Schau aus dem Fenster und finde sie!",
+  fr: "Quelle saison sommes-nous ? Regarde par la fenêtre et trouve-la !", es: "¿Qué estación es ahora? ¡Mira por la ventana y búscala!",
+  ar: "ما فصل السنة الآن؟ انظر من النافذة وابحث عنه!", tr: "Şimdi hangi mevsim? Pencereden bak ve bul!",
+  zh: "现在是什么季节？看看窗外，找一找！", ja: "いまは どの きせつ？ まどの そとを みて さがしてね！", ko: "지금은 어떤 계절일까? 창밖을 보고 찾아 봐!",
+};
+/** Tanlov: to'g'ri belgi + hovuzdan boshqalari (soni — yoshga qarab), joyi kunga qarab almashadi. */
+export function tanlovYasa(togri, hovuz, soni, kun = 0) {
+  const boshqa = hovuz.filter((e) => e !== togri);
+  const n = Math.max(2, Math.min(soni, boshqa.length + 1));
+  const sur = Math.abs(Number(kun) || 0) % boshqa.length;
+  const tanlangan = [...boshqa.slice(sur), ...boshqa.slice(0, sur)].slice(0, n - 1);
+  const joy = Math.abs(Number(kun) || 0) % n;
+  const variantlar = [...tanlangan]; variantlar.splice(joy, 0, togri);
+  return { variantlar, togri: joy };
+}
+
+export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new Date(), tanlov = false, kun = 0 } = {}) {
   const q = sanaQismlari(sana);
   const T = til && GAP[til] ? til : null;
   const I = GAP[izoh] ? izoh : "uz";
@@ -244,7 +263,14 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
   if (ob.gap) qismlar.push(tg(I, ob.gap));
   if (ob.bayram) doska.push(`${ob.bayram.b.emoji} ${ob.bayram.b[I] || ob.bayram.b.uz}${ob.bayram.qoldi ? ` · ${ob.bayram.qoldi}` : ""}`);
   const sarlavha = `🗓️ ${bosh(lug1(T || I, q.kun))}`;
-  return { turi: "kirish", _ochilish: "vaqt", sarlavha, ovoz: qismlar.join(" "), doska: doska.join("\n") };
+  const step = { turi: "kirish", _ochilish: "vaqt", sarlavha, ovoz: qismlar.join(" "), doska: doska.join("\n") };
+  if (tanlov) {
+    // savol tili: 4–7 yoshli til darsida — o'rganilayotgan til, aks holda izoh tili
+    const L = T && yosh >= 4 && FASL_SAVOL[T] ? T : FASL_SAVOL[I] ? I : "uz";
+    const t = tanlovYasa(FASL_BELGI[q.fasl], FASL_BELGI, yosh < 4 ? 2 : 4, kun);
+    return { ...step, ovoz: tg(L, FASL_SAVOL[L]), tanlov: { ...t, javob: step.ovoz } };
+  }
+  return step;
 }
 const lug1 = (L, i) => KUN[L]?.[i] || KUN.uz[i];
 

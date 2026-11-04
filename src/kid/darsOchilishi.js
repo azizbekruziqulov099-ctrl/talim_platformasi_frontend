@@ -190,7 +190,9 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
   const havoOvoz = L
     ? `${g("Derazaga qara! {p} ⏸", { p: t("weather") })} ${havoGapi} ${t(hk)}${qoshimcha}${chiroq} ${g("Endi sen ayt: {p}", { p: t(hk) })} ⏸`
     : `${g("Derazaga qara! Bugun havo qanday? ⏸")} ${havoGapi}${chiroq}`;
-  const tanlov = !tunda ? havoTanlovi({ togri: belgi, yosh: yoshi(grade), kun }) : null;
+  // REV331: tanlovlar kunma-kun almashadi — juft kun havo, toq kun fasl (bola har kuni boshqa narsani o'zi topadi)
+  const faslKuni = Boolean(sana) && Math.abs(Number(kun) || 0) % 2 === 1;
+  const tanlov = !tunda && !faslKuni ? havoTanlovi({ togri: belgi, yosh: yoshi(grade), kun }) : null;
   out.push({
     turi: "kirish", _ochilish: "havo", ...(tanlov ? { tanlov: { ...tanlov, javob: havoOvoz.slice(havoOvoz.indexOf("⏸") + 1).trim() } } : {}),
     sarlavha: `${belgi} ${gap(izoh, "Bugungi ob-havo").replace(/\[\/?\w\w\]/g, "")}`,
@@ -202,7 +204,7 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
 
   // REV158: 3) Vaqt — hafta kuni, fasl, oy, soat, yil (haqiqiy sana; yoshga va til darsiga qarab)
   if (sana) {
-    const kq = kalendarQadami({ til, izoh: aslIzoh || (izoh === til ? "uz" : izoh), yosh: yoshi(grade), sana });
+    const kq = kalendarQadami({ til, izoh: aslIzoh || (izoh === til ? "uz" : izoh), yosh: yoshi(grade), sana, tanlov: faslKuni, kun });
     if (kq) out.push(kq);
   }
 

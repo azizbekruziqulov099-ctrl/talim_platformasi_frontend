@@ -45,3 +45,8 @@
 .kabu-box .kabu-magnit i:nth-child(2){animation-delay:.47s}.kabu-box .kabu-magnit i:nth-child(3){animation-delay:.94s}
 @keyframes kabu-magnit{0%{width:20%;height:20%;opacity:.9;border-color:#7FD3FF}100%{width:110%;height:70%;opacity:0;border-color:#9B7BFF}}
 @media (prefers-reduced-motion:reduce){.kabu-box .kabu-magnit i{animation:none}}
+/* REV331: aylanish — orqa tomon */
+.kbot{transform-origin:50% 60%}
+.kbot .k-orqa{display:none}
+.kbot.is-orqa .k-orqa{display:inline}
+.kbot.is-orqa .k-look,.kbot.is-orqa .k-smile,.kbot.is-orqa .k-bars,.kbot.is-orqa .k-cbook,.kbot.is-orqa .k-cheart,.kbot.is-orqa .k-cstar,.kbot.is-orqa .k-ceq{visibility:hidden}
