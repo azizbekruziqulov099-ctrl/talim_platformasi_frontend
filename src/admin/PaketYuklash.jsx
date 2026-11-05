@@ -14,7 +14,7 @@ const HOLAT = {
   xato: ["❌", "#A32D2D", "#FCEBEB"],
   otkazildi: ["➖", "#8A8578", "#F7F5EF"],
 };
-const TUR = { mavzu: "📋 Mavzular", miya: "🧠 Miya", lugat: "📖 Lug'at", royxat: "🖼️ Ro'yxat", nomalum: "❔ Noma'lum" };
+const TUR = { mavzu: "📋 Mavzular", miya: "🧠 Miya", xalqaro: "🌍 Xalqaro", lugat: "📖 Lug'at", royxat: "🖼️ Ro'yxat", nomalum: "❔ Noma'lum" };
 const kut = (ms) => new Promise((r) => setTimeout(r, ms));
 // REV186: server bir lahzaga qayta ishga tushsa («Failed to fetch», 502/503) — qolgan fayllar «xato» bo'lib ketmaydi:
 // server qaytguncha kutiladi (3 daqiqagacha) va o'sha fayl qayta yuboriladi (3 martagacha).

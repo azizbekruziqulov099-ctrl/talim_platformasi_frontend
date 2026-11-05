@@ -1,11 +1,12 @@
 // REV121: ommaviy paket — navbat tartibi va hisob (sof funksiyalar, brauzersiz sinaladi).
 const IZOH = { ru: "izoh rus", en: "izoh ingliz" };
-const TARTIB = { mavzu: 0, miya: 1, royxat: 8, nomalum: 9 };
+const TARTIB = { mavzu: 0, miya: 1, xalqaro: 2, royxat: 8, nomalum: 9 };
 
 /** Fayl nomidan taxminiy tur (server baribir ichidan aniqlaydi). */
 export function paketTuri(nomi = "") {
   const n = String(nomi).toLowerCase();
   if (/rasmlar_royxati|rasmlar royxati/.test(n)) return "royxat";
+  if (/^xalqaro_|\/xalqaro_/.test(n)) return "xalqaro";   // REV346: xalqaro baholash savollar banki
   if (/mavzu/.test(n)) return "mavzu";
   if (/miya|\.zip$/.test(n)) return "miya";
   return "nomalum";
@@ -21,6 +22,9 @@ export function paketBelgi(nomi = "") {
     .filter(Boolean).join(" · ");
 }
 
+// REV346: xalqaro fayllarda o'zbekchasi birinchi o'rnatiladi
+const uzAvval = (it) => (it.turi === "xalqaro" && !/_uz\b|_uz\./i.test(String(it.nomi || "")) ? 1 : 0);
+
 /** Navbat: avval mavzular, keyin miyalar (miya mavzusini bazadan topishi uchun); ro'yxatlar o'tkazib yuboriladi. */
 export function paketNavbati(items = []) {
   return items.map((it) => {
@@ -28,7 +32,7 @@ export function paketNavbati(items = []) {
     const holat = it.holat || "kutmoqda";
     return { ...it, turi, belgi: it.belgi || paketBelgi(it.nomi),
       holat: (turi === "royxat" || turi === "nomalum") && holat === "kutmoqda" && !it.id ? "otkazildi" : holat };
-  }).sort((a, b) => (TARTIB[a.turi] ?? 9) - (TARTIB[b.turi] ?? 9) || String(a.yol || "").localeCompare(String(b.yol || "")) || String(a.nomi).localeCompare(String(b.nomi)));
+  }).sort((a, b) => (TARTIB[a.turi] ?? 9) - (TARTIB[b.turi] ?? 9) || uzAvval(a) - uzAvval(b) || String(a.yol || "").localeCompare(String(b.yol || "")) || String(a.nomi).localeCompare(String(b.nomi)));
 }
 
 export function paketXulosa(list = []) {
