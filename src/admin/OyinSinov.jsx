@@ -7,6 +7,7 @@ import { emojiRasm, matnId, sozId } from "../kid/rasmHarakat.js";
 import { HARAKAT_OYINLARI } from "../lesson/HarakatQadam.jsx";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./oyinSinov.css";
+const KabuImtihoni = React.lazy(() => import("../kid/imtihon/KabuImtihoni.jsx"));   // REV361
 
 // Sinov uchun so'zlar to'plamlari (darsdagidek: rasm + nom; tillar darsida — o'rganiladigan so'z ham)
 export const TOPLAMLAR = {
@@ -31,6 +32,10 @@ export default function OyinSinov() {
   const [urug, setUrug] = useState(1);
   const [gap, setGap] = useState("");
   const [belgilar, setBelgilar] = useState(ol);
+  const [imtihon, setImtihon] = useState(false);
+  // REV361: imtihon namunasi — uch to'plam uch xil «dars» (fanlar aralash) sifatida
+  const namunaDarslar = useMemo(() => Object.entries(TOPLAMLAR).map(([k, v], j) => ({ kod: k, mavzu: v.nom.replace(/^\S+\s/, ""), fan: ["Atrof-muhit", "Mantiq", "Matematika"][j],
+    steps: [{ turi: "qoida", doska: v.el.map(([e, uz]) => `${e} ${uz}`).join("\n") }, ...[116, 83, 88, 86, 89, 31].map((id) => ({ turi: "amaliy", oyin: id, doska: v.el.slice(0, 3).map(([e, uz]) => `${e} ${uz}`).join("\n") }))] })), []);
   const ruyxat = useMemo(() => OYINLAR.filter((o) => !HARAKAT_OYINLARI.has(o.id) && o.yosh.includes(yosh)), [yosh]);
   const elementlar = useMemo(() => TOPLAMLAR[toplam].el.map(([e, uz, en], i) => ({ k: `e${i}`, emoji: e, uz, ...(tilDarsi ? { say: en } : {}) })), [toplam, tilDarsi]);
   const belgila = (id, qiymat) => { const d = { ...belgilar, [id]: { ...(belgilar[id] || {}), ...qiymat, vaqt: new Date().toISOString().slice(0, 16) } }; setBelgilar(d); yoz(d); };
@@ -53,6 +58,7 @@ export default function OyinSinov() {
         <label><input type="checkbox" checked={tilDarsi} onChange={(e) => setTilDarsi(e.target.checked)} /> {__kbUi("Tillar darsi (so‘zlar inglizcha aytiladi)")}</label>
       </div>
       <div className="os-hisob">✅ {soni.ok} · 🛠 {soni.tuzat} · {__kbUi("jami")} {ruyxat.length}
+        <button type="button" onClick={() => setImtihon(true)}>🏆 {__kbUi("Kabu imtihoni (namuna)")}</button>
         <button type="button" onClick={() => { const t = hisobot(); try { navigator.clipboard.writeText(t); } catch { /* */ } alert(t || __kbUi("Hali belgi yo‘q")); }}>📋 {__kbUi("Hisobotni nusxalash")}</button></div>
     </header>
     <ul className="os-ruyxat">{ruyxat.map((o) => { const b = belgilar[o.id] || {};
@@ -65,6 +71,15 @@ export default function OyinSinov() {
           <input type="text" placeholder={__kbUi("Izoh…")} defaultValue={b.izoh || ""} onBlur={(e) => belgila(o.id, { izoh: e.target.value })} />
         </div>
       </li>; })}</ul>
+    {imtihon && <div className="os-oyna" role="dialog" aria-modal="true" onClick={() => setImtihon(false)}>
+      <div className="os-sahna" onClick={(e) => e.stopPropagation()}>
+        <div className="os-sahna-bosh"><b>🏆 {__kbUi("Kabu imtihoni (namuna)")}</b> · {yosh} · {izoh}<button type="button" onClick={() => setImtihon(false)}>✕</button></div>
+        <React.Suspense fallback={<p role="status">…</p>}>
+          <KabuImtihoni sinov darslar={namunaDarslar} yosh={yosh} izoh={izoh} onSay={(t, d) => ayt(t, d)} onClose={() => setImtihon(false)} />
+        </React.Suspense>
+        <p className="os-gap" aria-live="polite">🗣️ {gap || "…"}</p>
+      </div>
+    </div>}
     {ochiq && <div className="os-oyna" role="dialog" aria-modal="true" onClick={() => setOchiq(null)}>
       <div className="os-sahna" onClick={(e) => e.stopPropagation()}>
         <div className="os-sahna-bosh"><b>{OYINLAR.find((o) => o.id === ochiq)?.nom}</b> · {yosh} · {izoh}

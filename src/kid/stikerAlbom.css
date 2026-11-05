@@ -25,3 +25,5 @@
 .sa-orol.is-bosh .sa-orol-fon{filter:grayscale(.7) brightness(1.1);opacity:.55}
 .sa-orol-qism{position:absolute;height:auto;filter:drop-shadow(0 4px 6px #0004);animation:sa-pop .7s cubic-bezier(.3,1.6,.5,1) calc(var(--i) * .15s) both}
 .sa-orol-yorliq{position:absolute;left:8px;bottom:8px;padding:4px 10px;border-radius:999px;background:#ffffffe6;font:700 13px/1.2 inherit;color:#2b3452}
+.kt-imtihon{background:#fff4d6}
+.kt-imtihon-oyna{width:min(920px,100%)}

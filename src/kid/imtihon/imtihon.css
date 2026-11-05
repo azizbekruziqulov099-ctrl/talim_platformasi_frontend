@@ -1,0 +1,12 @@
+/* REV361: Kabu imtihoni */
+.im-root{position:relative;display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px;min-height:520px}
+.im-bosh{font-size:72px;line-height:1}
+.im-matn{font-size:20px;font-weight:700;color:#2b3452;text-align:center;max-width:560px}
+.im-yulduz{font-size:44px;letter-spacing:6px;color:#ffb703}
+.im-xulosa{list-style:none;margin:0;padding:0;display:grid;gap:6px;width:min(520px,100%)}
+.im-xulosa li{padding:8px 12px;border-radius:12px;background:#f2fbf5;font-weight:600}
+.im-xulosa li.is-takror{background:#fff4e5}
+.im-tugma{border:0;border-radius:16px;padding:12px 26px;background:#2ec4b6;color:#fff;font-size:20px;font-weight:800;cursor:pointer}
+.im-yol{display:flex;gap:6px}
+.im-yol i{width:22px;height:8px;border-radius:4px;background:#dfe5ee}.im-yol i.is-bitdi{background:#58b37a}.im-yol i.is-joriy{background:#ffb703}
+.im-oyin{position:relative;width:min(860px,100%);height:520px;border-radius:20px;overflow:hidden;background:#f6f8fc}

@@ -16,7 +16,8 @@ import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
 import { davomOl, davomFoiz } from '../lesson/darsDavomi.js';
 import { tilVariantlari, moslar } from './boshqaTil.js';
-import StikerAlbom from '../kid/StikerAlbom.jsx';   // REV333   // REV328: shu darsni boshqa tilda   // REV326: yarim qolgan dars foizi
+import StikerAlbom from '../kid/StikerAlbom.jsx';   // REV333
+const KabuImtihoni = React.lazy(() => import('../kid/imtihon/KabuImtihoni.jsx'));   // REV361   // REV328: shu darsni boshqa tilda   // REV326: yarim qolgan dars foizi
 import { KURS, SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
@@ -98,6 +99,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  const unlockOf=(group,sub=current)=>unlockLessons(group.mavzular.map(t=>t.dars_bor?topicTarget(sub,group,t,type).lesson_code:''),plan,sub?.nom||'');
  // REV81: uzluksiz o'rganish — dars tugagach keyingi darsga o'tish (guruh ichidagi tartib bo'yicha).
  const [albom,setAlbom]=useState(false);   // REV333
+ const [imtihon,setImtihon]=useState(false);   // REV361: yakshanba — Kabu imtihoni
  const openLesson=(group,topic,sub=current,opts={})=>{
   const fanNom=sub?.nom||'';
   const list=group.mavzular.filter(t=>t.dars_bor);const i=list.indexOf(topic);let next=i>=0?list[i+1]:null;
@@ -168,7 +170,12 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
 
  return <div className="space-y-4 lt-root">
   {kid&&<div><button type="button" className="kt-olam-back" onClick={()=>setOlam(true)} aria-label={__kbUi("Bog‘chaga qaytish")}>🏫</button>
-   <button type="button" className="kt-albom" onClick={()=>setAlbom(true)} aria-label={__kbUi("Stiker albomim")}>📒</button></div>}
+   <button type="button" className="kt-albom" onClick={()=>setAlbom(true)} aria-label={__kbUi("Stiker albomim")}>📒</button>
+   {(new Date().getDay()===0||/[?&]imtihon=1/.test(location.search))&&<button type="button" className="kt-albom kt-imtihon" onClick={()=>setImtihon(true)} aria-label={__kbUi("Kabu imtihoni")}>🏆</button>}</div>}
+  {imtihon&&<div className="sa-fon" role="dialog" aria-modal="true"><div className="sa-oyna kt-imtihon-oyna"><React.Suspense fallback={<p role="status">…</p>}>
+   <KabuImtihoni apiBase={apiBase} token={preview?'':token} yosh={(()=>{const g=String(user?.yosh_guruhi||'');return /2-3|3-4/.test(g)?'2-3':/6-7|5-6/.test(g)?'6-7':'4-5';})()}
+    izoh={String(locale||'uz').slice(0,2)} onSay={(t,d)=>{sayName(t,String(locale||'').startsWith('en'));setTimeout(()=>d&&d(),Math.min(15000,1200+String(t).length*80));}} onClose={()=>setImtihon(false)}/>
+  </React.Suspense></div></div>}
   {albom&&<StikerAlbom onClose={()=>setAlbom(false)} apiBase={apiBase} token={preview?'':token}/>}
   {!kid&&<div><h2 className="text-xl font-bold text-slate-800">{teacher?__kbUi("Mavzular"):__kbUi("O‘rganish")}</h2>
    <p className="mt-1 text-sm text-slate-600">{__kbUi(viewerHeadline(catalog?.viewer,type,institutionLabel(type)))}</p></div>}
