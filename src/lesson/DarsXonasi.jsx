@@ -32,7 +32,8 @@ import Oyin from "../kid/oyin/index.js";
 import { oyinNatijaYoz, stikerServer } from "../kid/kidActivity.js";
 import { stikerBer, albomYoz } from "../kid/stikerAlbom.js";   // REV333: stiker albomi
 import { YangiStiker } from "../kid/StikerAlbom.jsx";   // REV329   // REV325: o'yin dvigateli
-import { qadamOyini, yoshGuruh } from "./oyinQadam.js";
+import { qadamOyini, yoshGuruh, darsElementlari } from "./oyinQadam.js";
+import HarakatQadam, { HARAKAT_OYINLARI } from "./HarakatQadam.jsx";   // REV342
 import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
 import { DAVOM_GAPI } from "../kid/izohTil.js";
 import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
@@ -189,7 +190,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV121: «Top-chi» o'yini — ustoz so'zni aytadi va bola bosishini KUTADI; to'g'ri (birinchi urinishda) — yulduz,
   // xato yoki bosmasa — yulduz yo'q. game: { stepIdx, targets, holat, kutish } · natijalar har o'yin qadami bo'yicha.
   const [game, setGame] = useState(null);
-  const [oyinQ, setOyinQ] = useState(null);   // REV325: Miya qadamidagi o'yin — { stepIdx, id, elementlar, sonlar }
+  const [oyinQ, setOyinQ] = useState(null);
+  const [harakatQ, setHarakatQ] = useState(null);   // REV342: harakat qadami (171/172/175)   // REV325: Miya qadamidagi o'yin — { stepIdx, id, elementlar, sonlar }
   const [tanlov, setTanlov] = useState(null);
   const [stiker, setStiker] = useState(null);   // REV333: dars oxirida berilgan stiker   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
@@ -845,6 +847,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setSanoq((x) => (x && x.stepIdx !== next ? null : x));
     setTanlov((x) => (x && x.stepIdx !== next ? null : x));
     setOyinQ((x) => (x && x.stepIdx !== next ? null : x));
+    setHarakatQ((x) => (x && x.stepIdx !== next ? null : x));
     const spoken = stepSpeech(s, next);
     [next + 1, next + 2].forEach((j) => prefetchQadam(j));
     if (kid && next > 0 && kinds[next] !== kinds[next - 1]) { if (kinds[next] === "new") chime(); else if (kinds[next] === "review") soft(); }
@@ -855,7 +858,13 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // REV121: «Top-chi» o'yini — so'zlar bilan bog'langan rasmlar bo'lsa, bola bosishini kutadigan haqiqiy o'yin
       // REV325: Miya'da o'yin raqami bor — o'yin dvigateli o'ynaydi, tugagach dars davom etadi
       if (autoplay && (kid || boshlangich) && s.turi === "amaliy" && s.oyin && next >= opening.length) {
-        const o = qadamOyini(s, { yosh: kid ? yoshGuruh(grade) : "6-7", darsSozlari: kid && darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [] });
+        if (HARAKAT_OYINLARI.has(Number(s.oyin))) {   // REV342: harakat — bola bajaradi, «Bajardim!» bosadi
+          const em = (String(s.doska || "").match(/\p{Extended_Pictographic}/u) || [])[0] || "";
+          setHarakatQ({ stepIdx: next, id: Number(s.oyin), emoji: em }); return;
+        }
+        // REV342: o'yinga rasm yetmasa — butun darsdagi rasmli so'zlardan olinadi
+        const o = qadamOyini(s, { yosh: kid ? yoshGuruh(grade) : "6-7", darsSozlari: kid && darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [],
+          darsElementlari: darsElementlari(steps.slice(opening.length)) });
         if (o) { setOyinQ({ stepIdx: next, ...o }); return; }
       }
       // REV324: ochilishdagi tanlov — bola belgini bosmaguncha kutiladi
@@ -1738,6 +1747,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan, uiLocale)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish) && !(tanlov && tanlov.stepIdx === idx)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
             onDetal={(d) => { if (speakingRef.current) return; const m = d.matn?.[tIzoh] || d.matn?.uz || ""; if (m) say(tIzoh === "uz" ? m : izohTeg(m, tIzoh)); }} />
+            {harakatQ && harakatQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam is-harakat">
+              <HarakatQadam id={harakatQ.id} emoji={harakatQ.emoji} izoh={tIzoh} onTugadi={() => { const my = harakatQ.stepIdx; setHarakatQ(null); setCelebrate((c) => c + 1);
+                say(gap(tIzoh, "Zo‘r! Ana shunday!"), () => { if (playingRef.current && idxRef.current === my) go(my + 1, true); }); }} />
+            </div>}
             {oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam">
               <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh={yoshGuruh(grade)} til={darsTil || "uz"} izoh={tIzoh}
                 onSay={(t) => say(t)}

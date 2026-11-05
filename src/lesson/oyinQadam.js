@@ -17,7 +17,9 @@ export function qatorElementi(qator) {
 /** Qadamdan elementlar: variantlar, doska qatorlari (va darsning so'zlari — ko'proq xilma-xillik uchun). */
 export function qadamElementlari(step, darsSozlari = []) {
   const out = [];
-  const qator = [...String(step?.variantlar || "").split("\n"), ...String(step?.doska || "").split("\n")];
+  // REV342: darsdagi variantlar — massiv (serverdan) yoki «A) …» qatorlari (Miya'dan)
+  const vq = Array.isArray(step?.variantlar) ? step.variantlar.map((v) => (v && typeof v === "object" ? v.matn || v.text || "" : v)) : String(step?.variantlar || "").split("\n");
+  const qator = [...vq, ...String(step?.doska || "").split("\n")];
   for (const q of qator) {
     const e = qatorElementi(q);
     if (e) out.push(e);
@@ -38,11 +40,28 @@ export function qadamSonlari(step) {
   return [...new Set([...s, ...emo])];
 }
 
+/** REV342: butun darsdagi rasmli elementlar (har qadamning doskasi va variantlari) — o'yin qadamida rasm yetmasa shulardan olinadi. */
+export function darsElementlari(steps = []) {
+  const out = [], kor = new Set();
+  for (const st of steps || []) for (const e of qadamElementlari(st)) {
+    const k = e.emoji + "|" + (e.say || e.uz || "");
+    if (!kor.has(e.emoji) && !kor.has(k)) { kor.add(e.emoji); kor.add(k); out.push(e); }
+  }
+  return out;
+}
+const TEGLAR = /\[(\w\w)\](.+?)\[\/\1\]/g;
+
 /** O'ynaladigan o'yin: Miya'dagi raqam mos kelsa — o'sha; aks holda null (qadam avvalgidek o'tadi). */
-export function qadamOyini(step, { yosh, darsSozlari = [] } = {}) {
+export function qadamOyini(step, { yosh, darsSozlari = [], darsElementlari: hovuz = [] } = {}) {
   const id = Number(step?.oyin);
   if (!id || !oyinOl(id)) return null;
-  const elementlar = qadamElementlari(step, darsSozlari);
+  // REV342: qadamning o'z rasmlari → qadam matnida aytilgan so'zlarning rasmlari (dars hovuzidan) → dars hovuzi
+  const ozi = qadamElementlari(step, darsSozlari);
+  const matn = `${step?.ovoz || ""} ${step?.doska || ""}`;
+  const aytilgan = [...matn.matchAll(TEGLAR)].map((m) => m[2].trim().toLowerCase());
+  const mos = hovuz.filter((e) => e.say && aytilgan.includes(String(e.say).trim().toLowerCase()));
+  const kor = new Set();
+  const elementlar = [...ozi, ...mos, ...hovuz].filter((e) => { if (kor.has(e.emoji)) return false; kor.add(e.emoji); return true; });
   const sonlar = qadamSonlari(step);
   const sl = sonlar.length ? sonlar : undefined;
   if (!oyinMosmi(id, { elementlar, yosh, sonlar: sl })) return null;

@@ -16,3 +16,11 @@ test('REV325: qadamdan o‘yin', () => {
   assert.equal(yoshGuruh('2-3 yosh'), '2-3'); assert.equal(yoshGuruh('5-6 yosh'), '4-5'); assert.equal(yoshGuruh('6-7 yosh'), '6-7');
   assert.ok(qadamElementlari({ doska: '👋 [en]Hello![/en] / salom' })[0].say === 'Hello!');
 });
+import { darsElementlari } from './oyinQadam.js';
+test('REV342: dars hovuzi — o‘yinga rasm yetmasa darsdagi rasmli so‘zlar olinadi', () => {
+  const dars = [{ doska: '🍎 [en]apple[/en]\n🍌 [en]banana[/en]' }, { variantlar: ['🐶 [en]dog[/en]', '🐱 [en]cat[/en]'] }, { doska: 'matn' }];
+  const h = darsElementlari(dars); assert.equal(h.length, 4);
+  const s = { turi: 'amaliy', oyin: 117, ovoz: 'Eshik yopiq! Ayt: [en]dog[/en]', doska: 'Eshik yopiq!' };
+  const o = qadamOyini(s, { yosh: '4-5', darsElementlari: h }); assert.ok(o); assert.equal(o.elementlar[0].say, 'dog');   // aytilgan so'z birinchi
+  assert.equal(qadamOyini(s, { yosh: '4-5' }), null);   // hovuzsiz — rasm yo'q
+});

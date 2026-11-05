@@ -1019,3 +1019,13 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-til-btn:active{transform:scale(.96)}
 .dx-board{position:relative}
 .dx-oyin-qatlam.is-maktab{left:0;right:0;top:0;bottom:0;border-radius:14px}
+/* REV342: harakat qadami */
+.dx-oyin-qatlam.is-harakat{align-items:center}
+.dx-harakat{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;width:100%}
+.dx-harakat-belgi{font-size:120px;line-height:1;animation:dx-harakat-sakra 1s ease-in-out infinite}
+.dx-harakat.is-175 .dx-harakat-belgi{animation:dx-harakat-muz 1.6s ease-in-out infinite}
+@keyframes dx-harakat-sakra{0%,100%{transform:translateY(0) scale(1)}40%{transform:translateY(-28px) scale(1.06)}60%{transform:translateY(-28px) scale(1.06)}}
+@keyframes dx-harakat-muz{0%,45%{transform:rotate(-8deg)}50%,100%{transform:rotate(8deg)}}
+.dx-harakat-tugma{border:0;border-radius:20px;padding:16px 28px;background:#2ec4b6;color:#fff;font:800 22px/1 inherit;box-shadow:0 6px 0 #1f8f85;cursor:pointer}
+.dx-harakat-tugma:active{transform:translateY(4px);box-shadow:0 2px 0 #1f8f85}
+@media (prefers-reduced-motion:reduce){.dx-harakat-belgi{animation:none}}
