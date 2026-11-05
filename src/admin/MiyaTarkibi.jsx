@@ -31,6 +31,25 @@ export default function MiyaTarkibi({ apiBase, token }) {
   }, [base, token]);
   useEffect(() => { if (open && !data) load(); }, [open, data, load]);
 
+  // REV341: bitta kitobni olib tashlash — avval nima bo'lishini ko'rsatadi, tasdiqlansa bajaradi
+  async function kitobOchir(k) {
+    const yubor = async (bajar) => {
+      const res = await fetch(`${base}/kitob_ochir`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, source_id: k.id, bajar }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato (${res.status})`);
+      return d;
+    };
+    try {
+      setBusy(true); setMsg("");
+      const p = await yubor(false);
+      const ok = window.confirm(`${__kbUi("Kitob")}: «${p.kitob}» (${p.sinf}, ${p.fan})\n${__kbUi("Darslari arxivlanadi")}: ${p.darslar}\n${__kbUi("Yashiriladigan mavzular")}: ${p.mavzular_yashiriladi}\n${__kbUi("Qoladigan mavzular (boshqa kitobda darsi yoki testi bor)")}: ${p.mavzular_qoladi}\n\n${__kbUi("Davom etamizmi?")}`);
+      if (!ok) return;
+      const d = await yubor(true);
+      setMsg(`✅ «${d.kitob}» ${__kbUi("olib tashlandi")}: ${d.darslar} ${__kbUi("ta dars arxivlandi")}, ${d.mavzular_yashiriladi} ${__kbUi("ta mavzu yashirildi")}.`);
+      await load();
+    } catch (e) { setMsg(`⚠️ ${e.message}`); } finally { setBusy(false); }
+  }
+
   const groups = useMemo(() => groupRows(data?.qatorlar || []), [data]);
   const chosenAll = (data?.qatorlar || []).filter((r) => picked[rowKey(r)]);
   const sum = selectionSummary(chosenAll, what);
@@ -181,7 +200,13 @@ export default function MiyaTarkibi({ apiBase, token }) {
                   <td className={`${td} whitespace-nowrap font-semibold pl-10`}>{/^\d+$/.test(r.sinf) ? `${r.sinf}-sinf` : r.sinf}{r.eski_yosh ? " ⚠" : ""}</td>
                   <td className={td}>{String(r.fan).replace(/\s*\(izoh: (rus|ingliz)\)/i, "")}</td>
                   <td className={td}><span className="rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "#EEF3F9", color: "#1B4B7A" }}>{tilOf(r.fan).toUpperCase()}</span></td>
-                  <td className={`${td} text-slate-500`} title={(r.kitoblar || []).map((x) => x.nomi).join("\n")}>{(r.kitoblar || []).length ? `${r.kitoblar.length} · ${String(r.kitoblar[0].nomi || "").slice(0, 28)}${r.kitoblar.length > 1 ? "…" : ""}` : "—"}</td>
+                  <td className={`${td} text-slate-500`} title={(r.kitoblar || []).map((x) => x.nomi).join("\n")}>{(r.kitoblar || []).length > 1
+                    // REV341: bir fan/sinfda bir nechta kitob — eskisini alohida olib tashlash (aralashib qolmasin)
+                    ? <div className="flex flex-col gap-0.5">{r.kitoblar.map((k) => <span key={k.id} className="flex items-center gap-1">
+                        <span className={k.holat === "archived" ? "line-through opacity-60" : ""}>{String(k.nomi || "").slice(0, 30)} · {k.darslar}</span>
+                        {k.holat !== "archived" && <button type="button" disabled={busy} className="rounded border px-1 text-xs" style={{ borderColor: "#E8C9C9", color: "#A32D2D" }}
+                          title={__kbUi("Faqat shu kitobni olib tashlash")} onClick={() => kitobOchir(k)}>🗑</button>}</span>)}</div>
+                    : (r.kitoblar || []).length ? `1 · ${String(r.kitoblar[0].nomi || "").slice(0, 28)}` : "—"}</td>
                   <td className={`${td} text-right tabular-nums`}>{r.miya_darslar}</td><td className={`${td} text-right tabular-nums`}>{r.mavzular}</td><td className={`${td} text-right tabular-nums`}>{r.testlar ?? "—"}</td>
                   <td className={`${td} whitespace-nowrap`}>
                     <button type="button" title={__kbUi("Nega o‘quvchida ko‘rinmayapti?")} className="rounded border px-1.5 py-0.5 mr-1" style={{ borderColor: "#D8D3C7" }}
