@@ -1754,7 +1754,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             </div>}
             {oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam">
               <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh={yoshGuruh(grade)} til={darsTil || "uz"} izoh={tIzoh}
-                mavzu={String(lesson?.topic?.mavzu || "").replace(/^\s*\d+[.)]\s*/, "")} tanish={oyinQ.tanish}
+                mavzu={String(lesson?.topic?.mavzu || "").replace(/^\s*\d+[.)]\s*/, "")} tanish={oyinQ.tanish} fasl={["qish", "qish", "bahor", "bahor", "bahor", "yoz", "yoz", "yoz", "kuz", "kuz", "kuz", "qish"][new Date().getMonth()]}
                 onSay={(t) => say(t)}
                 onNatija={(togri, xatolar, info) => {
                   if (kidPlan) oyinNatijaYoz(apiBase, token, { darsKod: topicCode, oyinId: oyinQ.id, togri, xato: Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0, soniya: info?.soniya });   // REV329

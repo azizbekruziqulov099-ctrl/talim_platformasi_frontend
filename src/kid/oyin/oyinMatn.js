@@ -380,6 +380,580 @@ export const OYIN_MATN = {
   },
 };
 
+// REV348: saralash va ulash o'yinlari gaplari (5 tilda)
+Object.assign(OYIN_MATN, {
+ "uyYovvoyi": {
+  "nom": {
+   "uz": "Uy yoki yovvoyi",
+   "ru": "Домашнее или дикое",
+   "en": "Farm or wild",
+   "de": "Haus- oder Wildtier",
+   "es": "Doméstico o salvaje"
+  },
+  "kirish": {
+   "uz": "Uy hayvonlari odam yonida yashaydi, yovvoyilari — o‘rmon va cho‘lda. Har birini o‘z joyiga joyla!",
+   "ru": "Домашние животные живут рядом с человеком, дикие — в лесу и в степи. Отправь каждого на своё место!",
+   "en": "Farm animals live with people, wild animals live in forests and fields. Put each one in its place!",
+   "de": "Haustiere leben bei Menschen, Wildtiere im Wald und in der Steppe. Bring jedes an seinen Platz!",
+   "es": "Los animales domésticos viven con las personas; los salvajes, en el bosque y el campo. ¡Pon cada uno en su lugar!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Uy hayvonimi yoki yovvoyimi?",
+    "{t} qayerda yashaydi: uyda yoki o‘rmonda?"
+   ],
+   "ru": [
+    "{t}. Домашнее или дикое?",
+    "Где живёт {t}: дома или в лесу?"
+   ],
+   "en": [
+    "{t}. Farm animal or wild?",
+    "Where does the {t} live: at a farm or in the wild?"
+   ],
+   "de": [
+    "{t}. Haustier oder Wildtier?",
+    "Wo lebt {t}: beim Menschen oder in der Wildnis?"
+   ],
+   "es": [
+    "{t}. ¿Doméstico o salvaje?",
+    "¿Dónde vive {t}: en casa o en la naturaleza?"
+   ]
+  }
+ },
+ "mevaSabzavot": {
+  "nom": {
+   "uz": "Meva yoki sabzavot",
+   "ru": "Фрукт или овощ",
+   "en": "Fruit or vegetable",
+   "de": "Obst oder Gemüse",
+   "es": "Fruta o verdura"
+  },
+  "kirish": {
+   "uz": "Mevalar shirin, ko‘pincha daraxtda o‘sadi. Sabzavotdan ovqat pishiramiz. Qani, ajratamiz!",
+   "ru": "Фрукты сладкие и часто растут на деревьях. Из овощей мы готовим еду. Давай разложим!",
+   "en": "Fruits are sweet and often grow on trees. We cook meals with vegetables. Let's sort them!",
+   "de": "Obst ist süß und wächst oft an Bäumen. Aus Gemüse kochen wir Essen. Sortieren wir!",
+   "es": "Las frutas son dulces y crecen a menudo en árboles. Con las verduras cocinamos. ¡Vamos a ordenar!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Mevami yoki sabzavotmi?",
+    "{t}ni qaysi savatga solamiz?"
+   ],
+   "ru": [
+    "{t}. Фрукт или овощ?",
+    "В какую корзину положим: {t}?"
+   ],
+   "en": [
+    "{t}. Fruit or vegetable?",
+    "Which basket does the {t} go in?"
+   ],
+   "de": [
+    "{t}. Obst oder Gemüse?",
+    "In welchen Korb kommt {t}?"
+   ],
+   "es": [
+    "{t}. ¿Fruta o verdura?",
+    "¿En qué cesta ponemos {t}?"
+   ]
+  }
+ },
+ "xavfli": {
+  "nom": {
+   "uz": "Xavfli yoki xavfsiz",
+   "ru": "Опасно или безопасно",
+   "en": "Safe or dangerous",
+   "de": "Sicher oder gefährlich",
+   "es": "Seguro o peligroso"
+  },
+  "kirish": {
+   "uz": "Ba’zi narsalar bilan o‘ynasa bo‘ladi, ba’zilariga tegmaymiz — ular xavfli. Ajratib ber!",
+   "ru": "С некоторыми вещами можно играть, а некоторые трогать нельзя — они опасные. Раздели их!",
+   "en": "Some things are safe to play with, others we never touch — they are dangerous. Sort them!",
+   "de": "Mit manchen Dingen darf man spielen, andere fasst man nie an — sie sind gefährlich. Sortiere sie!",
+   "es": "Con algunas cosas se puede jugar; otras no se tocan, son peligrosas. ¡Sepáralas!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Xavfsizmi yoki xavflimi?",
+    "{t} bilan o‘ynasa bo‘ladimi?"
+   ],
+   "ru": [
+    "{t}. Безопасно или опасно?",
+    "Можно ли играть: {t}?"
+   ],
+   "en": [
+    "{t}. Safe or dangerous?",
+    "Can we play with the {t}?"
+   ],
+   "de": [
+    "{t}. Sicher oder gefährlich?",
+    "Darf man damit spielen: {t}?"
+   ],
+   "es": [
+    "{t}. ¿Seguro o peligroso?",
+    "¿Se puede jugar con {t}?"
+   ]
+  }
+ },
+ "chiqindi": {
+  "nom": {
+   "uz": "Chiqindini sarala",
+   "ru": "Сортируем мусор",
+   "en": "Sort the rubbish",
+   "de": "Müll trennen",
+   "es": "Separa la basura"
+  },
+  "kirish": {
+   "uz": "Tabiatni asraymiz! Qog‘oz, plastik va ovqat qoldiqlari alohida qutiga tashlanadi.",
+   "ru": "Бережём природу! Бумагу, пластик и остатки еды выбрасываем в разные контейнеры.",
+   "en": "Let's protect nature! Paper, plastic and food scraps go into different bins.",
+   "de": "Wir schützen die Natur! Papier, Plastik und Essensreste kommen in verschiedene Tonnen.",
+   "es": "¡Cuidemos la naturaleza! El papel, el plástico y los restos de comida van a contenedores distintos."
+  },
+  "raund": {
+   "uz": [
+    "{t}. Qaysi qutiga tashlaymiz?",
+    "{t} — qog‘ozmi, plastikmi yoki ovqat qoldig‘imi?"
+   ],
+   "ru": [
+    "{t}. В какой контейнер?",
+    "{t} — это бумага, пластик или остатки еды?"
+   ],
+   "en": [
+    "{t}. Which bin does it go in?",
+    "The {t} — paper, plastic or food scraps?"
+   ],
+   "de": [
+    "{t}. In welche Tonne?",
+    "{t} — Papier, Plastik oder Essensreste?"
+   ],
+   "es": [
+    "{t}. ¿A qué contenedor va?",
+    "{t}: ¿papel, plástico o restos de comida?"
+   ]
+  }
+ },
+ "transport": {
+  "nom": {
+   "uz": "Transport",
+   "ru": "Транспорт",
+   "en": "Transport",
+   "de": "Verkehrsmittel",
+   "es": "Transporte"
+  },
+  "kirish": {
+   "uz": "Transport yerda yuradi, suvda suzadi yoki osmonda uchadi. Har birini joyiga joyla!",
+   "ru": "Транспорт ездит по земле, плавает по воде или летает по небу. Отправь каждый на своё место!",
+   "en": "Vehicles go on land, on water or fly in the sky. Put each one in its place!",
+   "de": "Fahrzeuge fahren an Land, auf dem Wasser oder fliegen am Himmel. Bring jedes an seinen Platz!",
+   "es": "Los transportes van por tierra, por el agua o vuelan por el cielo. ¡Pon cada uno en su lugar!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Qayerda yuradi?",
+    "{t} yerdami, suvdami yoki osmondami?"
+   ],
+   "ru": [
+    "{t}. Где он движется?",
+    "{t} — на земле, на воде или в небе?"
+   ],
+   "en": [
+    "{t}. Where does it go?",
+    "The {t} — on land, on water or in the sky?"
+   ],
+   "de": [
+    "{t}. Wo fährt es?",
+    "{t} — an Land, auf dem Wasser oder am Himmel?"
+   ],
+   "es": [
+    "{t}. ¿Por dónde va?",
+    "{t}: ¿por tierra, por el agua o por el cielo?"
+   ]
+  }
+ },
+ "harakatTuri": {
+  "nom": {
+   "uz": "Kim qanday harakatlanadi",
+   "ru": "Кто как двигается",
+   "en": "How do they move",
+   "de": "Wie bewegen sie sich",
+   "es": "¿Cómo se mueven?"
+  },
+  "kirish": {
+   "uz": "Kimdir uchadi, kimdir suzadi, kimdir yuradi. Qani, kim qanday harakatlanadi?",
+   "ru": "Кто-то летает, кто-то плавает, кто-то ходит. Как же двигается каждый?",
+   "en": "Some fly, some swim, some walk. How does each one move?",
+   "de": "Manche fliegen, manche schwimmen, manche laufen. Wie bewegt sich jedes Tier?",
+   "es": "Unos vuelan, otros nadan, otros caminan. ¿Cómo se mueve cada uno?"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Uchadimi, suzadimi yoki yuradimi?",
+    "{t} qanday harakatlanadi?"
+   ],
+   "ru": [
+    "{t}. Летает, плавает или ходит?",
+    "Как двигается {t}?"
+   ],
+   "en": [
+    "{t}. Does it fly, swim or walk?",
+    "How does the {t} move?"
+   ],
+   "de": [
+    "{t}. Fliegt, schwimmt oder läuft es?",
+    "Wie bewegt sich {t}?"
+   ],
+   "es": [
+    "{t}. ¿Vuela, nada o camina?",
+    "¿Cómo se mueve {t}?"
+   ]
+  }
+ },
+ "yeyiladi": {
+  "nom": {
+   "uz": "Yeyiladimi?",
+   "ru": "Можно ли съесть?",
+   "en": "Can we eat it?",
+   "de": "Kann man das essen?",
+   "es": "¿Se puede comer?"
+  },
+  "kirish": {
+   "uz": "Ba’zi narsalar yeyiladi, ba’zilari esa yo‘q. Og‘izga faqat ovqat solamiz!",
+   "ru": "Некоторые вещи можно есть, а некоторые — нет. В рот кладём только еду!",
+   "en": "Some things can be eaten, others can't. Only food goes in our mouth!",
+   "de": "Manches kann man essen, anderes nicht. In den Mund kommt nur Essen!",
+   "es": "Algunas cosas se comen y otras no. ¡En la boca solo ponemos comida!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Yeyiladimi?",
+    "{t}ni yesa bo‘ladimi?"
+   ],
+   "ru": [
+    "{t}. Это можно есть?",
+    "Можно ли съесть: {t}?"
+   ],
+   "en": [
+    "{t}. Can we eat it?",
+    "Is the {t} something to eat?"
+   ],
+   "de": [
+    "{t}. Kann man das essen?",
+    "Ist {t} zum Essen?"
+   ],
+   "es": [
+    "{t}. ¿Se puede comer?",
+    "¿{t} es para comer?"
+   ]
+  }
+ },
+ "faslKiyim": {
+  "nom": {
+   "uz": "Fasl kiyimi",
+   "ru": "Одежда по сезону",
+   "en": "Clothes for the season",
+   "de": "Kleidung für die Jahreszeit",
+   "es": "Ropa para cada estación"
+  },
+  "kirish": {
+   "uz": "Qishda issiq, yozda yengil kiyinamiz. Har bir kiyimni o‘z fasliga joyla!",
+   "ru": "Зимой одеваемся тепло, летом — легко. Отправь каждую вещь в своё время года!",
+   "en": "In winter we dress warmly, in summer lightly. Put each piece of clothing in its season!",
+   "de": "Im Winter ziehen wir uns warm an, im Sommer leicht. Ordne jedes Kleidungsstück der Jahreszeit zu!",
+   "es": "En invierno nos abrigamos y en verano vamos ligeros. ¡Pon cada prenda en su estación!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Qishdami yoki yozdami kiyamiz?",
+    "{t}ni qachon kiyamiz?"
+   ],
+   "ru": [
+    "{t}. Зимой или летом?",
+    "Когда мы носим: {t}?"
+   ],
+   "en": [
+    "{t}. Winter or summer?",
+    "When do we wear the {t}?"
+   ],
+   "de": [
+    "{t}. Winter oder Sommer?",
+    "Wann tragen wir {t}?"
+   ],
+   "es": [
+    "{t}. ¿En invierno o en verano?",
+    "¿Cuándo llevamos {t}?"
+   ]
+  }
+ },
+ "faslMeva": {
+  "nom": {
+   "uz": "Fasl mevasi",
+   "ru": "Плоды времён года",
+   "en": "Fruits of the seasons",
+   "de": "Früchte der Jahreszeiten",
+   "es": "Frutas de cada estación"
+  },
+  "kirish": {
+   "uz": "Har faslning o‘z mevasi bor. Qaysi meva qaysi faslda pishadi?",
+   "ru": "У каждого времени года свои плоды. Что когда созревает?",
+   "en": "Each season has its own fruits. When does each one ripen?",
+   "de": "Jede Jahreszeit hat ihre Früchte. Wann wird was reif?",
+   "es": "Cada estación tiene sus frutas. ¿Cuándo madura cada una?"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Qaysi faslda pishadi?",
+    "{t} qachon bo‘ladi?"
+   ],
+   "ru": [
+    "{t}. Когда созревает?",
+    "Когда бывает {t}?"
+   ],
+   "en": [
+    "{t}. Which season is it from?",
+    "When do we have the {t}?"
+   ],
+   "de": [
+    "{t}. In welcher Jahreszeit?",
+    "Wann gibt es {t}?"
+   ],
+   "es": [
+    "{t}. ¿En qué estación madura?",
+    "¿Cuándo hay {t}?"
+   ]
+  }
+ },
+ "onaBola": {
+  "nom": {
+   "uz": "Ona va bola",
+   "ru": "Мама и малыш",
+   "en": "Mother and baby",
+   "de": "Mutter und Kind",
+   "es": "Mamá y bebé"
+  },
+  "kirish": {
+   "uz": "Har bir hayvonning bolasi bor. Onasiga bolasini top!",
+   "ru": "У каждого животного есть малыш. Найди маме её малыша!",
+   "en": "Every animal has a baby. Find each mother's baby!",
+   "de": "Jedes Tier hat ein Junges. Finde zu jeder Mutter ihr Kind!",
+   "es": "Cada animal tiene un bebé. ¡Encuentra el bebé de cada mamá!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Uning bolasi kim?",
+    "{t}ning bolasini top!"
+   ],
+   "ru": [
+    "{t}. Кто её малыш?",
+    "Найди малыша: {t}!"
+   ],
+   "en": [
+    "{t}. Who is its baby?",
+    "Find the {t}'s baby!"
+   ],
+   "de": [
+    "{t}. Wer ist ihr Junges?",
+    "Finde das Junge: {t}!"
+   ],
+   "es": [
+    "{t}. ¿Quién es su bebé?",
+    "¡Encuentra el bebé: {t}!"
+   ]
+  }
+ },
+ "uyiQayerda": {
+  "nom": {
+   "uz": "Kim qayerda yashaydi",
+   "ru": "Кто где живёт",
+   "en": "Who lives where",
+   "de": "Wer wohnt wo",
+   "es": "¿Quién vive dónde?"
+  },
+  "kirish": {
+   "uz": "Har kimning o‘z uyi bor: baliq suvda, qush inda. Qani, uyini top!",
+   "ru": "У каждого свой дом: рыба — в воде, птица — в гнезде. Найди каждому дом!",
+   "en": "Everyone has a home: a fish in water, a bird in a nest. Find each home!",
+   "de": "Jeder hat ein Zuhause: der Fisch im Wasser, der Vogel im Nest. Finde jedes Zuhause!",
+   "es": "Cada uno tiene su casa: el pez en el agua, el pájaro en el nido. ¡Encuentra cada casa!"
+  },
+  "raund": {
+   "uz": [
+    "{t} qayerda yashaydi?",
+    "{t}ning uyini top!"
+   ],
+   "ru": [
+    "Где живёт {t}?",
+    "Найди дом: {t}!"
+   ],
+   "en": [
+    "Where does the {t} live?",
+    "Find the {t}'s home!"
+   ],
+   "de": [
+    "Wo wohnt {t}?",
+    "Finde das Zuhause: {t}!"
+   ],
+   "es": [
+    "¿Dónde vive {t}?",
+    "¡Encuentra la casa: {t}!"
+   ]
+  }
+ },
+ "kasbAsbob": {
+  "nom": {
+   "uz": "Kasb va asbob",
+   "ru": "Профессия и инструмент",
+   "en": "Jobs and tools",
+   "de": "Berufe und Werkzeuge",
+   "es": "Oficios y herramientas"
+  },
+  "kirish": {
+   "uz": "Har bir kasb egasining o‘z asbobi bor. Kimga nima kerak?",
+   "ru": "У каждой профессии свой инструмент. Кому что нужно?",
+   "en": "Every job has its own tool. Who needs what?",
+   "de": "Jeder Beruf hat sein Werkzeug. Wer braucht was?",
+   "es": "Cada oficio tiene su herramienta. ¿Quién necesita qué?"
+  },
+  "raund": {
+   "uz": [
+    "{t}. Unga nima kerak?",
+    "{t} nima bilan ishlaydi?"
+   ],
+   "ru": [
+    "{t}. Что ему нужно?",
+    "Чем работает {t}?"
+   ],
+   "en": [
+    "{t}. What does this person need?",
+    "What does the {t} work with?"
+   ],
+   "de": [
+    "{t}. Was braucht diese Person?",
+    "Womit arbeitet {t}?"
+   ],
+   "es": [
+    "{t}. ¿Qué necesita?",
+    "¿Con qué trabaja {t}?"
+   ]
+  }
+ },
+ "hayvonOvqat": {
+  "nom": {
+   "uz": "Hayvonni boq",
+   "ru": "Накорми животное",
+   "en": "Feed the animal",
+   "de": "Füttere das Tier",
+   "es": "Alimenta al animal"
+  },
+  "kirish": {
+   "uz": "Hayvonlar och qoldi! Har biriga yaxshi ko‘rgan ovqatini ber.",
+   "ru": "Животные проголодались! Дай каждому его любимую еду.",
+   "en": "The animals are hungry! Give each one its favourite food.",
+   "de": "Die Tiere haben Hunger! Gib jedem sein Lieblingsessen.",
+   "es": "¡Los animales tienen hambre! Dale a cada uno su comida favorita."
+  },
+  "raund": {
+   "uz": [
+    "{t} nimani yaxshi ko‘radi?",
+    "{t}ga nima beramiz?"
+   ],
+   "ru": [
+    "Что любит {t}?",
+    "Чем угостим: {t}?"
+   ],
+   "en": [
+    "What does the {t} like to eat?",
+    "What shall we give the {t}?"
+   ],
+   "de": [
+    "Was frisst {t} gern?",
+    "Was geben wir {t}?"
+   ],
+   "es": [
+    "¿Qué le gusta comer a {t}?",
+    "¿Qué le damos a {t}?"
+   ]
+  }
+ },
+ "nimaBilan": {
+  "nom": {
+   "uz": "Nima nima bilan",
+   "ru": "Что с чем",
+   "en": "What goes together",
+   "de": "Was gehört zusammen",
+   "es": "¿Qué va con qué?"
+  },
+  "kirish": {
+   "uz": "Ba’zi narsalar doim birga ishlatiladi: qalam va daftar, kalit va qulf. Juftini top!",
+   "ru": "Некоторые вещи всегда вместе: карандаш и тетрадь, ключ и замок. Найди пару!",
+   "en": "Some things always go together: a pencil and a notebook, a key and a lock. Find the pair!",
+   "de": "Manche Dinge gehören zusammen: Bleistift und Heft, Schlüssel und Schloss. Finde das Paar!",
+   "es": "Algunas cosas van siempre juntas: el lápiz y el cuaderno, la llave y el candado. ¡Encuentra la pareja!"
+  },
+  "raund": {
+   "uz": [
+    "{t}. U nima bilan birga ishlatiladi?",
+    "{t}ning juftini top!"
+   ],
+   "ru": [
+    "{t}. С чем это используют?",
+    "Найди пару: {t}!"
+   ],
+   "en": [
+    "{t}. What does it go with?",
+    "Find the partner of the {t}!"
+   ],
+   "de": [
+    "{t}. Womit gehört es zusammen?",
+    "Finde das Paar: {t}!"
+   ],
+   "es": [
+    "{t}. ¿Con qué se usa?",
+    "¡Encuentra la pareja: {t}!"
+   ]
+  }
+ },
+ "sezgi": {
+  "nom": {
+   "uz": "Besh sezgi",
+   "ru": "Пять чувств",
+   "en": "Five senses",
+   "de": "Fünf Sinne",
+   "es": "Cinco sentidos"
+  },
+  "kirish": {
+   "uz": "Ko‘z ko‘radi, quloq eshitadi, burun hidlaydi, til ta’mini biladi, qo‘l sezadi. Qani, top!",
+   "ru": "Глаза видят, уши слышат, нос чувствует запах, язык — вкус, руки трогают. Найди!",
+   "en": "Eyes see, ears hear, the nose smells, the tongue tastes, hands feel. Let's find out!",
+   "de": "Augen sehen, Ohren hören, die Nase riecht, die Zunge schmeckt, Hände fühlen. Finde es heraus!",
+   "es": "Los ojos ven, los oídos oyen, la nariz huele, la lengua saborea y las manos tocan. ¡Descúbrelo!"
+  },
+  "raund": {
+   "uz": [
+    "{t} bilan nimani sezamiz?",
+    "{t}. Unga nima mos?"
+   ],
+   "ru": [
+    "Что мы чувствуем — {t}?",
+    "{t}. Что подходит?"
+   ],
+   "en": [
+    "What do we sense with the {t}?",
+    "The {t}. What goes with it?"
+   ],
+   "de": [
+    "Was spüren wir mit {t}?",
+    "{t}. Was passt dazu?"
+   ],
+   "es": [
+    "¿Qué sentimos con {t}?",
+    "{t}. ¿Qué le corresponde?"
+   ]
+  }
+ }
+});
+
 // REV347: asosiy o'yinlarning raund gaplari — har raundda boshqa variant (3 tadan, 5 tilda)
 const RAUND_VARIANTLAR = {
  "eshitBos": {

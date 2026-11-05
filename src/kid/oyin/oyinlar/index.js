@@ -22,6 +22,7 @@ import Tarozi from "./Tarozi.jsx";
 import Teskari from "./Teskari.jsx";
 import { RangniTop, RangUyi, BoyabChiq, RangAralashtir } from "./RangOyinlari.jsx";   // REV337
 import { Dokon, Onlik, Tenglash, Masala } from "./MatOyinlari.jsx";   // REV338
+import SaralashUlash from "./SaralashUlash.jsx";   // REV348
 
 export const OYIN_KOMPONENTLAR = {
   116: EshitVaBos,
@@ -53,6 +54,8 @@ export const OYIN_KOMPONENTLAR = {
   57: Onlik,
   43: Tenglash,
   59: Masala,
+  149: SaralashUlash, 154: SaralashUlash, 161: SaralashUlash, 162: SaralashUlash, 168: SaralashUlash, 150: SaralashUlash, 96: SaralashUlash, 14: SaralashUlash,
+  18: SaralashUlash, 148: SaralashUlash, 94: SaralashUlash, 158: SaralashUlash, 147: SaralashUlash, 95: SaralashUlash, 165: SaralashUlash,
 };
 
 export {

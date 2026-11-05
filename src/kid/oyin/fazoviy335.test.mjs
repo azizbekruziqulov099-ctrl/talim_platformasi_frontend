@@ -66,3 +66,20 @@ test('REV347: gaplar takrorlanmaydi, tarozi to‘g‘ri', () => {
   for (const r of h.raundlar) { const og = r.savol.ogir === 'chap' ? r.savol.chap : r.savol.ong; assert.ok(og.k.startsWith('o')); }   // pastga tushgani — haqiqatan og'ir
   assert.equal(toza('sut! qani'), 'Sut! Qani');
 });
+test('REV348: saralash va ulash — 5 tilda, yoshga mos, joriy fasl', () => {
+  const ids = [149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165];
+  for (const id of ids) for (const y of ['2-3', '4-5', '6-7']) for (const iz of ['uz', 'ru', 'en', 'de', 'es']) {
+    const h = oyinYasa(id, { elementlar: [], yosh: y, urug: 3, izoh: iz, fasl: 'kuz' });
+    if (!h) continue;   // 4-7 yoshgagina mo'ljallangan o'yin
+    for (const r of h.raundlar) {
+      assert.ok(r.variantlar.some((v) => v.k === r.togri), `${id} ${y}`);
+      assert.ok(r.savol.el.uz && r.variantlar.every((v) => v.el.uz), `${id} ${iz} nomlar`);
+      if (y === '2-3' && id !== 18) assert.ok(r.variantlar.length <= 2, `${id} 2-3 yoshda 2 tadan ko'p emas`);
+    }
+    const g = raundGapi(h, { izoh: iz, til: 'uz', birinchi: true }); assert.ok(g.length > 20 && !g.includes('{'), `${id} ${iz}: ${g}`);
+  }
+  const f = oyinYasa(18, { elementlar: [], yosh: '4-5', urug: 1, izoh: 'uz', fasl: 'qish' });
+  assert.ok(f.raundlar.every((r) => r.variantlar.some((v) => v.k === 'f_qish')));   // joriy fasl doim bor
+  assert.equal(oyinYasa(158, { elementlar: [], yosh: '2-3', izoh: 'uz' }), null);
+  const u = oyinYasa(148, { elementlar: [], yosh: '6-7', urug: 2, izoh: 'de' }); assert.match(u.raundlar[0].savol.el.uz, /[A-ZÄÖÜa-zäöüß]/);
+});

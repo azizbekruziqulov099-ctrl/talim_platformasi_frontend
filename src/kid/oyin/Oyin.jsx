@@ -45,9 +45,9 @@ export default function Oyin(props) {
 const yoshKalit = (y) => String(y ?? "");
 
 function OyinIchki({
-  id, elementlar, yosh, onNatija, onSay, til, izoh = "uz", sonlar, qiyinlik, urug, rasm, onTingla, onChiq, mavzu = "", tanish = false,
+  id, elementlar, yosh, onNatija, onSay, til, izoh = "uz", sonlar, qiyinlik, urug, rasm, onTingla, onChiq, mavzu = "", tanish = false, fasl = "",
 }) {
-  const [boshlangich] = useState(() => oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish }));
+  const [boshlangich] = useState(() => oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish, izoh, fasl }));
   const [holat, setHolat] = useState(boshlangich);
   const holatRef = useRef(boshlangich);
   const [fb, setFb] = useState(null);            // oxirgi javob: { j, togri, n }
