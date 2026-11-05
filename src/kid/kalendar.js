@@ -205,6 +205,16 @@ export const FASL_SAVOL = {
   ar: "ما فصل السنة الآن؟ انظر من النافذة وابحث عنه!", tr: "Şimdi hangi mevsim? Pencereden bak ve bul!",
   zh: "现在是什么季节？看看窗外，找一找！", ja: "いまは どの きせつ？ まどの そとを みて さがしてね！", ko: "지금은 어떤 계절일까? 창밖을 보고 찾아 봐!",
 };
+// REV332: hafta kuni tanlovi (6–7 yosh) — «kun poyezdi»: dushanba — 1-vagon … yakshanba — 7-vagon
+export const KUN_SAVOL = {
+  uz: "Kun poyezdi keldi! Bugun haftaning nechanchi kuni? Vagonini top!", ru: "Приехал поезд дней! Какой сегодня день недели по счёту? Найди вагон!",
+  en: "The day train is here! Which day of the week is it today? Find its carriage!", de: "Der Tage-Zug ist da! Der wievielte Tag der Woche ist heute? Finde den Wagen!",
+  fr: "Le train des jours est là ! Quel jour de la semaine sommes-nous ? Trouve le wagon !", es: "¡Llegó el tren de los días! ¿Qué día de la semana es hoy? ¡Busca su vagón!",
+  ar: "وصل قطار الأيام! أيّ يوم من أيام الأسبوع اليوم؟ ابحث عن عربته!", tr: "Günler treni geldi! Bugün haftanın kaçıncı günü? Vagonunu bul!",
+  zh: "日子火车来了！今天是星期几？找到它的车厢！", ja: "ひにちの きしゃが きたよ！きょうは しゅうの なんにちめ？ しゃりょうを さがしてね！", ko: "요일 기차가 왔어! 오늘은 일주일 중 몇 번째 날일까? 칸을 찾아 봐!",
+};
+export const VAGON = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"];
+
 /** Tanlov: to'g'ri belgi + hovuzdan boshqalari (soni — yoshga qarab), joyi kunga qarab almashadi. */
 export function tanlovYasa(togri, hovuz, soni, kun = 0) {
   const boshqa = hovuz.filter((e) => e !== togri);
@@ -216,7 +226,7 @@ export function tanlovYasa(togri, hovuz, soni, kun = 0) {
   return { variantlar, togri: joy };
 }
 
-export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new Date(), tanlov = false, kun = 0 } = {}) {
+export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new Date(), tanlov = false, kun = 0 } = {}) {   // tanlov: false | true/"fasl" | "kun"
   const q = sanaQismlari(sana);
   const T = til && GAP[til] ? til : null;
   const I = GAP[izoh] ? izoh : "uz";
@@ -267,6 +277,10 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
   if (tanlov) {
     // savol tili: 4–7 yoshli til darsida — o'rganilayotgan til, aks holda izoh tili
     const L = T && yosh >= 4 && FASL_SAVOL[T] ? T : FASL_SAVOL[I] ? I : "uz";
+    if (tanlov === "kun") {   // REV332: kun poyezdi — bugungi kun vagoni (dushanba = 1)
+      const t = tanlovYasa(VAGON[q.kun], VAGON, 4, kun);
+      return { ...step, ovoz: tg(L, KUN_SAVOL[L]), tanlov: { ...t, javob: step.ovoz } };
+    }
     const t = tanlovYasa(FASL_BELGI[q.fasl], FASL_BELGI, yosh < 4 ? 2 : 4, kun);
     return { ...step, ovoz: tg(L, FASL_SAVOL[L]), tanlov: { ...t, javob: step.ovoz } };
   }

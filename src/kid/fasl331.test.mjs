@@ -13,3 +13,11 @@ test('REV331: toq kuni bola faslni o‘zi topadi, juft kuni havoni', () => {
   assert.match(de.ovoz, /Jahreszeit/);
   const t = tanlovYasa('❄️', ['❄️', '🌸', '☀️', '🍂'], 2, 3); assert.equal(t.variantlar.length, 2); assert.equal(t.variantlar[t.togri], '❄️');
 });
+
+test('REV332: 6–7 yosh — kun poyezdi navbatda', () => {
+  const sana = new Date('2026-11-05T10:00:00');   // payshanba — 4-kun
+  const st = ochilish({ ustoz: 'nilufar', izoh: 'uz', grade: '6-7 yosh', havo: 'quyosh', vaqt: 'kun', kun: 5, sana }).find((s) => s._ochilish === 'vaqt');
+  assert.ok(st.tanlov); assert.equal(st.tanlov.variantlar[st.tanlov.togri], '4️⃣'); assert.match(st.ovoz, /Kun poyezdi/);
+  const h = ochilish({ ustoz: 'nilufar', izoh: 'uz', grade: '6-7 yosh', havo: 'quyosh', vaqt: 'kun', kun: 6, sana });
+  assert.ok(h.find((s) => s._ochilish === 'havo').tanlov);
+});
