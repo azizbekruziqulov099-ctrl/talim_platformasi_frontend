@@ -191,11 +191,11 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
     ? `${g("Derazaga qara! {p} ⏸", { p: t("weather") })} ${havoGapi} ${t(hk)}${qoshimcha}${chiroq} ${g("Endi sen ayt: {p}", { p: t(hk) })} ⏸`
     : `${g("Derazaga qara! Bugun havo qanday? ⏸")} ${havoGapi}${chiroq}`;
   // REV331: tanlovlar kunma-kun almashadi — juft kun havo, toq kun fasl (bola har kuni boshqa narsani o'zi topadi)
-  // REV332: 6–7 yosh — uch xil tanlov navbat bilan: havo, fasl, kun poyezdi
-  const kk = Math.abs(Number(kun) || 0), katta = yoshi(grade) >= 6;
-  const kalTanlov = !sana ? false : katta ? ([false, "fasl", "kun"][kk % 3]) : (kk % 2 === 1 ? "fasl" : false);
-  const faslKuni = Boolean(kalTanlov);
-  const tanlov = !tunda && !faslKuni ? havoTanlovi({ togri: belgi, yosh: yoshi(grade), kun }) : null;
+  // REV344: har darsda bola o'zi topadi — havoni (kunduzi) va faslni; 6–7 yoshda kun poyezdi ham qo'shiladi
+  const katta = yoshi(grade) >= 6;
+  const kalTanlov = !sana ? false : "fasl";
+  const kunTanlovi = Boolean(sana) && katta;
+  const tanlov = !tunda ? havoTanlovi({ togri: belgi, yosh: yoshi(grade), kun }) : null;
   out.push({
     turi: "kirish", _ochilish: "havo", ...(tanlov ? { tanlov: { ...tanlov, javob: havoOvoz.slice(havoOvoz.indexOf("⏸") + 1).trim() } } : {}),
     sarlavha: `${belgi} ${gap(izoh, "Bugungi ob-havo").replace(/\[\/?\w\w\]/g, "")}`,
@@ -208,6 +208,9 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
   // REV158: 3) Vaqt — hafta kuni, fasl, oy, soat, yil (haqiqiy sana; yoshga va til darsiga qarab)
   if (sana) {
     const kq = kalendarQadami({ til, izoh: aslIzoh || (izoh === til ? "uz" : izoh), yosh: yoshi(grade), sana, tanlov: kalTanlov, kun });
+    // REV344: 6–7 yosh — fasldan keyin kun poyezdi (alohida qadam, javobi ichida aytiladi)
+    const kunQ = kunTanlovi ? kalendarQadami({ til, izoh: aslIzoh || (izoh === til ? "uz" : izoh), yosh: yoshi(grade), sana, tanlov: "kun", kun }) : null;
+    if (kunQ) out.push(kunQ);
     if (kq) out.push(kq);
   }
 

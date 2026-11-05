@@ -279,7 +279,8 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
     const L = T && yosh >= 4 && FASL_SAVOL[T] ? T : FASL_SAVOL[I] ? I : "uz";
     if (tanlov === "kun") {   // REV332: kun poyezdi — bugungi kun vagoni (dushanba = 1)
       const t = tanlovYasa(VAGON[q.kun], VAGON, 4, kun);
-      return { ...step, ovoz: tg(L, KUN_SAVOL[L]), tanlov: { ...t, javob: step.ovoz } };
+      const [, lug, i] = narsalar[0];   // REV344: javob — faqat bugungi kun (fasl va oy keyingi qadamda aytiladi)
+      return { ...step, _ochilish: "kun", doska: `🗓️ ${lug ? lug[L]?.[i] || "" : ""}`, ovoz: tg(L, KUN_SAVOL[L]), tanlov: { ...t, javob: tg(L, bosh(gapi(L, "kun", lug, i))) } };
     }
     const t = tanlovYasa(FASL_BELGI[q.fasl], FASL_BELGI, yosh < 4 ? 2 : 4, kun);
     return { ...step, ovoz: tg(L, FASL_SAVOL[L]), tanlov: { ...t, javob: step.ovoz } };

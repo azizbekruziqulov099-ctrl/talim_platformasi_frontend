@@ -136,7 +136,7 @@ function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mou
  * REV181: ikkinchi — ikki ustozli til darsi: asosiy ustoz (o'rganilayotgan til egasi, masalan Lukas — nemis) va izoh tili
  * ustozi (o'zbek — Nilufar, rus — Anna, ingliz — Emily). kim — hozir kim gapiryapti ("til" | "iz").
  */
-export default function UstozSahna({ ustoz = "nilufar", ikkinchi = "", ikkinchiKorinsin = true, kim = null, bayroqlar = null, mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, onDetal, celebrate = 0, children }) {
+export default function UstozSahna({ havoYashir = false, ustoz = "nilufar", ikkinchi = "", ikkinchiKorinsin = true, kim = null, bayroqlar = null, mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, onDetal, celebrate = 0, children }) {
   // REV171: til ustozi ko'p kun o'z xonasida, ba'zi kunlar eski xonalarda (almashib turadi)
   // REV181: ikki ustozli darsda — doim til ustozining o'z xonasi (o'sha tilning madaniyati, doska atrofida keng joy)
   const juft0 = Boolean(ikkinchi && USTOZLAR[ikkinchi] && ikkinchi !== ustoz);
@@ -190,7 +190,8 @@ export default function UstozSahna({ ustoz = "nilufar", ikkinchi = "", ikkinchiK
     {/* REV154: ob-havo qadamida — deraza oldida bugungi ob-havo rasmi */}
     {/* REV158: deraza ustoz turgan tomonda bo'lsa (matematika xonasi — chap chekka), rasm ustozning yuziga tushardi —
         u holda ob-havo rasmi bo'sh doskaning o'rtasida ko'rsatiladi */}
-    {dz && derazaga && BELGI[`havo_${havo2}`] && <img className="us-havo-rasm" src={BELGI[`havo_${havo2}`]} alt="" draggable="false" style={havoJoyi(dz, xona.doska)} />}
+    {/* REV344: bola havoni o'zi topayotganda deraza oldidagi rasm javobni oldindan ko'rsatib qo'ymaydi — to'g'ri topgach chiqadi */}
+    {dz && derazaga && !havoYashir && BELGI[`havo_${havo2}`] && <img className="us-havo-rasm" src={BELGI[`havo_${havo2}`]} alt="" draggable="false" style={havoJoyi(dz, xona.doska)} />}
     <div className="us-lamp-glow" aria-hidden="true" />
     {/* REV121: rasm chiqqanda doska «yaqinlashadi» — telefonda ham rasmlar katta va aniq (ustoz chapda qoladi) */}
     <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(6, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(juft ? torDoska(d) : d)}>
