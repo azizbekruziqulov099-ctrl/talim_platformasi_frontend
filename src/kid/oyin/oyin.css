@@ -255,3 +255,18 @@
 .oy-aralash b{font-size:30px;color:#2b3452}
 .oy-namuna.oy-aralash{width:auto;min-width:240px;padding:8px 14px}
 .oy-aralash .oy-rang-dog{flex:none;width:52px;height:52px}
+/* REV338: matematika o'yinlari */
+.oy-mat-son{font-size:40px;font-weight:800;color:#2b3452}
+.oy-mat-qator{display:inline-flex;flex-wrap:wrap;gap:2px;max-width:170px;justify-content:center}
+.oy-mat-qator i{font-style:normal;font-size:26px;line-height:1}
+.oy-hamyon{display:flex;align-items:center;gap:8px;width:auto;padding:8px 14px}
+.oy-hamyon > span{font-size:44px}
+.oy-dokon-narsa{font-size:40px;line-height:1}
+.oy-dokon-narx{display:block;font-weight:800;margin-top:4px;color:#2b3452}
+.oy-onlik{display:flex;align-items:flex-end;gap:10px;width:auto;min-width:200px;padding:10px 14px;flex-wrap:wrap;justify-content:center}
+.oy-boglam{position:relative;display:inline-flex;gap:2px}
+.oy-boglam i,.oy-tayoq{display:inline-block;width:6px;height:64px;border-radius:3px;background:#ffb703;box-shadow:inset -1px 0 0 #0002}
+.oy-boglam b{position:absolute;left:-3px;right:-3px;top:28px;height:8px;border-radius:4px;background:#e63946}
+.oy-tenglash,.oy-masala{display:flex;align-items:center;gap:10px;width:auto;min-width:260px;padding:10px 14px}
+.oy-tenglash b,.oy-masala b{font-size:30px;color:#2b3452}
+.oy-likop{display:inline-flex;align-items:center;justify-content:center;min-width:110px;min-height:70px;padding:6px;border-radius:50%;background:#f1f5fb;border:3px solid #c5d3e8}

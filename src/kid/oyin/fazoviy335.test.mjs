@@ -40,3 +40,17 @@ test('REV337: rang o‘yinlari', () => {
   const h = oyinYasa(61, { elementlar: [], yosh: '2-3', urug: 1 });
   assert.ok(h.raundlar.every((r) => ['qizil', 'sariq', 'kok', 'yashil'].includes(r.togri)));   // kichiklarga — asosiy 4 rang
 });
+test('REV338: matematika o‘yinlari', () => {
+  for (const [id, ys] of [[49, ['4-5', '6-7']], [57, ['6-7']], [43, ['4-5', '6-7']], [59, ['4-5', '6-7']]]) for (const y of ys) {
+    const h = oyinYasa(id, { elementlar: [], yosh: y, urug: 13 }); assert.ok(h, `${id} ${y}`);
+    for (const r of h.raundlar) assert.ok(r.variantlar.some((v) => v.k === r.togri));
+    for (const iz of ['uz', 'ru', 'en', 'de', 'es']) assert.ok(raundGapi(h, { izoh: iz, til: 'uz', birinchi: true }).length > 10, `${id} ${iz}`);
+  }
+  const d = oyinYasa(49, { elementlar: [], yosh: '6-7', urug: 3 });
+  for (const r of d.raundlar) for (const v of r.variantlar) assert.equal(v.narx <= r.savol.pul, v.k === r.togri);   // faqat to'g'risiga pul yetadi
+  const o = oyinYasa(57, { elementlar: [], yosh: '6-7', urug: 2 }).raundlar[0];
+  assert.equal(o.togri, `n:${o.savol.onlar * 10 + o.savol.birlar}`);
+  const m = oyinYasa(59, { elementlar: [], yosh: '4-5', urug: 5 });
+  assert.ok(m.raundlar.every((r) => r.savol.amal === '+'));   // 4–5 yoshda faqat qo'shish
+  for (const r of oyinYasa(59, { elementlar: [], yosh: '6-7', urug: 8 }).raundlar) { const j = r.savol.amal === '+' ? r.savol.a + r.savol.b : r.savol.a - r.savol.b; assert.equal(r.togri, `n:${j}`); assert.ok(j >= 1 && j <= 9); }
+});

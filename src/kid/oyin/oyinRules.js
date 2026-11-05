@@ -32,6 +32,15 @@ export const OYINLAR = [
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
   { id: 76, kalit: "joylashuv", nom: "Qayerda?", belgi: "📦", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 1 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  // REV338: matematika o'yinlari
+  { id: 49, kalit: "dokon", nom: "Do‘kon", belgi: "🛒", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "4-5": 5, "6-7": 5 }, soniya: { "4-5": 11, "6-7": 12 } },
+  { id: 57, kalit: "onlik", nom: "O‘nlik bog‘lami", belgi: "🥢", yosh: ["6-7"], harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "6-7": 5 }, soniya: { "6-7": 12 } },
+  { id: 43, kalit: "tenglash", nom: "Tenglashtir", belgi: "⚖️", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "4-5": 5, "6-7": 5 }, soniya: { "4-5": 11, "6-7": 11 } },
+  { id: 59, kalit: "masala", nom: "Masala ertagi", belgi: "📚", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "4-5": 4, "6-7": 5 }, soniya: { "4-5": 14, "6-7": 14 } },
   // REV337: rang-tasvir o'yinlari
   { id: 61, kalit: "rangTop", nom: "Rangni top", belgi: "🎨", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
     raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 8, "6-7": 8 } },
@@ -288,6 +297,13 @@ function minoraVariantlar(namuna, n, rnd) {
   return aralash(out.map((r, i) => ({ k: i === 0 ? "t0" : `t${i}`, minora: r })), rnd);
 }
 
+// REV338: matematika o'yinlari uchun narsalar va masala ertaklari
+export const DOKON = ["🍎", "🍌", "🍦", "🧸", "🎈", "🍭", "📒", "⚽", "🧃", "🍪"];
+export const MASALA = [
+  { e: "🐦", amal: "+", kalit: "qush" }, { e: "🍎", amal: "-", kalit: "olma" }, { e: "🐟", amal: "+", kalit: "baliq" },
+  { e: "🎈", amal: "-", kalit: "shar" }, { e: "🦆", amal: "+", kalit: "ordak" }, { e: "🍪", amal: "-", kalit: "pechenye" },
+];
+
 // REV337: ranglar (5 tilda) va rangi aniq narsalar
 export const RANGLAR = {
   qizil: { hex: "#E63946", s: { uz: "qizil", ru: "красный", en: "red", de: "rot", es: "rojo" } },
@@ -335,6 +351,31 @@ function yollarRaund(els, n, rnd) {
 }
 
 const YASOVCHI = {
+  // 49 — do'kon: hamyonda N tanga; qaysi narsani sotib olsa bo'ladi (narxi ≤ N, qolganlari qimmat)
+  dokon: ({ y, n, rnd, R }) => Array.from({ length: R }, () => {
+    const max = y === "6-7" ? 9 : 5; const pul = butun(2, max - 1, rnd);
+    const narsalar = tanla(DOKON, n, rnd);
+    const variantlar = narsalar.map((e, i) => ({ k: `d${i}`, el: { emoji: e }, narx: i === 0 ? butun(1, pul, rnd) : butun(pul + 1, max + 2, rnd) }));
+    return { tur: "tanlov", savol: { pul }, variantlar: aralash(variantlar, rnd), togri: "d0" };
+  }),
+  // 57 — o'nlik bog'lami (6-7): bog'lamlar va yakka tayoqchalar — nechta?
+  onlik: ({ n, rnd, R }) => Array.from({ length: R }, () => {
+    const onlar = butun(1, 3, rnd), birlar = butun(0, 9, rnd), jami = onlar * 10 + birlar;
+    return { tur: "tanlov", savol: { onlar, birlar }, variantlar: sonVariantlar(jami, n, rnd, [onlar + birlar]), togri: `n:${jami}` };
+  }),
+  // 43 — tenglashtir: chapda kam, o'ngda ko'p — chapga nechta qo'shsak teng bo'ladi
+  tenglash: ({ y, n, rnd, R }) => Array.from({ length: R }, () => {
+    const max = y === "6-7" ? 9 : 6; const ong = butun(3, max, rnd); const chap = butun(1, ong - 1, rnd); const farq = ong - chap;
+    return { tur: "tanlov", savol: { chap, ong, e: bitta(["🍎", "🍐", "⭐", "🌸", "🍓"], rnd) }, variantlar: sonVariantlar(farq, n, rnd), togri: `n:${farq}` };
+  }),
+  // 59 — masala ertagi: qisqa hikoya va savol (4-5 — faqat qo'shish, 6-7 — qo'shish va ayirish)
+  masala: ({ y, n, rnd, R }) => navbat(MASALA.filter((m) => y === "6-7" || m.amal === "+").map((m) => ({ ...m })), R, rnd).map((m) => {
+    const max = y === "6-7" ? 9 : 5;
+    const a = m.amal === "+" ? butun(1, max - 1, rnd) : butun(3, max, rnd);
+    const b = m.amal === "+" ? butun(1, max - a, rnd) : butun(1, a - 1, rnd);
+    const javob = m.amal === "+" ? a + b : a - b;
+    return { tur: "tanlov", savol: { ...m, a, b }, variantlar: sonVariantlar(javob, n, rnd), togri: `n:${javob}` };
+  }),
   // 61 — rangni top: rang nomi aytiladi, bola shu rangni bosadi
   rangTop: ({ y, n, rnd, R }) => navbat(RANG_HOVUZ[y].map((r) => ({ r })), R, rnd).map(({ r }) => ({ tur: "tanlov", savol: { rang: r }, variantlar: rangVariantlar(r, RANG_HOVUZ[y], n, rnd), togri: r })),
   // 62 — rang uyi: narsa qaysi rang uyida yashaydi
@@ -884,6 +925,9 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "haYoq": gap = M(k, "raund", izoh, { t: nom(r.savol.aytilgan) }); break;
     case "sehrliQuti": gap = M(k, r.savol.rejim, izoh, { a: r.savol.a, b: r.savol.b }); break;
     case "tarozi": gap = M(k, r.savol.yengil ? "yengil" : "raund", izoh); break;
+    case "dokon": gap = M(k, "raund", izoh, { n: r.savol.pul }); break;
+    case "tenglash": gap = M(k, "raund", izoh, { a: r.savol.chap, b: r.savol.ong }); break;
+    case "masala": gap = M(k, `${r.savol.kalit}`, izoh, { a: r.savol.a, b: r.savol.b }); break;
     case "rangTop": gap = M(k, "raund", izoh, { t: RANGLAR[r.savol.rang].s[izoh] || RANGLAR[r.savol.rang].s.uz }); break;
     case "aralash": gap = M(k, "raund", izoh, { a: RANGLAR[r.savol.a].s[izoh] || RANGLAR[r.savol.a].s.uz, b: RANGLAR[r.savol.b].s[izoh] || RANGLAR[r.savol.b].s.uz }); break;
     case "teskari": gap = M(k, "raund", izoh, { t: r.savol.el.soz?.[izoh] || r.savol.el.soz?.uz }); break;

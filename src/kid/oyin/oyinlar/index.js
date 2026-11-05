@@ -21,6 +21,7 @@ import ChalkashYollar from "./ChalkashYollar.jsx";   // REV336
 import Tarozi from "./Tarozi.jsx";
 import Teskari from "./Teskari.jsx";
 import { RangniTop, RangUyi, BoyabChiq, RangAralashtir } from "./RangOyinlari.jsx";   // REV337
+import { Dokon, Onlik, Tenglash, Masala } from "./MatOyinlari.jsx";   // REV338
 
 export const OYIN_KOMPONENTLAR = {
   116: EshitVaBos,
@@ -48,6 +49,10 @@ export const OYIN_KOMPONENTLAR = {
   62: RangUyi,
   63: BoyabChiq,
   64: RangAralashtir,
+  49: Dokon,
+  57: Onlik,
+  43: Tenglash,
+  59: Masala,
 };
 
 export {
