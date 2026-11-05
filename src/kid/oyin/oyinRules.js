@@ -364,7 +364,7 @@ import { TARTIB } from "./tartibData.js";   // REV349
 import { HAYVON_OVOZ, TRANSPORT_OVOZ, FASL_OVOZ } from "./eshitData.js";   // REV351
 
 // REV348: saralash/ulash elementi — so'z izoh tilida (bola tushunadigan tilda aytiladi va yoziladi)
-const sozEl = (w, izoh, k) => ({ k, emoji: w.e, uz: w.s[izoh] || w.s.uz, soz: w.s });
+const sozEl = (w, izoh, k) => ({ k, emoji: w.e, uz: w.s[izoh] || w.s.uz, soz: w.s, ...((w.r || w.s?.r) ? { rasmId: w.r || w.s.r } : {}) });
 
 // REV351: eshitish o'yinlari yordamchilari
 function ovozRaund(data, { n, rnd, R, izoh }) {

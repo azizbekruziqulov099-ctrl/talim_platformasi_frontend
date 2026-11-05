@@ -8,6 +8,7 @@ import { HARAKAT_OYINLARI } from "../lesson/HarakatQadam.jsx";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { kabuAyt, kabuJimm } from "../kid/kabuOvoz.js";
 import { oyinSozlamaYukla, oyinSozlamaYoz } from "../kid/oyin/oyinSozlama.js";   // REV364: belgilar serverda — hamma qurilmada, «⛔» o'yin bolalarga chiqmaydi   // REV362: darsdagi Kabu ovozi (server), brauzer ovozi emas
+import { oyinRasmTop } from "../kid/oyin/oyinRasmTop.js";
 import "./oyinSinov.css";
 const KabuImtihoni = React.lazy(() => import("../kid/imtihon/KabuImtihoni.jsx"));   // REV361
 
@@ -20,9 +21,7 @@ export const TOPLAMLAR = {
 const BELGI_KALIT = "kabutar:oyin-sinov";
 const ol = () => { try { return JSON.parse(localStorage.getItem(BELGI_KALIT) || "{}"); } catch { return {}; } };
 const yoz = (d) => { try { localStorage.setItem(BELGI_KALIT, JSON.stringify(d)); } catch { /* joy yo'q */ } };
-const rasm = (el) => { if (!el) return ""; const mt = matnId(el.uz || ""); if (mt && RASM_HAMMA[mt]) return RASM_HAMMA[mt];
-  const id = sozId({ soz: el.uz || "", emoji: el.emoji || "" }); if (id && RASM_HAMMA[id]) return RASM_HAMMA[id];
-  return emojiRasm(el.emoji || "", RASM_HAMMA, el.uz || el.say || "")?.src || ""; };
+const rasm = oyinRasmTop;   // REV368
 
 export default function OyinSinov({ apiBase = "", token = "" }) {
   const [yosh, setYosh] = useState("4-5");

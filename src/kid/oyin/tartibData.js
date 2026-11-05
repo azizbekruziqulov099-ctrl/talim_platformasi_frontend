@@ -105,7 +105,7 @@ export const TARTIB = {
    },
    {
     "e": "🍳",
-    "s": {
+    "s": {"r": "d_m-nonushta", 
      "uz": "nonushta qilaman",
      "ru": "завтракаю",
      "en": "I have breakfast",
@@ -185,7 +185,7 @@ export const TARTIB = {
    },
    {
     "e": "🧻",
-    "s": {
+    "s": {"r": "d_m-sochiq", 
      "uz": "artaman",
      "ru": "вытираю",
      "en": "I dry them",
@@ -265,7 +265,7 @@ export const TARTIB = {
    },
    {
     "e": "☀️",
-    "s": {
+    "s": {"r": "d_m-chomilmoq", 
      "uz": "yoz",
      "ru": "лето",
      "en": "summer",
@@ -275,7 +275,7 @@ export const TARTIB = {
    },
    {
     "e": "🍂",
-    "s": {
+    "s": {"r": "d_am34-u5-barg-tokilishi", 
      "uz": "kuz",
      "ru": "осень",
      "en": "autumn",
@@ -315,7 +315,7 @@ export const TARTIB = {
    },
    {
     "e": "🧴",
-    "s": {
+    "s": {"r": "d_m-tish-pastasi", 
      "uz": "pasta surtaman",
      "ru": "выдавливаю пасту",
      "en": "I put on toothpaste",
@@ -325,7 +325,7 @@ export const TARTIB = {
    },
    {
     "e": "🦷",
-    "s": {
+    "s": {"r": "d_en23-u9-brush-your-teeth", 
      "uz": "tishimni tozalayman",
      "ru": "чищу зубы",
      "en": "I brush my teeth",

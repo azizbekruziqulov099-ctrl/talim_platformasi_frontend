@@ -38,6 +38,8 @@ function emojiXarita() {
 // REV243: 662 ta belgining rasmini ko'z bilan tekshirib chiqildi (2–7 yoshdagi barcha kitoblar). Noto'g'ri bog'langanlari:
 // qiymat — to'g'ri rasm; null — mos rasm yo'q (belgining o'zi ko'rinadi; rassom chizguncha).
 export const BELGI_TUZATISH = {
+  // REV368: fasllar — ma'noli rasmlar (dars boshidagi fasl tanlovi)
+  "⛄": "d_snowman", "💮": "d_am45-u1-kurtaklar", "🏖️": "d_m-chomilmoq", "🏖": "d_m-chomilmoq", "🍁": "d_am34-u5-barg-tokilishi",
   // REV243: noto'g'ri bog'langan rasmlar
   "🤔": "d_y-thinking-face", "🐘": "d_elephant", "👏": "d_y-clapping-hands-sign", "👍": "d_y-thumbs-up-sign", "🤝": "d_y-handshake", "🏀": "d_y-basketball-and-hoop",   // so'zsiz belgi — oddiy rasm
   "🧊": "d_ice-cube", "🐈": "cat", "🐱": "cat", "💧": "d_water-splash-puddle", "🍽": "d_fork-and-knife", "😀": "d_xursand", "🔢": "d_y-input-symbol-for-numbers",

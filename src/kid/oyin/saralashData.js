@@ -498,7 +498,7 @@ export const SARALASH = {
    },
    {
     "e": "🍂",
-    "s": {
+    "s": {"r": "d_am56-u7-kompost", 
      "uz": "ovqat qoldig‘i",
      "ru": "остатки еды",
      "en": "food scraps",
@@ -531,7 +531,7 @@ export const SARALASH = {
     },
     {
      "e": "📃",
-     "s": {
+     "s": {"r": "d_notebook", 
       "uz": "eski daftar varag‘i",
       "ru": "лист из тетради",
       "en": "notebook page",
@@ -543,7 +543,7 @@ export const SARALASH = {
    [
     {
      "e": "🥤",
-     "s": {
+     "s": {"r": "d_am56-u7-plastik2", 
       "uz": "plastik stakan",
       "ru": "пластиковый стакан",
       "en": "plastic cup",
@@ -595,7 +595,7 @@ export const SARALASH = {
     },
     {
      "e": "🥚",
-     "s": {
+     "s": {"r": "d_chick-hatching-from-egg", 
       "uz": "tuxum po‘chog‘i",
       "ru": "яичная скорлупа",
       "en": "eggshell",
@@ -774,7 +774,7 @@ export const SARALASH = {
    },
    {
     "e": "💧",
-    "s": {
+    "s": {"r": "d_sea-waves", 
      "uz": "suzadi",
      "ru": "плавает",
      "en": "swims",
@@ -1058,7 +1058,7 @@ export const SARALASH = {
   "guruh": [
    {
     "e": "❄️",
-    "s": {
+    "s": {"r": "d_am34-u4-kurtka", 
      "uz": "qish kiyimi",
      "ru": "зимняя одежда",
      "en": "winter clothes",
@@ -1068,7 +1068,7 @@ export const SARALASH = {
    },
    {
     "e": "☀️",
-    "s": {
+    "s": {"r": "d_futbolkam_qizil", 
      "uz": "yoz kiyimi",
      "ru": "летняя одежда",
      "en": "summer clothes",
@@ -1081,7 +1081,7 @@ export const SARALASH = {
    [
     {
      "e": "🧤",
-     "s": {
+     "s": {"r": "d_mt23-u3-qolqop-jufti", 
       "uz": "qo‘lqop",
       "ru": "варежки",
       "en": "mittens",
@@ -1180,7 +1180,7 @@ export const FASL_MEVA = {
   },
   "yoz": {
    "e": "☀️",
-   "s": {
+   "s": {"r": "d_m-chomilmoq", 
     "uz": "yoz",
     "ru": "лето",
     "en": "summer",
@@ -1190,7 +1190,7 @@ export const FASL_MEVA = {
   },
   "kuz": {
    "e": "🍂",
-   "s": {
+   "s": {"r": "d_am34-u5-barg-tokilishi", 
     "uz": "kuz",
     "ru": "осень",
     "en": "autumn",
@@ -1297,7 +1297,7 @@ export const FASL_MEVA = {
    },
    {
     "e": "🎃",
-    "s": {
+    "s": {"r": "d_m-hosil", 
      "uz": "qovoq",
      "ru": "тыква",
      "en": "pumpkin",
@@ -1472,7 +1472,7 @@ export const ULASH = {
     },
     {
      "e": "🌊",
-     "s": {
+     "s": {"r": "d_m-dengiz", 
       "uz": "suv",
       "ru": "вода",
       "en": "water",
@@ -1494,7 +1494,7 @@ export const ULASH = {
     },
     {
      "e": "🪺",
-     "s": {
+     "s": {"r": "d_am45-u6-qush-uychasi", 
       "uz": "in",
       "ru": "гнездо",
       "en": "nest",
@@ -1516,7 +1516,7 @@ export const ULASH = {
     },
     {
      "e": "🏠",
-     "s": {
+     "s": {"r": "d_v-in-a-kennel", 
       "uz": "it uychasi",
       "ru": "будка",
       "en": "doghouse",
@@ -1544,28 +1544,6 @@ export const ULASH = {
       "en": "tree",
       "de": "Baum",
       "es": "árbol"
-     }
-    }
-   ],
-   [
-    {
-     "e": "🐝",
-     "s": {
-      "uz": "ari",
-      "ru": "пчела",
-      "en": "bee",
-      "de": "Biene",
-      "es": "abeja"
-     }
-    },
-    {
-     "e": "🍯",
-     "s": {
-      "uz": "asalari uyasi",
-      "ru": "улей",
-      "en": "beehive",
-      "de": "Bienenstock",
-      "es": "colmena"
      }
     }
    ]
@@ -1697,7 +1675,7 @@ export const ULASH = {
     },
     {
      "e": "🎨",
-     "s": {
+     "s": {"r": "d_m-boyamoq", 
       "uz": "bo‘yoqlar",
       "ru": "краски",
       "en": "paints",
@@ -2076,7 +2054,7 @@ export const ULASH = {
    [
     {
      "e": "✋",
-     "s": {
+     "s": {"r": "d_y-open-hands-sign", 
       "uz": "qo‘l",
       "ru": "рука",
       "en": "hand",

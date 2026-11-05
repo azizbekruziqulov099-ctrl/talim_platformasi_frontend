@@ -45,7 +45,9 @@ const FASL = {
   ja: ["ふゆ", "はる", "なつ", "あき"],
   ko: ["겨울", "봄", "여름", "가을"],
 };
-const FASL_BELGI = ["❄️", "🌸", "☀️", "🍂"];
+// REV368: fasl belgisi — o'z ma'nosidagi rasm bilan (yoz — quyosh emas, cho'milayotgan bola; kuz — barglari sarg'aygan daraxt;
+// bahor — gullagan shox; qish — qorbobo). Ob-havo belgilaridan (☀️ ❄️) alohida, adashmasin.
+const FASL_BELGI = ["⛄", "💮", "🏖️", "🍁"];
 
 const ru_soat = (h) => (h === 1 ? "час" : h >= 2 && h <= 4 ? "часа" : "часов");
 // Gaplar: kun (d), oy (m), fasl (s), soat (h), yil (y). intro — «Keling, bugungi kunni bilib olamiz!»
@@ -282,7 +284,7 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
       const [, lug, i] = narsalar[0];   // REV344: javob — faqat bugungi kun (fasl va oy keyingi qadamda aytiladi)
       return { ...step, _ochilish: "kun", doska: `🗓️ ${lug ? lug[L]?.[i] || "" : ""}`, ovoz: tg(L, KUN_SAVOL[L]), tanlov: { ...t, javob: tg(L, bosh(gapi(L, "kun", lug, i))) } };
     }
-    const t = tanlovYasa(FASL_BELGI[q.fasl], FASL_BELGI, yosh < 4 ? 2 : 4, kun);
+    const t = tanlovYasa(FASL_BELGI[q.fasl], FASL_BELGI, yosh < 4 ? 2 : yosh < 6 ? 3 : 4, kun);   // REV368: 2 → 3 → 4
     return { ...step, ovoz: tg(L, FASL_SAVOL[L]), tanlov: { ...t, javob: step.ovoz } };
   }
   return step;

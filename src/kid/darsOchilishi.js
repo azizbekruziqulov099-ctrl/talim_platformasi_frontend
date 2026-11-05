@@ -14,20 +14,32 @@ const NOT_TARGET = /^(?:say it together|say it with me|repeat after me|look|list
 /** Har ustozning o'z fe'li: salomi, maqtovi, ob-havoga munosabati. Kunga qarab almashadi — har kuni bir xil emas. */
 export const FEL = {
   sardor: {
-    salom: ["Salom, aqlli bolajon! Men Sardor akangman.", "Assalomu alaykum, kichkina matematik! Sardor akang keldi.", "Salom, do'stim! Bugun ham birga sanaymiz, hisoblaymiz!"],
-    javob: "Men ham yaxshiman, rahmat! Kayfiyatim xuddi besh baho!",
+    salom: ["Salom, aqlli bolajon! Men Sardor akangman.", "Assalomu alaykum, kichkina matematik! Sardor akang keldi.", "Salom, do'stim! Bugun ham birga sanaymiz, hisoblaymiz!",
+      "Ha, kelding-a! Seni kutib o'tirgandim, bolajon.", "Assalomu alaykum! Bugun miyamiz yaxshilab ishlaydi — tayyormisan?", "Salom, hisobchi do'stim! Barmoqlaringni tayyorla.",
+      "Voy, kim keldi? Mening eng aqlli shogirdim!", "Assalomu alaykum, bolajon! Bugun bir sir bilan keldim.", "Salom! Qani, birga o'ylab, birga topamiz.",
+      "Salom-salom! Bugun ham zo'r dars bo'ladi, men ishonaman."],
+    javob: ["Men ham yaxshiman, rahmat! Kayfiyatim xuddi besh baho!", "Rahmat, men a'lo! Sen kelding — yanada yaxshi bo'ldi.", "Men zo'rman! Bugun ko'p narsa topamiz.",
+      "Rahmat! Men ham yaxshi — sanashga tayyorman.", "Yaxshiman! Seni ko'rib quvondim."],
     maqtov: ["Zo'r hisobladik!", "Mana bu aqlli bola!", "Bir, ikki, uch — barakalla!"],
     havo: { quyosh: "Bugun quyosh charaqlab turibdi!", bulut: "Bugun osmonda bulutlar ko'p. Sanab ko'ramizmi?", yomgir: "Bugun yomg'ir yog'yapti. Tomchilarni sanasak, adashib ketamiz!", qor: "Bugun qor yog'yapti! Qor parchalari son-sanoqsiz!" },
   },
   nilufar: {
-    salom: ["Salom, quyoshim! Men Nilufar opangman.", "Assalomu alaykum, jonim! Nilufar opang yangi ertak bilan keldi.", "Salom, mening yulduzcham! Seni sog'indim!"],
-    javob: "Men ham yaxshiman, rahmat! Seni ko'rib, yana ham yaxshi bo'ldim!",
+    salom: ["Salom, quyoshim! Men Nilufar opangman.", "Assalomu alaykum, jonim! Nilufar opang yangi ertak bilan keldi.", "Salom, mening yulduzcham! Seni sog'indim!",
+      "Voy, kelding-a, asalim! Kutib turgandim.", "Assalomu alaykum, gulim! Bugun qiziq narsa bor.", "Salom, mitti do'stim! Quloqlaring tayyormi?",
+      "Xush kelibsan, jonim! Bugun birga o'ynaymiz va o'rganamiz.", "Salom, kapalagim! Kel, yonimga o'tir.", "Assalomu alaykum! Bugun men senga bir sir aytaman.",
+      "Salom, quvnoq bolajon! Seni ko'rib xursand bo'ldim."],
+    javob: ["Men ham yaxshiman, rahmat! Seni ko'rib, yana ham yaxshi bo'ldim!", "Rahmat, jonim, men zo'rman!", "Men yaxshiman! Bugun kayfiyatim baland.",
+      "Rahmat! Sen kelding — men ham quvondim.", "Yaxshiman, asalim! Qani, boshlaymiz."],
     maqtov: ["Ofarin, quyoshim!", "Ertakdagidek zo'r!", "Sen juda aqllisan!"],
     havo: { quyosh: "Bugun quyosh ertakdagidek nur sochyapti!", bulut: "Bugun bulutlar osmonda sayr qilyapti.", yomgir: "Bugun yomg'ir tomchilari derazani taqillatyapti.", qor: "Bugun oppoq qor yog'yapti, xuddi ertakdagidek!" },
   },
   malika: {
-    salom: ["Salom, kichkina sayohatchi! Men Malika opangman.", "Assalomu alaykum, kashfiyotchi! Malika opang yangi sayohatga chaqiryapti.", "Salom, do'stim! Lupamni oldim — bugun nimani kashf qilamiz?"],
-    javob: "Men ham yaxshiman, rahmat! Sayohatga tayyorman!",
+    salom: ["Salom, kichkina sayohatchi! Men Malika opangman.", "Assalomu alaykum, kashfiyotchi! Malika opang yangi sayohatga chaqiryapti.", "Salom, do'stim! Lupamni oldim — bugun nimani kashf qilamiz?",
+      "Voy, kelding-a! Ryukzagim tayyor, faqat seni kutayotgandim.", "Assalomu alaykum, tabiat do'sti! Bugun tashqarida qiziq narsa ko'rdim.", "Salom, kuzatuvchi! Ko'zlaringni katta och.",
+      "Xush kelibsan, sayohatchi! Bugun yangi joyga boramiz.", "Salom! Bugun tabiatning bir sirini ochamiz.", "Assalomu alaykum, bolajon! Durbinimni ham oldim.",
+      "Salom-salom, kashfiyotchi! Bugun nimalarni topar ekanmiz?"],
+    javob: ["Men ham yaxshiman, rahmat! Sayohatga tayyorman!", "Rahmat, men zo'rman! Yo'lga chiqamizmi?", "Yaxshiman! Bugun ko'p narsani kuzatamiz.",
+      "Rahmat! Kayfiyatim quyoshdek.", "Men a'lo! Sen bilan sayohat — eng yaxshisi."],
     maqtov: ["Ajoyib kashfiyot!", "Haqiqiy sayohatchi!", "Qoyil, juda zo'r!"],
     havo: { quyosh: "Bugun quyoshli kun — sayohatga juda mos!", bulut: "Bugun bulutli. Bulutlar shaklini kuzatamiz!", yomgir: "Bugun yomg'ir. O'simliklar suv ichib, xursand bo'lyapti!", qor: "Bugun qor yog'yapti. Tabiat oppoq ko'ylak kiydi!" },
   },
@@ -136,18 +148,18 @@ export function tanishtiruv(ustoz, til, izoh = "uz") {
   return `Bugun yonimda ${uz} ${erkak ? "aka" : "opa"} — u bizga ${tn} o'rgatadi.`;
 }
 
-export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", harorat = null, oldingi = null, grade = "", kun = 0, izoh = "uz", vaqt = "kun", aslIzoh = null, sana = null } = {}) {
+export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", harorat = null, oldingi = null, grade = "", kun = 0, izoh = "uz", vaqt = "kun", aslIzoh = null, sana = null, xil = 0 } = {}) {
   const tilUstozi = Boolean(til && ISMLAR[ustoz] && IZOH_PERSONA[izoh]);
   const fel = tilUstozi ? felFor(IZOH_PERSONA[izoh], izoh) : felFor(ustoz, izoh);
   const tanish = tilUstozi ? tanishtiruv(ustoz, til, izoh) : "";
   // til darsida — oddiy tanishuv salomi («Salom, quyoshim! Men Nilufar opangman.»), «yangi ertak bilan keldi» emas
-  const salomGapi = (arr) => (tilUstozi ? arr[0] : arr[Math.abs(kun) % arr.length]);
+  const salomGapi = (arr) => (tilUstozi ? arr[0] : arr[Math.abs(kun + xil) % arr.length]);
   const L = til && OCHILISH_LUGAT[til] ? OCHILISH_LUGAT[til] : null;
   const t = (k) => (L ? `[${til}]${L[k]}[/${til}]` : "");
   const z = (text) => izohTeg(text, izoh);                 // ustozning o'z gapi — izoh tilida
   const g = (tpl, vars) => gap(izoh, tpl, vars);
   const kichik = yoshi(grade) <= 2;
-  const pick = (arr) => arr[Math.abs(kun) % arr.length];
+  const pick = (arr) => (Array.isArray(arr) ? arr[Math.abs(kun + xil) % arr.length] : arr);   // REV368: har darsda boshqa gap
   const out = [];
   // ertalab — «Good morning!», kechqurun va kechasi — «Good evening!»
   const kechki = vaqt === "kech" || vaqt === "tun";
@@ -161,8 +173,8 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
     ovoz: L
       ? (kichik
         ? `${vaqtSalom}${z(salomGapi(fel.salom))}${tanish ? ` ${z(tanish)}` : ""} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸`
-        : `${vaqtSalom}${z(salomGapi(fel.salom))}${tanish ? ` ${z(tanish)}` : ""} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸ ${t("how")} ⏸ ${z(fel.javob)} ${g("Sen ham shunday javob ber: {p} ⏸", { p: t("fine") })}`)
-      : `${vaqtSalom}${z(pick(fel.salom))} ${g("Qalaysan? ⏸")} ${z(fel.javob)}`,
+        : `${vaqtSalom}${z(salomGapi(fel.salom))}${tanish ? ` ${z(tanish)}` : ""} ${t(salom)} ${g("Endi sen ayt: {p}", { p: t(salom) })} ⏸ ${t("how")} ⏸ ${z(pick(fel.javob))} ${g("Sen ham shunday javob ber: {p} ⏸", { p: t("fine") })}`)
+      : `${vaqtSalom}${z(pick(fel.salom))} ${g(pick(["Qalaysan? ⏸", "Ishlaring yaxshimi? ⏸", "Kayfiyating qanday? ⏸", "Yaxshi dam oldingmi? ⏸"]))} ${z(pick(fel.javob))}`,
     doska: L ? (kichik ? `👋 ${L[salom]}` : `👋 ${L[salom]}\n🙂 ${L.how}\n😊 ${L.fine}`) : "👋",
   });
 

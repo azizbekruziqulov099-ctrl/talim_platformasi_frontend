@@ -7,11 +7,10 @@ import { albomOl } from "../stikerAlbom.js";
 import { haftaDarslari, imtihonRejasi, imtihonXulosa } from "./imtihonRules.js";
 import { oyinNatijaYoz } from "../kidActivity.js";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
+import { oyinRasmTop } from "../oyin/oyinRasmTop.js";
 import "./imtihon.css";
 
-const rasm = (el) => { if (!el) return ""; const mt = matnId(el.uz || ""); if (mt && RASM_HAMMA[mt]) return RASM_HAMMA[mt];
-  const id = sozId({ soz: el.uz || "", emoji: el.emoji || "" }); if (id && RASM_HAMMA[id]) return RASM_HAMMA[id];
-  return emojiRasm(el.emoji || "", RASM_HAMMA, el.uz || el.say || "")?.src || ""; };
+const rasm = oyinRasmTop;   // REV368
 const GAP = {
   bosh: { uz: "Bugun yakshanba — Kabu imtihoni! Hafta davomida o‘rganganlaringni o‘yin bilan tekshiramiz.", ru: "Сегодня воскресенье — экзамен Кабу! Проверим в играх, чему ты научился за неделю.",
     en: "Today is Sunday — Kabu's exam! Let's check in games what you learned this week.", de: "Heute ist Sonntag — Kabus Prüfung! Wir prüfen spielerisch, was du diese Woche gelernt hast.",

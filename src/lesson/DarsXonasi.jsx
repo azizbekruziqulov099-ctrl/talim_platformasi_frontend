@@ -35,7 +35,8 @@ import { YangiStiker } from "../kid/StikerAlbom.jsx";   // REV329   // REV325: o
 import { qadamOyini, yoshGuruh, darsElementlari } from "./oyinQadam.js";
 import HarakatQadam, { HARAKAT_OYINLARI } from "./HarakatQadam.jsx";   // REV342
 import { necha as oyinNecha, oynadi as oyinOynadi, kirishDarajasi } from "../kid/oyin/tanishlik.js";   // REV360
-import { oyinSozlamaYukla, oyinYopiqmi } from "../kid/oyin/oyinSozlama.js";   // REV364: admin o'chirgan o'yinlar darsda chiqmaydi
+import { oyinSozlamaYukla, oyinYopiqmi } from "../kid/oyin/oyinSozlama.js";
+import { oyinRasmTop } from "../kid/oyin/oyinRasmTop.js";   // REV364: admin o'chirgan o'yinlar darsda chiqmaydi
 import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
 import { DAVOM_GAPI } from "../kid/izohTil.js";
 import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
@@ -359,10 +360,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const [oldiTakror, setOldiTakror] = useState(null);   // REV177: oldingi darslar ro'yxati — takror oynasi ochiq   // REV175: o'qish, gapirish, diktant, yozganini o'qish
   const immersiya = Boolean(kid && darsTil && kidYoshi(grade || lesson?.topic?.sinf) >= 4);
   const tIzoh = immersiya ? darsTil : izoh;
+  const salomXil = useMemo(() => Math.floor(Math.random() * 1000), [topicCode]);   // eslint-disable-line react-hooks/exhaustive-deps
   const opening = useMemo(() => (kid && lesson?.steps?.length ? ochilish({
     ustoz: ustozFor(fan || lesson?.topic?.fan, uiLocale), til: darsTil, izoh: tIzoh, havo, harorat, oldingi, vaqt,
     grade: grade || lesson?.topic?.sinf, kun: Math.floor(Date.now() / 86400000), aslIzoh: izoh, sana: new Date(),
-  }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, tIzoh, izoh, vaqt]);
+    xil: salomXil,   // REV368: har darsda boshqa salom (bir kunda bir nechta dars bo'lsa ham)
+  }) : []), [kid, lesson, havo, harorat, oldingi, fan, grade, darsTil, tIzoh, izoh, vaqt, salomXil]);
   // REV156: ustoz ochilishda salomlashgan — darsning o'z «kirish» qadamidagi salom/«Men — …» gaplari olib tashlanadi
   // va mavzu kirishi TAKRORDAN OLDIN keladi (oldin takrordan keyin yana «Salom, bolajonlar!» deyardi).
   const steps = useMemo(() => {
@@ -793,10 +796,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setVoice(sum || { togri: 0, jami: 0 }); voiceRef.current = sum || { togri: 0, jami: 0 }; afterLesson();
   };
   // REV355: o'yin elementining rasmi — rasmlar kutubxonasidan (so'zi yoki belgisi bo'yicha); topilmasa o'yin o'z belgisini ko'rsatadi
-  const oyinRasmi = (el) => { if (!el) return ""; const soz = el.say || el.uz || ""; const mt = matnId(el.uz || "") || matnId(el.say || "");
-    if (mt && RASM_HAMMA[mt]) return RASM_HAMMA[mt];
-    const id = sozId({ soz: el.uz || soz, emoji: el.emoji || "" }); if (id && RASM_HAMMA[id]) return RASM_HAMMA[id];
-    return emojiRasm(el.emoji || "", RASM_HAMMA, soz)?.src || ""; };
+  const oyinRasmi = oyinRasmTop;   // REV368: aniq rasm (rasmId) → so'z → belgi
   // REV145: so'z rasmi — rassom chizgan rasm (inglizcha so'z yoki emoji orqali)
   const sozRasmi = (soz, emoji) => { const mt = matnId(soz); if (mt && RASM_HAMMA[mt]) return { id: mt, src: RASM_HAMMA[mt] }; const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : emojiRasm(emoji, RASM_HAMMA); };
   // REV145: bugun o'rgangan so'zlar va bola ularni aytdimi — bola natija ekranida va ota-ona hisobotida

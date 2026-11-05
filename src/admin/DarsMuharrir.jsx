@@ -8,14 +8,13 @@ import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { emojiRasm, matnId, sozId } from "../kid/rasmHarakat.js";
 import { kabuAyt, kabuJimm } from "../kid/kabuOvoz.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
+import { oyinRasmTop } from "../kid/oyin/oyinRasmTop.js";
 import "./oyinSinov.css";
 
 const FANLAR = ["Atrof-muhit", "Matematika", "Mantiq", "Ingliz tili", "Rus tili", "Arab tili", "Fransuz tili", "Ispan tili", "Koreys tili", "Nemis tili", "Turk tili", "Xitoy tili", "Yapon tili"];
 const IZOH = { uz: "", ru: " (izoh: rus)", en: " (izoh: ingliz)", de: " (izoh: nemis)", es: " (izoh: ispan)" };
 const TUR_BELGI = { kirish: "🎁 Kirish", tushuncha: "💡 Tushuncha", qoida: "💡 Tushuncha", topshiriq: "🎮 Topshiriq", amaliy: "🎮 Topshiriq", test: "📝 Test", xulosa: "🌟 Xulosa" };
-const rasm = (el) => { if (!el) return ""; const mt = matnId(el.uz || ""); if (mt && RASM_HAMMA[mt]) return RASM_HAMMA[mt];
-  const id = sozId({ soz: el.uz || "", emoji: el.emoji || "" }); if (id && RASM_HAMMA[id]) return RASM_HAMMA[id];
-  return emojiRasm(el.emoji || "", RASM_HAMMA, el.uz || el.say || "")?.src || ""; };
+const rasm = oyinRasmTop;   // REV368
 const oyinNomi = (id) => OYINLAR.find((o) => o.id === Number(id))?.nom || "";
 
 export default function DarsMuharrir({ apiBase = "", token = "" }) {
