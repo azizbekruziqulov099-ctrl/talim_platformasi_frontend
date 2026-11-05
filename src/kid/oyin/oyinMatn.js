@@ -82,6 +82,27 @@ export const OYIN_MATN = {
     ongda: { uz: "o‘ngda", ru: "справа", en: "on the right", de: "rechts", es: "a la derecha" },
     chapda: { uz: "chapda", ru: "слева", en: "on the left", de: "links", es: "a la izquierda" },
   },
+  // REV336
+  yollar: {
+    nom: { uz: "Chalkash yo‘llar", ru: "Запутанные дорожки", en: "Tangled paths", de: "Verschlungene Wege", es: "Caminos enredados" },
+    kirish: { uz: "Chalkash yo‘llar! Barmog‘ing bilan chiziq bo‘ylab yur.", ru: "Запутанные дорожки! Веди пальчиком по линии.", en: "Tangled paths! Follow the line with your finger.",
+      de: "Verschlungene Wege! Fahr mit dem Finger die Linie entlang.", es: "¡Caminos enredados! Sigue la línea con el dedo." },
+    raund: { uz: "Qaysi yo‘l suyakka olib boradi? O‘shani bos!", ru: "Какая дорожка ведёт к косточке? Нажми на неё!", en: "Which path leads to the bone? Tap it!",
+      de: "Welcher Weg führt zum Knochen? Tipp darauf!", es: "¿Qué camino lleva al hueso? ¡Tócalo!" },
+  },
+  tarozi: {
+    nom: { uz: "Tarozi", ru: "Весы", en: "Scales", de: "Waage", es: "Balanza" },
+    kirish: { uz: "Tarozi! Og‘ir narsa pastga tushadi, yengili tepaga ko‘tariladi.", ru: "Весы! Тяжёлое опускается вниз, лёгкое поднимается вверх.", en: "Scales! The heavy one goes down, the light one goes up.",
+      de: "Waage! Das Schwere geht nach unten, das Leichte nach oben.", es: "¡Balanza! Lo pesado baja y lo ligero sube." },
+    raund: { uz: "Qaysi biri og‘irroq?", ru: "Что тяжелее?", en: "Which one is heavier?", de: "Was ist schwerer?", es: "¿Cuál pesa más?" },
+    yengil: { uz: "Qaysi biri yengilroq?", ru: "Что легче?", en: "Which one is lighter?", de: "Was ist leichter?", es: "¿Cuál pesa menos?" },
+  },
+  teskari: {
+    nom: { uz: "Teskarisini top", ru: "Найди противоположное", en: "Find the opposite", de: "Finde das Gegenteil", es: "Encuentra lo contrario" },
+    kirish: { uz: "Teskarisini top! Issiqning teskarisi — sovuq.", ru: "Найди противоположное! Горячий — холодный.", en: "Find the opposite! The opposite of hot is cold.",
+      de: "Finde das Gegenteil! Das Gegenteil von heiß ist kalt.", es: "¡Encuentra lo contrario! Lo contrario de caliente es frío." },
+    raund: { uz: "«{t}». Uning teskarisi qaysi?", ru: "«{t}». Что противоположное?", en: "“{t}”. What is the opposite?", de: "„{t}“. Was ist das Gegenteil?", es: "«{t}». ¿Qué es lo contrario?" },
+  },
   minora: {
     nom: { uz: "Kubiklar minorasi", ru: "Башня из кубиков", en: "Block tower", de: "Klötzchenturm", es: "Torre de cubos" },
     kirish: { uz: "Kubiklar minorasi! Kabu minora qurdi — xuddi shunday minorani top.", ru: "Башня из кубиков! Кабу построил башню — найди точно такую же.",

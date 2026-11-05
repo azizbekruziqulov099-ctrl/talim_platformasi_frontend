@@ -17,3 +17,16 @@ test('REV335: fazoviy o‘yinlar — hamma yoshda, to‘g‘ri javob bor, 5 tild
   const m = oyinYasa(103, { elementlar: [], yosh: '6-7', urug: 3 }).raundlar[0];
   const nam = m.savol.minora.join(); assert.equal(m.variantlar.filter((v) => v.minora.join() === nam).length, 1);   // faqat bittasi namunaga teng
 });
+test('REV336: chalkash yo‘llar, tarozi, teskari', () => {
+  for (const [id, ys] of [[93, ['2-3', '4-5', '6-7']], [106, ['2-3', '4-5', '6-7']], [114, ['4-5', '6-7']]]) for (const y of ys) {
+    const h = oyinYasa(id, { elementlar: el, yosh: y, urug: 11 });
+    assert.ok(h, `${id} ${y}`);
+    for (const r of h.raundlar) assert.ok(r.variantlar.some((v) => v.k === r.togri));
+    for (const iz of ['uz', 'ru', 'en', 'de', 'es']) assert.ok(raundGapi(h, { izoh: iz, til: 'uz', birinchi: true }).length > 5);
+  }
+  const y = oyinYasa(93, { elementlar: el, yosh: '6-7', urug: 5 }).raundlar[0];
+  const iv = y.variantlar.findIndex((v) => v.k === y.togri); assert.equal(y.savol.oxir[iv], y.savol.maqsad);   // to'g'ri narsaning yo'li suyakka boradi
+  const t = oyinYasa(106, { elementlar: el, yosh: '4-5', urug: 2 }).raundlar[0];
+  assert.equal(t.togri, t.savol.ogir === 'chap' ? t.savol.chap.k : t.savol.ong.k);
+  const s = oyinYasa(114, { elementlar: [], yosh: '6-7', urug: 4 }); assert.match(raundGapi(s, { izoh: 'ru', til: 'uz' }), /противоположное/);
+});

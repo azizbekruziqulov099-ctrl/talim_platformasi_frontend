@@ -17,6 +17,9 @@ import SehrliQuti from "./SehrliQuti.jsx";
 import SoyasiniTop from "./SoyasiniTop.jsx";   // REV335
 import Joylashuv from "./Joylashuv.jsx";
 import KubiklarMinorasi from "./KubiklarMinorasi.jsx";
+import ChalkashYollar from "./ChalkashYollar.jsx";   // REV336
+import Tarozi from "./Tarozi.jsx";
+import Teskari from "./Teskari.jsx";
 
 export const OYIN_KOMPONENTLAR = {
   116: EshitVaBos,
@@ -37,6 +40,9 @@ export const OYIN_KOMPONENTLAR = {
   68: SoyasiniTop,
   76: Joylashuv,
   103: KubiklarMinorasi,
+  93: ChalkashYollar,
+  106: Tarozi,
+  114: Teskari,
 };
 
 export {

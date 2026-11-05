@@ -32,6 +32,12 @@ export const OYINLAR = [
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
   { id: 76, kalit: "joylashuv", nom: "Qayerda?", belgi: "📦", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 1 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  { id: 93, kalit: "yollar", nom: "Chalkash yo‘llar", belgi: "🦴", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
+    raund: { "2-3": 3, "4-5": 4, "6-7": 5 }, soniya: { "2-3": 14, "4-5": 14, "6-7": 15 } },
+  { id: 106, kalit: "tarozi", nom: "Tarozi", belgi: "⚖️", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
+    raund: { "2-3": 5, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 9, "6-7": 10 } },
+  { id: 114, kalit: "teskari", nom: "Teskarisini top", belgi: "🔄", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 10, "6-7": 10 } },
   { id: 103, kalit: "minora", nom: "Kubiklar minorasi", belgi: "🧱", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 5 }, soniya: { "2-3": 12, "4-5": 12, "6-7": 13 } },
   { id: 116, kalit: "eshitBos", nom: "Eshit va bos", belgi: "👂", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
@@ -273,7 +279,41 @@ function minoraVariantlar(namuna, n, rnd) {
   return aralash(out.map((r, i) => ({ k: i === 0 ? "t0" : `t${i}`, minora: r })), rnd);
 }
 
+// REV336: teskari ma'noli juftlar (5 tilda)
+export const TESKARI = [
+  [{ emoji: "🔥", s: { uz: "issiq", ru: "горячий", en: "hot", de: "heiß", es: "caliente" } }, { emoji: "🧊", s: { uz: "sovuq", ru: "холодный", en: "cold", de: "kalt", es: "frío" } }],
+  [{ emoji: "🐘", s: { uz: "katta", ru: "большой", en: "big", de: "groß", es: "grande" } }, { emoji: "🐭", s: { uz: "kichik", ru: "маленький", en: "small", de: "klein", es: "pequeño" } }],
+  [{ emoji: "☀️", s: { uz: "kun", ru: "день", en: "day", de: "Tag", es: "día" } }, { emoji: "🌙", s: { uz: "tun", ru: "ночь", en: "night", de: "Nacht", es: "noche" } }],
+  [{ emoji: "🐇", s: { uz: "tez", ru: "быстро", en: "fast", de: "schnell", es: "rápido" } }, { emoji: "🐢", s: { uz: "sekin", ru: "медленно", en: "slow", de: "langsam", es: "lento" } }],
+  [{ emoji: "😀", s: { uz: "quvnoq", ru: "весёлый", en: "happy", de: "fröhlich", es: "alegre" } }, { emoji: "😢", s: { uz: "xafa", ru: "грустный", en: "sad", de: "traurig", es: "triste" } }],
+  [{ emoji: "🔓", s: { uz: "ochiq", ru: "открыто", en: "open", de: "offen", es: "abierto" } }, { emoji: "🔒", s: { uz: "yopiq", ru: "закрыто", en: "closed", de: "zu", es: "cerrado" } }],
+];
+// REV336: chalkash yo'llar — chapdagi narsalardan o'ngga chiziqlar; bittasi suyakka (🦴) olib boradi
+function yollarRaund(els, n, rnd) {
+  const tanlangan = tanla(els, Math.min(n, els.length), rnd);
+  const k = tanlangan.length;
+  let oxir = aralash([...Array(k).keys()], rnd);
+  if (k > 1 && oxir.every((v, i) => v === i)) oxir = [...oxir.slice(1), oxir[0]];   // hech biri to'g'ri ketmasin — chalkash bo'lsin
+  const maqsad = Math.floor(rnd() * k);
+  const togriIdx = oxir.indexOf(maqsad);
+  return { tur: "tanlov", savol: { oxir, maqsad, k }, variantlar: tanlangan.map(elVariant), togri: tanlangan[togriIdx].k };
+}
+
 const YASOVCHI = {
+  yollar: ({ els, n, rnd, R }) => Array.from({ length: R }, () => yollarRaund(els, n, rnd)),
+  // 106 — tarozi: og'ir tomoni pastga tushgan; 6-7 yoshda ba'zan «yengilini top»
+  tarozi: ({ els, y, rnd, R }) => Array.from({ length: R }, (_, i) => {
+    const [a, b] = tanla(els, 2, rnd); const ogir = rnd() < 0.5 ? "chap" : "ong";
+    const yengil = y === "6-7" && i % 2 === 1;
+    const togri = (ogir === "chap") !== yengil ? a.k : b.k;
+    return { tur: "tanlov", savol: { chap: a, ong: b, ogir, yengil }, variantlar: [elVariant(a), elVariant(b)], togri };
+  }),
+  // 114 — teskarisini top: bitta so'z ko'rsatiladi, uning teskarisi topiladi
+  teskari: ({ n, rnd, R }) => navbat(TESKARI.flatMap((p, pi) => [[p[0], p[1], pi], [p[1], p[0], pi]]), R, rnd).map(([w, t, pi]) => {
+    const togri = { k: `t${pi}`, el: { emoji: t.emoji, soz: t.s } };
+    const boshqa = tanla(TESKARI.filter((_, j) => j !== pi).map((p, j) => p[(j + pi) % 2]), n - 1, rnd).map((x, j) => ({ k: `b${j}`, el: { emoji: x.emoji, soz: x.s } }));
+    return { tur: "tanlov", savol: { el: { emoji: w.emoji, soz: w.s } }, variantlar: aralash([togri, ...boshqa], rnd), togri: togri.k };
+  }),
   // 68 — soyasini top: rangli narsa tepada, pastda — soyalar
   soya: ({ els, n, rnd, R }) => navbat(els, R, rnd).map((el) => ({ tur: "tanlov", savol: { el }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k })),
   // 76 — qayerda: quti va narsa; bola joylashuvni tanlaydi
@@ -797,6 +837,8 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "yoqolganSon": gap = M(k, "raund", izoh, { q: r.savol.qator.map((x) => (x === null ? "…" : String(x))).join(", ") }); break;
     case "haYoq": gap = M(k, "raund", izoh, { t: nom(r.savol.aytilgan) }); break;
     case "sehrliQuti": gap = M(k, r.savol.rejim, izoh, { a: r.savol.a, b: r.savol.b }); break;
+    case "tarozi": gap = M(k, r.savol.yengil ? "yengil" : "raund", izoh); break;
+    case "teskari": gap = M(k, "raund", izoh, { t: r.savol.el.soz?.[izoh] || r.savol.el.soz?.uz }); break;
     default: gap = M(k, "raund", izoh); break;
   }
   return toza(birinchi ? `${M(k, "kirish", izoh)} ${gap}` : gap);
