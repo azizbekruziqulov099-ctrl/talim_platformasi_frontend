@@ -15,7 +15,8 @@ import { lessonDone, lessonStars, kalitniEslab, organilganTillar, tilKalit, TIL_
 import { useKeepLight } from '../kid/useKeepLight.js';
 import { fetchDayPlan, todayProgress, unlockLessons } from '../kid/kidActivity.js';
 import { davomOl, davomFoiz } from '../lesson/darsDavomi.js';
-import { tilVariantlari, moslar } from './boshqaTil.js';   // REV328: shu darsni boshqa tilda   // REV326: yarim qolgan dars foizi
+import { tilVariantlari, moslar } from './boshqaTil.js';
+import StikerAlbom from '../kid/StikerAlbom.jsx';   // REV333   // REV328: shu darsni boshqa tilda   // REV326: yarim qolgan dars foizi
 import { KURS, SABAB_MATN, fanHolati, rejaKvotasi } from '../parent/bogchaReja.js';
 import './kidTopics.css';
 import BogchaOlami from '../kid/BogchaOlami.jsx';
@@ -96,6 +97,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  // REV168: fan ixtiyoriy — bosh sahifadagi «Bugungi darslar»dan boshqa fanning darsi ham shu yo'l bilan ochiladi
  const unlockOf=(group,sub=current)=>unlockLessons(group.mavzular.map(t=>t.dars_bor?topicTarget(sub,group,t,type).lesson_code:''),plan,sub?.nom||'');
  // REV81: uzluksiz o'rganish — dars tugagach keyingi darsga o'tish (guruh ichidagi tartib bo'yicha).
+ const [albom,setAlbom]=useState(false);   // REV333
  const openLesson=(group,topic,sub=current,opts={})=>{
   const fanNom=sub?.nom||'';
   const list=group.mavzular.filter(t=>t.dars_bor);const i=list.indexOf(topic);let next=i>=0?list[i+1]:null;
@@ -165,7 +167,9 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  </div>;
 
  return <div className="space-y-4 lt-root">
-  {kid&&<button type="button" className="kt-olam-back" onClick={()=>setOlam(true)} aria-label={__kbUi("Bog‘chaga qaytish")}>🏫</button>}
+  {kid&&<div><button type="button" className="kt-olam-back" onClick={()=>setOlam(true)} aria-label={__kbUi("Bog‘chaga qaytish")}>🏫</button>
+   <button type="button" className="kt-albom" onClick={()=>setAlbom(true)} aria-label={__kbUi("Stiker albomim")}>📒</button></div>}
+  {albom&&<StikerAlbom onClose={()=>setAlbom(false)}/>}
   {!kid&&<div><h2 className="text-xl font-bold text-slate-800">{teacher?__kbUi("Mavzular"):__kbUi("O‘rganish")}</h2>
    <p className="mt-1 text-sm text-slate-600">{__kbUi(viewerHeadline(catalog?.viewer,type,institutionLabel(type)))}</p></div>}
   {!kid&&<LearnerCurriculumHeader viewer={catalog?.viewer} type={type} lesson={lesson} fallbackType={profileInstitutionType(user)}

@@ -29,7 +29,9 @@ import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
 import { maktabDarsSozlari } from "./maktabDarsSozlari.js";
 import { sanaQadami, sinfJoyi, mashqMateriali, tilLugati, testOvozi } from "./maktabMashqRules.js";
 import Oyin from "../kid/oyin/index.js";
-import { oyinNatijaYoz } from "../kid/kidActivity.js";   // REV329   // REV325: o'yin dvigateli
+import { oyinNatijaYoz } from "../kid/kidActivity.js";
+import { stikerBer } from "../kid/stikerAlbom.js";   // REV333: stiker albomi
+import { YangiStiker } from "../kid/StikerAlbom.jsx";   // REV329   // REV325: o'yin dvigateli
 import { qadamOyini, yoshGuruh } from "./oyinQadam.js";
 import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
 import { DAVOM_GAPI } from "../kid/izohTil.js";
@@ -188,7 +190,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // xato yoki bosmasa — yulduz yo'q. game: { stepIdx, targets, holat, kutish } · natijalar har o'yin qadami bo'yicha.
   const [game, setGame] = useState(null);
   const [oyinQ, setOyinQ] = useState(null);   // REV325: Miya qadamidagi o'yin — { stepIdx, id, elementlar, sonlar }
-  const [tanlov, setTanlov] = useState(null);   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
+  const [tanlov, setTanlov] = useState(null);
+  const [stiker, setStiker] = useState(null);   // REV333: dars oxirida berilgan stiker   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
   const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi
   // REV305: dars ketayotganda sarlavha (mavzu nomi, qadam) 3 soniyadan keyin yig'iladi — faqat ✕ qoladi, doskani to'smaydi;
@@ -1442,6 +1445,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV177: dars so'zlari, test savollari va tushunchalari keyingi darslardagi spiral takror uchun saqlanadi
     if (mode === "end" || (mode === "result" && !xatoTartib)) darsniSaqla(fan || lesson?.topic?.fan || "", darsYozuvi({ kod: topicCode, mavzu: lesson?.topic?.mavzu || "",
       fan: fan || lesson?.topic?.fan || "", til: darsTil || "", iz: izohL(izoh), steps: lesson?.steps || [], sozlar: maktabSozlar, savollar: questions }));
+    if (kid && mode === "result" && topicCode) setStiker(stikerBer(topicCode, { egasi: String(kidPlan ? "bola" : "mehmon") }) || null);   // REV333
     if (mode === "result" && !xatoTartib && questions.length) { markLessonDone(topicCode, kidStars(score, questions.length)); natijaYoz(topicCode, score, questions.length); tilniBelgila(topicCode, darsIzohTili(fan || lesson?.topic?.fan)); }
     if (learnerRole !== "oquvchi" || !token) return;
     if (mode === "lesson" && !darsBosh.current) darsBosh.current = Date.now();
@@ -1865,6 +1869,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           </div>}
           {kid && mode === "result" && <div className="dx-kid-end">
             <KidStage compact mood={kidMood} celebrate={celebrate} speaking={speaking} />
+            <YangiStiker natija={stiker} />
             <div className="dx-kid-stars" aria-label={`${kidResult?.yulduz ?? 0} ⭐`}>{[1, 2, 3].map((n) => <span key={n} className={n <= (kidResult?.yulduz ?? 0) ? "is-on" : ""} style={{ "--i": n }}><B e="⭐" /></span>)}</div>
             {(questions.length > 0 || gameTotal > 0) && <p className="dx-kid-note">{score + gameScore} / {questions.length + gameTotal} ✓</p>}
             {voice?.jami > 0 && <p className="dx-kid-note"><B e="🎤" /> {voice.togri} / {voice.jami}</p>}
