@@ -32,6 +32,10 @@ function useVoice(apiBase, enabled) {
 }
 
 /** Bellashuv: kod bilan qo'shilish, xona ochish, lobbi, savollar, natija va shohsupa. */
+// REV363: bog'cha bellashuvida variant rasmlari — rasmlar kutubxonasidan (emoji o'rniga)
+import { RASM_HAMMA } from "../kid/darsRasm.js";
+import { emojiRasm } from "../kid/rasmHarakat.js";
+
 export default function Bellashuv({ apiBase, token, kid = false, initialCode = "", createFrom = null, onClose, onPickTopic }) {
   useKbInterfaceLocale();
   const [code, setCode] = useState(normalizeCode(initialCode));
@@ -91,7 +95,9 @@ export default function Bellashuv({ apiBase, token, kid = false, initialCode = "
   const create = async () => {
     setBusy(true); setError("");
     try {
-      const data = await call(apiBase, "/api/bellashuv/xona", token, { topic_codes: createFrom.topic_codes, nomi: createFrom.nomi || "", ...config });
+      const data = createFrom.bogcha   // REV363: savollar — hamma bellashuvchi o'tgan darslardan, boshlashda tanlanadi
+        ? await call(apiBase, "/api/bellashuv/bogcha/xona", token, { savol_soni: createFrom.savol_soni || 6, savol_vaqti: createFrom.savol_vaqti || 20 })
+        : await call(apiBase, "/api/bellashuv/xona", token, { topic_codes: createFrom.topic_codes, nomi: createFrom.nomi || "", ...config });
       setCode(data.kod);
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
@@ -126,8 +132,10 @@ export default function Bellashuv({ apiBase, token, kid = false, initialCode = "
     <header className="bs-hero"><span aria-hidden="true">⚔️</span><div><h2>{__kbUi("Bellashuv")}</h2><p>{__kbUi("Do‘stlaring bilan bir vaqtda test yech — kim birinchi to‘g‘ri topsa, ko‘proq ochko oladi!")}</p></div></header>
     {createFrom ? <div className="bs-card">
       <h3>{__kbUi("Xona ochish")}: <b>{stripSpeechTags(createFrom.nomi || "")}</b></h3>
-      <div className="bs-choices"><span>{__kbUi("Savollar")}</span>{[5, 10, 15, 20].map((n) => <button key={n} type="button" className={config.savol_soni === n ? "is-on" : ""} onClick={() => setConfig({ ...config, savol_soni: n })}>{n}</button>)}</div>
+      {!createFrom.bogcha && <><div className="bs-choices"><span>{__kbUi("Savollar")}</span>{[5, 10, 15, 20].map((n) => <button key={n} type="button" className={config.savol_soni === n ? "is-on" : ""} onClick={() => setConfig({ ...config, savol_soni: n })}>{n}</button>)}</div>
       <div className="bs-choices"><span>{__kbUi("Har savolga")}</span>{[10, 15, 20, 30].map((n) => <button key={n} type="button" className={config.savol_vaqti === n ? "is-on" : ""} onClick={() => setConfig({ ...config, savol_vaqti: n })}>{n} {__kbUi("s")}</button>)}</div>
+</>}
+      {createFrom.bogcha && <p className="bs-muted">{__kbUi("Savollar — ikkalang ham o‘tgan darslardan. Kodni do‘stingga ayt, u qo‘shilgach «Boshlash»ni bos.")}</p>}
       <button type="button" className="bs-primary" disabled={busy} onClick={create}>{busy ? "…" : __kbUi("⚔️ Xonani ochish")}</button>
     </div> : <div className="bs-card">
       <h3>{__kbUi("Xona ochish")}</h3>
@@ -193,7 +201,9 @@ export default function Bellashuv({ apiBase, token, kid = false, initialCode = "
           const cls = reveal ? (o.letter === reveal.togri ? "is-right" : o.letter === chosen ? "is-wrong" : "is-dim") : chosen ? (o.letter === chosen ? "is-picked" : "is-dim") : "";
           return <button key={o.letter} type="button" className={`bs-option ${cls}`} style={{ "--opt": st.color }} disabled={Boolean(chosen) || state.phase !== "question"} onClick={() => pick(o.letter)}>
             <span className="bs-shape" aria-hidden="true">{st.shape}</span>
-            {o.picture && <span className="bs-pic" aria-hidden="true">{o.picture}</span>}
+            {o.picture && (kid && emojiRasm(o.picture, RASM_HAMMA, o.word)?.src
+              ? <img className="bs-pic-img" src={emojiRasm(o.picture, RASM_HAMMA, o.word).src} alt="" draggable="false" />
+              : <span className="bs-pic" aria-hidden="true">{o.picture}</span>)}
             <span className="bs-word">{o.word || o.letter}</span>
           </button>;
         })}

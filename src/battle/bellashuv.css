@@ -169,3 +169,5 @@
   .bs-root:not(.is-kid) .bs-options { grid-template-columns: 1fr; }
   .bs-options.bs-n3 > :last-child { grid-column: auto; }
 }
+/* REV363: bog'cha bellashuvi — kutubxona rasmlari */
+.bs-root.is-kid .bs-pic-img{width:88px;height:88px;object-fit:contain;display:block;margin:0 auto 4px}
