@@ -14,6 +14,9 @@ import YoqolganSon from "./YoqolganSon.jsx";
 import KabuXatoQildi from "./KabuXatoQildi.jsx";
 import HaYokiYoq from "./HaYokiYoq.jsx";
 import SehrliQuti from "./SehrliQuti.jsx";
+import SoyasiniTop from "./SoyasiniTop.jsx";   // REV335
+import Joylashuv from "./Joylashuv.jsx";
+import KubiklarMinorasi from "./KubiklarMinorasi.jsx";
 
 export const OYIN_KOMPONENTLAR = {
   116: EshitVaBos,
@@ -31,6 +34,9 @@ export const OYIN_KOMPONENTLAR = {
   55: KabuXatoQildi,
   97: HaYokiYoq,
   33: SehrliQuti,
+  68: SoyasiniTop,
+  76: Joylashuv,
+  103: KubiklarMinorasi,
 };
 
 export {

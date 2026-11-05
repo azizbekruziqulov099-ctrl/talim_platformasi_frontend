@@ -27,6 +27,13 @@ const BAZA_VARIANT = { "2-3": 2, "4-5": 3, "6-7": 4 };
  * (raund × soniya = 40–90 s). kerak.son — o'yin uchun sonlar oralig'i kamida shu songacha bo'lishi kerak.
  */
 export const OYINLAR = [
+  // REV335: fazoviy tasavvur o'yinlari
+  { id: 68, kalit: "soya", nom: "Soyasini top", belgi: "🌑", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
+    raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  { id: 76, kalit: "joylashuv", nom: "Qayerda?", belgi: "📦", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 1 },
+    raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  { id: 103, kalit: "minora", nom: "Kubiklar minorasi", belgi: "🧱", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "2-3": 4, "4-5": 5, "6-7": 5 }, soniya: { "2-3": 12, "4-5": 12, "6-7": 13 } },
   { id: 116, kalit: "eshitBos", nom: "Eshit va bos", belgi: "👂", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 11, "4-5": 10, "6-7": 10 } },
   { id: 117, kalit: "aytOch", nom: "Ayt va och", belgi: "🚪", yosh: HAMMA, harakat: "aytish", kerak: { min_element: 2 },
@@ -251,7 +258,34 @@ const boshqaSon = (lo, hi, oldingi, rnd) => {
   return x;
 };
 
+// REV335: joylashuv yo'nalishlari va kubik ranglari
+export const YONALISH = { "2-3": ["ustida", "ostida"], "4-5": ["ustida", "ostida", "ichida"], "6-7": ["ustida", "ostida", "ongda", "chapda"] };
+export const KUBIK_RANG = ["#E63946", "#FFB703", "#2EC4B6", "#4A8BF5", "#9B7BFF"];
+const minoraBalandlik = { "2-3": 2, "4-5": 3, "6-7": 4 };
+function minoraVariantlar(namuna, n, rnd) {
+  const kor = new Set([namuna.join(",")]); const out = [namuna];
+  for (let t = 0; out.length < n && t < 60; t += 1) {
+    const v = [...namuna];
+    if (t % 2 === 0 && v.length > 1) { const i = Math.floor(rnd() * (v.length - 1)); [v[i], v[i + 1]] = [v[i + 1], v[i]]; }   // ikkitasining joyi almashgan
+    else v[Math.floor(rnd() * v.length)] = bitta(KUBIK_RANG, rnd);                                                         // bitta rang boshqa
+    if (!kor.has(v.join(","))) { kor.add(v.join(",")); out.push(v); }
+  }
+  return aralash(out.map((r, i) => ({ k: i === 0 ? "t0" : `t${i}`, minora: r })), rnd);
+}
+
 const YASOVCHI = {
+  // 68 — soyasini top: rangli narsa tepada, pastda — soyalar
+  soya: ({ els, n, rnd, R }) => navbat(els, R, rnd).map((el) => ({ tur: "tanlov", savol: { el }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k })),
+  // 76 — qayerda: quti va narsa; bola joylashuvni tanlaydi
+  joylashuv: ({ els, y, rnd, R }) => Array.from({ length: R }, (_, i) => {
+    const yon = YONALISH[y]; const joy = yon[(i + Math.floor(rnd() * yon.length)) % yon.length];
+    return { tur: "tanlov", savol: { el: bitta(els, rnd), joy }, variantlar: aralash(yon.map((k) => ({ k })), rnd), togri: joy };
+  }),
+  // 103 — kubiklar minorasi: namunadagidek minorani top
+  minora: ({ y, n, rnd, R }) => Array.from({ length: R }, () => {
+    const namuna = Array.from({ length: minoraBalandlik[y] }, () => bitta(KUBIK_RANG, rnd));
+    return { tur: "tanlov", savol: { minora: namuna }, variantlar: minoraVariantlar(namuna, n, rnd), togri: "t0" };
+  }),
   // 116 — so'z aytiladi, bola rasmini bosadi
   eshitBos: ({ els, n, rnd, R }) => navbat(els, R, rnd).map((el) => ({
     tur: "tanlov", savol: { el }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k,
@@ -745,7 +779,7 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
   const nom = (el) => nomOvoz(el, t);
   let gap = "";
   switch (k) {
-    case "eshitBos": case "oxshash": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }); break;
+    case "eshitBos": case "oxshash": case "soya": case "joylashuv": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }); break;
     case "aytOch": gap = M(k, holat.mik ? "raund" : "raundBos", izoh, { t: nom(r.savol.el) }); break;
     case "ketmaKet": gap = M(k, "raund", izoh, { q: r.savol.qator.map(nom).filter(Boolean).join(", ") }); break;
     case "tartib": {

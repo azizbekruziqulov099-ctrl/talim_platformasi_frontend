@@ -64,6 +64,32 @@ export const OYIN_MATN = {
       es: "El micrófono no funciona. ¡Toca el dibujo para abrir!",
     },
   },
+  // REV335
+  soya: {
+    nom: { uz: "Soyasini top", ru: "Найди тень", en: "Find the shadow", de: "Finde den Schatten", es: "Encuentra la sombra" },
+    kirish: { uz: "Soyasini top! Har narsaning o‘z soyasi bor.", ru: "Найди тень! У каждой вещи своя тень.", en: "Find the shadow! Everything has its own shadow.",
+      de: "Finde den Schatten! Jedes Ding hat seinen Schatten.", es: "¡Encuentra la sombra! Cada cosa tiene su sombra." },
+    raund: { uz: "{t}. Uning soyasi qaysi?", ru: "{t}. Где его тень?", en: "{t}. Which is its shadow?", de: "{t}. Welcher ist sein Schatten?", es: "{t}. ¿Cuál es su sombra?" },
+  },
+  joylashuv: {
+    nom: { uz: "Qayerda?", ru: "Где?", en: "Where is it?", de: "Wo ist es?", es: "¿Dónde está?" },
+    kirish: { uz: "Qayerda? Qutiga qara va to‘g‘ri joyni top!", ru: "Где? Посмотри на коробку и найди правильное место!", en: "Where is it? Look at the box and find the right place!",
+      de: "Wo ist es? Schau auf die Kiste und finde die richtige Stelle!", es: "¿Dónde está? ¡Mira la caja y encuentra el lugar correcto!" },
+    raund: { uz: "{t} qayerda?", ru: "Где {t}?", en: "Where is the {t}?", de: "Wo ist {t}?", es: "¿Dónde está {t}?" },
+    ustida: { uz: "ustida", ru: "сверху", en: "on top", de: "oben", es: "encima" },
+    ostida: { uz: "ostida", ru: "под коробкой", en: "under", de: "unten", es: "debajo" },
+    ichida: { uz: "ichida", ru: "внутри", en: "inside", de: "drinnen", es: "dentro" },
+    ongda: { uz: "o‘ngda", ru: "справа", en: "on the right", de: "rechts", es: "a la derecha" },
+    chapda: { uz: "chapda", ru: "слева", en: "on the left", de: "links", es: "a la izquierda" },
+  },
+  minora: {
+    nom: { uz: "Kubiklar minorasi", ru: "Башня из кубиков", en: "Block tower", de: "Klötzchenturm", es: "Torre de cubos" },
+    kirish: { uz: "Kubiklar minorasi! Kabu minora qurdi — xuddi shunday minorani top.", ru: "Башня из кубиков! Кабу построил башню — найди точно такую же.",
+      en: "Block tower! Kabu built a tower — find one exactly like it.", de: "Klötzchenturm! Kabu hat einen Turm gebaut — finde genau den gleichen.",
+      es: "¡Torre de cubos! Kabu construyó una torre: encuentra una igual." },
+    raund: { uz: "Ranglariga qara: xuddi shunday minora qaysi?", ru: "Посмотри на цвета: какая башня такая же?", en: "Look at the colours: which tower is the same?",
+      de: "Schau auf die Farben: welcher Turm ist gleich?", es: "Mira los colores: ¿qué torre es igual?" },
+  },
   oxshash: {
     nom: { uz: "O‘xshashini top", ru: "Найди такую же", en: "Find the same", de: "Finde das Gleiche", es: "Encuentra el igual" },
     kirish: {
