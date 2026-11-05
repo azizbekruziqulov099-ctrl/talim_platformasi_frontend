@@ -1,12 +1,13 @@
 // REV358: «Bog'cha o'yinlari — sinov xonasi» (admin). Hamma o'yin yosh bo'yicha ajratilgan; tanlangan til va so'zlar
 // to'plami bilan o'ynab ko'riladi; har o'yinga «yoqdi / tuzatish kerak» belgisi va izoh (shu qurilmada saqlanadi, hisobot nusxasi olinadi).
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Oyin, { OYINLAR } from "../kid/oyin/index.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { emojiRasm, matnId, sozId } from "../kid/rasmHarakat.js";
 import { HARAKAT_OYINLARI } from "../lesson/HarakatQadam.jsx";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
-import { kabuAyt, kabuJimm } from "../kid/kabuOvoz.js";   // REV362: darsdagi Kabu ovozi (server), brauzer ovozi emas
+import { kabuAyt, kabuJimm } from "../kid/kabuOvoz.js";
+import { oyinSozlamaYukla, oyinSozlamaYoz } from "../kid/oyin/oyinSozlama.js";   // REV364: belgilar serverda — hamma qurilmada, «⛔» o'yin bolalarga chiqmaydi   // REV362: darsdagi Kabu ovozi (server), brauzer ovozi emas
 import "./oyinSinov.css";
 const KabuImtihoni = React.lazy(() => import("../kid/imtihon/KabuImtihoni.jsx"));   // REV361
 
@@ -23,7 +24,7 @@ const rasm = (el) => { if (!el) return ""; const mt = matnId(el.uz || ""); if (m
   const id = sozId({ soz: el.uz || "", emoji: el.emoji || "" }); if (id && RASM_HAMMA[id]) return RASM_HAMMA[id];
   return emojiRasm(el.emoji || "", RASM_HAMMA, el.uz || el.say || "")?.src || ""; };
 
-export default function OyinSinov({ apiBase = "" }) {
+export default function OyinSinov({ apiBase = "", token = "" }) {
   const [yosh, setYosh] = useState("4-5");
   const [izoh, setIzoh] = useState("uz");
   const [toplam, setToplam] = useState("hayvonlar");
@@ -38,18 +39,24 @@ export default function OyinSinov({ apiBase = "" }) {
     steps: [{ turi: "qoida", doska: v.el.map(([e, uz]) => `${e} ${uz}`).join("\n") }, ...[116, 83, 88, 86, 89, 31].map((id) => ({ turi: "amaliy", oyin: id, doska: v.el.slice(0, 3).map(([e, uz]) => `${e} ${uz}`).join("\n") }))] })), []);
   const ruyxat = useMemo(() => OYINLAR.filter((o) => !HARAKAT_OYINLARI.has(o.id) && o.yosh.includes(yosh)), [yosh]);
   const elementlar = useMemo(() => TOPLAMLAR[toplam].el.map(([e, uz, en], i) => ({ k: `e${i}`, emoji: e, uz, ...(tilDarsi ? { say: en } : {}) })), [toplam, tilDarsi]);
-  const belgila = (id, qiymat) => { const d = { ...belgilar, [id]: { ...(belgilar[id] || {}), ...qiymat, vaqt: new Date().toISOString().slice(0, 16) } }; setBelgilar(d); yoz(d); };
+  const [xato, setXato] = useState("");
+  useEffect(() => { oyinSozlamaYukla(apiBase).then((srv) => { const d = { ...ol() }; for (const [k, v] of Object.entries(srv || {})) d[k] = { ...(d[k] || {}), ...v }; setBelgilar(d); }); }, [apiBase]);
+  const belgila = (id, qiymat) => {
+    const d = { ...belgilar, [id]: { ...(belgilar[id] || {}), ...qiymat, vaqt: new Date().toISOString().slice(0, 16) } }; setBelgilar(d); yoz(d);
+    if (token) oyinSozlamaYoz(apiBase, token, id, d[id].holat || "ok", d[id].izoh || "").then(() => setXato("")).catch((e) => setXato(e.message));
+  };
   const ayt = (t, tugadi) => {
     setGap(String(t || "").replace(/\[\/?\w\w\]/g, ""));
     kabuAyt(apiBase, t, { izoh, til: tilDarsi ? "en" : "", tugadi });
   };
-  const hisobot = () => OYINLAR.filter((o) => belgilar[o.id]).map((o) => `${o.id} ${o.nom}: ${belgilar[o.id].holat === "ok" ? "✅ yoqdi" : belgilar[o.id].holat === "tuzat" ? "🛠 tuzatish kerak" : "—"}${belgilar[o.id].izoh ? ` — ${belgilar[o.id].izoh}` : ""}`).join("\n");
+  const hisobot = () => OYINLAR.filter((o) => belgilar[o.id]).map((o) => `${o.id} ${o.nom}: ${belgilar[o.id].holat === "ok" ? "✅ yoqdi" : belgilar[o.id].holat === "tuzat" ? "🛠 tuzatish kerak" : belgilar[o.id].holat === "yopiq" ? "⛔ o‘chirilgan" : "—"}${belgilar[o.id].izoh ? ` — ${belgilar[o.id].izoh}` : ""}`).join("\n");
   const soni = { ok: Object.values(belgilar).filter((b) => b.holat === "ok").length, tuzat: Object.values(belgilar).filter((b) => b.holat === "tuzat").length };
 
   return <section className="os-root">
     <header className="os-bosh">
       <h1>🎮 {__kbUi("Bog‘cha o‘yinlari — sinov xonasi")}</h1>
-      <p>{__kbUi("Har o‘yinni bola ko‘rgandek o‘ynab ko‘ring va belgilang. Belgilar shu qurilmada saqlanadi; «Hisobotni nusxalash» bilan menga yuboring.")}</p>
+      <p>{__kbUi("Har o‘yinni bola ko‘rgandek o‘ynab ko‘ring va belgilang: ✅ yaxshi · 🛠 tuzatish kerak (bolalarga chiqib turadi) · ⛔ o‘chirilgan (bolalarga chiqmaydi). Belgi va izohlar serverda saqlanadi — hamma qurilmada ko‘rinadi.")}</p>
+      {xato && <p className="dm-xabar">⚠️ {xato}</p>}
       <div className="os-tanlov">
         <label>{__kbUi("Yosh")}: {["2-3", "4-5", "6-7"].map((y) => <button key={y} type="button" className={y === yosh ? "is-on" : ""} onClick={() => setYosh(y)}>{y}</button>)}</label>
         <label>{__kbUi("Izoh tili")}: {["uz", "ru", "en", "de", "es"].map((t) => <button key={t} type="button" className={t === izoh ? "is-on" : ""} onClick={() => setIzoh(t)}>{t}</button>)}</label>
@@ -67,6 +74,7 @@ export default function OyinSinov({ apiBase = "" }) {
         <div className="os-baho">
           <button type="button" className={b.holat === "ok" ? "is-on" : ""} onClick={() => belgila(o.id, { holat: "ok" })}>✅</button>
           <button type="button" className={b.holat === "tuzat" ? "is-on" : ""} onClick={() => belgila(o.id, { holat: "tuzat" })}>🛠</button>
+          <button type="button" className={b.holat === "yopiq" ? "is-on is-yopiq" : ""} title={__kbUi("O‘chirish — bolalarga chiqmaydi")} onClick={() => belgila(o.id, { holat: "yopiq" })}>⛔</button>
           <input type="text" placeholder={__kbUi("Izoh…")} defaultValue={b.izoh || ""} onBlur={(e) => belgila(o.id, { izoh: e.target.value })} />
         </div>
       </li>; })}</ul>

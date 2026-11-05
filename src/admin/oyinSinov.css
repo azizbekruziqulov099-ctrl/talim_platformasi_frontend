@@ -17,3 +17,21 @@
 .os-sahna-bosh{display:flex;align-items:center;gap:10px;margin-bottom:8px}.os-sahna-bosh b{flex:1}
 .os-oyin{position:relative;height:540px;border-radius:16px;overflow:hidden;background:#f6f8fc}
 .os-gap{margin:8px 4px 0;color:#2b3452;font-size:15px;min-height:22px}
+/* REV364: dars muharriri */
+.os-eksport{border:1px solid #c8d2e1;border-radius:10px;padding:4px 10px;background:#fff;text-decoration:none;color:#2b3452}
+.dm-tor{display:grid;grid-template-columns:260px 1fr;gap:12px;align-items:start}
+.dm-darslar{list-style:none;margin:0;padding:0;max-height:75vh;overflow:auto;border:1px solid #dfe5ee;border-radius:12px;background:#fff}
+.dm-darslar button{width:100%;text-align:left;border:0;border-bottom:1px solid #eef2f7;background:none;padding:8px 10px;cursor:pointer}
+.dm-darslar button.is-on{background:#eaf1ff;font-weight:700}.dm-darslar small{color:#7a8396}
+.dm-dars{background:#fff;border:1px solid #dfe5ee;border-radius:12px;padding:10px;overflow:auto}
+.dm-jadval{width:100%;border-collapse:collapse;font-size:14px}
+.dm-jadval th,.dm-jadval td{border-bottom:1px solid #eef2f7;padding:6px;vertical-align:top;text-align:left}
+.dm-jadval textarea{width:100%;min-width:200px;font:inherit;border:1px solid #dfe5ee;border-radius:8px;padding:4px}
+.dm-jadval input{display:block;width:100%;margin-bottom:3px;border:1px solid #dfe5ee;border-radius:6px;padding:3px 6px}
+.dm-jadval .dm-raqam{width:64px}
+.dm-jadval tr.is-ozgargan{background:#fffbe8}
+.dm-jadval small{color:#7a8396;display:block}
+.dm-saqla{border:0;background:#2ec4b6;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
+.dm-xabar{margin:4px 0 8px;font-weight:600}
+.os-baho button.is-yopiq{background:#a32d2d;border-color:#a32d2d}
+.os-karta:has(.is-yopiq){border-color:#e3a0a0;background:#fff2f2;opacity:.85}

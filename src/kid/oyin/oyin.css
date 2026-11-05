@@ -306,3 +306,4 @@
 .oy-sq-ovoz{position:absolute;right:6px;top:4px;font-size:30px;animation:oy-sq-ovoz 1s ease-in-out infinite}
 @keyframes oy-sq-ovoz{50%{transform:scale(1.2)}}
 @media (prefers-reduced-motion:reduce){.oy-sq-ovoz{animation:none}.oy-sq-narsa{transition:none}}
+button.oy-esh-quloq,button.oy-sq-ovoz{border:0;background:none;cursor:pointer;padding:0}

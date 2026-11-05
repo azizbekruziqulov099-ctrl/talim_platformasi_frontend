@@ -371,7 +371,7 @@ function ovozRaund(data, { n, rnd, R, izoh }) {
   return navbat(data.map((d, i) => ({ d, i })), R, rnd).map(({ d, i }) => {
     const togri = sozEl(d.w, izoh, `o${i}`);
     const boshqa = tanla(data.filter((_, j) => j !== i), n - 1, rnd).map((x) => sozEl(x.w, izoh, `o${data.indexOf(x)}`));
-    return { tur: "tanlov", savol: { ovoz: d.o[izoh] || d.o.uz, el: togri }, variantlar: aralash([togri, ...boshqa].map((e) => ({ k: e.k, el: e })), rnd), togri: togri.k };
+    return { tur: "tanlov", savol: { ovoz: d.o[izoh] || d.o.uz, el: togri, tovush: d.t || "" }, variantlar: aralash([togri, ...boshqa].map((e) => ({ k: e.k, el: e })), rnd), togri: togri.k };
   });
 }
 /** Saralash/ulash ma'lumotidagi hamma rasmli so'zlar (izoh tilida). */
@@ -457,7 +457,7 @@ const YASOVCHI = {
   // REV359: sirli quti — har raundda darsning bitta yangi narsasi; hayvon bo'lsa — ovozi ham
   sirliQuti: ({ els, n, rnd, R, izoh }) => navbat(els, Math.min(R, els.length), rnd).map((el) => {
     const o = HAYVON_OVOZ.find((h) => h.w.e === el.emoji);
-    return { tur: "tanlov", savol: { el, ovoz: o ? (o.o[izoh] || o.o.uz) : "" }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k };
+    return { tur: "tanlov", savol: { el, ovoz: o ? (o.o[izoh] || o.o.uz) : "", tovush: o?.t || "" }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k };
   }),
   // REV351: eshitish — ovoz aytiladi (izoh tilida), bola egasini topadi
   hayvonOvoz: ({ n, rnd, R, izoh }) => ovozRaund(HAYVON_OVOZ, { n, rnd, R, izoh }),

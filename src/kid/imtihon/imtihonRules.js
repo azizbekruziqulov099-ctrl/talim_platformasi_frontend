@@ -1,6 +1,7 @@
 // REV361: yakshanba «Kabu imtihoni» — haftaning darslaridagi o'yinlar aralash (fanlar ham aralash). Sof funksiyalar.
 import { OYINLAR, oyinOl } from "../oyin/oyinRules.js";
 import { darsElementlari, qadamOyini } from "../../lesson/oyinQadam.js";
+import { oyinYopiqmi } from "../oyin/oyinSozlama.js";   // REV364: admin o'chirgan o'yin imtihonga ham kirmaydi
 const HARAKAT_OYINLARI = new Set([171, 172, 175]);   // «Bajardim» o'yinlari — imtihonga kirmaydi
 
 const haftaBoshi = (d) => { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); return x.toISOString().slice(0, 10); };
@@ -23,7 +24,7 @@ export function imtihonRejasi(darslar, { yosh = "4-5", urug = 1, soni } = {}) {
   const N = soni || (yosh === "2-3" ? 4 : yosh === "4-5" ? 6 : 8);
   const nomzod = (darslar || []).map((d) => {
     const hov = darsElementlari(d.steps || []);
-    const ids = [...new Set((d.steps || []).filter((s) => s.turi === "amaliy" && s.oyin && !HARAKAT_OYINLARI.has(Number(s.oyin))).map((s) => Number(s.oyin)))];
+    const ids = [...new Set((d.steps || []).filter((s) => s.turi === "amaliy" && s.oyin && !HARAKAT_OYINLARI.has(Number(s.oyin)) && !oyinYopiqmi(s.oyin)).map((s) => Number(s.oyin)))];
     const oyinlar = ids.map((id) => {
       const st = (d.steps || []).find((s) => Number(s.oyin) === id);
       const o = st ? qadamOyini(st, { yosh, darsElementlari: hov }) : null;

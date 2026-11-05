@@ -35,6 +35,7 @@ import { YangiStiker } from "../kid/StikerAlbom.jsx";   // REV329   // REV325: o
 import { qadamOyini, yoshGuruh, darsElementlari } from "./oyinQadam.js";
 import HarakatQadam, { HARAKAT_OYINLARI } from "./HarakatQadam.jsx";   // REV342
 import { necha as oyinNecha, oynadi as oyinOynadi, kirishDarajasi } from "../kid/oyin/tanishlik.js";   // REV360
+import { oyinSozlamaYukla, oyinYopiqmi } from "../kid/oyin/oyinSozlama.js";   // REV364: admin o'chirgan o'yinlar darsda chiqmaydi
 import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
 import { DAVOM_GAPI } from "../kid/izohTil.js";
 import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
@@ -292,7 +293,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV110: bog'chada dars ustozning o'z salomi, bugungi ob-havo va o'tgan darsdan savol bilan boshlanadi.
   // REV130: dars boshida faqat O'TGAN mavzu (ro'yxatdagi oldingi dars) takrorlanadi — boshqa fandan yoki eski darsdan emas.
   // REV355: «Kabu kabi qil», «Sakrab sana», «Muzlab qol» (171/172/175) — «Bajardim» bosish ma'nosiz edi, darsdan olib tashlanadi
-  const darsQadamlari = useMemo(() => (lesson?.steps || []).filter((x) => !(kid && x?.turi === "amaliy" && HARAKAT_OYINLARI.has(Number(x?.oyin)))), [kid, lesson]);
+  const [sozlamaTayyor, setSozlamaTayyor] = useState(0);
+  useEffect(() => { oyinSozlamaYukla(apiBase).then(() => setSozlamaTayyor((x) => x + 1)); }, [apiBase]);
+  const darsQadamlari = useMemo(() => (lesson?.steps || []).filter((x) => !(kid && x?.turi === "amaliy" && (HARAKAT_OYINLARI.has(Number(x?.oyin)) || oyinYopiqmi(x?.oyin)))), [kid, lesson, sozlamaTayyor]);
   const boshi = useMemo(() => (kid ? darsBoshi(darsQadamlari, lesson?.topic?.mavzu || "") : { takror: [], qolgan: lesson?.steps || [] }), [kid, lesson, darsQadamlari]);
   const oldingi = useMemo(() => {
     if (!lesson || boshi.takror.length || !oldingiKod) return null;   // miyada o'tgan mavzu takrori bo'lsa — o'shasi yetadi
@@ -868,7 +871,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // REV121: «Top-chi» o'yini — so'zlar bilan bog'langan rasmlar bo'lsa, bola bosishini kutadigan haqiqiy o'yin
       // REV325: Miya'da o'yin raqami bor — o'yin dvigateli o'ynaydi, tugagach dars davom etadi
       // REV359: dars sirli qutidan boshlanadi — kirishdan keyin bola darsning yangi narsalarini qutidan topib ochadi
-      if (autoplay && kid && s.turi === "kirish" && !s._ochilish && next >= opening.length && !sirOchildi.current) {
+      if (autoplay && kid && s.turi === "kirish" && !s._ochilish && next >= opening.length && !sirOchildi.current && !oyinYopiqmi(119)) {
         const o = qadamOyini({ turi: "amaliy", oyin: 119, doska: "", ovoz: "" }, { yosh: yoshGuruh(grade), darsSozlari: darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [],
           darsElementlari: darsElementlari(steps.slice(opening.length)) });
         if (o) { sirOchildi.current = true; const tanish = oynalgan.current.has(119); oynalgan.current.add(119); setOyinQ({ stepIdx: next, ...o, tanish }); return; }
