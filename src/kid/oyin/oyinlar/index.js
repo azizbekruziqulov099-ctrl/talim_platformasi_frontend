@@ -20,6 +20,7 @@ import KubiklarMinorasi from "./KubiklarMinorasi.jsx";
 import ChalkashYollar from "./ChalkashYollar.jsx";   // REV336
 import Tarozi from "./Tarozi.jsx";
 import Teskari from "./Teskari.jsx";
+import { RangniTop, RangUyi, BoyabChiq, RangAralashtir } from "./RangOyinlari.jsx";   // REV337
 
 export const OYIN_KOMPONENTLAR = {
   116: EshitVaBos,
@@ -43,6 +44,10 @@ export const OYIN_KOMPONENTLAR = {
   93: ChalkashYollar,
   106: Tarozi,
   114: Teskari,
+  61: RangniTop,
+  62: RangUyi,
+  63: BoyabChiq,
+  64: RangAralashtir,
 };
 
 export {

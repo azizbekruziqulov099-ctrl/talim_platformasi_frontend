@@ -30,3 +30,13 @@ test('REV336: chalkash yo‘llar, tarozi, teskari', () => {
   assert.equal(t.togri, t.savol.ogir === 'chap' ? t.savol.chap.k : t.savol.ong.k);
   const s = oyinYasa(114, { elementlar: [], yosh: '6-7', urug: 4 }); assert.match(raundGapi(s, { izoh: 'ru', til: 'uz' }), /противоположное/);
 });
+test('REV337: rang o‘yinlari', () => {
+  for (const [id, ys] of [[61, ['2-3', '4-5', '6-7']], [62, ['2-3', '4-5', '6-7']], [63, ['2-3', '4-5', '6-7']], [64, ['6-7']]]) for (const y of ys) {
+    const h = oyinYasa(id, { elementlar: [], yosh: y, urug: 9 }); assert.ok(h, `${id} ${y}`);
+    for (const r of h.raundlar) { assert.ok(r.variantlar.some((v) => v.k === r.togri)); assert.equal(new Set(r.variantlar.map((v) => v.k)).size, r.variantlar.length); }
+    for (const iz of ['uz', 'ru', 'en', 'de', 'es']) assert.ok(raundGapi(h, { izoh: iz, til: 'uz', birinchi: true }).length > 5);
+  }
+  assert.equal(oyinYasa(64, { elementlar: [], yosh: '4-5' }), null);   // aralashtirish — faqat 6–7 yosh
+  const h = oyinYasa(61, { elementlar: [], yosh: '2-3', urug: 1 });
+  assert.ok(h.raundlar.every((r) => ['qizil', 'sariq', 'kok', 'yashil'].includes(r.togri)));   // kichiklarga — asosiy 4 rang
+});

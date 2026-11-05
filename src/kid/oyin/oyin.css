@@ -244,3 +244,14 @@
 .oy-teskari-namuna{display:flex;flex-direction:column;align-items:center;gap:4px}
 .oy-teskari-namuna span{font-size:64px;line-height:1}
 .oy-teskari-belgi{font-size:40px;line-height:1}
+/* REV337: rang o'yinlari */
+.oy-rang-dog{display:inline-block;width:58px;height:58px;border-radius:50%;border:3px solid #2b3452;box-shadow:inset -6px -6px 0 #0001}
+.oy-rang-dog.is-sor{background:#fff;font-size:28px;font-weight:800;line-height:46px;text-align:center;color:#2b3452}
+.oy-rang-uy{width:64px;height:64px}
+.oy-rang-sor{font-size:64px;line-height:1}
+.oy-rang-narsa{font-size:84px;line-height:1;transition:filter .5s ease}
+.oy-rang-narsa.is-rangsiz{filter:grayscale(1) brightness(1.15) contrast(.8)}
+.oy-aralash{display:flex;align-items:center;gap:10px}
+.oy-aralash b{font-size:30px;color:#2b3452}
+.oy-namuna.oy-aralash{width:auto;min-width:240px;padding:8px 14px}
+.oy-aralash .oy-rang-dog{flex:none;width:52px;height:52px}

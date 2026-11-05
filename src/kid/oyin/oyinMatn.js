@@ -82,6 +82,34 @@ export const OYIN_MATN = {
     ongda: { uz: "o‘ngda", ru: "справа", en: "on the right", de: "rechts", es: "a la derecha" },
     chapda: { uz: "chapda", ru: "слева", en: "on the left", de: "links", es: "a la izquierda" },
   },
+  // REV337: rang-tasvir
+  rangTop: {
+    nom: { uz: "Rangni top", ru: "Найди цвет", en: "Find the colour", de: "Finde die Farbe", es: "Encuentra el color" },
+    kirish: { uz: "Rangni top! Men rangni aytaman, sen bos.", ru: "Найди цвет! Я назову цвет, а ты нажми.", en: "Find the colour! I say a colour, you tap it.",
+      de: "Finde die Farbe! Ich sage eine Farbe, du tippst darauf.", es: "¡Encuentra el color! Yo digo un color y tú lo tocas." },
+    raund: { uz: "{t} rangni bos!", ru: "Нажми на {t} цвет!", en: "Tap {t}!", de: "Tipp auf {t}!", es: "¡Toca el {t}!" },
+  },
+  rangUyi: {
+    nom: { uz: "Rang uyi", ru: "Цветной домик", en: "Colour houses", de: "Farbhäuser", es: "Casas de colores" },
+    kirish: { uz: "Rang uyi! Har narsa o‘z rangidagi uyda yashaydi.", ru: "Цветной домик! Каждая вещь живёт в домике своего цвета.", en: "Colour houses! Everything lives in the house of its colour.",
+      de: "Farbhäuser! Jedes Ding wohnt im Haus seiner Farbe.", es: "¡Casas de colores! Cada cosa vive en la casa de su color." },
+    raund: { uz: "Bu qaysi rangda? Uning uyini bos!", ru: "Какого это цвета? Нажми на его домик!", en: "What colour is it? Tap its house!",
+      de: "Welche Farbe hat es? Tipp auf sein Haus!", es: "¿De qué color es? ¡Toca su casa!" },
+  },
+  boya: {
+    nom: { uz: "Bo‘yab chiq", ru: "Раскрась", en: "Colour it in", de: "Mal es an", es: "Colorea" },
+    kirish: { uz: "Bo‘yab chiq! Rasm rangsiz qolibdi — to‘g‘ri bo‘yoqni tanla.", ru: "Раскрась! Картинка осталась без цвета — выбери правильную краску.",
+      en: "Colour it in! The picture lost its colour — pick the right paint.", de: "Mal es an! Das Bild hat keine Farbe — wähle die richtige Farbe.",
+      es: "¡Colorea! El dibujo no tiene color: elige la pintura correcta." },
+    raund: { uz: "Qaysi bo‘yoq kerak? Bo‘ya!", ru: "Какая краска нужна? Раскрась!", en: "Which paint do we need? Colour it!", de: "Welche Farbe brauchen wir? Mal es an!", es: "¿Qué pintura necesitamos? ¡Colorea!" },
+  },
+  aralash: {
+    nom: { uz: "Rang aralashtir", ru: "Смешай краски", en: "Mix the colours", de: "Farben mischen", es: "Mezcla los colores" },
+    kirish: { uz: "Rang aralashtir! Ikki bo‘yoq qo‘shilsa, yangi rang chiqadi.", ru: "Смешай краски! Из двух красок получается новый цвет.", en: "Mix the colours! Two paints together make a new colour.",
+      de: "Farben mischen! Aus zwei Farben entsteht eine neue.", es: "¡Mezcla los colores! Dos pinturas juntas hacen un color nuevo." },
+    raund: { uz: "{a} va {b} qo‘shilsa, qanday rang chiqadi?", ru: "{a} и {b} вместе — какой получится цвет?", en: "{a} and {b} together — what colour do we get?",
+      de: "{a} und {b} zusammen — welche Farbe kommt heraus?", es: "{a} y {b} juntos: ¿qué color sale?" },
+  },
   // REV336
   yollar: {
     nom: { uz: "Chalkash yo‘llar", ru: "Запутанные дорожки", en: "Tangled paths", de: "Verschlungene Wege", es: "Caminos enredados" },

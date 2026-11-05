@@ -32,6 +32,15 @@ export const OYINLAR = [
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
   { id: 76, kalit: "joylashuv", nom: "Qayerda?", belgi: "📦", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 1 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  // REV337: rang-tasvir o'yinlari
+  { id: 61, kalit: "rangTop", nom: "Rangni top", belgi: "🎨", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 8, "6-7": 8 } },
+  { id: 62, kalit: "rangUyi", nom: "Rang uyi", belgi: "🏠", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  { id: 63, kalit: "boya", nom: "Bo‘yab chiq", belgi: "🖌️", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  { id: 64, kalit: "aralash", nom: "Rang aralashtir", belgi: "🧪", yosh: ["6-7"], harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "6-7": 5 }, soniya: { "6-7": 11 } },
   { id: 93, kalit: "yollar", nom: "Chalkash yo‘llar", belgi: "🦴", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
     raund: { "2-3": 3, "4-5": 4, "6-7": 5 }, soniya: { "2-3": 14, "4-5": 14, "6-7": 15 } },
   { id: 106, kalit: "tarozi", nom: "Tarozi", belgi: "⚖️", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
@@ -279,6 +288,32 @@ function minoraVariantlar(namuna, n, rnd) {
   return aralash(out.map((r, i) => ({ k: i === 0 ? "t0" : `t${i}`, minora: r })), rnd);
 }
 
+// REV337: ranglar (5 tilda) va rangi aniq narsalar
+export const RANGLAR = {
+  qizil: { hex: "#E63946", s: { uz: "qizil", ru: "красный", en: "red", de: "rot", es: "rojo" } },
+  sariq: { hex: "#FFD23F", s: { uz: "sariq", ru: "жёлтый", en: "yellow", de: "gelb", es: "amarillo" } },
+  kok: { hex: "#3A86FF", s: { uz: "ko‘k", ru: "синий", en: "blue", de: "blau", es: "azul" } },
+  yashil: { hex: "#2DBE60", s: { uz: "yashil", ru: "зелёный", en: "green", de: "grün", es: "verde" } },
+  toqSariq: { hex: "#FF8C1A", s: { uz: "to‘q sariq", ru: "оранжевый", en: "orange", de: "orange", es: "naranja" } },
+  binafsha: { hex: "#9B5DE5", s: { uz: "binafsha", ru: "фиолетовый", en: "purple", de: "lila", es: "morado" } },
+  pushti: { hex: "#FF70A6", s: { uz: "pushti", ru: "розовый", en: "pink", de: "rosa", es: "rosa" } },
+  jigarrang: { hex: "#8B5A2B", s: { uz: "jigarrang", ru: "коричневый", en: "brown", de: "braun", es: "marrón" } },
+  oq: { hex: "#FFFFFF", s: { uz: "oq", ru: "белый", en: "white", de: "weiß", es: "blanco" } },
+  qora: { hex: "#222222", s: { uz: "qora", ru: "чёрный", en: "black", de: "schwarz", es: "negro" } },
+  kulrang: { hex: "#9AA0A6", s: { uz: "kulrang", ru: "серый", en: "grey", de: "grau", es: "gris" } },
+};
+const RANG_HOVUZ = { "2-3": ["qizil", "sariq", "kok", "yashil"], "4-5": ["qizil", "sariq", "kok", "yashil", "toqSariq", "binafsha", "pushti", "jigarrang"],
+  "6-7": ["qizil", "sariq", "kok", "yashil", "toqSariq", "binafsha", "pushti", "jigarrang", "oq", "qora"] };
+export const RANGLI_NARSA = [
+  ["🍎", "qizil"], ["🍓", "qizil"], ["🍒", "qizil"], ["🍌", "sariq"], ["🐥", "sariq"], ["🌻", "sariq"], ["🐳", "kok"], ["💧", "kok"],
+  ["🥒", "yashil"], ["🐸", "yashil"], ["🍀", "yashil"], ["🍊", "toqSariq"], ["🥕", "toqSariq"], ["🎃", "toqSariq"], ["🍇", "binafsha"], ["🍆", "binafsha"],
+  ["🌸", "pushti"], ["🐷", "pushti"], ["🐻", "jigarrang"], ["🍫", "jigarrang"], ["⛄", "oq"], ["🦢", "oq"], ["🐈‍⬛", "qora"], ["🎩", "qora"],
+];
+export const ARALASH = [["kok", "sariq", "yashil"], ["qizil", "sariq", "toqSariq"], ["qizil", "kok", "binafsha"], ["qizil", "oq", "pushti"], ["qora", "oq", "kulrang"]];
+const rangV = (r) => ({ k: r, rang: r });
+function rangVariantlar(togri, hovuz, n, rnd) { return aralash([togri, ...tanla(hovuz.filter((r) => r !== togri), n - 1, rnd)], rnd).map(rangV); }
+function rangliNarsa(y, rnd) { const h = RANG_HOVUZ[y]; return bitta(RANGLI_NARSA.filter(([, r]) => h.includes(r)), rnd); }
+
 // REV336: teskari ma'noli juftlar (5 tilda)
 export const TESKARI = [
   [{ emoji: "🔥", s: { uz: "issiq", ru: "горячий", en: "hot", de: "heiß", es: "caliente" } }, { emoji: "🧊", s: { uz: "sovuq", ru: "холодный", en: "cold", de: "kalt", es: "frío" } }],
@@ -300,6 +335,17 @@ function yollarRaund(els, n, rnd) {
 }
 
 const YASOVCHI = {
+  // 61 — rangni top: rang nomi aytiladi, bola shu rangni bosadi
+  rangTop: ({ y, n, rnd, R }) => navbat(RANG_HOVUZ[y].map((r) => ({ r })), R, rnd).map(({ r }) => ({ tur: "tanlov", savol: { rang: r }, variantlar: rangVariantlar(r, RANG_HOVUZ[y], n, rnd), togri: r })),
+  // 62 — rang uyi: narsa qaysi rang uyida yashaydi
+  rangUyi: ({ y, n, rnd, R }) => Array.from({ length: R }, () => { const [e, r] = rangliNarsa(y, rnd);
+    return { tur: "tanlov", savol: { el: { emoji: e }, rang: r }, variantlar: rangVariantlar(r, RANG_HOVUZ[y], n, rnd), togri: r }; }),
+  // 63 — bo'yab chiq: rangsiz rasm, bola to'g'ri bo'yoqni tanlaydi — rasm bo'yaladi
+  boya: ({ y, n, rnd, R }) => Array.from({ length: R }, () => { const [e, r] = rangliNarsa(y, rnd);
+    return { tur: "tanlov", savol: { el: { emoji: e }, rang: r }, variantlar: rangVariantlar(r, RANG_HOVUZ[y], n, rnd), togri: r }; }),
+  // 64 — rang aralashtir (6-7): ikki bo'yoq qo'shilsa qanday rang chiqadi
+  aralash: ({ n, rnd, R }) => navbat(ARALASH.map((a) => ({ a })), R, rnd).map(({ a }) => ({ tur: "tanlov", savol: { a: a[0], b: a[1], rang: a[2] },
+    variantlar: rangVariantlar(a[2], ["yashil", "toqSariq", "binafsha", "pushti", "kulrang", "jigarrang"], n, rnd), togri: a[2] })),
   yollar: ({ els, n, rnd, R }) => Array.from({ length: R }, () => yollarRaund(els, n, rnd)),
   // 106 — tarozi: og'ir tomoni pastga tushgan; 6-7 yoshda ba'zan «yengilini top»
   tarozi: ({ els, y, rnd, R }) => Array.from({ length: R }, (_, i) => {
@@ -838,6 +884,8 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "haYoq": gap = M(k, "raund", izoh, { t: nom(r.savol.aytilgan) }); break;
     case "sehrliQuti": gap = M(k, r.savol.rejim, izoh, { a: r.savol.a, b: r.savol.b }); break;
     case "tarozi": gap = M(k, r.savol.yengil ? "yengil" : "raund", izoh); break;
+    case "rangTop": gap = M(k, "raund", izoh, { t: RANGLAR[r.savol.rang].s[izoh] || RANGLAR[r.savol.rang].s.uz }); break;
+    case "aralash": gap = M(k, "raund", izoh, { a: RANGLAR[r.savol.a].s[izoh] || RANGLAR[r.savol.a].s.uz, b: RANGLAR[r.savol.b].s[izoh] || RANGLAR[r.savol.b].s.uz }); break;
     case "teskari": gap = M(k, "raund", izoh, { t: r.savol.el.soz?.[izoh] || r.savol.el.soz?.uz }); break;
     default: gap = M(k, "raund", izoh); break;
   }
