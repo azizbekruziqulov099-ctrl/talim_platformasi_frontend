@@ -169,7 +169,7 @@ export default function LearnerTopics({apiBase,token,user,onOpenLesson,onOpenTes
  return <div className="space-y-4 lt-root">
   {kid&&<div><button type="button" className="kt-olam-back" onClick={()=>setOlam(true)} aria-label={__kbUi("Bog‘chaga qaytish")}>🏫</button>
    <button type="button" className="kt-albom" onClick={()=>setAlbom(true)} aria-label={__kbUi("Stiker albomim")}>📒</button></div>}
-  {albom&&<StikerAlbom onClose={()=>setAlbom(false)}/>}
+  {albom&&<StikerAlbom onClose={()=>setAlbom(false)} apiBase={apiBase} token={preview?'':token}/>}
   {!kid&&<div><h2 className="text-xl font-bold text-slate-800">{teacher?__kbUi("Mavzular"):__kbUi("O‘rganish")}</h2>
    <p className="mt-1 text-sm text-slate-600">{__kbUi(viewerHeadline(catalog?.viewer,type,institutionLabel(type)))}</p></div>}
   {!kid&&<LearnerCurriculumHeader viewer={catalog?.viewer} type={type} lesson={lesson} fallbackType={profileInstitutionType(user)}

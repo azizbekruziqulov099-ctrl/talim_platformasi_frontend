@@ -1,7 +1,8 @@
 // REV333: bolaning stiker albomi (oyna) va dars oxiridagi «yangi stiker» kartasi.
-import React from "react";
+import React, { useEffect, useState } from "react";
 import OYIN_RASM from "./oyin/rasm/index.js";
-import { ALBOM_TURLARI, albomOl, keyingiMukofot, orolHolati } from "./stikerAlbom.js";
+import { ALBOM_TURLARI, albomOl, albomYoz, keyingiMukofot, orolHolati } from "./stikerAlbom.js";
+import { albomServer } from "./kidActivity.js";   // REV339
 import { SARGUZASHT_FON } from "./sarguzasht/fonlar.js";   // REV334: haftalik orol
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./stikerAlbom.css";
@@ -27,16 +28,28 @@ export function YangiStiker({ natija }) {
   </div>;
 }
 
-export default function StikerAlbom({ egasi = "bola", onClose }) {
-  const a = albomOl(egasi);
+/** REV339: albom ko'rinishi (bola oynasi va ota-ona paneli uchun umumiy). */
+export function AlbomKorinish({ a }) {
   const km = keyingiMukofot(a.jami);
+  return <>
+    <HaftalikOrol albom={a} />
+    <ul className="sa-tor">{ALBOM_TURLARI.map((id) => { const n = a.sanoq?.[id] || 0;
+      return <li key={id} className={n ? "" : "is-yoq"}><img src={OYIN_RASM[id]} alt="" />{n > 0 && <span>×{n}</span>}</li>; })}</ul>
+    <p className="sa-pastki">⭐ {a.jami} · {a.jami ? <>{km.qoldi} → <img className="sa-kichik" src={OYIN_RASM[km.id]} alt="" /></> : __kbUi("Birinchi darsni tugat — birinchi stiker seniki!")}</p>
+  </>;
+}
+
+export default function StikerAlbom({ egasi = "bola", onClose, apiBase = "", token = "" }) {
+  const [a, setA] = useState(() => albomOl(egasi));
+  useEffect(() => {   // REV339: serverdagi albom (boshqa qurilmada yig'ilganlar ham)
+    let stop = false;
+    albomServer(apiBase, token).then((srv) => { if (!stop && srv && albomYoz(srv, egasi)) setA(albomOl(egasi)); });
+    return () => { stop = true; };
+  }, [apiBase, token, egasi]);
   return <div className="sa-fon" role="dialog" aria-modal="true" aria-label={__kbUi("Stiker albomim")} onClick={onClose}>
     <div className="sa-oyna" onClick={(e) => e.stopPropagation()}>
       <header><img src={OYIN_RASM.albom} alt="" /><b>{__kbUi("Stiker albomim")}</b><button type="button" onClick={onClose} aria-label={__kbUi("Yopish")}>✕</button></header>
-      <HaftalikOrol albom={a} />
-      <ul>{ALBOM_TURLARI.map((id) => { const n = a.sanoq[id] || 0;
-        return <li key={id} className={n ? "" : "is-yoq"}><img src={OYIN_RASM[id]} alt="" />{n > 0 && <span>×{n}</span>}</li>; })}</ul>
-      <p>⭐ {a.jami} · {a.jami ? <>{km.qoldi} → <img className="sa-kichik" src={OYIN_RASM[km.id]} alt="" /></> : __kbUi("Birinchi darsni tugat — birinchi stiker seniki!")}</p>
+      <AlbomKorinish a={a} />
     </div>
   </div>;
 }

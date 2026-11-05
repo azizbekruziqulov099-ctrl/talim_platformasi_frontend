@@ -150,3 +150,19 @@ export async function oyinNatijaYoz(apiBase, token, { darsKod = "", oyinId, togr
       togri: Math.max(0, Math.min(50, togri | 0)), xato: Math.max(0, Math.min(50, xato | 0)), soniya: Math.max(0, Math.min(1800, Math.round(soniya || 0))) });
   } catch { /* ixtiyoriy */ }
 }
+
+
+/** REV339: stiker serverga — albom boshqa qurilmada ham bo'lsin. Qaytaradi: { albom, natija } yoki null. */
+export async function stikerServer(apiBase, token, darsKod) {
+  if (!token || !darsKod) return null;
+  try { return await post(apiBase, token, '/api/bola/stiker', { dars_kod: String(darsKod).slice(0, 120) }); } catch { return null; }
+}
+export async function albomServer(apiBase, token, bolaId = null) {
+  if (!token) return null;
+  const base = String(apiBase || '').replace(/\/+$/, '');
+  const q = new URLSearchParams({ token, ...(bolaId ? { bola_id: bolaId } : {}) });
+  try {
+    const r = await fetch(`${base}${bolaId ? '/api/ota/bola_albom' : '/api/bola/albom'}?${q}`, { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } });
+    return r.ok ? (await r.json())?.albom || null : null;
+  } catch { return null; }
+}

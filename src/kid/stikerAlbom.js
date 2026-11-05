@@ -11,6 +11,14 @@ export function albomOl(egasi = "bola", s = ls()) {
   try { return { ...bosh(), ...(JSON.parse(s?.getItem(KALIT + egasi) || "null") || {}) }; } catch { return bosh(); }
 }
 
+/** REV339: serverdagi albomni shu qurilmaga yozadi (serverdagisi ko'proq bo'lsa). */
+export function albomYoz(albom, egasi = "bola", s = ls()) {
+  if (!albom || typeof albom !== "object") return false;
+  const joriy = albomOl(egasi, s);
+  if ((Number(albom.jami) || 0) < (Number(joriy.jami) || 0)) return false;
+  try { s?.setItem(KALIT + egasi, JSON.stringify({ ...bosh(), ...albom })); return true; } catch { return false; }
+}
+
 /** Dars tugadi — stiker (bir dars bir kunda bir marta). Qaytaradi: { stiker, mukofot } yoki null (bugun berilgan). */
 export function stikerBer(darsKod, { egasi = "bola", sana = new Date(), s = ls() } = {}) {
   const a = albomOl(egasi, s);

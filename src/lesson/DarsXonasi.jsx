@@ -29,8 +29,8 @@ import { USTOZ_ISMI } from "../kid/ustozNutqi.js";
 import { maktabDarsSozlari } from "./maktabDarsSozlari.js";
 import { sanaQadami, sinfJoyi, mashqMateriali, tilLugati, testOvozi } from "./maktabMashqRules.js";
 import Oyin from "../kid/oyin/index.js";
-import { oyinNatijaYoz } from "../kid/kidActivity.js";
-import { stikerBer } from "../kid/stikerAlbom.js";   // REV333: stiker albomi
+import { oyinNatijaYoz, stikerServer } from "../kid/kidActivity.js";
+import { stikerBer, albomYoz } from "../kid/stikerAlbom.js";   // REV333: stiker albomi
 import { YangiStiker } from "../kid/StikerAlbom.jsx";   // REV329   // REV325: o'yin dvigateli
 import { qadamOyini, yoshGuruh } from "./oyinQadam.js";
 import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
@@ -1445,7 +1445,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     // REV177: dars so'zlari, test savollari va tushunchalari keyingi darslardagi spiral takror uchun saqlanadi
     if (mode === "end" || (mode === "result" && !xatoTartib)) darsniSaqla(fan || lesson?.topic?.fan || "", darsYozuvi({ kod: topicCode, mavzu: lesson?.topic?.mavzu || "",
       fan: fan || lesson?.topic?.fan || "", til: darsTil || "", iz: izohL(izoh), steps: lesson?.steps || [], sozlar: maktabSozlar, savollar: questions }));
-    if (kid && mode === "result" && topicCode) setStiker(stikerBer(topicCode, { egasi: String(kidPlan ? "bola" : "mehmon") }) || null);   // REV333
+    if (kid && mode === "result" && topicCode) {
+      setStiker(stikerBer(topicCode, { egasi: String(kidPlan ? "bola" : "mehmon") }) || null);   // REV333
+      if (kidPlan) stikerServer(apiBase, token, topicCode).then((d) => { if (d?.albom) albomYoz(d.albom, "bola"); });   // REV339: serverda ham
+    }
     if (mode === "result" && !xatoTartib && questions.length) { markLessonDone(topicCode, kidStars(score, questions.length)); natijaYoz(topicCode, score, questions.length); tilniBelgila(topicCode, darsIzohTili(fan || lesson?.topic?.fan)); }
     if (learnerRole !== "oquvchi" || !token) return;
     if (mode === "lesson" && !darsBosh.current) darsBosh.current = Date.now();

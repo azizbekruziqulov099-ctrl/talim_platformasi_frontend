@@ -10,12 +10,12 @@
 .sa-oyna header img{width:42px;height:42px}
 .sa-oyna header b{flex:1;font-size:20px;color:#2b3452}
 .sa-oyna header button{border:0;background:#eef2f7;border-radius:50%;width:38px;height:38px;font-size:18px;cursor:pointer}
-.sa-oyna ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.sa-oyna li{position:relative;aspect-ratio:1;border-radius:18px;background:#f6f8fc;display:flex;align-items:center;justify-content:center}
-.sa-oyna li img{width:78%;height:78%}
-.sa-oyna li.is-yoq img{filter:grayscale(1);opacity:.25}
-.sa-oyna li span{position:absolute;right:6px;bottom:4px;font-weight:800;color:#2b3452}
-.sa-oyna p{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 0;font-weight:700;color:#2b3452}
+.sa-tor{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sa-tor li{position:relative;aspect-ratio:1;border-radius:18px;background:#f6f8fc;display:flex;align-items:center;justify-content:center}
+.sa-tor li img{width:78%;height:78%}
+.sa-tor li.is-yoq img{filter:grayscale(1);opacity:.25}
+.sa-tor li span{position:absolute;right:6px;bottom:4px;font-weight:800;color:#2b3452}
+.sa-pastki{display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 0;font-weight:700;color:#2b3452}
 .sa-kichik{width:28px;height:28px}
 .kt-albom{font-size:30px;line-height:1;width:64px;height:64px;border-radius:50%;border:0;background:#fff;box-shadow:0 4px 12px #0002;cursor:pointer;margin-left:10px}
 @media (prefers-reduced-motion:reduce){.sa-yangi img{animation:none}}

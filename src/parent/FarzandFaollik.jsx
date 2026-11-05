@@ -27,6 +27,12 @@ const daq = (n) => __kbUi(minutesText(n));
 
 /** Ichma-ich ochiladigan bo'lim: sarlavhada qisqa xulosa, ichida — batafsil. */
 import { QobiliyatKorinish, useQobiliyat } from "./QobiliyatXaritasi.jsx";   // REV329
+import { AlbomKorinish } from "../kid/StikerAlbom.jsx";   // REV339
+import { albomServer } from "../kid/kidActivity.js";
+
+// REV339: bo'lim sarlavhalari tarjima ro'yxatiga kirishi uchun
+// eslint-disable-next-line no-unused-vars
+const _SARLAVHALAR = () => [__kbUi("Qobiliyatlar xaritasi"), __kbUi("Stiker albomi va haftalik orol")];
 
 function Bolim({ id, open, onToggle, emoji, title, summary, children }) {
   return <section className={`ff-sec ${open ? "is-open" : ""}`} id={`ff-${id}`}>
@@ -289,6 +295,8 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
   const [reload, setReload] = useState(0);
   const rootRef = useRef(null);
   const qob = useQobiliyat(apiBase, token, childId);   // REV329
+  const [albom, setAlbom] = useState(null);   // REV339: farzandning stiker albomi va haftalik oroli
+  useEffect(() => { let stop = false; if (childId) albomServer(apiBase, token, childId).then((a) => { if (!stop) setAlbom(a); }); return () => { stop = true; }; }, [apiBase, token, childId]);
   useEffect(() => {
     let stop = false;
     setData(null); setOpenKey(""); setKun("");
@@ -365,6 +373,11 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
       {bugun.length > 0 && <p className="ff-muted">{__kbUi("Darsni bosing — natija, aytgan so‘zlari va uyda nima qilish kerakligi ochiladi.")}</p>}
     </Bolim>
 
+    {/* REV339: stiker albomi va haftalik orol */}
+    {albom && <Bolim id="albom" open={ochiq.has("albom")} onToggle={toggle} emoji="📒" title="Stiker albomi va haftalik orol"
+      summary={`⭐ ${albom.jami || 0}${albom.orollar ? ` · 🏝️×${albom.orollar}` : ""}`}>
+      <AlbomKorinish a={albom} />
+    </Bolim>}
     {/* REV329: bola miyasi xaritasi — o'yinlardan qobiliyatlar */}
     <Bolim id="qobiliyat" open={ochiq.has("qobiliyat")} onToggle={toggle} emoji="🧠" title="Qobiliyatlar xaritasi"
       summary={qob?.kuchli ? `💪 ${__kbUi(qob.qobiliyatlar?.[qob.kuchli]?.nom || "")}` : qob?.jami_oyin ? `${qob.jami_oyin} ${__kbUi("o‘yin")}` : __kbUi("hali yo‘q")}>
