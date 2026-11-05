@@ -553,8 +553,25 @@ const LazyTestShablonBolimi = lazyAdminTestTool("TestShablonBolimi");
 const LazyTopikShablonBolimi = lazyAdminTestTool("TopikShablonBolimi");
 const LazyTushuntirishBolimi = lazyAdminTestTool("TushuntirishBolimi");
 
+// REV367: bo'lim 12 soniyada yuklanmasa — qotib qolmaydi: sababini va «Qayta yuklash» tugmasini ko'rsatadi
+async function _keshniTozalabYukla() {
+  try { const k = await caches.keys(); await Promise.all(k.filter((x) => x.startsWith("samtm-")).map((x) => caches.delete(x))); } catch { /* */ }
+  try { const r = await navigator.serviceWorker?.getRegistrations?.(); await Promise.all((r || []).map((x) => x.update().catch(() => {}))); } catch { /* */ }
+  try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* */ }
+  window.location.reload();
+}
 function OgirBolimYuklanmoqda() {
   useKbInterfaceLocale();
+  const [uzoq, setUzoq] = React.useState(false);
+  React.useEffect(() => { const t = setTimeout(() => setUzoq(true), 12000); return () => clearTimeout(t); }, []);
+  if (uzoq) return (
+    <div className="px-5 py-10 text-center" role="alert">
+      <p className="font-semibold">{__kbUi("Bo‘lim yuklanmadi")}</p>
+      <p className="text-xs mt-1" style={{ color: "#8A8578" }}>{__kbUi("Internet sekin yoki ilovada eski fayllar qolgan. Tugmani bosing — eski fayllar tozalanib, bo‘lim qayta yuklanadi.")}</p>
+      <button type="button" className="mt-3 px-4 py-2 rounded-xl" style={{ background: "#1B4B7A", color: "#fff" }} onClick={_keshniTozalabYukla}>🔄 {__kbUi("Qayta yuklash")}</button>
+      <p className="text-[10px] mt-2" style={{ color: "#B0A99A" }}>{String(navigator.onLine === false ? "offline" : "online")} · {String(window.matchMedia?.("(display-mode: standalone)").matches ? "ilova" : "brauzer")}</p>
+    </div>
+  );
   return (
     <div className="px-5 py-12 text-center" role="status" aria-live="polite">
       <Loader2 size={24} className="animate-spin mx-auto" style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} />
