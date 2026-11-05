@@ -112,3 +112,12 @@ test('REV351: eshitish o‘yinlari', () => {
   }
   assert.equal(oyinYasa(120, { elementlar: [], yosh: '6-7', izoh: 'en' }), null);   // bo'g'in — faqat o'zbek va rus tilida
 });
+import { kirishDarajasi, oynadi, necha } from './tanishlik.js';
+test('REV360: yangi o‘yin — Kabu ko‘rsatadi, keyin qisqa eslatma, keyin tushuntirishsiz', () => {
+  assert.equal(kirishDarajasi(0), 'korsat'); assert.equal(kirishDarajasi(2), 'eslat'); assert.equal(kirishDarajasi(4), 'yoq');
+  const m = new Map(); const s = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) };
+  oynadi(116, s); oynadi(116, s); assert.equal(necha(116, s), 2);
+  const el3 = [{ emoji: '🐈', uz: 'mushuk' }, { emoji: '🐕', uz: 'it' }, { emoji: '🥛', uz: 'sut' }];
+  const k = oyinYasa(116, { elementlar: el3, yosh: '4-5', urug: 1, kirishDaraja: 'korsat' }); assert.match(raundGapi(k, { izoh: 'uz', til: 'uz', birinchi: true }), /ko‘rsataman|men topaman/);
+  const y = oyinYasa(116, { elementlar: el3, yosh: '4-5', urug: 1, kirishDaraja: 'yoq' }); assert.ok(!raundGapi(y, { izoh: 'uz', til: 'uz', birinchi: true }).includes('Men aytaman'));
+});

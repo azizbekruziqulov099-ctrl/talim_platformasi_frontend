@@ -34,6 +34,7 @@ import { stikerBer, albomYoz } from "../kid/stikerAlbom.js";   // REV333: stiker
 import { YangiStiker } from "../kid/StikerAlbom.jsx";   // REV329   // REV325: o'yin dvigateli
 import { qadamOyini, yoshGuruh, darsElementlari } from "./oyinQadam.js";
 import HarakatQadam, { HARAKAT_OYINLARI } from "./HarakatQadam.jsx";   // REV342
+import { necha as oyinNecha, oynadi as oyinOynadi, kirishDarajasi } from "../kid/oyin/tanishlik.js";   // REV360
 import { davomSaqla, davomOl, davomTozala, davomFoiz, davomJoyi } from "./darsDavomi.js";   // REV326: yarim qolgan dars
 import { DAVOM_GAPI } from "../kid/izohTil.js";
 import { darsYozuvi, darsniSaqla, oldingiDarslar, takrorQilindi, takrorBelgila } from "./spiralTakror.js";
@@ -1770,8 +1771,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh={yoshGuruh(grade)} til={darsTil || "uz"} izoh={tIzoh}
                 rasm={oyinRasmi}
                 onSay={(t, tugadi) => say(t, tugadi)}
-                mavzu={String(lesson?.topic?.mavzu || "").replace(/^\s*\d+[.)]\s*/, "")} tanish={oyinQ.tanish} fasl={["qish", "qish", "bahor", "bahor", "bahor", "yoz", "yoz", "yoz", "kuz", "kuz", "kuz", "qish"][new Date().getMonth()]}
+                mavzu={String(lesson?.topic?.mavzu || "").replace(/^\s*\d+[.)]\s*/, "")} tanish={oyinQ.tanish}
+                kirishDaraja={oyinQ.tanish ? "yoq" : kirishDarajasi(oyinNecha(oyinQ.id))} fasl={["qish", "qish", "bahor", "bahor", "bahor", "yoz", "yoz", "yoz", "kuz", "kuz", "kuz", "qish"][new Date().getMonth()]}
                 onNatija={(togri, xatolar, info) => {
+                  oyinOynadi(oyinQ.id);   // REV360: bola bu o'yinni yana bir marta o'ynadi
                   if (kidPlan) oyinNatijaYoz(apiBase, token, { darsKod: topicCode, oyinId: oyinQ.id, togri, xato: Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0, soniya: info?.soniya });   // REV329
                   const my = oyinQ.stepIdx; setOyinQ(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }} />
             </div>}

@@ -821,7 +821,7 @@ export function joriyBosh(r) {
  * togri }], raund, xatolar, togriSoni, tugadi, joriy } yoki null (o'yin topilmadi / yoshga mos emas / elementlar kam).
  * urug' — takrorlanadigan tasodif uchun (sinovlarda). mik — mikrofon bormi (117 «Ayt va och» uchun).
  */
-export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til = "en", mik = true, mavzu = "", tanish = false, izoh = "uz", fasl = "" } = {}) {
+export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til = "en", mik = true, mavzu = "", tanish = false, izoh = "uz", fasl = "", kirishDaraja = "" } = {}) {
   const o = oyinOl(id);
   if (!o) return null;
   const y = yoshNorm(yosh);
@@ -840,6 +840,8 @@ export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til
     soniya: taxminiySoniya(o, y),
     // REV347: gaplar takrorlanmasin — o'yin ichidagi gaplar shu son bo'yicha har xil tanlanadi; mavzu nomi va «bu o'yin darsda bo'lgan»
     xil: Math.floor(rnd() * 997), mavzu: str(mavzu).slice(0, 60), tanish: Boolean(tanish),
+    // REV360: «korsat» — Kabu 1-raundni o'zi o'ynab ko'rsatadi; «eslat» — qisqa qoida; «yoq» — tushuntirishsiz
+    kirishDaraja: kirishDaraja || (tanish ? "eslat" : "korsat"),
   };
 }
 
@@ -1133,8 +1135,12 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
   if (!birinchi) return toza(gap);
   const v = holat.xil || 0;
   const ochilish = umumiyGap(holat.mavzu ? "ochilishMavzu" : "ochilish", izoh, v).replace("{mavzu}", holat.mavzu || "");
-  const kirish = holat.tanish ? M("", "tanishKirish", izoh, { nom: M(k, "nom", izoh) }, v) : M(k, "kirish", izoh, {}, v);
-  return toza(`${ochilish} ${kirish} ${gap}`);
+  const d = holat.kirishDaraja || (holat.tanish ? "eslat" : "korsat");
+  if (d === "yoq") return toza(`${ochilish} ${gap}`);
+  const kirish = d === "eslat" ? M("", "tanishKirish", izoh, { nom: M(k, "nom", izoh) }, v) : M(k, "kirish", izoh, {}, v);
+  // REV360: birinchi marta — qoida + «Qara, avval men o'ynab ko'rsataman»
+  const korsat = d === "korsat" && holat.raundlar[0]?.tur === "tanlov" ? umumiyGap("korsataman", izoh, v) : "";
+  return toza(`${ochilish} ${kirish} ${korsat} ${gap}`);
 }
 
 /** Javobdan keyin aytiladigan gap (maqtov, dalda, sanoq, so'z…). natija — tekshir() qaytargani. */

@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   javobGapi, maslahat, nomOvoz, oyinOl, oyinYasa, qiyinlikMoslash, raundGapi, tekshir, yulduzlar,
 } from "./oyinRules.js";
-import { oyinMatn } from "./oyinMatn.js";
+import { oyinMatn, umumiyGap } from "./oyinMatn.js";
 import { OYIN_KOMPONENTLAR } from "./oyinlar/index.js";
 import { mikBor } from "./mik.js";
 import { JR, kabuRasm } from "../jonli/jonliRasm.js";
@@ -45,9 +45,9 @@ export default function Oyin(props) {
 const yoshKalit = (y) => String(y ?? "");
 
 function OyinIchki({
-  id, elementlar, yosh, onNatija, onSay, til, izoh = "uz", sonlar, qiyinlik, urug, rasm, onTingla, onChiq, mavzu = "", tanish = false, fasl = "",
+  id, elementlar, yosh, onNatija, onSay, til, izoh = "uz", sonlar, qiyinlik, urug, rasm, onTingla, onChiq, mavzu = "", tanish = false, fasl = "", kirishDaraja = "",
 }) {
-  const [boshlangich] = useState(() => oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish, izoh, fasl }));
+  const [boshlangich] = useState(() => oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish, izoh, fasl, kirishDaraja }));
   const [holat, setHolat] = useState(boshlangich);
   const holatRef = useRef(boshlangich);
   const [fb, setFb] = useState(null);            // oxirgi javob: { j, togri, n }
@@ -131,13 +131,30 @@ function OyinIchki({
     return n;
   }, [izoh, til, say, taymer, yakunla]);
 
+  // REV360: birinchi marta ko'rgan o'yin — ustoz gapirib bo'lgach Kabu to'g'ri javobni o'zi bosadi, keyin «Endi sen!»
+  const [demo, setDemo] = useState(() => (holat?.kirishDaraja === "korsat" && holat?.raundlar?.[0]?.tur === "tanlov"));
+  useEffect(() => {
+    if (!demo || !holat || holat.raund !== 0 || kadr || gapirmoqda) return undefined;
+    const id = setTimeout(() => {
+      const r0 = holatRef.current?.raundlar?.[0];
+      if (!r0) return;
+      setKabu("korsat");
+      const n = javob(r0.togri);
+      setDemo(false);
+      if (n) setTimeout(() => say(umumiyGap("endiSen", izoh, holatRef.current?.xil || 0)), 900);
+    }, 1800);
+    return () => clearTimeout(id);
+  }, [demo, holat, kadr, gapirmoqda]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const Komponent = OYIN_KOMPONENTLAR[Number(id)];
   if (!holat || !Komponent) return null;
 
   const raundIdx = kadr ? kadr.raund : holat.raund;
   const raund = holat.raundlar[raundIdx];
   const joriy = kadr ? kadr.joriy : holat.joriy;
-  const ishora = !kadr && joriy.xato >= 2 ? maslahat(holat) : null;   // 2 xatodan keyin to'g'risi yonib-o'chadi
+  // REV360: Kabu ko'rsatyapti — to'g'ri javob yonadi va Kabu o'zi bosadi (1-raund, faqat bitta tugmali tanlovlarda)
+  const korsatish = Boolean(demo && !kadr && holat.raund === 0 && raund?.tur === "tanlov");
+  const ishora = korsatish ? raund.togri : !kadr && joriy.xato >= 2 ? maslahat(holat) : null;   // 2 xatodan keyin to'g'risi yonib-o'chadi
   const y = holat.yosh;
   const quloq = belgiSrc("👂");
   const orqa = belgiSrc("⬅️");

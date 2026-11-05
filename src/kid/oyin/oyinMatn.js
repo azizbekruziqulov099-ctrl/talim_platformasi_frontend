@@ -35,6 +35,13 @@ export const UMUMIY_MATN = {
     de: ["Das Spiel ist aus! Es war schwer, aber du hast es geschafft!", "Gut versucht! Nächstes Mal wird es noch besser.", "Du lernst — das ist das Wichtigste!", "Ein paar Fehler — macht nichts. Gut gemacht!"],
     es: ["¡Se acabó el juego! Fue difícil, ¡pero lo lograste!", "¡Buen intento! La próxima vez saldrá aún mejor.", "Estás aprendiendo: ¡eso es lo más importante!", "Un par de errores, no pasa nada. ¡Muy bien!"],
   },
+  // REV360: yangi o'yinni Kabu ko'rsatadi
+  korsataman: { uz: ["Qara, avval men o‘ynab ko‘rsataman.", "Kuzat: birinchisini men topaman."], ru: ["Смотри, сначала покажу я.", "Следи: первое найду я."],
+    en: ["Watch, I'll show you first.", "Look: I'll find the first one."], de: ["Schau, ich zeige es dir zuerst.", "Pass auf: das erste finde ich."],
+    es: ["Mira, primero te lo enseño yo.", "Fíjate: el primero lo encuentro yo."] },
+  endiSen: { uz: ["Ko‘rdingmi? Endi sen!", "Mana shunday! Endi navbat senda."], ru: ["Видел? Теперь ты!", "Вот так! Теперь твоя очередь."],
+    en: ["See? Now it's your turn!", "Just like that! Now you try."], de: ["Gesehen? Jetzt bist du dran!", "Genau so! Jetzt du."],
+    es: ["¿Lo viste? ¡Ahora tú!", "¡Así! Ahora te toca a ti."] },
   // REV349: jarayon tartibi — javobni aytib qo'ymaymiz (4–5: «avval nima?», 6–7: «hammasini joyla»)
   avvalSavol: { uz: ["Avval nima bo‘ladi?", "Eng birinchi nima?"], ru: ["Что бывает сначала?", "Что самое первое?"], en: ["What comes first?", "What happens first?"], de: ["Was kommt zuerst?", "Was passiert zuerst?"], es: ["¿Qué va primero?", "¿Qué pasa primero?"] },
   keyinSavol: { uz: ["Keyin nima?", "Undan keyin-chi?"], ru: ["А потом что?", "Что дальше?"], en: ["What comes next?", "And then?"], de: ["Was kommt dann?", "Und danach?"], es: ["¿Y después?", "¿Qué sigue?"] },
