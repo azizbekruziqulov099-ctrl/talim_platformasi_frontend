@@ -109,7 +109,7 @@ function Yozilish({ katalog, base, token, onTayyor, onBekor }) {
   const [soni, setSoni] = useState(2);
   const [band, setBand] = useState(false);
   const [xato, setXato] = useState("");
-  const imtihonlar = useMemo(() => Object.entries(katalog.imtihonlar).filter(([, v]) => !til || v.tillar.includes(til)), [katalog, til]);
+  const imtihonlar = useMemo(() => Object.entries(katalog?.imtihonlar || {}).filter(([, v]) => !til || v.tillar.includes(til)), [katalog, til]);
   const im = katalog.imtihonlar[imtihon];
   const tayyor = yol && til && (yol === "erkin" || (imtihon && maqsad)) && (jTur !== "kunlar" || kunlar.length);
   const yubor = async () => {

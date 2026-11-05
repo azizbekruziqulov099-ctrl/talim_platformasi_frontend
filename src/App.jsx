@@ -563,11 +563,29 @@ function OgirBolimYuklanmoqda() {
   );
 }
 
+// REV366: bo'lim ichida xato bo'lsa butun ilova oq ekran bo'lib qolmaydi — xato matni ko'rinadi (rasmga olib yuborish uchun)
+class BolimXatoChegarasi extends React.Component {
+  constructor(props) { super(props); this.state = { xato: null }; }
+  static getDerivedStateFromError(xato) { return { xato }; }
+  componentDidCatch(xato, info) { try { console.error("[Bo'lim xatosi]", xato, info?.componentStack); } catch { /* */ } }
+  render() {
+    if (!this.state.xato) return this.props.children;
+    const x = this.state.xato;
+    return <div className="p-4 rounded-xl" style={{ background: "#FFF4F4", border: "1px solid #E8C9C9", color: "#7A1F1F" }} role="alert">
+      <b>⚠️ {__kbUi("Bo‘limni ochishda xato")}</b>
+      <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, marginTop: 8 }}>{String(x?.message || x)}{"\n"}{String(x?.stack || "").split("\n").slice(0, 4).join("\n")}</pre>
+      <button type="button" className="mt-2 px-3 py-1 rounded-lg" style={{ background: "#7A1F1F", color: "#fff" }} onClick={() => this.setState({ xato: null })}>{__kbUi("Qayta urinish")}</button>
+    </div>;
+  }
+}
+
 function lazyPanel(Component, props) {
   return (
-    <React.Suspense fallback={<OgirBolimYuklanmoqda />}>
-      <Component {...props} />
-    </React.Suspense>
+    <BolimXatoChegarasi>
+      <React.Suspense fallback={<OgirBolimYuklanmoqda />}>
+        <Component {...props} />
+      </React.Suspense>
+    </BolimXatoChegarasi>
   );
 }
 
