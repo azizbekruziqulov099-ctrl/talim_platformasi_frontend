@@ -6,6 +6,8 @@ import { KORINISH_TURLARI, korinishTuri, previewUser } from "./previewRules.js";
 import "./oquvchiKorinishi.css";
 // REV274: o'quvchi ko'rinishida «Xalqaro baholash» (maktab o'quvchisi ko'radigan alohida bo'lim) ham ko'rinadi
 const XalqaroBaholash = React.lazy(() => import("../xalqaro/XalqaroBaholash.jsx"));
+// REV354: markaz o'quvchisi platformada «O'quv markazi» kurslarini ko'radi (Erkin til, Sertifikat) — ko'rinishda ham o'shalar
+const MarkazPanel = React.lazy(() => import("../markaz/MarkazPanel.jsx"));
 
 const SAQLASH = "kabutar:admin:korinish:v1";
 const oqi = () => { try { return JSON.parse(window.localStorage.getItem(SAQLASH) || "null") || {}; } catch { return {}; } };
@@ -71,7 +73,11 @@ export default function OquvchiKorinishi({ apiBase, token, admin, Tests, jins = 
       <p className="ok-bar-izoh">{__kbUi("Siz o‘quvchi ko‘rinishidasiz: hamma darslar ochiq, kunlik cheklov yo‘q, bola kuzatuviga yozilmaydi.")}</p>
     </div>
 
-    {oyna === "xalqaro" ? <div className="px-3 sm:px-5 pt-3 pb-6">
+    {tur.kalit === "markaz" && oyna === "mavzular" ? <div className="px-3 sm:px-5 pt-3 pb-6">
+      <React.Suspense fallback={<p role="status">{__kbUi("Yuklanmoqda…")}</p>}>
+        <MarkazPanel apiBase={apiBase} token={token} />
+      </React.Suspense>
+    </div> : oyna === "xalqaro" ? <div className="px-3 sm:px-5 pt-3 pb-6">
       <button type="button" className="ok-orqaga" onClick={() => setOyna("mavzular")}>{__kbUi("← Mavzularga qaytish")}</button>
       <React.Suspense fallback={<p role="status">{__kbUi("Yuklanmoqda…")}</p>}>
         <XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={jins} cheklovsiz rejim="oquvchi" />
