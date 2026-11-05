@@ -83,3 +83,15 @@ test('REV348: saralash va ulash — 5 tilda, yoshga mos, joriy fasl', () => {
   assert.equal(oyinYasa(158, { elementlar: [], yosh: '2-3', izoh: 'uz' }), null);
   const u = oyinYasa(148, { elementlar: [], yosh: '6-7', urug: 2, izoh: 'de' }); assert.match(u.raundlar[0].savol.el.uz, /[A-ZÄÖÜa-zäöüß]/);
 });
+test('REV349: tartibga qo‘yish — to‘g‘ri ketma-ketlik, aralashgan, 5 tilda', () => {
+  for (const id of [152, 146, 29, 157, 153, 15, 156, 166]) for (const y of ['2-3', '4-5', '6-7']) for (const iz of ['uz', 'ru', 'en', 'de', 'es']) {
+    const h = oyinYasa(id, { elementlar: [], yosh: y, urug: 4, izoh: iz });
+    if (!h) continue;
+    for (const r of h.raundlar) {
+      assert.equal(r.tur, 'tartib'); assert.ok(!r.variantlar.every((v, i) => v.k === r.togri[i]), 'aralashtirilgan');
+      if (y === '2-3') assert.equal(r.togri.length, 3);
+    }
+    const n = tekshir(h, h.raundlar[0].togri); assert.equal(n.togri, true);
+    const g = raundGapi(h, { izoh: iz, til: 'uz', birinchi: true }); assert.ok(g.length > 20 && !g.includes('{'));
+  }
+});

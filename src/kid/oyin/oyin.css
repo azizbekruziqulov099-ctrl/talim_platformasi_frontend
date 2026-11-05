@@ -214,15 +214,15 @@
 }
 /* REV335: fazoviy o'yinlar */
 .oy-soya{filter:brightness(0) opacity(.78)}
-.oy-joy{position:relative;width:200px;height:170px;margin:0 auto 10px}
-.oy-joy-quti{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:84px;line-height:1}
-.oy-joy-narsa{position:absolute;width:54px;height:54px;display:flex;align-items:center;justify-content:center;transition:all .3s}
-.oy-joy-narsa img,.oy-joy-narsa span{max-width:100%;max-height:100%}
-.oy-joy.is-ustida .oy-joy-narsa{left:50%;top:-4px;transform:translateX(-50%)}
-.oy-joy.is-ostida .oy-joy-narsa{left:50%;bottom:-8px;transform:translateX(-50%)}
-.oy-joy.is-ichida .oy-joy-narsa{left:50%;top:50%;transform:translate(-50%,-30%) scale(.8)}
-.oy-joy.is-ongda .oy-joy-narsa{right:-6px;top:50%;transform:translateY(-50%)}
-.oy-joy.is-chapda .oy-joy-narsa{left:-6px;top:50%;transform:translateY(-50%)}
+.oy-jl{position:relative;width:200px;height:170px;margin:0 auto 10px}
+.oy-jl-quti{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:84px;line-height:1}
+.oy-jl-narsa{position:absolute;width:54px;height:54px;display:flex;align-items:center;justify-content:center;transition:all .3s}
+.oy-jl-narsa img,.oy-jl-narsa span{max-width:100%;max-height:100%}
+.oy-jl.is-ustida .oy-jl-narsa{left:50%;top:-4px;transform:translateX(-50%)}
+.oy-jl.is-ostida .oy-jl-narsa{left:50%;bottom:-8px;transform:translateX(-50%)}
+.oy-jl.is-ichida .oy-jl-narsa{left:50%;top:50%;transform:translate(-50%,-30%) scale(.8)}
+.oy-jl.is-ongda .oy-jl-narsa{right:-6px;top:50%;transform:translateY(-50%)}
+.oy-jl.is-chapda .oy-jl-narsa{left:-6px;top:50%;transform:translateY(-50%)}
 .oy-joy-belgi{font-size:34px;line-height:1}
 .oy-joy-soz{display:block;font-weight:700;margin-top:4px}
 .oy-minora{display:inline-flex;flex-direction:column;gap:3px;align-items:center}
@@ -275,3 +275,7 @@
 .oy-sar-narsa span{font-size:72px;line-height:1}
 .oy-sar-narsa b{font-size:20px;color:#2b3452}
 .oy-sar-belgi{font-size:42px;line-height:1}
+/* REV349: 4–5 qadamli tartib bir qatorda sig'sin */
+.oy-joylar{flex-wrap:nowrap}
+.oy-joylar:has(> .oy-joy:nth-child(4)) .oy-joy{width:84px;height:84px}
+.oy-joylar:has(> .oy-joy:nth-child(5)) .oy-joy{width:72px;height:72px}

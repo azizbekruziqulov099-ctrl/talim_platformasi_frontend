@@ -6,9 +6,9 @@ export default function Joylashuv(p) {
   const { raund, joriy, javob, ishora, qulf, rasm, matn } = p;
   const { el, joy } = raund.savol;
   return <div className="oy-sahna">
-    <div className={`oy-joy is-${joy}`} aria-hidden="true">
-      <span className="oy-joy-quti">📦</span>
-      <span className="oy-joy-narsa"><Rasm el={el} rasm={rasm} kichik /></span>
+    <div className={`oy-jl is-${joy}`} aria-hidden="true">
+      <span className="oy-jl-quti">📦</span>
+      <span className="oy-jl-narsa"><Rasm el={el} rasm={rasm} kichik /></span>
     </div>
     <Variantlar n={raund.variantlar.length}>{raund.variantlar.map((v) => <Tugma key={v.k} label={matn(v.k)} holat={tugmaHolati(p, v.k)} ishora={ishora === v.k}
       olingan={joriy.olingan.includes(v.k)} disabled={qulf} onClick={() => javob(v.k)}>

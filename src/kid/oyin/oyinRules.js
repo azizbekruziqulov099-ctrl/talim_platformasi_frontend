@@ -32,6 +32,23 @@ export const OYINLAR = [
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
   { id: 76, kalit: "joylashuv", nom: "Qayerda?", belgi: "📦", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 1 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  // REV349: tartibga qo'yish — hayotiy jarayonlar to'g'ri ketma-ketlikda
+  { id: 152, kalit: "kapalak", nom: "Kapalak hayoti", belgi: "🦋", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 146, kalit: "gulOstir", nom: "Gul o‘stiramiz", belgi: "🌷", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 29, kalit: "kunTartibi", nom: "Kun tartibi", belgi: "🌙", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 157, kalit: "qolYuvish", nom: "Qo‘l yuvamiz", belgi: "🧻", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 153, kalit: "suvSayohati", nom: "Suv sayohati", belgi: "🌊", yosh: ["6-7"], harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 15, kalit: "fasllar", nom: "Fasllar g‘ildiragi", belgi: "❄️", yosh: KATTA, harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 156, kalit: "tishTozalash", nom: "Tishimni tozalayman", belgi: "💧", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 166, kalit: "osish", nom: "Odam o‘sadi", belgi: "🧓", yosh: KATTA, harakat: "surish", kerak: { min_element: 0 },
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
   // REV348: saralash (narsani o'z guruhiga) va ulash (juftini topish) — atrof-muhit, mantiq, fasllar
   { id: 149, kalit: "uyYovvoyi", nom: "Uy yoki yovvoyi", belgi: "🏡", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
     raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 9, "6-7": 9 } },
@@ -329,6 +346,7 @@ function minoraVariantlar(namuna, n, rnd) {
 }
 
 import { SARALASH, FASL_MEVA, ULASH } from "./saralashData.js";   // REV348
+import { TARTIB } from "./tartibData.js";   // REV349
 
 // REV348: saralash/ulash elementi — so'z izoh tilida (bola tushunadigan tilda aytiladi va yoziladi)
 const sozEl = (w, izoh, k) => ({ k, emoji: w.e, uz: w.s[izoh] || w.s.uz, soz: w.s });
@@ -390,6 +408,17 @@ function yollarRaund(els, n, rnd) {
 }
 
 const YASOVCHI = {
+  // REV349: tartibga qo'yish (2–3 yoshda 3 qadam, bosqichma-bosqich; 6–7 yoshda butun tartib birdan)
+  ...Object.fromEntries(Object.keys(TARTIB).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
+    const d = TARTIB[nom];
+    const qadam = (y === "2-3" ? d.kichik.map((i) => d.q[i]) : d.q).map((w, i) => sozEl(w, izoh, `q${i}`));
+    return Array.from({ length: R }, () => {
+      let ar = aralash(qadam, rnd);
+      for (let i = 0; i < 8 && ar.every((e, j) => e.k === qadam[j].k); i += 1) ar = aralash(qadam, rnd);
+      if (ar.every((e, j) => e.k === qadam[j].k)) ar = [...ar.slice(1), ar[0]];
+      return { tur: "tartib", savol: { bosqichma: y !== "6-7" }, variantlar: ar.map((e) => ({ k: e.k, el: e })), togri: qadam.map((e) => e.k) };
+    });
+  }])),
   // REV348: saralash — narsa ko'rsatiladi, bola uning guruhini bosadi (2–3 yoshda 2 guruh)
   ...Object.fromEntries(Object.keys(SARALASH).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
     const d = SARALASH[nom]; const gs = y === "2-3" ? d.guruh.slice(0, 2) : d.guruh;
@@ -980,13 +1009,19 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "eshitBos": case "oxshash": case "soya": case "joylashuv": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }, xi); break;
     case "aytOch": gap = M(k, holat.mik ? "raund" : "raundBos", izoh, { t: nom(r.savol.el) }); break;
     case "ketmaKet": gap = M(k, "raund", izoh, { q: r.savol.qator.map(nom).filter(Boolean).join(", ") }, xi); break;
-    case "tartib": {
+    case "tartib": case "kapalak": case "gulOstir": case "kunTartibi": case "qolYuvish": case "suvSayohati": case "fasllar": case "tishTozalash": case "osish": {
       const els = r.togri.map((x) => r.variantlar.find((v) => v.k === x)?.el);
+      const nomi = (el) => (k === "tartib" ? nom(el) : el?.uz);   // REV349: jarayon so'zlari izoh tilida
+      if (k !== "tartib" && holat.yosh !== "2-3") {   // REV349: 4–7 yoshda jarayon tartibini bola o'zi topadi — aytib qo'yilmaydi
+        const joy = j.joylar.indexOf(null);
+        gap = r.savol.bosqichma ? (joy < 0 ? "" : umumiyGap(joy === 0 ? "avvalSavol" : "keyinSavol", izoh, xi + joy)) : umumiyGap("hammasiTartib", izoh, xi);
+        break;
+      }
       if (r.savol.bosqichma) {
         const joy = j.joylar.indexOf(null);
-        gap = joy < 0 ? "" : M(k, joy === 0 ? "avval" : "keyin", izoh, { t: nom(els[joy]) });
+        gap = joy < 0 ? "" : M("tartib", joy === 0 ? "avval" : "keyin", izoh, { t: nomi(els[joy]) });
       } else {
-        gap = els.map((el, i) => M(k, i === 0 ? "avval" : "keyin", izoh, { t: nom(el) })).join(" ");
+        gap = els.map((el, i) => M("tartib", i === 0 ? "avval" : "keyin", izoh, { t: nomi(el) })).join(" ");
       }
       break;
     }

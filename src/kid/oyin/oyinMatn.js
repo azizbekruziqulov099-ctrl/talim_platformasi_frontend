@@ -35,6 +35,10 @@ export const UMUMIY_MATN = {
     de: ["Das Spiel ist aus! Es war schwer, aber du hast es geschafft!", "Gut versucht! Nächstes Mal wird es noch besser.", "Du lernst — das ist das Wichtigste!", "Ein paar Fehler — macht nichts. Gut gemacht!"],
     es: ["¡Se acabó el juego! Fue difícil, ¡pero lo lograste!", "¡Buen intento! La próxima vez saldrá aún mejor.", "Estás aprendiendo: ¡eso es lo más importante!", "Un par de errores, no pasa nada. ¡Muy bien!"],
   },
+  // REV349: jarayon tartibi — javobni aytib qo'ymaymiz (4–5: «avval nima?», 6–7: «hammasini joyla»)
+  avvalSavol: { uz: ["Avval nima bo‘ladi?", "Eng birinchi nima?"], ru: ["Что бывает сначала?", "Что самое первое?"], en: ["What comes first?", "What happens first?"], de: ["Was kommt zuerst?", "Was passiert zuerst?"], es: ["¿Qué va primero?", "¿Qué pasa primero?"] },
+  keyinSavol: { uz: ["Keyin nima?", "Undan keyin-chi?"], ru: ["А потом что?", "Что дальше?"], en: ["What comes next?", "And then?"], de: ["Was kommt dann?", "Und danach?"], es: ["¿Y después?", "¿Qué sigue?"] },
+  hammasiTartib: { uz: ["Hammasini to‘g‘ri tartib bilan joyla!", "Boshidan oxirigacha tartibni tuz!"], ru: ["Разложи всё по порядку!", "Составь порядок от начала до конца!"], en: ["Put everything in the right order!", "Make the order from start to finish!"], de: ["Bring alles in die richtige Reihenfolge!", "Ordne alles von Anfang bis Ende!"], es: ["¡Ponlo todo en el orden correcto!", "¡Ordena de principio a fin!"] },
   // REV347: o'yin boshidagi ochilish gaplari (har o'yinda boshqasi)
   ochilish: {
     uz: ["Qani, o‘ynaymiz!", "Kabu yangi o‘yin topdi!", "Diqqat, o‘yin boshlanadi!", "Endi sen ustoz bo‘lasan!", "Sehrli o‘yin vaqti!", "Tayyormisan? Boshladik!", "Kabu seni o‘yinga chaqiryapti!", "Ko‘zlaringni och, quloqlaringni ding qil!"],
@@ -950,6 +954,138 @@ Object.assign(OYIN_MATN, {
     "¿Qué sentimos con {t}?",
     "{t}. ¿Qué le corresponde?"
    ]
+  }
+ }
+});
+
+// REV349: tartibga qo'yish o'yinlari gaplari (avval/keyin — «Hikoya tartibi»dan)
+Object.assign(OYIN_MATN, {
+ "kapalak": {
+  "nom": {
+   "uz": "Kapalak hayoti",
+   "ru": "Жизнь бабочки",
+   "en": "A butterfly's life",
+   "de": "Das Leben eines Schmetterlings",
+   "es": "La vida de una mariposa"
+  },
+  "kirish": {
+   "uz": "Kapalak avval tuxum bo‘ladi, keyin qurtcha, keyin chiroyli kapalak! Tartib bilan joyla.",
+   "ru": "Сначала бабочка — яйцо, потом гусеница, а потом красивая бабочка! Разложи по порядку.",
+   "en": "First a butterfly is an egg, then a caterpillar, then a beautiful butterfly! Put them in order.",
+   "de": "Zuerst ist ein Schmetterling ein Ei, dann eine Raupe, dann ein schöner Schmetterling! Bring sie in die richtige Reihenfolge.",
+   "es": "Primero la mariposa es un huevo, luego una oruga y después una mariposa preciosa. ¡Ponlos en orden!"
+  }
+ },
+ "gulOstir": {
+  "nom": {
+   "uz": "Gul o‘stiramiz",
+   "ru": "Выращиваем цветок",
+   "en": "Let's grow a flower",
+   "de": "Wir ziehen eine Blume",
+   "es": "Cultivamos una flor"
+  },
+  "kirish": {
+   "uz": "Urug‘ni ekamiz, suv beramiz — u asta-sekin gulga aylanadi. Qani, tartib bilan joyla!",
+   "ru": "Сажаем семечко, поливаем — и оно понемногу становится цветком. Разложи по порядку!",
+   "en": "We plant a seed and water it — little by little it becomes a flower. Put it in order!",
+   "de": "Wir pflanzen einen Samen und gießen ihn — langsam wird er zur Blume. Bring es in die Reihenfolge!",
+   "es": "Plantamos una semilla y la regamos: poco a poco se convierte en flor. ¡Ponlo en orden!"
+  }
+ },
+ "kunTartibi": {
+  "nom": {
+   "uz": "Kun tartibi",
+   "ru": "Распорядок дня",
+   "en": "My day",
+   "de": "Mein Tag",
+   "es": "Mi día"
+  },
+  "kirish": {
+   "uz": "Kunimiz tartib bilan o‘tadi: ertalab uyg‘onamiz, kechqurun uxlaymiz. Qani, tartibni tuz!",
+   "ru": "Наш день идёт по порядку: утром просыпаемся, вечером ложимся спать. Составь порядок!",
+   "en": "Our day goes in order: we wake up in the morning and sleep at night. Put the day in order!",
+   "de": "Unser Tag hat eine Reihenfolge: morgens wachen wir auf, abends schlafen wir. Ordne den Tag!",
+   "es": "Nuestro día sigue un orden: por la mañana nos despertamos y por la noche dormimos. ¡Ordena el día!"
+  }
+ },
+ "qolYuvish": {
+  "nom": {
+   "uz": "Qo‘l yuvamiz",
+   "ru": "Моем руки",
+   "en": "Washing hands",
+   "de": "Hände waschen",
+   "es": "Lavarse las manos"
+  },
+  "kirish": {
+   "uz": "Qo‘lni to‘g‘ri yuvsak, mikroblar ketadi. Avval nima, keyin nima? Tartib bilan joyla!",
+   "ru": "Если мыть руки правильно, микробы уходят. Что сначала, что потом? Разложи по порядку!",
+   "en": "When we wash our hands the right way, germs go away. What comes first, what comes next?",
+   "de": "Wenn wir die Hände richtig waschen, verschwinden die Keime. Was kommt zuerst, was danach?",
+   "es": "Si nos lavamos bien las manos, los microbios se van. ¿Qué va primero y qué después?"
+  }
+ },
+ "suvSayohati": {
+  "nom": {
+   "uz": "Suv sayohati",
+   "ru": "Путешествие капельки",
+   "en": "The water's journey",
+   "de": "Die Reise des Wassers",
+   "es": "El viaje del agua"
+  },
+  "kirish": {
+   "uz": "Tomchi bulutdan yomg‘ir bo‘lib tushadi, daryoga oqadi, keyin dengizga boradi. Yo‘lini tuz!",
+   "ru": "Капелька падает из облака дождём, течёт в реку, а потом в море. Составь её путь!",
+   "en": "A drop falls from a cloud as rain, flows into a river and then to the sea. Show its journey!",
+   "de": "Ein Tropfen fällt als Regen aus der Wolke, fließt in einen Fluss und dann ins Meer. Zeig seinen Weg!",
+   "es": "Una gota cae de la nube como lluvia, va al río y luego al mar. ¡Muestra su viaje!"
+  }
+ },
+ "fasllar": {
+  "nom": {
+   "uz": "Fasllar g‘ildiragi",
+   "ru": "Круг времён года",
+   "en": "The wheel of seasons",
+   "de": "Das Jahreszeitenrad",
+   "es": "La rueda de las estaciones"
+  },
+  "kirish": {
+   "uz": "Fasllar navbat bilan keladi: bahordan keyin yoz, keyin kuz, keyin qish. Tartib bilan joyla!",
+   "ru": "Времена года идут по кругу: за весной лето, потом осень, потом зима. Разложи по порядку!",
+   "en": "The seasons come one after another: spring, then summer, then autumn, then winter. Put them in order!",
+   "de": "Die Jahreszeiten kommen nacheinander: Frühling, Sommer, Herbst, Winter. Bring sie in die Reihenfolge!",
+   "es": "Las estaciones llegan una tras otra: primavera, verano, otoño e invierno. ¡Ponlas en orden!"
+  }
+ },
+ "tishTozalash": {
+  "nom": {
+   "uz": "Tishimni tozalayman",
+   "ru": "Чищу зубы",
+   "en": "Brushing teeth",
+   "de": "Zähne putzen",
+   "es": "Me lavo los dientes"
+  },
+  "kirish": {
+   "uz": "Tishlar ertalab va kechqurun tozalanadi. Avval nima qilamiz? Tartib bilan joyla!",
+   "ru": "Зубы чистим утром и вечером. Что делаем сначала? Разложи по порядку!",
+   "en": "We brush our teeth in the morning and at night. What do we do first? Put it in order!",
+   "de": "Wir putzen morgens und abends die Zähne. Was machen wir zuerst? Bring es in die Reihenfolge!",
+   "es": "Nos lavamos los dientes por la mañana y por la noche. ¿Qué hacemos primero? ¡Ponlo en orden!"
+  }
+ },
+ "osish": {
+  "nom": {
+   "uz": "Odam o‘sadi",
+   "ru": "Человек растёт",
+   "en": "People grow",
+   "de": "Menschen wachsen",
+   "es": "Las personas crecen"
+  },
+  "kirish": {
+   "uz": "Hamma avval chaqaloq bo‘ladi, keyin bola, keyin katta odam, keyin bobo-buvi. Tartib bilan joyla!",
+   "ru": "Все сначала малыши, потом дети, потом взрослые, а потом бабушки и дедушки. Разложи по порядку!",
+   "en": "Everyone is first a baby, then a child, then a grown-up, then a grandparent. Put them in order!",
+   "de": "Jeder ist zuerst ein Baby, dann ein Kind, dann erwachsen und dann Oma oder Opa. Bring sie in die Reihenfolge!",
+   "es": "Todos somos primero bebés, luego niños, después adultos y luego abuelos. ¡Ponlos en orden!"
   }
  }
 });

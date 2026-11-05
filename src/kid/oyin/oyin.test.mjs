@@ -12,7 +12,7 @@ const EL = [
   ["cat", "mushuk", "🐱"], ["dog", "it", "🐶"], ["apple", "olma", "🍎"], ["ball", "to‘p", "⚽"],
   ["sun", "quyosh", "☀️"], ["car", "mashina", "🚗"], ["fish", "baliq", "🐟"], ["bird", "qush", "🐦"],
 ].map(([say, uz, emoji]) => ({ say, uz, emoji, image: "", rom: "" }));
-const IDLAR = [116, 117, 83, 89, 88, 86, 90, 91, 32, 31, 35, 38, 55, 97, 33, 68, 76, 103, 93, 106, 114, 61, 62, 63, 64, 49, 57, 43, 59, 149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165];   // REV335: fazoviy o'yinlar
+const IDLAR = [116, 117, 83, 89, 88, 86, 90, 91, 32, 31, 35, 38, 55, 97, 33, 68, 76, 103, 93, 106, 114, 61, 62, 63, 64, 49, 57, 43, 59, 149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165, 152, 146, 29, 157, 153, 15, 156, 166];   // REV335: fazoviy o'yinlar
 const URUGLAR = Array.from({ length: 25 }, (_, i) => i + 1);
 const kalitlar = (r) => r.variantlar.map((v) => v.k);
 const takrorsiz = (arr) => new Set(arr).size === arr.length;
@@ -201,7 +201,8 @@ test("REV324: oyinTanla — ketma-ket bir xil harakat turi kelmaydi, yosh va ele
   const hammasi = OYINLAR.map((o) => ({ id: o.id, vaqt: hozir - KUN_MS }));
   assert.equal(oyinTanla({ elementlar: EL, yosh: "4-5", tarix: hammasi, hozir }), null);
   // surish va aytish o'yinlari o'ynalgan, oxirgisi «bosish» — bosish ham kelmaydi → null
-  const t = [{ id: 91, vaqt: hozir - 3 * KUN_MS }, { id: 32, vaqt: hozir - 2 * KUN_MS }, { id: 117, vaqt: hozir - 1.5 * KUN_MS }, { id: 116, vaqt: hozir - KUN_MS }];
+  // REV349: surish va aytish o'yinlari ko'paydi — hammasi o'ynalgan deb olinadi
+  const t = [...OYINLAR.filter((o) => o.harakat !== "bosish").map((o, i) => ({ id: o.id, vaqt: hozir - (3 + i * 0.01) * KUN_MS })), { id: 116, vaqt: hozir - KUN_MS }];
   assert.equal(oyinTanla({ elementlar: EL, yosh: "4-5", tarix: t, hozir }), null);
 });
 
