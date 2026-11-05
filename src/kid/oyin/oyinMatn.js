@@ -7,25 +7,56 @@ export const izohNorm = (izoh) => (IZOH_TILLARI.includes(izoh) ? izoh : "uz");
 
 export const UMUMIY_MATN = {
   maqtov: {
-    uz: ["Barakalla!", "Zo‘r!", "Ofarin!", "Juda yaxshi!", "Qoyil!"],
-    ru: ["Молодец!", "Отлично!", "Здорово!", "Умница!", "Супер!"],
-    en: ["Well done!", "Great!", "Awesome!", "Good job!", "Super!"],
-    de: ["Gut gemacht!", "Toll!", "Super!", "Prima!", "Klasse!"],
-    es: ["¡Muy bien!", "¡Genial!", "¡Estupendo!", "¡Bravo!", "¡Súper!"],
+    uz: ["Barakalla!", "Zo‘r!", "Ofarin!", "Juda yaxshi!", "Qoyil!", "Ana shunday!", "To‘ppa-to‘g‘ri!", "Sen aqllisan!", "Voy, qanday chaqqon!", "Kabu qarsak chalyapti!"],
+    ru: ["Молодец!", "Отлично!", "Здорово!", "Умница!", "Супер!", "Вот так!", "Точно!", "Ты умница!", "Ого, как быстро!", "Кабу хлопает!"],
+    en: ["Well done!", "Great!", "Awesome!", "Good job!", "Super!", "That's it!", "Exactly right!", "You're so clever!", "Wow, so quick!", "Kabu is clapping!"],
+    de: ["Gut gemacht!", "Toll!", "Super!", "Prima!", "Klasse!", "Genau so!", "Ganz richtig!", "Du bist schlau!", "Wow, so schnell!", "Kabu klatscht!"],
+    es: ["¡Muy bien!", "¡Genial!", "¡Estupendo!", "¡Bravo!", "¡Súper!", "¡Así es!", "¡Exacto!", "¡Qué listo eres!", "¡Uy, qué rápido!", "¡Kabu aplaude!"],
   },
   dalda: {
-    uz: ["Yana urinib ko‘r!", "Qani, yana bir bor!", "Deyarli topding!"],
-    ru: ["Попробуй ещё!", "Давай ещё разок!", "Почти получилось!"],
-    en: ["Try again!", "One more time!", "Almost!"],
-    de: ["Versuch es noch einmal!", "Noch einmal!", "Fast!"],
-    es: ["¡Inténtalo otra vez!", "¡Otra vez!", "¡Casi!"],
+    uz: ["Yana urinib ko‘r!", "Qani, yana bir bor!", "Deyarli topding!", "Shoshilmay qara!", "Yaxshilab tingla!", "Hech gap emas, yana bos!", "Sen uddalaysan!"],
+    ru: ["Попробуй ещё!", "Давай ещё разок!", "Почти получилось!", "Посмотри не спеша!", "Послушай внимательно!", "Ничего страшного, нажми ещё!", "У тебя получится!"],
+    en: ["Try again!", "One more time!", "Almost!", "Look carefully!", "Listen closely!", "No problem, tap again!", "You can do it!"],
+    de: ["Versuch es noch einmal!", "Noch einmal!", "Fast!", "Schau in Ruhe hin!", "Hör gut zu!", "Macht nichts, tipp noch mal!", "Du schaffst das!"],
+    es: ["¡Inténtalo otra vez!", "¡Otra vez!", "¡Casi!", "¡Mira con calma!", "¡Escucha bien!", "No pasa nada, ¡toca otra vez!", "¡Tú puedes!"],
   },
+  // REV347: o'yin oxiri — har safar boshqa gap
   yakun: {
-    uz: "O‘yin tugadi! Sen zo‘rsan!",
-    ru: "Игра окончена! Ты молодец!",
-    en: "The game is over! You are great!",
-    de: "Das Spiel ist aus! Du bist toll!",
-    es: "¡Se acabó el juego! ¡Eres genial!",
+    uz: ["O‘yin tugadi! Sen zo‘rsan!", "Hammasini topding! Qoyil!", "Ana xolos! Juda chaqqonsan!", "Kabu xursand — sen hammasini bilding!", "Bir yulduz senga! Zo‘r o‘ynading!", "Ofarin! Endi keyingi sirni ochamiz.", "Barakalla! Bu o‘yinni yutding!"],
+    ru: ["Игра окончена! Ты молодец!", "Ты всё нашёл! Здорово!", "Вот и всё! Какой ты ловкий!", "Кабу радуется — ты всё знаешь!", "Тебе звёздочка! Отличная игра!", "Умница! Теперь откроем следующий секрет.", "Браво! Ты выиграл эту игру!"],
+    en: ["The game is over! You are great!", "You found them all! Amazing!", "That's it! You are so quick!", "Kabu is happy — you knew everything!", "A star for you! Great playing!", "Well done! Now let's open the next secret.", "Bravo! You won this game!"],
+    de: ["Das Spiel ist aus! Du bist toll!", "Du hast alles gefunden! Super!", "Fertig! Du bist so flink!", "Kabu freut sich — du wusstest alles!", "Ein Stern für dich! Toll gespielt!", "Prima! Jetzt lüften wir das nächste Geheimnis.", "Bravo! Du hast dieses Spiel gewonnen!"],
+    es: ["¡Se acabó el juego! ¡Eres genial!", "¡Lo encontraste todo! ¡Increíble!", "¡Listo! ¡Qué rápido eres!", "Kabu está feliz: ¡lo sabías todo!", "¡Una estrella para ti! ¡Muy bien jugado!", "¡Muy bien! Ahora abrimos el siguiente secreto.", "¡Bravo! ¡Ganaste este juego!"],
+  },
+  yakunXato: {
+    uz: ["O‘yin tugadi! Qiyin edi, lekin uddalading!", "Yaxshi harakat! Keyingi safar yana ham zo‘r bo‘ladi.", "Sen o‘rganyapsan — bu eng muhimi!", "Bir-ikki xato — hech gap emas. Barakalla!"],
+    ru: ["Игра окончена! Было трудно, но ты справился!", "Хорошая попытка! В следующий раз будет ещё лучше.", "Ты учишься — это самое главное!", "Пара ошибок — не страшно. Молодец!"],
+    en: ["The game is over! It was hard, but you did it!", "Good try! Next time it will be even better.", "You are learning — that's what matters!", "A couple of mistakes — no problem. Well done!"],
+    de: ["Das Spiel ist aus! Es war schwer, aber du hast es geschafft!", "Gut versucht! Nächstes Mal wird es noch besser.", "Du lernst — das ist das Wichtigste!", "Ein paar Fehler — macht nichts. Gut gemacht!"],
+    es: ["¡Se acabó el juego! Fue difícil, ¡pero lo lograste!", "¡Buen intento! La próxima vez saldrá aún mejor.", "Estás aprendiendo: ¡eso es lo más importante!", "Un par de errores, no pasa nada. ¡Muy bien!"],
+  },
+  // REV347: o'yin boshidagi ochilish gaplari (har o'yinda boshqasi)
+  ochilish: {
+    uz: ["Qani, o‘ynaymiz!", "Kabu yangi o‘yin topdi!", "Diqqat, o‘yin boshlanadi!", "Endi sen ustoz bo‘lasan!", "Sehrli o‘yin vaqti!", "Tayyormisan? Boshladik!", "Kabu seni o‘yinga chaqiryapti!", "Ko‘zlaringni och, quloqlaringni ding qil!"],
+    ru: ["Давай играть!", "Кабу нашёл новую игру!", "Внимание, игра начинается!", "Теперь ты будешь учителем!", "Время волшебной игры!", "Готов? Начинаем!", "Кабу зовёт тебя играть!", "Открой глазки, навостри ушки!"],
+    en: ["Let's play!", "Kabu found a new game!", "Attention, the game begins!", "Now you are the teacher!", "Magic game time!", "Ready? Let's go!", "Kabu invites you to play!", "Eyes open, ears ready!"],
+    de: ["Lass uns spielen!", "Kabu hat ein neues Spiel gefunden!", "Achtung, das Spiel beginnt!", "Jetzt bist du der Lehrer!", "Zeit für ein Zauberspiel!", "Bereit? Los geht's!", "Kabu lädt dich zum Spielen ein!", "Augen auf, Ohren gespitzt!"],
+    es: ["¡Vamos a jugar!", "¡Kabu encontró un juego nuevo!", "¡Atención, empieza el juego!", "¡Ahora tú eres el maestro!", "¡Hora del juego mágico!", "¿Listo? ¡Empezamos!", "¡Kabu te invita a jugar!", "¡Ojos abiertos, orejas atentas!"],
+  },
+  ochilishMavzu: {
+    uz: ["Qani, «{mavzu}» bilan o‘ynaymiz!", "Kabu «{mavzu}» uchun o‘yin topdi!", "«{mavzu}» — endi o‘yinda tekshiramiz!", "Qani, «{mavzu}»ni qanchalik bilasan?", "Sehrli o‘yin: «{mavzu}»!", "Tayyormisan? «{mavzu}» o‘yini boshlandi!"],
+    ru: ["Давай поиграем: «{mavzu}»!", "Кабу нашёл игру про «{mavzu}»!", "«{mavzu}» — теперь проверим в игре!", "Ну-ка, как хорошо ты знаешь «{mavzu}»?", "Волшебная игра: «{mavzu}»!", "Готов? Игра «{mavzu}» начинается!"],
+    en: ["Let's play: “{mavzu}”!", "Kabu found a game about “{mavzu}”!", "“{mavzu}” — now let's check it in a game!", "How well do you know “{mavzu}”?", "Magic game: “{mavzu}”!", "Ready? The “{mavzu}” game begins!"],
+    de: ["Lass uns spielen: „{mavzu}“!", "Kabu hat ein Spiel zu „{mavzu}“ gefunden!", "„{mavzu}“ — jetzt prüfen wir es im Spiel!", "Wie gut kennst du „{mavzu}“?", "Zauberspiel: „{mavzu}“!", "Bereit? Das Spiel „{mavzu}“ beginnt!"],
+    es: ["¡Vamos a jugar: «{mavzu}»!", "¡Kabu encontró un juego sobre «{mavzu}»!", "«{mavzu}»: ¡ahora lo comprobamos jugando!", "¿Cuánto sabes de «{mavzu}»?", "Juego mágico: «{mavzu}»!", "¿Listo? ¡Empieza el juego «{mavzu}»!"],
+  },
+  // REV347: shu darsda bo'lgan o'yin — qayta tushuntirilmaydi
+  tanishKirish: {
+    uz: ["Yana «{nom}»! Qoidasini bilasan.", "«{nom}» qaytdi! Bu safar tezroq!", "Esingdami, «{nom}»? Davom etamiz!", "Yana bir bor «{nom}» — sen buni yaxshi o‘ynaysan!"],
+    ru: ["Снова «{nom}»! Правила ты знаешь.", "«{nom}» вернулась! В этот раз быстрее!", "Помнишь «{nom}»? Продолжаем!", "Ещё раз «{nom}» — у тебя хорошо получается!"],
+    en: ["“{nom}” again! You know the rules.", "“{nom}” is back! Faster this time!", "Remember “{nom}”? Let's go on!", "One more round of “{nom}” — you are good at it!"],
+    de: ["Wieder „{nom}“! Du kennst die Regeln.", "„{nom}“ ist zurück! Diesmal schneller!", "Erinnerst du dich an „{nom}“? Weiter geht's!", "Noch einmal „{nom}“ — das kannst du gut!"],
+    es: ["¡Otra vez «{nom}»! Ya conoces las reglas.", "¡Volvió «{nom}»! ¡Esta vez más rápido!", "¿Recuerdas «{nom}»? ¡Seguimos!", "Otra ronda de «{nom}»: ¡se te da muy bien!"],
   },
   mana: { uz: "Mana bu — {t}.", ru: "Вот это — {t}.", en: "This is {t}.", de: "Das ist {t}.", es: "Esto es {t}." },
   nechta: { uz: "Nechta?", ru: "Сколько?", en: "How many?", de: "Wie viele?", es: "¿Cuántos?" },
@@ -349,12 +380,370 @@ export const OYIN_MATN = {
   },
 };
 
+// REV347: asosiy o'yinlarning raund gaplari — har raundda boshqa variant (3 tadan, 5 tilda)
+const RAUND_VARIANTLAR = {
+ "eshitBos": {
+  "uz": [
+   "{t}! Qani, qayerda? Bos!",
+   "Men {t} dedim. Uni top!",
+   "Qani, {t} qaysi biri?"
+  ],
+  "ru": [
+   "{t}! Где? Нажми!",
+   "Я сказал {t}. Найди!",
+   "Ну-ка, где {t}?"
+  ],
+  "en": [
+   "{t}! Where is it? Tap it!",
+   "I said {t}. Find it!",
+   "Which one is {t}?"
+  ],
+  "de": [
+   "{t}! Wo ist es? Tipp drauf!",
+   "Ich habe {t} gesagt. Finde es!",
+   "Welches ist {t}?"
+  ],
+  "es": [
+   "{t}. ¿Dónde está? ¡Tócalo!",
+   "Dije {t}. ¡Encuéntralo!",
+   "¿Cuál es {t}?"
+  ]
+ },
+ "aytOch": {
+  "uz": [
+   "{t}. Endi sen ayt!",
+   "Eshik kalit so‘zni kutyapti: {t}. Ayt!",
+   "Baland ovozda ayt: {t}!"
+  ],
+  "ru": [
+   "{t}. Теперь скажи ты!",
+   "Дверь ждёт слово: {t}. Скажи!",
+   "Скажи громко: {t}!"
+  ],
+  "en": [
+   "{t}. Now you say it!",
+   "The door is waiting for the word: {t}. Say it!",
+   "Say it loudly: {t}!"
+  ],
+  "de": [
+   "{t}. Jetzt sagst du es!",
+   "Die Tür wartet auf das Wort: {t}. Sag es!",
+   "Sag es laut: {t}!"
+  ],
+  "es": [
+   "{t}. ¡Ahora dilo tú!",
+   "La puerta espera la palabra: {t}. ¡Dila!",
+   "Dilo en voz alta: {t}!"
+  ]
+ },
+ "oxshash": {
+  "uz": [
+   "{t}. Xuddi shunisini top!",
+   "{t}. Egizagini top!",
+   "Qani, {t} ning juftini bos!"
+  ],
+  "ru": [
+   "{t}. Найди такую же!",
+   "{t}. Найди близнеца!",
+   "Ну-ка, нажми пару для {t}!"
+  ],
+  "en": [
+   "{t}. Find the same one!",
+   "{t}. Find its twin!",
+   "Tap the match for {t}!"
+  ],
+  "de": [
+   "{t}. Finde das gleiche!",
+   "{t}. Finde den Zwilling!",
+   "Tipp das Paar zu {t}!"
+  ],
+  "es": [
+   "{t}. ¡Encuentra el mismo!",
+   "{t}. ¡Encuentra su gemelo!",
+   "¡Toca la pareja de {t}!"
+  ]
+ },
+ "juft": {
+  "uz": [
+   "Kartalarni och!",
+   "Ikkita karta och — bir xilmi?",
+   "Qani, juftlarni eslab qol!"
+  ],
+  "ru": [
+   "Открывай карточки!",
+   "Открой две карточки — одинаковые?",
+   "Ну-ка, запомни пары!"
+  ],
+  "en": [
+   "Open the cards!",
+   "Open two cards — are they the same?",
+   "Remember the pairs!"
+  ],
+  "de": [
+   "Deck die Karten auf!",
+   "Deck zwei Karten auf — sind sie gleich?",
+   "Merk dir die Paare!"
+  ],
+  "es": [
+   "¡Abre las cartas!",
+   "Abre dos cartas: ¿son iguales?",
+   "¡Recuerda las parejas!"
+  ]
+ },
+ "yashirin": {
+  "uz": [
+   "Qara va eslab qol!",
+   "Hammasiga yaxshilab qara — birozdan keyin bittasi yashirinadi!",
+   "Eslab qol: kimlar bor?"
+  ],
+  "ru": [
+   "Смотри и запоминай!",
+   "Посмотри на всех — скоро кто-то спрячется!",
+   "Запомни: кто здесь?"
+  ],
+  "en": [
+   "Look and remember!",
+   "Look at them all — soon one will hide!",
+   "Remember: who is here?"
+  ],
+  "de": [
+   "Schau und merk es dir!",
+   "Schau dir alle an — gleich versteckt sich einer!",
+   "Merk dir: wer ist da?"
+  ],
+  "es": [
+   "¡Mira y recuerda!",
+   "Míralos a todos: ¡pronto uno se esconderá!",
+   "Recuerda: ¿quién está aquí?"
+  ]
+ },
+ "ortiqcha": {
+  "uz": [
+   "Qaysi biri boshqacha?",
+   "Bittasi bu guruhga kirmaydi. Qaysi?",
+   "Qaysi biri ortiqcha? Top!"
+  ],
+  "ru": [
+   "Что здесь лишнее?",
+   "Одна картинка не подходит. Какая?",
+   "Что лишнее? Найди!"
+  ],
+  "en": [
+   "Which one is different?",
+   "One doesn't belong here. Which one?",
+   "Which is the odd one out?"
+  ],
+  "de": [
+   "Welches ist anders?",
+   "Eines passt nicht dazu. Welches?",
+   "Was passt nicht? Finde es!"
+  ],
+  "es": [
+   "¿Cuál es diferente?",
+   "Uno no encaja aquí. ¿Cuál?",
+   "¿Cuál sobra? ¡Encuéntralo!"
+  ]
+ },
+ "ketmaKet": {
+  "uz": [
+   "{q}… Keyingisi qaysi?",
+   "{q}… Endi nima keladi?",
+   "Tingla: {q}… Davom ettir!"
+  ],
+  "ru": [
+   "{q}… Что дальше?",
+   "{q}… Что будет потом?",
+   "Послушай: {q}… Продолжи!"
+  ],
+  "en": [
+   "{q}… What comes next?",
+   "{q}… What is next?",
+   "Listen: {q}… Keep going!"
+  ],
+  "de": [
+   "{q}… Was kommt als Nächstes?",
+   "{q}… Was folgt jetzt?",
+   "Hör zu: {q}… Mach weiter!"
+  ],
+  "es": [
+   "{q}… ¿Qué sigue?",
+   "{q}… ¿Qué viene ahora?",
+   "Escucha: {q}… ¡Continúa!"
+  ]
+ },
+ "savat": {
+  "uz": [
+   "Savatga {t} sol. {n} ta kerak!",
+   "Kabuga {n} ta {t} kerak. Savatga sol!",
+   "Qani, {n} ta {t}ni savatga ter!"
+  ],
+  "ru": [
+   "Положи в корзину {t}. Нужно {n}!",
+   "Кабу нужно {n} — {t}. Клади в корзину!",
+   "Ну-ка, собери {n} — {t}!"
+  ],
+  "en": [
+   "Put {t} in the basket. We need {n}!",
+   "Kabu needs {n} — {t}. Into the basket!",
+   "Collect {n} — {t}!"
+  ],
+  "de": [
+   "Leg {t} in den Korb. Wir brauchen {n}!",
+   "Kabu braucht {n} — {t}. Ab in den Korb!",
+   "Sammle {n} — {t}!"
+  ],
+  "es": [
+   "Pon {t} en la cesta. ¡Necesitamos {n}!",
+   "Kabu necesita {n}: {t}. ¡A la cesta!",
+   "¡Recoge {n}: {t}!"
+  ]
+ },
+ "sana": {
+  "uz": [
+   "{t}. Har birini bos!",
+   "{t}. Birma-bir bosib sana!",
+   "Qani, {t} nechta ekan? Bosib sana!"
+  ],
+  "ru": [
+   "{t}. Нажми на каждый!",
+   "{t}. Считай по одному!",
+   "Ну-ка, сколько тут? Нажимай и считай!"
+  ],
+  "en": [
+   "{t}. Tap each one!",
+   "{t}. Count them one by one!",
+   "How many are there? Tap and count!"
+  ],
+  "de": [
+   "{t}. Tipp jedes an!",
+   "{t}. Zähl eins nach dem anderen!",
+   "Wie viele sind es? Tipp und zähl!"
+  ],
+  "es": [
+   "{t}. ¡Toca cada uno!",
+   "{t}. ¡Cuéntalos uno por uno!",
+   "¿Cuántos hay? ¡Toca y cuenta!"
+  ]
+ },
+ "qaysiKop": {
+  "uz": [
+   "Qayerda ko‘p?",
+   "Qaysi guruh kattaroq?",
+   "Ko‘zing bilan solishtir: qayerda ko‘proq?"
+  ],
+  "ru": [
+   "Где больше?",
+   "Какая группа больше?",
+   "Сравни глазками: где больше?"
+  ],
+  "en": [
+   "Where are there more?",
+   "Which group is bigger?",
+   "Compare with your eyes: where are more?"
+  ],
+  "de": [
+   "Wo sind mehr?",
+   "Welche Gruppe ist größer?",
+   "Vergleich mit den Augen: wo sind mehr?"
+  ],
+  "es": [
+   "¿Dónde hay más?",
+   "¿Qué grupo es mayor?",
+   "Compara con los ojos: ¿dónde hay más?"
+  ]
+ },
+ "yoqolganSon": {
+  "uz": [
+   "{q}. Qaysi son yo‘q?",
+   "{q}. Qochib ketgan sonni top!",
+   "Sonlar qatori: {q}. Kim yo‘q?"
+  ],
+  "ru": [
+   "{q}. Какого числа нет?",
+   "{q}. Найди убежавшее число!",
+   "Ряд чисел: {q}. Кого нет?"
+  ],
+  "en": [
+   "{q}. Which number is missing?",
+   "{q}. Find the runaway number!",
+   "Number line: {q}. Who is missing?"
+  ],
+  "de": [
+   "{q}. Welche Zahl fehlt?",
+   "{q}. Finde die weggelaufene Zahl!",
+   "Zahlenreihe: {q}. Wer fehlt?"
+  ],
+  "es": [
+   "{q}. ¿Qué número falta?",
+   "{q}. ¡Encuentra el número que se escapó!",
+   "Fila de números: {q}. ¿Quién falta?"
+  ]
+ },
+ "kabuXato": {
+  "uz": [
+   "Qaysi juft xato? Bos!",
+   "Kabu qayerda adashdi? Top!",
+   "Xatoni top va Kabuga yordam ber!"
+  ],
+  "ru": [
+   "Какая пара неправильная? Нажми!",
+   "Где Кабу ошибся? Найди!",
+   "Найди ошибку и помоги Кабу!"
+  ],
+  "en": [
+   "Which pair is wrong? Tap it!",
+   "Where did Kabu make a mistake? Find it!",
+   "Find the mistake and help Kabu!"
+  ],
+  "de": [
+   "Welches Paar ist falsch? Tipp drauf!",
+   "Wo hat sich Kabu geirrt? Finde es!",
+   "Finde den Fehler und hilf Kabu!"
+  ],
+  "es": [
+   "¿Qué pareja está mal? ¡Tócala!",
+   "¿Dónde se equivocó Kabu? ¡Encuéntralo!",
+   "¡Encuentra el error y ayuda a Kabu!"
+  ]
+ },
+ "haYoq": {
+  "uz": [
+   "Bu — {t}. To‘g‘rimi?",
+   "Kabu aytyapti: bu — {t}. Rostmi?",
+   "{t}? Ha yoki yo‘q?"
+  ],
+  "ru": [
+   "Это — {t}. Правильно?",
+   "Кабу говорит: это {t}. Правда?",
+   "{t}? Да или нет?"
+  ],
+  "en": [
+   "This is {t}. Is that right?",
+   "Kabu says: this is {t}. True?",
+   "{t}? Yes or no?"
+  ],
+  "de": [
+   "Das ist {t}. Stimmt das?",
+   "Kabu sagt: das ist {t}. Richtig?",
+   "{t}? Ja oder nein?"
+  ],
+  "es": [
+   "Esto es {t}. ¿Es correcto?",
+   "Kabu dice: esto es {t}. ¿Verdad?",
+   "¿{t}? ¿Sí o no?"
+  ]
+ }
+};
+for (const [k, v] of Object.entries(RAUND_VARIANTLAR)) if (OYIN_MATN[k]) OYIN_MATN[k].raund = v;
+
 /** O'yin gapi izoh tilida, o'rinlari to'ldirilgan. Bo'sh {t} qolsa — gap boshidagi ortiqcha tinish belgilari olib tashlanadi. */
-export function oyinMatn(kalit, gapKaliti, izoh = "uz", vars = {}) {
+export function oyinMatn(kalit, gapKaliti, izoh = "uz", vars = {}, i = 0) {
   const til = izohNorm(izoh);
   const m = OYIN_MATN[kalit]?.[gapKaliti] || UMUMIY_MATN[gapKaliti];
   if (!m) return "";
-  const asl = Array.isArray(m[til]) ? m[til][0] : (m[til] ?? m.uz ?? "");
+  // REV347: gap bir nechta variantli bo'lishi mumkin — i bo'yicha navbat bilan (o'yin va raund almashganda boshqa gap)
+  const v = m[til] ?? m.uz ?? "";
+  const asl = Array.isArray(v) ? v[((Number(i) || 0) % v.length + v.length) % v.length] : v;
   return toza(String(asl).replace(/\{(\w+)\}/g, (_, k) => (vars[k] === undefined || vars[k] === null ? "" : String(vars[k]))));
 }
 
@@ -371,5 +760,7 @@ export function toza(s) {
     .replace(/\s{2,}/g, " ")
     .replace(/^[\s!?.,;:…—-]+(?=[\p{L}¡¿\[])/u, "")
     .replace(/\s+([!?.,;:])/g, "$1")
-    .trim();
+    .trim()
+    // REV347: gap boshidagi kichik harf — katta (teglangan chet so'zga tegmaydi)
+    .replace(/(^|[.!?]\s+)(\p{Ll})/gu, (_, a, b) => a + b.toLocaleUpperCase());
 }

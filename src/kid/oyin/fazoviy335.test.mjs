@@ -54,3 +54,15 @@ test('REV338: matematika o‘yinlari', () => {
   assert.ok(m.raundlar.every((r) => r.savol.amal === '+'));   // 4–5 yoshda faqat qo'shish
   for (const r of oyinYasa(59, { elementlar: [], yosh: '6-7', urug: 8 }).raundlar) { const j = r.savol.amal === '+' ? r.savol.a + r.savol.b : r.savol.a - r.savol.b; assert.equal(r.togri, `n:${j}`); assert.ok(j >= 1 && j <= 9); }
 });
+import { toza } from './oyinMatn.js';
+test('REV347: gaplar takrorlanmaydi, tarozi to‘g‘ri', () => {
+  const el3 = [{ emoji: '🐈', uz: 'mushuk' }, { emoji: '🐕', uz: 'it' }, { emoji: '🥛', uz: 'sut' }];
+  const boshlar = new Set();
+  for (let u = 1; u <= 12; u++) { const h = oyinYasa(116, { elementlar: el3, yosh: '2-3', urug: u, mavzu: 'Mushuk va it' }); boshlar.add(raundGapi(h, { izoh: 'uz', til: 'uz', birinchi: true }).split('!')[0]); }
+  assert.ok(boshlar.size >= 4, `ochilishlar xilma-xil: ${boshlar.size}`);
+  const t = oyinYasa(116, { elementlar: el3, yosh: '2-3', urug: 2, tanish: true }); assert.ok(!raundGapi(t, { izoh: 'uz', til: 'uz', birinchi: true }).includes('Men aytaman'));
+  for (const iz of ['uz', 'ru', 'en', 'de', 'es']) assert.ok(oyinMatn('eshitBos', 'raund', iz, { t: 'x' }, 2).length > 3);
+  const h = oyinYasa(106, { elementlar: [], yosh: '6-7', urug: 5 });
+  for (const r of h.raundlar) { const og = r.savol.ogir === 'chap' ? r.savol.chap : r.savol.ong; assert.ok(og.k.startsWith('o')); }   // pastga tushgani — haqiqatan og'ir
+  assert.equal(toza('sut! qani'), 'Sut! Qani');
+});

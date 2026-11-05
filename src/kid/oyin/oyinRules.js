@@ -52,7 +52,7 @@ export const OYINLAR = [
     raund: { "6-7": 5 }, soniya: { "6-7": 11 } },
   { id: 93, kalit: "yollar", nom: "Chalkash yo‘llar", belgi: "🦴", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
     raund: { "2-3": 3, "4-5": 4, "6-7": 5 }, soniya: { "2-3": 14, "4-5": 14, "6-7": 15 } },
-  { id: 106, kalit: "tarozi", nom: "Tarozi", belgi: "⚖️", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
+  { id: 106, kalit: "tarozi", nom: "Tarozi", belgi: "⚖️", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
     raund: { "2-3": 5, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 9, "6-7": 10 } },
   { id: 114, kalit: "teskari", nom: "Teskarisini top", belgi: "🔄", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
     raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 10, "6-7": 10 } },
@@ -297,6 +297,9 @@ function minoraVariantlar(namuna, n, rnd) {
   return aralash(out.map((r, i) => ({ k: i === 0 ? "t0" : `t${i}`, minora: r })), rnd);
 }
 
+// REV347: tarozi uchun juftlar — birinchisi aniq og'ir (bola hayotda biladi)
+export const TAROZI_JUFT = [["🐘", "🐭"], ["🍉", "🍒"], ["🚗", "⚽"], ["🐻", "🐝"], ["🎃", "🍓"], ["🪨", "🪶"], ["🐄", "🐔"], ["📚", "✏️"], ["🛏️", "🧸"], ["🍍", "🫐"], ["🐳", "🐟"], ["🧱", "🎈"]];
+
 // REV338: matematika o'yinlari uchun narsalar va masala ertaklari
 export const DOKON = ["🍎", "🍌", "🍦", "🧸", "🎈", "🍭", "📒", "⚽", "🧃", "🍪"];
 export const MASALA = [
@@ -388,9 +391,11 @@ const YASOVCHI = {
   aralash: ({ n, rnd, R }) => navbat(ARALASH.map((a) => ({ a })), R, rnd).map(({ a }) => ({ tur: "tanlov", savol: { a: a[0], b: a[1], rang: a[2] },
     variantlar: rangVariantlar(a[2], ["yashil", "toqSariq", "binafsha", "pushti", "kulrang", "jigarrang"], n, rnd), togri: a[2] })),
   yollar: ({ els, n, rnd, R }) => Array.from({ length: R }, () => yollarRaund(els, n, rnd)),
-  // 106 — tarozi: og'ir tomoni pastga tushgan; 6-7 yoshda ba'zan «yengilini top»
-  tarozi: ({ els, y, rnd, R }) => Array.from({ length: R }, (_, i) => {
-    const [a, b] = tanla(els, 2, rnd); const ogir = rnd() < 0.5 ? "chap" : "ong";
+  // 106 — tarozi: REV347 — haqiqiy og'irligi aniq juftlar (fil > sichqon…), og'iri pastga tushadi; 6-7 yoshda «yengilini top» ham
+  tarozi: ({ y, rnd, R }) => navbat(TAROZI_JUFT.map((p) => ({ p })), R, rnd).map(({ p }, i) => {
+    const ogirEl = { k: `o${i}`, emoji: p[0] }, yengilEl = { k: `y${i}`, emoji: p[1] };
+    const chapOgir = rnd() < 0.5;
+    const [a, b] = chapOgir ? [ogirEl, yengilEl] : [yengilEl, ogirEl]; const ogir = chapOgir ? "chap" : "ong";
     const yengil = y === "6-7" && i % 2 === 1;
     const togri = (ogir === "chap") !== yengil ? a.k : b.k;
     return { tur: "tanlov", savol: { chap: a, ong: b, ogir, yengil }, variantlar: [elVariant(a), elVariant(b)], togri };
@@ -643,7 +648,7 @@ export function joriyBosh(r) {
  * togri }], raund, xatolar, togriSoni, tugadi, joriy } yoki null (o'yin topilmadi / yoshga mos emas / elementlar kam).
  * urug' — takrorlanadigan tasodif uchun (sinovlarda). mik — mikrofon bormi (117 «Ayt va och» uchun).
  */
-export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til = "en", mik = true } = {}) {
+export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til = "en", mik = true, mavzu = "", tanish = false } = {}) {
   const o = oyinOl(id);
   if (!o) return null;
   const y = yoshNorm(yosh);
@@ -660,6 +665,8 @@ export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til
     id: o.id, kalit: o.kalit, nom: o.nom, harakat: o.harakat, yosh: y, til: str(til) || "en", qiyinlik: q, variantSoni: n,
     mik: Boolean(mik), raundlar, raund: 0, xatolar: 0, togriSoni: 0, tugadi: false, joriy: joriyBosh(raundlar[0]),
     soniya: taxminiySoniya(o, y),
+    // REV347: gaplar takrorlanmasin — o'yin ichidagi gaplar shu son bo'yicha har xil tanlanadi; mavzu nomi va «bu o'yin darsda bo'lgan»
+    xil: Math.floor(rnd() * 997), mavzu: str(mavzu).slice(0, 60), tanish: Boolean(tanish),
   };
 }
 
@@ -891,7 +898,7 @@ export const yulduzlar = (xatolar) => (xatolar <= 0 ? 3 : xatolar <= 2 ? 2 : 1);
 
 /* ───────────────────────── ovoz gaplari ───────────────────────── */
 
-const M = (kalit, gap, izoh, vars) => oyinMatn(kalit, gap, izoh, vars);
+const M = (kalit, gap, izoh, vars, i = 0) => oyinMatn(kalit, gap, izoh, vars, i);
 
 /**
  * Raund boshida ustoz aytadigan gap (izoh tilida, o'rganilayotgan so'zlar teglangan). birinchi — 1-raundda kirish gapi
@@ -904,11 +911,12 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
   const k = holat.kalit;
   const j = holat.joriy || joriyBosh(r);
   const nom = (el) => nomOvoz(el, t);
+  const xi = (holat.xil || 0) + holat.raund;   // REV347: raund gapining varianti
   let gap = "";
   switch (k) {
-    case "eshitBos": case "oxshash": case "soya": case "joylashuv": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }); break;
+    case "eshitBos": case "oxshash": case "soya": case "joylashuv": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }, xi); break;
     case "aytOch": gap = M(k, holat.mik ? "raund" : "raundBos", izoh, { t: nom(r.savol.el) }); break;
-    case "ketmaKet": gap = M(k, "raund", izoh, { q: r.savol.qator.map(nom).filter(Boolean).join(", ") }); break;
+    case "ketmaKet": gap = M(k, "raund", izoh, { q: r.savol.qator.map(nom).filter(Boolean).join(", ") }, xi); break;
     case "tartib": {
       const els = r.togri.map((x) => r.variantlar.find((v) => v.k === x)?.el);
       if (r.savol.bosqichma) {
@@ -919,21 +927,26 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
       }
       break;
     }
-    case "savat": gap = M(k, "raund", izoh, { t: nom(r.savol.el), n: r.savol.soni }); break;
-    case "sana": gap = j.sanaldi ? M(k, "nechta", izoh) : M(k, "raund", izoh, { t: nom(r.savol.el) }); break;
-    case "yoqolganSon": gap = M(k, "raund", izoh, { q: r.savol.qator.map((x) => (x === null ? "…" : String(x))).join(", ") }); break;
-    case "haYoq": gap = M(k, "raund", izoh, { t: nom(r.savol.aytilgan) }); break;
+    case "savat": gap = M(k, "raund", izoh, { t: nom(r.savol.el), n: r.savol.soni }, xi); break;
+    case "sana": gap = j.sanaldi ? M(k, "nechta", izoh) : M(k, "raund", izoh, { t: nom(r.savol.el) }, xi); break;
+    case "yoqolganSon": gap = M(k, "raund", izoh, { q: r.savol.qator.map((x) => (x === null ? "…" : String(x))).join(", ") }, xi); break;
+    case "haYoq": gap = M(k, "raund", izoh, { t: nom(r.savol.aytilgan) }, xi); break;
     case "sehrliQuti": gap = M(k, r.savol.rejim, izoh, { a: r.savol.a, b: r.savol.b }); break;
     case "tarozi": gap = M(k, r.savol.yengil ? "yengil" : "raund", izoh); break;
-    case "dokon": gap = M(k, "raund", izoh, { n: r.savol.pul }); break;
-    case "tenglash": gap = M(k, "raund", izoh, { a: r.savol.chap, b: r.savol.ong }); break;
+    case "dokon": gap = M(k, "raund", izoh, { n: r.savol.pul }, xi); break;
+    case "tenglash": gap = M(k, "raund", izoh, { a: r.savol.chap, b: r.savol.ong }, xi); break;
     case "masala": gap = M(k, `${r.savol.kalit}`, izoh, { a: r.savol.a, b: r.savol.b }); break;
-    case "rangTop": gap = M(k, "raund", izoh, { t: RANGLAR[r.savol.rang].s[izoh] || RANGLAR[r.savol.rang].s.uz }); break;
-    case "aralash": gap = M(k, "raund", izoh, { a: RANGLAR[r.savol.a].s[izoh] || RANGLAR[r.savol.a].s.uz, b: RANGLAR[r.savol.b].s[izoh] || RANGLAR[r.savol.b].s.uz }); break;
-    case "teskari": gap = M(k, "raund", izoh, { t: r.savol.el.soz?.[izoh] || r.savol.el.soz?.uz }); break;
-    default: gap = M(k, "raund", izoh); break;
+    case "rangTop": gap = M(k, "raund", izoh, { t: RANGLAR[r.savol.rang].s[izoh] || RANGLAR[r.savol.rang].s.uz }, xi); break;
+    case "aralash": gap = M(k, "raund", izoh, { a: RANGLAR[r.savol.a].s[izoh] || RANGLAR[r.savol.a].s.uz, b: RANGLAR[r.savol.b].s[izoh] || RANGLAR[r.savol.b].s.uz }, xi); break;
+    case "teskari": gap = M(k, "raund", izoh, { t: r.savol.el.soz?.[izoh] || r.savol.el.soz?.uz }, xi); break;
+    default: gap = M(k, "raund", izoh, {}, xi); break;
   }
-  return toza(birinchi ? `${M(k, "kirish", izoh)} ${gap}` : gap);
+  // REV347: o'yin boshi — har safar boshqa «ochilish» gapi (mavzu nomi bilan); shu darsda bo'lgan o'yin — qisqa kirish
+  if (!birinchi) return toza(gap);
+  const v = holat.xil || 0;
+  const ochilish = umumiyGap(holat.mavzu ? "ochilishMavzu" : "ochilish", izoh, v).replace("{mavzu}", holat.mavzu || "");
+  const kirish = holat.tanish ? M("", "tanishKirish", izoh, { nom: M(k, "nom", izoh) }, v) : M(k, "kirish", izoh, {}, v);
+  return toza(`${ochilish} ${kirish} ${gap}`);
 }
 
 /** Javobdan keyin aytiladigan gap (maqtov, dalda, sanoq, so'z…). natija — tekshir() qaytargani. */
@@ -943,7 +956,7 @@ export function javobGapi(eski, natija, { izoh = "uz", til } = {}) {
   const r = eski.raundlar?.[eski.raund];
   if (!r) return "";
   const k = eski.kalit;
-  const i = eski.raund + eski.togriSoni + eski.xatolar;
+  const i = (eski.xil || 0) + eski.raund + eski.togriSoni + eski.xatolar;   // REV347: o'yindan o'yinga boshqa maqtov
   const maqtov = umumiyGap("maqtov", izoh, i);
   const dalda = umumiyGap("dalda", izoh, i);
   const v = natija.voqea;
@@ -965,10 +978,9 @@ export function javobGapi(eski, natija, { izoh = "uz", til } = {}) {
     else if (k === "eshitBos" || (k === "aytOch" && !eski.mik)) gap = `${dalda} ${nomOvoz(r.savol.el, t)}`;
     else gap = dalda;
   }
-  if (natija.tugadi) gap = `${gap} ${UMUMIY_YAKUN(izoh)}`;
+  if (natija.tugadi) gap = `${gap} ${umumiyGap(natija.holat?.xatolar ? "yakunXato" : "yakun", izoh, (eski.xil || 0) + eski.togriSoni)}`;
   return toza(gap);
 }
-const UMUMIY_YAKUN = (izoh) => oyinMatn("", "yakun", izoh);
 
 /** Kalitlar ro'yxati (sinovlar uchun): har o'yinning gaplari bormi. */
 export const OYIN_KALITLARI = OYINLAR.map((o) => o.kalit).filter((k) => OYIN_MATN[k]);

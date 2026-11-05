@@ -191,7 +191,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // xato yoki bosmasa — yulduz yo'q. game: { stepIdx, targets, holat, kutish } · natijalar har o'yin qadami bo'yicha.
   const [game, setGame] = useState(null);
   const [oyinQ, setOyinQ] = useState(null);
-  const [harakatQ, setHarakatQ] = useState(null);   // REV342: harakat qadami (171/172/175)   // REV325: Miya qadamidagi o'yin — { stepIdx, id, elementlar, sonlar }
+  const [harakatQ, setHarakatQ] = useState(null);
+  const oynalgan = useRef(new Set());   // REV347: shu darsda o'ynalgan o'yinlar — qayta tushuntirilmaydi   // REV342: harakat qadami (171/172/175)   // REV325: Miya qadamidagi o'yin — { stepIdx, id, elementlar, sonlar }
   const [tanlov, setTanlov] = useState(null);
   const [stiker, setStiker] = useState(null);   // REV333: dars oxirida berilgan stiker   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
@@ -865,7 +866,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
         // REV342: o'yinga rasm yetmasa — butun darsdagi rasmli so'zlardan olinadi
         const o = qadamOyini(s, { yosh: kid ? yoshGuruh(grade) : "6-7", darsSozlari: kid && darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [],
           darsElementlari: darsElementlari(steps.slice(opening.length)) });
-        if (o) { setOyinQ({ stepIdx: next, ...o }); return; }
+        if (o) { const tanish = oynalgan.current.has(o.id); oynalgan.current.add(o.id); setOyinQ({ stepIdx: next, ...o, tanish }); return; }
       }
       // REV324: ochilishdagi tanlov — bola belgini bosmaguncha kutiladi
       if (autoplay && kid && s.tanlov?.variantlar?.length) { setTanlov({ stepIdx: next, ...s.tanlov, holat: {}, xato: 0 }); return; }
@@ -1753,6 +1754,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             </div>}
             {oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam">
               <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh={yoshGuruh(grade)} til={darsTil || "uz"} izoh={tIzoh}
+                mavzu={String(lesson?.topic?.mavzu || "").replace(/^\s*\d+[.)]\s*/, "")} tanish={oyinQ.tanish}
                 onSay={(t) => say(t)}
                 onNatija={(togri, xatolar, info) => {
                   if (kidPlan) oyinNatijaYoz(apiBase, token, { darsKod: topicCode, oyinId: oyinQ.id, togri, xato: Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0, soniya: info?.soniya });   // REV329
