@@ -1017,3 +1017,5 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-til-btn{display:flex;align-items:center;gap:8px;padding:10px 16px;border:0;border-radius:16px;background:#fff;box-shadow:0 4px 12px #0002;font:700 15px inherit;cursor:pointer;color:#2b3452}
 .dx-til-btn span{font-size:28px;line-height:1}
 .dx-til-btn:active{transform:scale(.96)}
+.dx-board{position:relative}
+.dx-oyin-qatlam.is-maktab{left:0;right:0;top:0;bottom:0;border-radius:14px}

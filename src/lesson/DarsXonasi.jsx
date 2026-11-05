@@ -255,6 +255,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   // REV80: dars maydoni tinglovchiga moslashadi — bog'cha bolasi, o'quvchi, talaba.
   const audience = lessonAudience(learnerRole, grade || lesson?.topic?.sinf);
   const kid = audience === "bogcha";
+  const boshlangich = !kid && /^\s*[1-4]\s*-?\s*sinf/i.test(String(grade || ""));   // REV340: 1–4-sinf matematikada ham o'yinlar
   kidRef.current = kid;
   // REV122: kim gapiryapti — sinfxonada (kutish, dars, ko'prik) jonli ustoz, test/ovoz ekranida robot Kabu
   const ustozRef = useRef("nilufar");
@@ -853,8 +854,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // «birga» va «amaliy» qadamida o'quvchi o'zi ishlaydi — dars shu yerda kutadi.
       // REV121: «Top-chi» o'yini — so'zlar bilan bog'langan rasmlar bo'lsa, bola bosishini kutadigan haqiqiy o'yin
       // REV325: Miya'da o'yin raqami bor — o'yin dvigateli o'ynaydi, tugagach dars davom etadi
-      if (autoplay && kid && s.turi === "amaliy" && s.oyin && next >= opening.length) {
-        const o = qadamOyini(s, { yosh: yoshGuruh(grade), darsSozlari: darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [] });
+      if (autoplay && (kid || boshlangich) && s.turi === "amaliy" && s.oyin && next >= opening.length) {
+        const o = qadamOyini(s, { yosh: kid ? yoshGuruh(grade) : "6-7", darsSozlari: kid && darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [] });
         if (o) { setOyinQ({ stepIdx: next, ...o }); return; }
       }
       // REV324: ochilishdagi tanlov — bola belgini bosmaguncha kutiladi
@@ -1727,6 +1728,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
         <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
           {sinfXona && !kid && <div className="dx-panel-chip" aria-hidden="true">{lesson.topic?.mavzu}</div>}
+          {/* REV340: 1–4-sinf — o'yin doska ustida */}
+          {!kid && oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam is-maktab">
+            <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh="6-7" til={darsTil || "uz"} izoh={tIzoh}
+              onSay={(t) => say(t)}
+              onNatija={() => { const my = oyinQ.stepIdx; setOyinQ(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }} />
+          </div>}
           {matem && mode === "lesson" && <EsdaTut qoidalar={esdaTut(steps, stepFinished || !speaking ? idx : idx - 1)} sarlavha={__kbUi("Esda tut")} />}
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan, uiLocale)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish) && !(tanlov && tanlov.stepIdx === idx)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
