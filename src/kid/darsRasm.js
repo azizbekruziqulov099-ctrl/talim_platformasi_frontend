@@ -4162,7 +4162,538 @@ import d_m_vada from "./dars/rasm/m-vada.webp";
 import d_m_vadani_bajarmoq from "./dars/rasm/m-vadani-bajarmoq.webp";
 import d_m_vaqtida from "./dars/rasm/m-vaqtida.webp";
 import d_m_vazifa from "./dars/rasm/m-vazifa.webp";
+import d_m_arafasida_bolmoq_endi_moqchi_bolmoq from "./dars/rasm/m-arafasida-bolmoq-endi-moqchi-bolmoq.webp";
+import d_m_ay_deb_turmoq from "./dars/rasm/m-ay-deb-turmoq.webp";
+import d_m_bilan_yaxshi_chiqishmoq from "./dars/rasm/m-bilan-yaxshi-chiqishmoq.webp";
+import d_m_bilanoq_zahoti from "./dars/rasm/m-bilanoq-zahoti.webp";
+import d_m_bolsa_bas_ekan from "./dars/rasm/m-bolsa-bas-ekan.webp";
+import d_m_dan_farqli_olaroq from "./dars/rasm/m-dan-farqli-olaroq.webp";
+import d_m_dan_tashqari from "./dars/rasm/m-dan-tashqari.webp";
+import d_m_dan_tashqari_2 from "./dars/rasm/m-dan-tashqari-2.webp";
+import d_m_dan_tortinmang from "./dars/rasm/m-dan-tortinmang.webp";
+import d_m_deb_hisoblanadi from "./dars/rasm/m-deb-hisoblanadi.webp";
+import d_m_degan_gap_yuribdi from "./dars/rasm/m-degan-gap-yuribdi.webp";
+import d_m_deyishadi_ekan from "./dars/rasm/m-deyishadi-ekan.webp";
+import d_m_ekani_etirof_etilgan from "./dars/rasm/m-ekani-etirof-etilgan.webp";
+import d_m_ekani_malum_bolmoq from "./dars/rasm/m-ekani-malum-bolmoq.webp";
+import d_m_ga_dadil_kirishmoq from "./dars/rasm/m-ga-dadil-kirishmoq.webp";
+import d_m_ga_hissa_qoshmoq from "./dars/rasm/m-ga-hissa-qoshmoq.webp";
+import d_m_ga_intilmoq from "./dars/rasm/m-ga-intilmoq.webp";
+import d_m_ga_kelsak from "./dars/rasm/m-ga-kelsak.webp";
+import d_m_ga_kelsak_haqida from "./dars/rasm/m-ga-kelsak-haqida.webp";
+import d_m_ga_kirishmoq_boshlab_yubormoq from "./dars/rasm/m-ga-kirishmoq-boshlab-yubormoq.webp";
+import d_m_ga_kirishmoq_boshlamoq from "./dars/rasm/m-ga-kirishmoq-boshlamoq.webp";
+import d_m_ga_nisbatan from "./dars/rasm/m-ga-nisbatan.webp";
+import d_m_ga_nisbatan_haqida from "./dars/rasm/m-ga-nisbatan-haqida.webp";
+import d_m_ga_oid_ga_kelsak from "./dars/rasm/m-ga-oid-ga-kelsak.webp";
+import d_m_ga_otamiz from "./dars/rasm/m-ga-otamiz.webp";
+import d_m_ga_qaramasdan from "./dars/rasm/m-ga-qaramasdan.webp";
+import d_m_ga_qaramay from "./dars/rasm/m-ga-qaramay.webp";
+import d_m_ga_qaramay_2 from "./dars/rasm/m-ga-qaramay-2.webp";
+import d_m_ga_qarshi_ga_zid_ravishda from "./dars/rasm/m-ga-qarshi-ga-zid-ravishda.webp";
+import d_m_ga_qarshi_turmoq_yuzma_yuz_kelmoq from "./dars/rasm/m-ga-qarshi-turmoq-yuzma-yuz-kelmoq.webp";
+import d_m_ga_qatiy_qaror_qilgan_bolmoq from "./dars/rasm/m-ga-qatiy-qaror-qilgan-bolmoq.webp";
+import d_m_ga_suyanmoq_ishonmoq from "./dars/rasm/m-ga-suyanmoq-ishonmoq.webp";
+import d_m_gan_holda_holbuki from "./dars/rasm/m-gan-holda-holbuki.webp";
+import d_m_gan_narsa_bu from "./dars/rasm/m-gan-narsa-bu.webp";
+import d_m_gan_narsam_bu from "./dars/rasm/m-gan-narsam-bu.webp";
+import d_m_gina_dan_keyingina from "./dars/rasm/m-gina-dan-keyingina.webp";
+import d_m_haqida_gapirmoqchiman from "./dars/rasm/m-haqida-gapirmoqchiman.webp";
+import d_m_holda_da_esa from "./dars/rasm/m-holda-da-esa.webp";
+import d_m_ish_uchun from "./dars/rasm/m-ish-uchun.webp";
+import d_m_ishda_davom_etmoq from "./dars/rasm/m-ishda-davom-etmoq.webp";
+import d_m_ishi_bilan_hali_masdan from "./dars/rasm/m-ishi-bilan-hali-masdan.webp";
+import d_m_ishi_bilanoq from "./dars/rasm/m-ishi-bilanoq.webp";
+import d_m_maqsadida from "./dars/rasm/m-maqsadida.webp";
+import d_m_maqsadida_ish_uchun from "./dars/rasm/m-maqsadida-ish-uchun.webp";
+import d_m_mas_deb_qorqib from "./dars/rasm/m-mas-deb-qorqib.webp";
+import d_m_natijasida_dan_keyin from "./dars/rasm/m-natijasida-dan-keyin.webp";
+import d_m_ni_xayolimga_ham_keltirmagan_edim from "./dars/rasm/m-ni-xayolimga-ham-keltirmagan-edim.webp";
+import d_m_nuqtai_nazaridan from "./dars/rasm/m-nuqtai-nazaridan.webp";
+import d_m_oqibatida from "./dars/rasm/m-oqibatida.webp";
+import d_m_sa from "./dars/rasm/m-sa.webp";
+import d_m_sababli_ni_hisobga_olib from "./dars/rasm/m-sababli-ni-hisobga-olib.webp";
+import d_m_sarlavha_qoymoq from "./dars/rasm/m-sarlavha-qoymoq.webp";
+import d_m_shakllantirishda_qatnashmoq from "./dars/rasm/m-shakllantirishda-qatnashmoq.webp";
+import d_m_shakllantirmoq_iz_qoldirmoq from "./dars/rasm/m-shakllantirmoq-iz-qoldirmoq.webp";
+import d_m_sharti_bilan from "./dars/rasm/m-sharti-bilan.webp";
+import d_m_shaxsiy_esse from "./dars/rasm/m-shaxsiy-esse.webp";
+import d_m_shaxssiz from "./dars/rasm/m-shaxssiz.webp";
+import d_m_shekilli_ga_oxshaydi from "./dars/rasm/m-shekilli-ga-oxshaydi.webp";
+import d_m_shoshilinch_xabar from "./dars/rasm/m-shoshilinch-xabar.webp";
+import d_m_shpargalka from "./dars/rasm/m-shpargalka.webp";
+import d_m_shu_bilan_birga_boshqa_tomondan from "./dars/rasm/m-shu-bilan-birga-boshqa-tomondan.webp";
+import d_m_shu_bilan_shu_tariqa from "./dars/rasm/m-shu-bilan-shu-tariqa.webp";
+import d_m_shu_kungacha from "./dars/rasm/m-shu-kungacha.webp";
+import d_m_shu_orada from "./dars/rasm/m-shu-orada.webp";
+import d_m_shu_sababli from "./dars/rasm/m-shu-sababli.webp";
+import d_m_shubhalanmoq from "./dars/rasm/m-shubhalanmoq.webp";
+import d_m_shubhasiz from "./dars/rasm/m-shubhasiz.webp";
+import d_m_shunday_bolsa_da from "./dars/rasm/m-shunday-bolsa-da.webp";
+import d_m_shunday_bolsa_ham from "./dars/rasm/m-shunday-bolsa-ham.webp";
+import d_m_shunday_qilib from "./dars/rasm/m-shunday-qilib.webp";
+import d_m_shunga_kora from "./dars/rasm/m-shunga-kora.webp";
+import d_m_shunga_qaramay from "./dars/rasm/m-shunga-qaramay.webp";
+import d_m_shunga_qaramay_holbuki from "./dars/rasm/m-shunga-qaramay-holbuki.webp";
+import d_m_shuni_qoshish_kerakki from "./dars/rasm/m-shuni-qoshish-kerakki.webp";
+import d_m_shuni_takidlash_joizki from "./dars/rasm/m-shuni-takidlash-joizki.webp";
+import d_m_shuning_uchun_ham from "./dars/rasm/m-shuning-uchun-ham.webp";
+import d_m_shuningdek from "./dars/rasm/m-shuningdek.webp";
+import d_m_shuningdek_ham from "./dars/rasm/m-shuningdek-ham.webp";
+import d_m_shuningdek_xuddi_shunday from "./dars/rasm/m-shuningdek-xuddi-shunday.webp";
+import d_m_signal_soz from "./dars/rasm/m-signal-soz.webp";
+import d_m_sin_deb from "./dars/rasm/m-sin-deb.webp";
+import d_m_sin_deb_ishi_uchun from "./dars/rasm/m-sin-deb-ishi-uchun.webp";
+import d_m_sinonim from "./dars/rasm/m-sinonim.webp";
+import d_m_sinonim_manodosh_soz from "./dars/rasm/m-sinonim-manodosh-soz.webp";
+import d_m_sinov_imtihoni from "./dars/rasm/m-sinov-imtihoni.webp";
+import d_m_sintez_umumlashtirish from "./dars/rasm/m-sintez-umumlashtirish.webp";
+import d_m_sirli from "./dars/rasm/m-sirli.webp";
+import d_m_siz_qolmoq from "./dars/rasm/m-siz-qolmoq.webp";
+import d_m_siz_yashamoq_siz_qolmoq from "./dars/rasm/m-siz-yashamoq-siz-qolmoq.webp";
+import d_m_slayd from "./dars/rasm/m-slayd.webp";
+import d_m_soz_oilasi from "./dars/rasm/m-soz-oilasi.webp";
+import d_m_sozlar_soni from "./dars/rasm/m-sozlar-soni.webp";
+import d_m_sozlashuv from "./dars/rasm/m-sozlashuv.webp";
+import d_m_sozlashuv_tiliga_oid from "./dars/rasm/m-sozlashuv-tiliga-oid.webp";
+import d_m_sozlashuvga_xos from "./dars/rasm/m-sozlashuvga-xos.webp";
+import d_m_sozma_soz from "./dars/rasm/m-sozma-soz.webp";
+import d_m_statistik_malumot from "./dars/rasm/m-statistik-malumot.webp";
+import d_m_stipendiya from "./dars/rasm/m-stipendiya.webp";
+import d_m_surmoq_keyinga_surmoq from "./dars/rasm/m-surmoq-keyinga-surmoq.webp";
+import d_m_susaymoq_kamaymoq from "./dars/rasm/m-susaymoq-kamaymoq.webp";
+import d_m_syujet from "./dars/rasm/m-syujet.webp";
+import d_m_tadbirkorlik from "./dars/rasm/m-tadbirkorlik.webp";
+import d_m_tafsilot from "./dars/rasm/m-tafsilot.webp";
+import d_m_tagin_masin from "./dars/rasm/m-tagin-masin.webp";
+import d_m_takid from "./dars/rasm/m-takid.webp";
+import d_m_takid_urgu from "./dars/rasm/m-takid-urgu.webp";
+import d_m_takidlamoq from "./dars/rasm/m-takidlamoq.webp";
+import d_m_takidlash_ajratib_korsatish from "./dars/rasm/m-takidlash-ajratib-korsatish.webp";
+import d_m_takrorlanadigan from "./dars/rasm/m-takrorlanadigan.webp";
+import d_m_talabalikka_yozilmoq from "./dars/rasm/m-talabalikka-yozilmoq.webp";
+import d_m_talablarga_javob_bermoq from "./dars/rasm/m-talablarga-javob-bermoq.webp";
+import d_m_tan_olish_kerakki from "./dars/rasm/m-tan-olish-kerakki.webp";
+import d_m_tana_tili from "./dars/rasm/m-tana-tili.webp";
+import d_m_tanaffus_yili from "./dars/rasm/m-tanaffus-yili.webp";
+import d_m_tanbeh_tana from "./dars/rasm/m-tanbeh-tana.webp";
+import d_m_tanlab_olinmoq from "./dars/rasm/m-tanlab-olinmoq.webp";
+import d_m_tanlanmoq from "./dars/rasm/m-tanlanmoq.webp";
+import d_m_taqdimot from "./dars/rasm/m-taqdimot.webp";
+import d_m_taqiq from "./dars/rasm/m-taqiq.webp";
+import d_m_taqsimlamoq from "./dars/rasm/m-taqsimlamoq.webp";
+import d_m_tarbiyalab_ostirmoq from "./dars/rasm/m-tarbiyalab-ostirmoq.webp";
+import d_m_tarbiyalamoq_katta_qilmoq from "./dars/rasm/m-tarbiyalamoq-katta-qilmoq.webp";
+import d_m_tarixga_kirmoq from "./dars/rasm/m-tarixga-kirmoq.webp";
+import d_m_tarqalib_ketmoq from "./dars/rasm/m-tarqalib-ketmoq.webp";
+import d_m_tarqatma_material from "./dars/rasm/m-tarqatma-material.webp";
+import d_m_tartibga_solmoq_hal_qilmoq from "./dars/rasm/m-tartibga-solmoq-hal-qilmoq.webp";
+import d_m_tasdiq_fikr from "./dars/rasm/m-tasdiq-fikr.webp";
+import d_m_tasdiqlanmagan from "./dars/rasm/m-tasdiqlanmagan.webp";
+import d_m_tashkil_qilmoq_tashkil_etmoq from "./dars/rasm/m-tashkil-qilmoq-tashkil-etmoq.webp";
+import d_m_tasirli from "./dars/rasm/m-tasirli.webp";
+import d_m_taslim_bolmaslik_ruhan_tushmaslik from "./dars/rasm/m-taslim-bolmaslik-ruhan-tushmaslik.webp";
+import d_m_taslim_bolmoq_qol_siltamoq from "./dars/rasm/m-taslim-bolmoq-qol-siltamoq.webp";
+import d_m_taslim_bolmoq_tashlamoq from "./dars/rasm/m-taslim-bolmoq-tashlamoq.webp";
+import d_m_tasodifan_duch_kelmoq from "./dars/rasm/m-tasodifan-duch-kelmoq.webp";
+import d_m_tasodifan_uchratmoq_duch_kelmoq from "./dars/rasm/m-tasodifan-uchratmoq-duch-kelmoq.webp";
+import d_m_tasvirlab_bermoq from "./dars/rasm/m-tasvirlab-bermoq.webp";
+import d_m_tatil_yili from "./dars/rasm/m-tatil-yili.webp";
+import d_m_tavsiyanoma from "./dars/rasm/m-tavsiyanoma.webp";
+import d_m_taxmin from "./dars/rasm/m-taxmin.webp";
+import d_m_taxmin_faraz from "./dars/rasm/m-taxmin-faraz.webp";
+import d_m_taxmin_qilingan_gumon_qilinayotgan from "./dars/rasm/m-taxmin-qilingan-gumon-qilinayotgan.webp";
+import d_m_taxmin_qilmoq_fahmlamoq from "./dars/rasm/m-taxmin-qilmoq-fahmlamoq.webp";
+import d_m_taxminan_kutilishicha from "./dars/rasm/m-taxminan-kutilishicha.webp";
+import d_m_tayanch_soz from "./dars/rasm/m-tayanch-soz.webp";
+import d_m_tebranmoq_ozgarib_turmoq from "./dars/rasm/m-tebranmoq-ozgarib-turmoq.webp";
+import d_m_tegishli_aloqador from "./dars/rasm/m-tegishli-aloqador.webp";
+import d_m_tejamkor from "./dars/rasm/m-tejamkor.webp";
+import d_m_tekshirib_organmoq from "./dars/rasm/m-tekshirib-organmoq.webp";
+import d_m_tendensiya_yonalish from "./dars/rasm/m-tendensiya-yonalish.webp";
+import d_m_teng_darajada from "./dars/rasm/m-teng-darajada.webp";
+import d_m_teng_kuchli_ekvivalent from "./dars/rasm/m-teng-kuchli-ekvivalent.webp";
+import d_m_teng_kuchli_muqobil from "./dars/rasm/m-teng-kuchli-muqobil.webp";
+import d_m_teng_manoli from "./dars/rasm/m-teng-manoli.webp";
+import d_m_tez_kozdan_kechirmoq from "./dars/rasm/m-tez-kozdan-kechirmoq.webp";
+import d_m_tez_otib_ketmoq from "./dars/rasm/m-tez-otib-ketmoq.webp";
+import d_m_tezis_asosiy_fikr from "./dars/rasm/m-tezis-asosiy-fikr.webp";
+import d_m_tinglash_matni from "./dars/rasm/m-tinglash-matni.webp";
+import d_m_tinglovchilar from "./dars/rasm/m-tinglovchilar.webp";
+import d_m_tinglovchilar_auditoriya from "./dars/rasm/m-tinglovchilar-auditoriya.webp";
+import d_m_tinimsiz_qatiyatli from "./dars/rasm/m-tinimsiz-qatiyatli.webp";
+import d_m_tobora_borgan_sari from "./dars/rasm/m-tobora-borgan-sari.webp";
+import d_m_togri_bolmoq_mos_kelmoq from "./dars/rasm/m-togri-bolmoq-mos-kelmoq.webp";
+import d_m_toldirmoq from "./dars/rasm/m-toldirmoq.webp";
+import d_m_toplamoq_yigmoq from "./dars/rasm/m-toplamoq-yigmoq.webp";
+import d_m_topmoq_aniqlamoq from "./dars/rasm/m-topmoq-aniqlamoq.webp";
+import d_m_topmoq_joyini_aniqlamoq from "./dars/rasm/m-topmoq-joyini-aniqlamoq.webp";
+import d_m_toxtam_pauza from "./dars/rasm/m-toxtam-pauza.webp";
+import d_m_toxtatmoq_bolmoq from "./dars/rasm/m-toxtatmoq-bolmoq.webp";
+import d_m_tufayli_sharofati_bilan from "./dars/rasm/m-tufayli-sharofati-bilan.webp";
+import d_m_tugab_qolmoq from "./dars/rasm/m-tugab-qolmoq.webp";
+import d_m_tugab_qolmoq_tashqariga_chiqmoq from "./dars/rasm/m-tugab-qolmoq-tashqariga-chiqmoq.webp";
+import d_m_tugallangan_korinish from "./dars/rasm/m-tugallangan-korinish.webp";
+import d_m_tugallangan_yakunlangan from "./dars/rasm/m-tugallangan-yakunlangan.webp";
+import d_m_tugallanmagan_korinish from "./dars/rasm/m-tugallanmagan-korinish.webp";
+import d_m_turtki_ragbat from "./dars/rasm/m-turtki-ragbat.webp";
+import d_m_tushmoq from "./dars/rasm/m-tushmoq.webp";
+import d_m_tuzilish from "./dars/rasm/m-tuzilish.webp";
+import d_m_tuzoq from "./dars/rasm/m-tuzoq.webp";
+import d_m_uchib_kotarilmoq_tez_rivojlanmoq from "./dars/rasm/m-uchib-kotarilmoq-tez-rivojlanmoq.webp";
+import d_m_uchib_otmoq from "./dars/rasm/m-uchib-otmoq.webp";
+import d_m_uchun_maqsadida from "./dars/rasm/m-uchun-maqsadida.webp";
+import d_m_uddalamoq_yengmoq from "./dars/rasm/m-uddalamoq-yengmoq.webp";
+import d_m_ulkan_maqsad_intilish from "./dars/rasm/m-ulkan-maqsad-intilish.webp";
+import d_m_ulugvor_yuksak from "./dars/rasm/m-ulugvor-yuksak.webp";
+import d_m_ulush from "./dars/rasm/m-ulush.webp";
+import d_m_umidini_puchga_chiqarmoq from "./dars/rasm/m-umidini-puchga-chiqarmoq.webp";
+import d_m_umrimda from "./dars/rasm/m-umrimda.webp";
+import d_m_umumiy_haqiqat_bolgan from "./dars/rasm/m-umumiy-haqiqat-bolgan.webp";
+import d_m_umumiy_jihat from "./dars/rasm/m-umumiy-jihat.webp";
+import d_m_umumiy_mano from "./dars/rasm/m-umumiy-mano.webp";
+import d_m_umumiy_manzara from "./dars/rasm/m-umumiy-manzara.webp";
+import d_m_umumiy_mazmun_mohiyat from "./dars/rasm/m-umumiy-mazmun-mohiyat.webp";
+import d_m_umumiy_tasavvur from "./dars/rasm/m-umumiy-tasavvur.webp";
+import d_m_umumlashma_sintez from "./dars/rasm/m-umumlashma-sintez.webp";
+import d_m_umumtan_olingan from "./dars/rasm/m-umumtan-olingan.webp";
+import d_m_undan_oldin_avvalroq from "./dars/rasm/m-undan-oldin-avvalroq.webp";
+import d_m_urinib_kormoq_urinish from "./dars/rasm/m-urinib-kormoq-urinish.webp";
+import d_m_urinish from "./dars/rasm/m-urinish.webp";
+import d_m_uzluksiz from "./dars/rasm/m-uzluksiz.webp";
+import d_m_uzoq_davom_etadigan from "./dars/rasm/m-uzoq-davom-etadigan.webp";
+import d_m_uzoq_muddatda from "./dars/rasm/m-uzoq-muddatda.webp";
+import d_m_uzoq_muddatli from "./dars/rasm/m-uzoq-muddatli.webp";
+import d_m_uzoq_xizmat_qiladigan_bardoshli from "./dars/rasm/m-uzoq-xizmat-qiladigan-bardoshli.webp";
+import d_m_va_eng_muhimi_oxirgi_lekin_muhim from "./dars/rasm/m-va-eng-muhimi-oxirgi-lekin-muhim.webp";
+import d_m_vaqtinchalik from "./dars/rasm/m-vaqtinchalik.webp";
+import d_m_vaqtni_boshqarish from "./dars/rasm/m-vaqtni-boshqarish.webp";
+import d_m_vaziyatni_baholamoq_yakun_yasamoq from "./dars/rasm/m-vaziyatni-baholamoq-yakun-yasamoq.webp";
+import d_m_voqeadan_oldingi_tarix from "./dars/rasm/m-voqeadan-oldingi-tarix.webp";
+import d_m_voqealar_sodir_bolayotgan_narsa from "./dars/rasm/m-voqealar-sodir-bolayotgan-narsa.webp";
+import d_m_voz_kechmoq_tashlab_ketmoq from "./dars/rasm/m-voz-kechmoq-tashlab-ketmoq.webp";
+import d_m_xatboshi from "./dars/rasm/m-xatboshi.webp";
+import d_m_xatboshining_kichik_mavzusi from "./dars/rasm/m-xatboshining-kichik-mavzusi.webp";
+import d_m_xatolarini_tekshirmoq from "./dars/rasm/m-xatolarini-tekshirmoq.webp";
+import d_m_xatolarni_tekshirib_oqimoq from "./dars/rasm/m-xatolarni-tekshirib-oqimoq.webp";
+import d_m_xayolan_qayta_kozdan_kechirmoq from "./dars/rasm/m-xayolan-qayta-kozdan-kechirmoq.webp";
+import d_m_xuddi_aynan_oz_vaqtida from "./dars/rasm/m-xuddi-aynan-oz-vaqtida.webp";
+import d_m_xuddi_shunday from "./dars/rasm/m-xuddi-shunday.webp";
+import d_m_xulosa from "./dars/rasm/m-xulosa.webp";
+import d_m_xulosa_chiqarmoq from "./dars/rasm/m-xulosa-chiqarmoq.webp";
+import d_m_xulosa_qilib_aytganda from "./dars/rasm/m-xulosa-qilib-aytganda.webp";
+import d_m_xulosa_qilmoq_umumlashtirmoq from "./dars/rasm/m-xulosa-qilmoq-umumlashtirmoq.webp";
+import d_m_xulosa_qismi from "./dars/rasm/m-xulosa-qismi.webp";
+import d_m_xulosaga_kelmoq from "./dars/rasm/m-xulosaga-kelmoq.webp";
+import d_m_xushmuomalalik from "./dars/rasm/m-xushmuomalalik.webp";
+import d_m_xushmuomalalik_odob from "./dars/rasm/m-xushmuomalalik-odob.webp";
+import d_m_xususan_jumladan from "./dars/rasm/m-xususan-jumladan.webp";
+import d_m_yakunida_songgida from "./dars/rasm/m-yakunida-songgida.webp";
+import d_m_yakuniy_xulosa from "./dars/rasm/m-yakuniy-xulosa.webp";
+import d_m_yakunlamoq_toldirib_tugatmoq from "./dars/rasm/m-yakunlamoq-toldirib-tugatmoq.webp";
+import d_m_yakunlamoq_xulosa_qilmoq from "./dars/rasm/m-yakunlamoq-xulosa-qilmoq.webp";
+import d_m_yakunlariga_kora from "./dars/rasm/m-yakunlariga-kora.webp";
+import d_m_yangi_ishga_kirishib_organmoq from "./dars/rasm/m-yangi-ishga-kirishib-organmoq.webp";
+import d_m_yaqin_kunlarda from "./dars/rasm/m-yaqin-kunlarda.webp";
+import d_m_yaqin_orada from "./dars/rasm/m-yaqin-orada.webp";
+import d_m_yaqin_orada_boladigan from "./dars/rasm/m-yaqin-orada-boladigan.webp";
+import d_m_yaqinlashib_kelmoq from "./dars/rasm/m-yaqinlashib-kelmoq.webp";
+import d_m_yaqqol_korsatmoq from "./dars/rasm/m-yaqqol-korsatmoq.webp";
+import d_m_yechim_hikoya_yakuni from "./dars/rasm/m-yechim-hikoya-yakuni.webp";
+import d_m_yengib_otmoq from "./dars/rasm/m-yengib-otmoq.webp";
+import d_m_yengmoq_uddalamoq from "./dars/rasm/m-yengmoq-uddalamoq.webp";
+import d_m_yetakchi_fikr from "./dars/rasm/m-yetakchi-fikr.webp";
+import d_m_yetib_olmoq from "./dars/rasm/m-yetib-olmoq.webp";
+import d_m_yetishmaslik from "./dars/rasm/m-yetishmaslik.webp";
+import d_m_yigilib_kelmoq from "./dars/rasm/m-yigilib-kelmoq.webp";
+import d_m_yil_boshidan_beri from "./dars/rasm/m-yil-boshidan-beri.webp";
+import d_m_yol_korsatkich from "./dars/rasm/m-yol-korsatkich.webp";
+import d_m_yol_yolakay_kirib_otmoq from "./dars/rasm/m-yol-yolakay-kirib-otmoq.webp";
+import d_m_yolgon_xabar_uydirma from "./dars/rasm/m-yolgon-xabar-uydirma.webp";
+import d_m_yon_bermoq from "./dars/rasm/m-yon-bermoq.webp";
+import d_m_yon_bermoq_tan_olib_bermoq from "./dars/rasm/m-yon-bermoq-tan-olib-bermoq.webp";
+import d_m_yoqligi_sababli from "./dars/rasm/m-yoqligi-sababli.webp";
+import d_m_yozma_nutq from "./dars/rasm/m-yozma-nutq.webp";
+import d_m_yozma_til from "./dars/rasm/m-yozma-til.webp";
+import d_m_yozuv from "./dars/rasm/m-yozuv.webp";
+import d_m_yugurib_kirmoq from "./dars/rasm/m-yugurib-kirmoq.webp";
+import d_m_yugurib_yaqinlashmoq from "./dars/rasm/m-yugurib-yaqinlashmoq.webp";
+import d_m_yuksalish_gullab_yashnash from "./dars/rasm/m-yuksalish-gullab-yashnash.webp";
+import d_m_yuqori_natijali_samarali from "./dars/rasm/m-yuqori-natijali-samarali.webp";
+import d_m_zarracha_ham from "./dars/rasm/m-zarracha-ham.webp";
+import d_m_zarur_bolsa from "./dars/rasm/m-zarur-bolsa.webp";
+import d_m_zarurat from "./dars/rasm/m-zarurat.webp";
+import d_m_zid_kelmoq from "./dars/rasm/m-zid-kelmoq.webp";
+import d_m_zid_kelmoq_rad_qilmoq from "./dars/rasm/m-zid-kelmoq-rad-qilmoq.webp";
+import d_m_zorga_deyarli_emas from "./dars/rasm/m-zorga-deyarli-emas.webp";
+import d_m_zorga_endigina from "./dars/rasm/m-zorga-endigina.webp";
 export const DARS_RASM = {
+  "d_m-arafasida-bolmoq-endi-moqchi-bolmoq": d_m_arafasida_bolmoq_endi_moqchi_bolmoq,
+  "d_m-ay-deb-turmoq": d_m_ay_deb_turmoq,
+  "d_m-bilan-yaxshi-chiqishmoq": d_m_bilan_yaxshi_chiqishmoq,
+  "d_m-bilanoq-zahoti": d_m_bilanoq_zahoti,
+  "d_m-bolsa-bas-ekan": d_m_bolsa_bas_ekan,
+  "d_m-dan-farqli-olaroq": d_m_dan_farqli_olaroq,
+  "d_m-dan-tashqari": d_m_dan_tashqari,
+  "d_m-dan-tashqari-2": d_m_dan_tashqari_2,
+  "d_m-dan-tortinmang": d_m_dan_tortinmang,
+  "d_m-deb-hisoblanadi": d_m_deb_hisoblanadi,
+  "d_m-degan-gap-yuribdi": d_m_degan_gap_yuribdi,
+  "d_m-deyishadi-ekan": d_m_deyishadi_ekan,
+  "d_m-ekani-etirof-etilgan": d_m_ekani_etirof_etilgan,
+  "d_m-ekani-malum-bolmoq": d_m_ekani_malum_bolmoq,
+  "d_m-ga-dadil-kirishmoq": d_m_ga_dadil_kirishmoq,
+  "d_m-ga-hissa-qoshmoq": d_m_ga_hissa_qoshmoq,
+  "d_m-ga-intilmoq": d_m_ga_intilmoq,
+  "d_m-ga-kelsak": d_m_ga_kelsak,
+  "d_m-ga-kelsak-haqida": d_m_ga_kelsak_haqida,
+  "d_m-ga-kirishmoq-boshlab-yubormoq": d_m_ga_kirishmoq_boshlab_yubormoq,
+  "d_m-ga-kirishmoq-boshlamoq": d_m_ga_kirishmoq_boshlamoq,
+  "d_m-ga-nisbatan": d_m_ga_nisbatan,
+  "d_m-ga-nisbatan-haqida": d_m_ga_nisbatan_haqida,
+  "d_m-ga-oid-ga-kelsak": d_m_ga_oid_ga_kelsak,
+  "d_m-ga-otamiz": d_m_ga_otamiz,
+  "d_m-ga-qaramasdan": d_m_ga_qaramasdan,
+  "d_m-ga-qaramay": d_m_ga_qaramay,
+  "d_m-ga-qaramay-2": d_m_ga_qaramay_2,
+  "d_m-ga-qarshi-ga-zid-ravishda": d_m_ga_qarshi_ga_zid_ravishda,
+  "d_m-ga-qarshi-turmoq-yuzma-yuz-kelmoq": d_m_ga_qarshi_turmoq_yuzma_yuz_kelmoq,
+  "d_m-ga-qatiy-qaror-qilgan-bolmoq": d_m_ga_qatiy_qaror_qilgan_bolmoq,
+  "d_m-ga-suyanmoq-ishonmoq": d_m_ga_suyanmoq_ishonmoq,
+  "d_m-gan-holda-holbuki": d_m_gan_holda_holbuki,
+  "d_m-gan-narsa-bu": d_m_gan_narsa_bu,
+  "d_m-gan-narsam-bu": d_m_gan_narsam_bu,
+  "d_m-gina-dan-keyingina": d_m_gina_dan_keyingina,
+  "d_m-haqida-gapirmoqchiman": d_m_haqida_gapirmoqchiman,
+  "d_m-holda-da-esa": d_m_holda_da_esa,
+  "d_m-ish-uchun": d_m_ish_uchun,
+  "d_m-ishda-davom-etmoq": d_m_ishda_davom_etmoq,
+  "d_m-ishi-bilan-hali-masdan": d_m_ishi_bilan_hali_masdan,
+  "d_m-ishi-bilanoq": d_m_ishi_bilanoq,
+  "d_m-maqsadida": d_m_maqsadida,
+  "d_m-maqsadida-ish-uchun": d_m_maqsadida_ish_uchun,
+  "d_m-mas-deb-qorqib": d_m_mas_deb_qorqib,
+  "d_m-natijasida-dan-keyin": d_m_natijasida_dan_keyin,
+  "d_m-ni-xayolimga-ham-keltirmagan-edim": d_m_ni_xayolimga_ham_keltirmagan_edim,
+  "d_m-nuqtai-nazaridan": d_m_nuqtai_nazaridan,
+  "d_m-oqibatida": d_m_oqibatida,
+  "d_m-sa": d_m_sa,
+  "d_m-sababli-ni-hisobga-olib": d_m_sababli_ni_hisobga_olib,
+  "d_m-sarlavha-qoymoq": d_m_sarlavha_qoymoq,
+  "d_m-shakllantirishda-qatnashmoq": d_m_shakllantirishda_qatnashmoq,
+  "d_m-shakllantirmoq-iz-qoldirmoq": d_m_shakllantirmoq_iz_qoldirmoq,
+  "d_m-sharti-bilan": d_m_sharti_bilan,
+  "d_m-shaxsiy-esse": d_m_shaxsiy_esse,
+  "d_m-shaxssiz": d_m_shaxssiz,
+  "d_m-shekilli-ga-oxshaydi": d_m_shekilli_ga_oxshaydi,
+  "d_m-shoshilinch-xabar": d_m_shoshilinch_xabar,
+  "d_m-shpargalka": d_m_shpargalka,
+  "d_m-shu-bilan-birga-boshqa-tomondan": d_m_shu_bilan_birga_boshqa_tomondan,
+  "d_m-shu-bilan-shu-tariqa": d_m_shu_bilan_shu_tariqa,
+  "d_m-shu-kungacha": d_m_shu_kungacha,
+  "d_m-shu-orada": d_m_shu_orada,
+  "d_m-shu-sababli": d_m_shu_sababli,
+  "d_m-shubhalanmoq": d_m_shubhalanmoq,
+  "d_m-shubhasiz": d_m_shubhasiz,
+  "d_m-shunday-bolsa-da": d_m_shunday_bolsa_da,
+  "d_m-shunday-bolsa-ham": d_m_shunday_bolsa_ham,
+  "d_m-shunday-qilib": d_m_shunday_qilib,
+  "d_m-shunga-kora": d_m_shunga_kora,
+  "d_m-shunga-qaramay": d_m_shunga_qaramay,
+  "d_m-shunga-qaramay-holbuki": d_m_shunga_qaramay_holbuki,
+  "d_m-shuni-qoshish-kerakki": d_m_shuni_qoshish_kerakki,
+  "d_m-shuni-takidlash-joizki": d_m_shuni_takidlash_joizki,
+  "d_m-shuning-uchun-ham": d_m_shuning_uchun_ham,
+  "d_m-shuningdek": d_m_shuningdek,
+  "d_m-shuningdek-ham": d_m_shuningdek_ham,
+  "d_m-shuningdek-xuddi-shunday": d_m_shuningdek_xuddi_shunday,
+  "d_m-signal-soz": d_m_signal_soz,
+  "d_m-sin-deb": d_m_sin_deb,
+  "d_m-sin-deb-ishi-uchun": d_m_sin_deb_ishi_uchun,
+  "d_m-sinonim": d_m_sinonim,
+  "d_m-sinonim-manodosh-soz": d_m_sinonim_manodosh_soz,
+  "d_m-sinov-imtihoni": d_m_sinov_imtihoni,
+  "d_m-sintez-umumlashtirish": d_m_sintez_umumlashtirish,
+  "d_m-sirli": d_m_sirli,
+  "d_m-siz-qolmoq": d_m_siz_qolmoq,
+  "d_m-siz-yashamoq-siz-qolmoq": d_m_siz_yashamoq_siz_qolmoq,
+  "d_m-slayd": d_m_slayd,
+  "d_m-soz-oilasi": d_m_soz_oilasi,
+  "d_m-sozlar-soni": d_m_sozlar_soni,
+  "d_m-sozlashuv": d_m_sozlashuv,
+  "d_m-sozlashuv-tiliga-oid": d_m_sozlashuv_tiliga_oid,
+  "d_m-sozlashuvga-xos": d_m_sozlashuvga_xos,
+  "d_m-sozma-soz": d_m_sozma_soz,
+  "d_m-statistik-malumot": d_m_statistik_malumot,
+  "d_m-stipendiya": d_m_stipendiya,
+  "d_m-surmoq-keyinga-surmoq": d_m_surmoq_keyinga_surmoq,
+  "d_m-susaymoq-kamaymoq": d_m_susaymoq_kamaymoq,
+  "d_m-syujet": d_m_syujet,
+  "d_m-tadbirkorlik": d_m_tadbirkorlik,
+  "d_m-tafsilot": d_m_tafsilot,
+  "d_m-tagin-masin": d_m_tagin_masin,
+  "d_m-takid": d_m_takid,
+  "d_m-takid-urgu": d_m_takid_urgu,
+  "d_m-takidlamoq": d_m_takidlamoq,
+  "d_m-takidlash-ajratib-korsatish": d_m_takidlash_ajratib_korsatish,
+  "d_m-takrorlanadigan": d_m_takrorlanadigan,
+  "d_m-talabalikka-yozilmoq": d_m_talabalikka_yozilmoq,
+  "d_m-talablarga-javob-bermoq": d_m_talablarga_javob_bermoq,
+  "d_m-tan-olish-kerakki": d_m_tan_olish_kerakki,
+  "d_m-tana-tili": d_m_tana_tili,
+  "d_m-tanaffus-yili": d_m_tanaffus_yili,
+  "d_m-tanbeh-tana": d_m_tanbeh_tana,
+  "d_m-tanlab-olinmoq": d_m_tanlab_olinmoq,
+  "d_m-tanlanmoq": d_m_tanlanmoq,
+  "d_m-taqdimot": d_m_taqdimot,
+  "d_m-taqiq": d_m_taqiq,
+  "d_m-taqsimlamoq": d_m_taqsimlamoq,
+  "d_m-tarbiyalab-ostirmoq": d_m_tarbiyalab_ostirmoq,
+  "d_m-tarbiyalamoq-katta-qilmoq": d_m_tarbiyalamoq_katta_qilmoq,
+  "d_m-tarixga-kirmoq": d_m_tarixga_kirmoq,
+  "d_m-tarqalib-ketmoq": d_m_tarqalib_ketmoq,
+  "d_m-tarqatma-material": d_m_tarqatma_material,
+  "d_m-tartibga-solmoq-hal-qilmoq": d_m_tartibga_solmoq_hal_qilmoq,
+  "d_m-tasdiq-fikr": d_m_tasdiq_fikr,
+  "d_m-tasdiqlanmagan": d_m_tasdiqlanmagan,
+  "d_m-tashkil-qilmoq-tashkil-etmoq": d_m_tashkil_qilmoq_tashkil_etmoq,
+  "d_m-tasirli": d_m_tasirli,
+  "d_m-taslim-bolmaslik-ruhan-tushmaslik": d_m_taslim_bolmaslik_ruhan_tushmaslik,
+  "d_m-taslim-bolmoq-qol-siltamoq": d_m_taslim_bolmoq_qol_siltamoq,
+  "d_m-taslim-bolmoq-tashlamoq": d_m_taslim_bolmoq_tashlamoq,
+  "d_m-tasodifan-duch-kelmoq": d_m_tasodifan_duch_kelmoq,
+  "d_m-tasodifan-uchratmoq-duch-kelmoq": d_m_tasodifan_uchratmoq_duch_kelmoq,
+  "d_m-tasvirlab-bermoq": d_m_tasvirlab_bermoq,
+  "d_m-tatil-yili": d_m_tatil_yili,
+  "d_m-tavsiyanoma": d_m_tavsiyanoma,
+  "d_m-taxmin": d_m_taxmin,
+  "d_m-taxmin-faraz": d_m_taxmin_faraz,
+  "d_m-taxmin-qilingan-gumon-qilinayotgan": d_m_taxmin_qilingan_gumon_qilinayotgan,
+  "d_m-taxmin-qilmoq-fahmlamoq": d_m_taxmin_qilmoq_fahmlamoq,
+  "d_m-taxminan-kutilishicha": d_m_taxminan_kutilishicha,
+  "d_m-tayanch-soz": d_m_tayanch_soz,
+  "d_m-tebranmoq-ozgarib-turmoq": d_m_tebranmoq_ozgarib_turmoq,
+  "d_m-tegishli-aloqador": d_m_tegishli_aloqador,
+  "d_m-tejamkor": d_m_tejamkor,
+  "d_m-tekshirib-organmoq": d_m_tekshirib_organmoq,
+  "d_m-tendensiya-yonalish": d_m_tendensiya_yonalish,
+  "d_m-teng-darajada": d_m_teng_darajada,
+  "d_m-teng-kuchli-ekvivalent": d_m_teng_kuchli_ekvivalent,
+  "d_m-teng-kuchli-muqobil": d_m_teng_kuchli_muqobil,
+  "d_m-teng-manoli": d_m_teng_manoli,
+  "d_m-tez-kozdan-kechirmoq": d_m_tez_kozdan_kechirmoq,
+  "d_m-tez-otib-ketmoq": d_m_tez_otib_ketmoq,
+  "d_m-tezis-asosiy-fikr": d_m_tezis_asosiy_fikr,
+  "d_m-tinglash-matni": d_m_tinglash_matni,
+  "d_m-tinglovchilar": d_m_tinglovchilar,
+  "d_m-tinglovchilar-auditoriya": d_m_tinglovchilar_auditoriya,
+  "d_m-tinimsiz-qatiyatli": d_m_tinimsiz_qatiyatli,
+  "d_m-tobora-borgan-sari": d_m_tobora_borgan_sari,
+  "d_m-togri-bolmoq-mos-kelmoq": d_m_togri_bolmoq_mos_kelmoq,
+  "d_m-toldirmoq": d_m_toldirmoq,
+  "d_m-toplamoq-yigmoq": d_m_toplamoq_yigmoq,
+  "d_m-topmoq-aniqlamoq": d_m_topmoq_aniqlamoq,
+  "d_m-topmoq-joyini-aniqlamoq": d_m_topmoq_joyini_aniqlamoq,
+  "d_m-toxtam-pauza": d_m_toxtam_pauza,
+  "d_m-toxtatmoq-bolmoq": d_m_toxtatmoq_bolmoq,
+  "d_m-tufayli-sharofati-bilan": d_m_tufayli_sharofati_bilan,
+  "d_m-tugab-qolmoq": d_m_tugab_qolmoq,
+  "d_m-tugab-qolmoq-tashqariga-chiqmoq": d_m_tugab_qolmoq_tashqariga_chiqmoq,
+  "d_m-tugallangan-korinish": d_m_tugallangan_korinish,
+  "d_m-tugallangan-yakunlangan": d_m_tugallangan_yakunlangan,
+  "d_m-tugallanmagan-korinish": d_m_tugallanmagan_korinish,
+  "d_m-turtki-ragbat": d_m_turtki_ragbat,
+  "d_m-tushmoq": d_m_tushmoq,
+  "d_m-tuzilish": d_m_tuzilish,
+  "d_m-tuzoq": d_m_tuzoq,
+  "d_m-uchib-kotarilmoq-tez-rivojlanmoq": d_m_uchib_kotarilmoq_tez_rivojlanmoq,
+  "d_m-uchib-otmoq": d_m_uchib_otmoq,
+  "d_m-uchun-maqsadida": d_m_uchun_maqsadida,
+  "d_m-uddalamoq-yengmoq": d_m_uddalamoq_yengmoq,
+  "d_m-ulkan-maqsad-intilish": d_m_ulkan_maqsad_intilish,
+  "d_m-ulugvor-yuksak": d_m_ulugvor_yuksak,
+  "d_m-ulush": d_m_ulush,
+  "d_m-umidini-puchga-chiqarmoq": d_m_umidini_puchga_chiqarmoq,
+  "d_m-umrimda": d_m_umrimda,
+  "d_m-umumiy-haqiqat-bolgan": d_m_umumiy_haqiqat_bolgan,
+  "d_m-umumiy-jihat": d_m_umumiy_jihat,
+  "d_m-umumiy-mano": d_m_umumiy_mano,
+  "d_m-umumiy-manzara": d_m_umumiy_manzara,
+  "d_m-umumiy-mazmun-mohiyat": d_m_umumiy_mazmun_mohiyat,
+  "d_m-umumiy-tasavvur": d_m_umumiy_tasavvur,
+  "d_m-umumlashma-sintez": d_m_umumlashma_sintez,
+  "d_m-umumtan-olingan": d_m_umumtan_olingan,
+  "d_m-undan-oldin-avvalroq": d_m_undan_oldin_avvalroq,
+  "d_m-urinib-kormoq-urinish": d_m_urinib_kormoq_urinish,
+  "d_m-urinish": d_m_urinish,
+  "d_m-uzluksiz": d_m_uzluksiz,
+  "d_m-uzoq-davom-etadigan": d_m_uzoq_davom_etadigan,
+  "d_m-uzoq-muddatda": d_m_uzoq_muddatda,
+  "d_m-uzoq-muddatli": d_m_uzoq_muddatli,
+  "d_m-uzoq-xizmat-qiladigan-bardoshli": d_m_uzoq_xizmat_qiladigan_bardoshli,
+  "d_m-va-eng-muhimi-oxirgi-lekin-muhim": d_m_va_eng_muhimi_oxirgi_lekin_muhim,
+  "d_m-vaqtinchalik": d_m_vaqtinchalik,
+  "d_m-vaqtni-boshqarish": d_m_vaqtni_boshqarish,
+  "d_m-vaziyatni-baholamoq-yakun-yasamoq": d_m_vaziyatni_baholamoq_yakun_yasamoq,
+  "d_m-voqeadan-oldingi-tarix": d_m_voqeadan_oldingi_tarix,
+  "d_m-voqealar-sodir-bolayotgan-narsa": d_m_voqealar_sodir_bolayotgan_narsa,
+  "d_m-voz-kechmoq-tashlab-ketmoq": d_m_voz_kechmoq_tashlab_ketmoq,
+  "d_m-xatboshi": d_m_xatboshi,
+  "d_m-xatboshining-kichik-mavzusi": d_m_xatboshining_kichik_mavzusi,
+  "d_m-xatolarini-tekshirmoq": d_m_xatolarini_tekshirmoq,
+  "d_m-xatolarni-tekshirib-oqimoq": d_m_xatolarni_tekshirib_oqimoq,
+  "d_m-xayolan-qayta-kozdan-kechirmoq": d_m_xayolan_qayta_kozdan_kechirmoq,
+  "d_m-xuddi-aynan-oz-vaqtida": d_m_xuddi_aynan_oz_vaqtida,
+  "d_m-xuddi-shunday": d_m_xuddi_shunday,
+  "d_m-xulosa": d_m_xulosa,
+  "d_m-xulosa-chiqarmoq": d_m_xulosa_chiqarmoq,
+  "d_m-xulosa-qilib-aytganda": d_m_xulosa_qilib_aytganda,
+  "d_m-xulosa-qilmoq-umumlashtirmoq": d_m_xulosa_qilmoq_umumlashtirmoq,
+  "d_m-xulosa-qismi": d_m_xulosa_qismi,
+  "d_m-xulosaga-kelmoq": d_m_xulosaga_kelmoq,
+  "d_m-xushmuomalalik": d_m_xushmuomalalik,
+  "d_m-xushmuomalalik-odob": d_m_xushmuomalalik_odob,
+  "d_m-xususan-jumladan": d_m_xususan_jumladan,
+  "d_m-yakunida-songgida": d_m_yakunida_songgida,
+  "d_m-yakuniy-xulosa": d_m_yakuniy_xulosa,
+  "d_m-yakunlamoq-toldirib-tugatmoq": d_m_yakunlamoq_toldirib_tugatmoq,
+  "d_m-yakunlamoq-xulosa-qilmoq": d_m_yakunlamoq_xulosa_qilmoq,
+  "d_m-yakunlariga-kora": d_m_yakunlariga_kora,
+  "d_m-yangi-ishga-kirishib-organmoq": d_m_yangi_ishga_kirishib_organmoq,
+  "d_m-yaqin-kunlarda": d_m_yaqin_kunlarda,
+  "d_m-yaqin-orada": d_m_yaqin_orada,
+  "d_m-yaqin-orada-boladigan": d_m_yaqin_orada_boladigan,
+  "d_m-yaqinlashib-kelmoq": d_m_yaqinlashib_kelmoq,
+  "d_m-yaqqol-korsatmoq": d_m_yaqqol_korsatmoq,
+  "d_m-yechim-hikoya-yakuni": d_m_yechim_hikoya_yakuni,
+  "d_m-yengib-otmoq": d_m_yengib_otmoq,
+  "d_m-yengmoq-uddalamoq": d_m_yengmoq_uddalamoq,
+  "d_m-yetakchi-fikr": d_m_yetakchi_fikr,
+  "d_m-yetib-olmoq": d_m_yetib_olmoq,
+  "d_m-yetishmaslik": d_m_yetishmaslik,
+  "d_m-yigilib-kelmoq": d_m_yigilib_kelmoq,
+  "d_m-yil-boshidan-beri": d_m_yil_boshidan_beri,
+  "d_m-yol-korsatkich": d_m_yol_korsatkich,
+  "d_m-yol-yolakay-kirib-otmoq": d_m_yol_yolakay_kirib_otmoq,
+  "d_m-yolgon-xabar-uydirma": d_m_yolgon_xabar_uydirma,
+  "d_m-yon-bermoq": d_m_yon_bermoq,
+  "d_m-yon-bermoq-tan-olib-bermoq": d_m_yon_bermoq_tan_olib_bermoq,
+  "d_m-yoqligi-sababli": d_m_yoqligi_sababli,
+  "d_m-yozma-nutq": d_m_yozma_nutq,
+  "d_m-yozma-til": d_m_yozma_til,
+  "d_m-yozuv": d_m_yozuv,
+  "d_m-yugurib-kirmoq": d_m_yugurib_kirmoq,
+  "d_m-yugurib-yaqinlashmoq": d_m_yugurib_yaqinlashmoq,
+  "d_m-yuksalish-gullab-yashnash": d_m_yuksalish_gullab_yashnash,
+  "d_m-yuqori-natijali-samarali": d_m_yuqori_natijali_samarali,
+  "d_m-zarracha-ham": d_m_zarracha_ham,
+  "d_m-zarur-bolsa": d_m_zarur_bolsa,
+  "d_m-zarurat": d_m_zarurat,
+  "d_m-zid-kelmoq": d_m_zid_kelmoq,
+  "d_m-zid-kelmoq-rad-qilmoq": d_m_zid_kelmoq_rad_qilmoq,
+  "d_m-zorga-deyarli-emas": d_m_zorga_deyarli_emas,
+  "d_m-zorga-endigina": d_m_zorga_endigina,
+
   "d_m-zararli-ovqat": d_m_zararli_ovqat,
   "d_m-zararli-sogliq-uchun-yomon": d_m_zararli_sogliq_uchun_yomon,
   "d_m-zavq-bermoq-qiziqarli-bolmoq": d_m_zavq_bermoq_qiziqarli_bolmoq,

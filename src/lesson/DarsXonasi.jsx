@@ -289,7 +289,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const theme = learnerGender === "qiz" ? "girl" : learnerGender === "ogil" ? "boy" : "neutral";
   // REV110: bog'chada dars ustozning o'z salomi, bugungi ob-havo va o'tgan darsdan savol bilan boshlanadi.
   // REV130: dars boshida faqat O'TGAN mavzu (ro'yxatdagi oldingi dars) takrorlanadi — boshqa fandan yoki eski darsdan emas.
-  const boshi = useMemo(() => (kid ? darsBoshi(lesson?.steps || [], lesson?.topic?.mavzu || "") : { takror: [], qolgan: lesson?.steps || [] }), [kid, lesson]);
+  // REV355: «Kabu kabi qil», «Sakrab sana», «Muzlab qol» (171/172/175) — «Bajardim» bosish ma'nosiz edi, darsdan olib tashlanadi
+  const darsQadamlari = useMemo(() => (lesson?.steps || []).filter((x) => !(kid && x?.turi === "amaliy" && HARAKAT_OYINLARI.has(Number(x?.oyin)))), [kid, lesson]);
+  const boshi = useMemo(() => (kid ? darsBoshi(darsQadamlari, lesson?.topic?.mavzu || "") : { takror: [], qolgan: lesson?.steps || [] }), [kid, lesson, darsQadamlari]);
   const oldingi = useMemo(() => {
     if (!lesson || boshi.takror.length || !oldingiKod) return null;   // miyada o'tgan mavzu takrori bo'lsa — o'shasi yetadi
     const o = oxirgiDars(topicCode);
@@ -785,6 +787,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     for (const r of list || []) { const k = String(r?.phrase || "").toLowerCase(); if (k) aytganlar.current[k] = Boolean(aytganlar.current[k] || r.ok); }
     setVoice(sum || { togri: 0, jami: 0 }); voiceRef.current = sum || { togri: 0, jami: 0 }; afterLesson();
   };
+  // REV355: o'yin elementining rasmi — rasmlar kutubxonasidan (so'zi yoki belgisi bo'yicha); topilmasa o'yin o'z belgisini ko'rsatadi
+  const oyinRasmi = (el) => { if (!el) return ""; const soz = el.say || el.uz || ""; const mt = matnId(el.uz || "") || matnId(el.say || "");
+    if (mt && RASM_HAMMA[mt]) return RASM_HAMMA[mt];
+    const id = sozId({ soz: el.uz || soz, emoji: el.emoji || "" }); if (id && RASM_HAMMA[id]) return RASM_HAMMA[id];
+    return emojiRasm(el.emoji || "", RASM_HAMMA, soz)?.src || ""; };
   // REV145: so'z rasmi — rassom chizgan rasm (inglizcha so'z yoki emoji orqali)
   const sozRasmi = (soz, emoji) => { const mt = matnId(soz); if (mt && RASM_HAMMA[mt]) return { id: mt, src: RASM_HAMMA[mt] }; const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : emojiRasm(emoji, RASM_HAMMA); };
   // REV145: bugun o'rgangan so'zlar va bola ularni aytdimi — bola natija ekranida va ota-ona hisobotida
@@ -1754,6 +1761,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             </div>}
             {oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam">
               <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh={yoshGuruh(grade)} til={darsTil || "uz"} izoh={tIzoh}
+                rasm={oyinRasmi}
                 mavzu={String(lesson?.topic?.mavzu || "").replace(/^\s*\d+[.)]\s*/, "")} tanish={oyinQ.tanish} fasl={["qish", "qish", "bahor", "bahor", "bahor", "yoz", "yoz", "yoz", "kuz", "kuz", "kuz", "qish"][new Date().getMonth()]}
                 onSay={(t) => say(t)}
                 onNatija={(togri, xatolar, info) => {
