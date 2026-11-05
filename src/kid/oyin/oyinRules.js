@@ -32,6 +32,17 @@ export const OYINLAR = [
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
   { id: 76, kalit: "joylashuv", nom: "Qayerda?", belgi: "📦", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 1 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  // REV351: eshitish o'yinlari
+  { id: 121, kalit: "hayvonOvoz", nom: "Kim ovoz beryapti?", belgi: "👂", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 8, "6-7": 8 } },
+  { id: 123, kalit: "transportOvoz", nom: "Qaysi transport?", belgi: "🚂", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 8, "6-7": 8 } },
+  { id: 142, kalit: "faslOvoz", nom: "Fasl ovozlari", belgi: "🍂", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 11, "6-7": 10 } },
+  { id: 118, kalit: "birinchiHarf", nom: "Birinchi harf", belgi: "🔤", yosh: ["6-7"], harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "6-7": 6 }, soniya: { "6-7": 11 } },
+  { id: 120, kalit: "bogin", nom: "Bo‘g‘in qarsagi", belgi: "👏", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
+    raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 11, "6-7": 10 } },
   // REV349: tartibga qo'yish — hayotiy jarayonlar to'g'ri ketma-ketlikda
   { id: 152, kalit: "kapalak", nom: "Kapalak hayoti", belgi: "🦋", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
     raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
@@ -347,9 +358,41 @@ function minoraVariantlar(namuna, n, rnd) {
 
 import { SARALASH, FASL_MEVA, ULASH } from "./saralashData.js";   // REV348
 import { TARTIB } from "./tartibData.js";   // REV349
+import { HAYVON_OVOZ, TRANSPORT_OVOZ, FASL_OVOZ } from "./eshitData.js";   // REV351
 
 // REV348: saralash/ulash elementi — so'z izoh tilida (bola tushunadigan tilda aytiladi va yoziladi)
 const sozEl = (w, izoh, k) => ({ k, emoji: w.e, uz: w.s[izoh] || w.s.uz, soz: w.s });
+
+// REV351: eshitish o'yinlari yordamchilari
+function ovozRaund(data, { n, rnd, R, izoh }) {
+  return navbat(data.map((d, i) => ({ d, i })), R, rnd).map(({ d, i }) => {
+    const togri = sozEl(d.w, izoh, `o${i}`);
+    const boshqa = tanla(data.filter((_, j) => j !== i), n - 1, rnd).map((x) => sozEl(x.w, izoh, `o${data.indexOf(x)}`));
+    return { tur: "tanlov", savol: { ovoz: d.o[izoh] || d.o.uz, el: togri }, variantlar: aralash([togri, ...boshqa].map((e) => ({ k: e.k, el: e })), rnd), togri: togri.k };
+  });
+}
+/** Saralash/ulash ma'lumotidagi hamma rasmli so'zlar (izoh tilida). */
+function SOZ_HOVUZI(izoh) {
+  const kor = new Set(); const out = [];
+  const qosh = (w) => { const e = sozEl(w, izoh, w.e); if (!kor.has(e.uz) && !kor.has(w.e)) { kor.add(e.uz); kor.add(w.e); out.push(e); } };
+  for (const d of Object.values(SARALASH)) d.narsa.flat().forEach(qosh);
+  for (const d of Object.values(ULASH)) d.juft.flat().forEach(qosh);
+  return out;
+}
+/** So'zning birinchi harfi (o'zbekchada Sh, Ch, O', G', Ng — bitta harf). */
+export function birinchiHarf(soz, izoh = "uz") {
+  const s = String(soz || "").trim().replace(/[ʻʼ'`’]/g, "‘");
+  if (!s) return "";
+  if (izoh === "uz") { const m = /^(sh|ch|o‘|g‘)/i.exec(s); if (m) return m[1][0].toUpperCase() + m[1].slice(1).toLowerCase(); }
+  const c = s[0];
+  return /\p{L}/u.test(c) ? c.toLocaleUpperCase() : "";
+}
+/** Bo'g'inlar soni: unli harflar soni (o'zbek: a e i o u o‘; rus: а е ё и о у ы э ю я). */
+export function boginSoni(soz, izoh = "uz") {
+  const s = String(soz || "").toLowerCase().replace(/[ʻʼ'`’]/g, "‘");
+  if (izoh === "ru") return (s.match(/[аеёиоуыэюя]/g) || []).length;
+  return (s.replace(/o‘/g, "o").match(/[aeiou]/g) || []).length;
+}
 
 // REV347: tarozi uchun juftlar — birinchisi aniq og'ir (bola hayotda biladi)
 export const TAROZI_JUFT = [["🐘", "🐭"], ["🍉", "🍒"], ["🚗", "⚽"], ["🐻", "🐝"], ["🎃", "🍓"], ["🪨", "🪶"], ["🐄", "🐔"], ["📚", "✏️"], ["🛏️", "🧸"], ["🍍", "🫐"], ["🐳", "🐟"], ["🧱", "🎈"]];
@@ -408,6 +451,36 @@ function yollarRaund(els, n, rnd) {
 }
 
 const YASOVCHI = {
+  // REV351: eshitish — ovoz aytiladi (izoh tilida), bola egasini topadi
+  hayvonOvoz: ({ n, rnd, R, izoh }) => ovozRaund(HAYVON_OVOZ, { n, rnd, R, izoh }),
+  transportOvoz: ({ n, rnd, R, izoh }) => ovozRaund(TRANSPORT_OVOZ, { n, rnd, R, izoh }),
+  faslOvoz: ({ y, rnd, R, izoh }) => {
+    const f = ["bahor", "yoz", "kuz", "qish"]; const nomi = { bahor: ["🌸", "bahor"], yoz: ["☀️", "yoz"], kuz: ["🍂", "kuz"], qish: ["❄️", "qish"] };
+    const FN = { bahor: { uz: "bahor", ru: "весна", en: "spring", de: "Frühling", es: "primavera" }, yoz: { uz: "yoz", ru: "лето", en: "summer", de: "Sommer", es: "verano" },
+      kuz: { uz: "kuz", ru: "осень", en: "autumn", de: "Herbst", es: "otoño" }, qish: { uz: "qish", ru: "зима", en: "winter", de: "Winter", es: "invierno" } };
+    const hovuz = f.flatMap((x) => FASL_OVOZ[x].map((g) => ({ x, g })));
+    const variantlar = f.map((x) => ({ k: `f_${x}`, el: { k: `f_${x}`, emoji: nomi[x][0], uz: FN[x][izoh] || FN[x].uz } }));
+    return navbat(hovuz, R, rnd).map(({ x, g }) => ({ tur: "tanlov", savol: { tasvir: g[izoh] || g.uz }, variantlar: aralash(variantlar, rnd), togri: `f_${x}` }));
+  },
+  // REV351: birinchi harf (6–7) — rasmlardan bittasi aytilgan harf bilan boshlanadi
+  birinchiHarf: ({ n, rnd, R, izoh }) => {
+    const sozlar = SOZ_HOVUZI(izoh).map((e) => ({ ...e, h: birinchiHarf(e.uz, izoh) })).filter((e) => e.h);
+    const out = [];
+    for (let t = 0; out.length < R && t < R * 10; t += 1) {
+      const togri = bitta(sozlar, rnd);
+      const boshqa = tanla(sozlar.filter((e) => e.h !== togri.h && e.emoji !== togri.emoji), n - 1, rnd);
+      if (boshqa.length < n - 1 || out.some((o) => o.savol.harf === togri.h)) continue;
+      out.push({ tur: "tanlov", savol: { harf: togri.h }, variantlar: aralash([togri, ...boshqa].map((e, i) => ({ k: `s${i}_${e.emoji}`, el: e, yashirin: true })), rnd), togri: "" });
+      const o = out[out.length - 1]; o.togri = o.variantlar.find((v) => v.el === togri).k;
+    }
+    return out;
+  },
+  // REV351: bo'g'in qarsagi (o'zbek va rus tilida unlilar bo'yicha aniq sanaladi; boshqa tillarda o'yin chiqmaydi)
+  bogin: ({ n, rnd, R, izoh }) => {
+    if (!["uz", "ru"].includes(izoh)) return [];
+    const sozlar = SOZ_HOVUZI(izoh).filter((e) => !/\s/.test(e.uz)).map((e) => ({ ...e, b: boginSoni(e.uz, izoh) })).filter((e) => e.b >= 1 && e.b <= 4);
+    return navbat(sozlar, R, rnd).map((e) => ({ tur: "tanlov", savol: { el: e }, variantlar: sonVariantlar(e.b, Math.min(n, 4), rnd).filter((v) => v.son <= 5), togri: `n:${e.b}` }));
+  },
   // REV349: tartibga qo'yish (2–3 yoshda 3 qadam, bosqichma-bosqich; 6–7 yoshda butun tartib birdan)
   ...Object.fromEntries(Object.keys(TARTIB).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
     const d = TARTIB[nom];
@@ -1034,6 +1107,10 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "onaBola": case "uyiQayerda": case "kasbAsbob": case "hayvonOvqat": case "nimaBilan": case "sezgi":
       gap = M(k, "raund", izoh, { t: r.savol.el.uz }, xi); break;
     case "faslMeva": gap = M(k, "raund", izoh, { t: r.savol.el.uz }, xi); break;
+    case "hayvonOvoz": case "transportOvoz": gap = M(k, "raund", izoh, { t: r.savol.ovoz }, xi); break;
+    case "faslOvoz": gap = M(k, "raund", izoh, { t: r.savol.tasvir }, xi); break;
+    case "birinchiHarf": gap = M(k, "raund", izoh, { h: r.savol.harf }, xi); break;
+    case "bogin": gap = M(k, "raund", izoh, { t: r.savol.el.uz }, xi); break;
     case "tarozi": gap = M(k, r.savol.yengil ? "yengil" : "raund", izoh); break;
     case "dokon": gap = M(k, "raund", izoh, { n: r.savol.pul }, xi); break;
     case "tenglash": gap = M(k, "raund", izoh, { a: r.savol.chap, b: r.savol.ong }, xi); break;

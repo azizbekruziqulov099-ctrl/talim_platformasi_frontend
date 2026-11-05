@@ -279,3 +279,11 @@
 .oy-joylar{flex-wrap:nowrap}
 .oy-joylar:has(> .oy-joy:nth-child(4)) .oy-joy{width:84px;height:84px}
 .oy-joylar:has(> .oy-joy:nth-child(5)) .oy-joy{width:72px;height:72px}
+/* REV351: eshitish o'yinlari */
+.oy-esh-tepa{display:flex;flex-direction:column;align-items:center;gap:6px;width:auto;max-width:520px;padding:10px 16px}
+.oy-esh-quloq{font-size:44px;line-height:1}
+.oy-esh-matn{font-size:22px;color:#2b3452;text-align:center;line-height:1.3}
+.oy-esh-harf{font-size:84px;font-weight:900;color:#4a8bf5;line-height:1}
+.oy-esh-rasm{font-size:64px;line-height:1}
+.oy-esh-qarsak{font-size:26px;margin-top:2px}
+.oy-esh-tepa:has(.oy-esh-rasm){padding-bottom:14px}

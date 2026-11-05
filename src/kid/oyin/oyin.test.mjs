@@ -12,7 +12,7 @@ const EL = [
   ["cat", "mushuk", "🐱"], ["dog", "it", "🐶"], ["apple", "olma", "🍎"], ["ball", "to‘p", "⚽"],
   ["sun", "quyosh", "☀️"], ["car", "mashina", "🚗"], ["fish", "baliq", "🐟"], ["bird", "qush", "🐦"],
 ].map(([say, uz, emoji]) => ({ say, uz, emoji, image: "", rom: "" }));
-const IDLAR = [116, 117, 83, 89, 88, 86, 90, 91, 32, 31, 35, 38, 55, 97, 33, 68, 76, 103, 93, 106, 114, 61, 62, 63, 64, 49, 57, 43, 59, 149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165, 152, 146, 29, 157, 153, 15, 156, 166];   // REV335: fazoviy o'yinlar
+const IDLAR = [116, 117, 83, 89, 88, 86, 90, 91, 32, 31, 35, 38, 55, 97, 33, 68, 76, 103, 93, 106, 114, 61, 62, 63, 64, 49, 57, 43, 59, 149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165, 152, 146, 29, 157, 153, 15, 156, 166, 121, 123, 142, 118, 120];   // REV335: fazoviy o'yinlar
 const URUGLAR = Array.from({ length: 25 }, (_, i) => i + 1);
 const kalitlar = (r) => r.variantlar.map((v) => v.k);
 const takrorsiz = (arr) => new Set(arr).size === arr.length;

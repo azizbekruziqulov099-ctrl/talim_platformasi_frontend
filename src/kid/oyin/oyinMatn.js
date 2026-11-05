@@ -1090,6 +1090,200 @@ Object.assign(OYIN_MATN, {
  }
 });
 
+// REV351: eshitish o'yinlari gaplari
+Object.assign(OYIN_MATN, {
+ "hayvonOvoz": {
+  "nom": {
+   "uz": "Kim ovoz beryapti?",
+   "ru": "Кто так говорит?",
+   "en": "Who makes this sound?",
+   "de": "Wer macht dieses Geräusch?",
+   "es": "¿Quién hace este sonido?"
+  },
+  "kirish": {
+   "uz": "Quloqlaringni ding qil! Men hayvonning ovozini chiqaraman, sen uni top.",
+   "ru": "Навостри ушки! Я издам звук животного, а ты найди его.",
+   "en": "Listen carefully! I make an animal sound, and you find the animal.",
+   "de": "Hör gut zu! Ich mache ein Tiergeräusch, und du findest das Tier.",
+   "es": "¡Escucha bien! Hago el sonido de un animal y tú lo encuentras."
+  },
+  "raund": {
+   "uz": [
+    "{t} Kim shunday deydi?",
+    "{t} Bu kimning ovozi?"
+   ],
+   "ru": [
+    "{t} Кто так говорит?",
+    "{t} Чей это голос?"
+   ],
+   "en": [
+    "{t} Who says that?",
+    "{t} Whose sound is it?"
+   ],
+   "de": [
+    "{t} Wer sagt das?",
+    "{t} Wessen Geräusch ist das?"
+   ],
+   "es": [
+    "{t} ¿Quién dice eso?",
+    "{t} ¿De quién es este sonido?"
+   ]
+  }
+ },
+ "transportOvoz": {
+  "nom": {
+   "uz": "Qaysi transport?",
+   "ru": "Какой транспорт?",
+   "en": "Which vehicle?",
+   "de": "Welches Fahrzeug?",
+   "es": "¿Qué transporte?"
+  },
+  "kirish": {
+   "uz": "Ko‘chada qanday ovozlar bor? Tingla va topib bos!",
+   "ru": "Какие звуки на улице? Послушай и найди!",
+   "en": "What sounds are on the street? Listen and find it!",
+   "de": "Welche Geräusche hört man auf der Straße? Hör zu und finde es!",
+   "es": "¿Qué sonidos hay en la calle? ¡Escucha y encuéntralo!"
+  },
+  "raund": {
+   "uz": [
+    "{t} Bu qaysi transport?",
+    "{t} Kim shunday ovoz chiqaradi?"
+   ],
+   "ru": [
+    "{t} Какой это транспорт?",
+    "{t} Кто так гудит?"
+   ],
+   "en": [
+    "{t} Which vehicle is it?",
+    "{t} What makes this sound?"
+   ],
+   "de": [
+    "{t} Welches Fahrzeug ist das?",
+    "{t} Was macht dieses Geräusch?"
+   ],
+   "es": [
+    "{t} ¿Qué transporte es?",
+    "{t} ¿Qué hace este sonido?"
+   ]
+  }
+ },
+ "faslOvoz": {
+  "nom": {
+   "uz": "Fasl ovozlari",
+   "ru": "Звуки времён года",
+   "en": "Sounds of the seasons",
+   "de": "Klänge der Jahreszeiten",
+   "es": "Sonidos de las estaciones"
+  },
+  "kirish": {
+   "uz": "Ko‘zingni yum va tingla. Men aytgan manzara qaysi faslda bo‘ladi?",
+   "ru": "Закрой глазки и послушай. В какое время года так бывает?",
+   "en": "Close your eyes and listen. Which season is it?",
+   "de": "Schließ die Augen und hör zu. Welche Jahreszeit ist das?",
+   "es": "Cierra los ojos y escucha. ¿Qué estación es?"
+  },
+  "raund": {
+   "uz": [
+    "{t} Bu qaysi fasl?",
+    "{t} Qachon shunday bo‘ladi?"
+   ],
+   "ru": [
+    "{t} Какое это время года?",
+    "{t} Когда так бывает?"
+   ],
+   "en": [
+    "{t} Which season is it?",
+    "{t} When does this happen?"
+   ],
+   "de": [
+    "{t} Welche Jahreszeit ist das?",
+    "{t} Wann passiert das?"
+   ],
+   "es": [
+    "{t} ¿Qué estación es?",
+    "{t} ¿Cuándo pasa esto?"
+   ]
+  }
+ },
+ "birinchiHarf": {
+  "nom": {
+   "uz": "Birinchi harf",
+   "ru": "Первая буква",
+   "en": "First letter",
+   "de": "Erster Buchstabe",
+   "es": "Primera letra"
+  },
+  "kirish": {
+   "uz": "Har so‘z bir harf bilan boshlanadi. Rasmlarning nomini ichingda ayt va toping!",
+   "ru": "Каждое слово начинается с буквы. Назови картинки про себя и найди!",
+   "en": "Every word begins with a letter. Say the picture names to yourself and find it!",
+   "de": "Jedes Wort beginnt mit einem Buchstaben. Sag die Bildnamen leise und finde es!",
+   "es": "Cada palabra empieza por una letra. ¡Di los nombres en voz baja y encuéntrala!"
+  },
+  "raund": {
+   "uz": [
+    "Qaysi so‘z «{h}» harfi bilan boshlanadi?",
+    "«{h}» harfidan boshlanadigan rasmni top!"
+   ],
+   "ru": [
+    "Какое слово начинается на букву «{h}»?",
+    "Найди картинку на букву «{h}»!"
+   ],
+   "en": [
+    "Which word begins with the letter “{h}”?",
+    "Find the picture that starts with “{h}”!"
+   ],
+   "de": [
+    "Welches Wort beginnt mit dem Buchstaben „{h}“?",
+    "Finde das Bild mit „{h}“ am Anfang!"
+   ],
+   "es": [
+    "¿Qué palabra empieza por la letra «{h}»?",
+    "¡Encuentra el dibujo que empieza por «{h}»!"
+   ]
+  }
+ },
+ "bogin": {
+  "nom": {
+   "uz": "Bo‘g‘in qarsagi",
+   "ru": "Хлопаем слоги",
+   "en": "Clap the syllables",
+   "de": "Silben klatschen",
+   "es": "Palmas por sílabas"
+  },
+  "kirish": {
+   "uz": "So‘zni bo‘lib aytamiz va har bo‘g‘inga qarsak chalamiz: mu-shuk — ikki qarsak!",
+   "ru": "Говорим слово по частям и хлопаем на каждый слог: ко-шка — два хлопка!",
+   "en": "We say a word in parts and clap for each one.",
+   "de": "Wir sprechen das Wort in Silben und klatschen bei jeder.",
+   "es": "Decimos la palabra por partes y damos una palmada por cada sílaba."
+  },
+  "raund": {
+   "uz": [
+    "{t}. Qarsak chalib sana: nechta bo‘g‘in?",
+    "{t}. Bu so‘zda nechta bo‘g‘in bor?"
+   ],
+   "ru": [
+    "{t}. Похлопай и посчитай: сколько слогов?",
+    "{t}. Сколько слогов в этом слове?"
+   ],
+   "en": [
+    "{t}. Clap and count: how many parts?",
+    "{t}. How many syllables?"
+   ],
+   "de": [
+    "{t}. Klatsch und zähl: wie viele Silben?",
+    "{t}. Wie viele Silben hat das Wort?"
+   ],
+   "es": [
+    "{t}. Da palmadas y cuenta: ¿cuántas sílabas?",
+    "{t}. ¿Cuántas sílabas tiene?"
+   ]
+  }
+ }
+});
+
 // REV347: asosiy o'yinlarning raund gaplari — har raundda boshqa variant (3 tadan, 5 tilda)
 const RAUND_VARIANTLAR = {
  "eshitBos": {

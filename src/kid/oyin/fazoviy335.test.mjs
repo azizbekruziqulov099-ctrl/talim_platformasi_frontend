@@ -95,3 +95,20 @@ test('REV349: tartibga qo‘yish — to‘g‘ri ketma-ketlik, aralashgan, 5 til
     const g = raundGapi(h, { izoh: iz, til: 'uz', birinchi: true }); assert.ok(g.length > 20 && !g.includes('{'));
   }
 });
+import { birinchiHarf, boginSoni } from './oyinRules.js';
+test('REV351: eshitish o‘yinlari', () => {
+  assert.equal(birinchiHarf('shaftoli', 'uz'), 'Sh'); assert.equal(birinchiHarf('o‘rdak', 'uz'), 'O‘'); assert.equal(birinchiHarf('Katze', 'de'), 'K');
+  assert.equal(boginSoni('mushuk', 'uz'), 2); assert.equal(boginSoni('o‘rdak', 'uz'), 2); assert.equal(boginSoni('кошка', 'ru'), 2); assert.equal(boginSoni('kamalak', 'uz'), 3);
+  for (const id of [121, 123, 142, 118, 120]) for (const y of ['2-3', '4-5', '6-7']) for (const iz of ['uz', 'ru', 'en', 'de', 'es']) {
+    const h = oyinYasa(id, { elementlar: [], yosh: y, urug: 5, izoh: iz });
+    if (!h) continue;
+    for (const r of h.raundlar) {
+      assert.ok(r.variantlar.some((v) => v.k === r.togri), `${id} ${y} ${iz}`);
+      if (id === 118) { const t = r.variantlar.find((v) => v.k === r.togri).el; assert.equal(birinchiHarf(t.uz, iz), r.savol.harf);
+        assert.ok(r.variantlar.filter((v) => birinchiHarf(v.el.uz, iz) === r.savol.harf).length === 1, 'faqat bittasi shu harfdan'); }
+      if (id === 120) assert.equal(r.togri, `n:${boginSoni(r.savol.el.uz, iz)}`);
+    }
+    assert.ok(!raundGapi(h, { izoh: iz, til: 'uz', birinchi: true }).includes('{'));
+  }
+  assert.equal(oyinYasa(120, { elementlar: [], yosh: '6-7', izoh: 'en' }), null);   // bo'g'in — faqat o'zbek va rus tilida
+});
