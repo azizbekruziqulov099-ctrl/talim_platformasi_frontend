@@ -14942,7 +14942,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         <><AudiencePanel apiBase={API_BASE} token={token} active={!kabutarOchiq} /><AdminStatisticsTab token={token} /></>
       )}
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
-      {korinishRoli === "admin" && tab === "admin_oyinlar" && lazyPanel(LazyOyinSinov, {})}
+      {korinishRoli === "admin" && tab === "admin_oyinlar" && lazyPanel(LazyOyinSinov, { apiBase: API_BASE })}
       {korinishRoli === "admin" && tab === "admin_korinish" && lazyPanel(LazyOquvchiKorinishi, { apiBase: API_BASE, token, admin: foydalanuvchi, Tests: TestTab,
         jins: _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz") })}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (

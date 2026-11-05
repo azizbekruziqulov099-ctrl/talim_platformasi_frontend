@@ -6,6 +6,7 @@ import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { emojiRasm, matnId, sozId } from "../kid/rasmHarakat.js";
 import { HARAKAT_OYINLARI } from "../lesson/HarakatQadam.jsx";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
+import { kabuAyt, kabuJimm } from "../kid/kabuOvoz.js";   // REV362: darsdagi Kabu ovozi (server), brauzer ovozi emas
 import "./oyinSinov.css";
 const KabuImtihoni = React.lazy(() => import("../kid/imtihon/KabuImtihoni.jsx"));   // REV361
 
@@ -21,9 +22,8 @@ const yoz = (d) => { try { localStorage.setItem(BELGI_KALIT, JSON.stringify(d));
 const rasm = (el) => { if (!el) return ""; const mt = matnId(el.uz || ""); if (mt && RASM_HAMMA[mt]) return RASM_HAMMA[mt];
   const id = sozId({ soz: el.uz || "", emoji: el.emoji || "" }); if (id && RASM_HAMMA[id]) return RASM_HAMMA[id];
   return emojiRasm(el.emoji || "", RASM_HAMMA, el.uz || el.say || "")?.src || ""; };
-const OVOZ_TIL = { uz: "uz-UZ", ru: "ru-RU", en: "en-US", de: "de-DE", es: "es-ES" };
 
-export default function OyinSinov() {
+export default function OyinSinov({ apiBase = "" }) {
   const [yosh, setYosh] = useState("4-5");
   const [izoh, setIzoh] = useState("uz");
   const [toplam, setToplam] = useState("hayvonlar");
@@ -41,8 +41,7 @@ export default function OyinSinov() {
   const belgila = (id, qiymat) => { const d = { ...belgilar, [id]: { ...(belgilar[id] || {}), ...qiymat, vaqt: new Date().toISOString().slice(0, 16) } }; setBelgilar(d); yoz(d); };
   const ayt = (t, tugadi) => {
     setGap(String(t || "").replace(/\[\/?\w\w\]/g, ""));
-    try { const u = new SpeechSynthesisUtterance(String(t || "").replace(/\[\/?\w\w\]/g, "")); u.lang = OVOZ_TIL[izoh] || "uz-UZ";
-      u.onend = () => tugadi?.(); u.onerror = () => tugadi?.(); window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch { tugadi?.(); }
+    kabuAyt(apiBase, t, { izoh, til: tilDarsi ? "en" : "", tugadi });
   };
   const hisobot = () => OYINLAR.filter((o) => belgilar[o.id]).map((o) => `${o.id} ${o.nom}: ${belgilar[o.id].holat === "ok" ? "✅ yoqdi" : belgilar[o.id].holat === "tuzat" ? "🛠 tuzatish kerak" : "—"}${belgilar[o.id].izoh ? ` — ${belgilar[o.id].izoh}` : ""}`).join("\n");
   const soni = { ok: Object.values(belgilar).filter((b) => b.holat === "ok").length, tuzat: Object.values(belgilar).filter((b) => b.holat === "tuzat").length };
@@ -80,11 +79,11 @@ export default function OyinSinov() {
         <p className="os-gap" aria-live="polite">🗣️ {gap || "…"}</p>
       </div>
     </div>}
-    {ochiq && <div className="os-oyna" role="dialog" aria-modal="true" onClick={() => setOchiq(null)}>
+    {ochiq && <div className="os-oyna" role="dialog" aria-modal="true" onClick={() => { kabuJimm(); setOchiq(null); }}>
       <div className="os-sahna" onClick={(e) => e.stopPropagation()}>
         <div className="os-sahna-bosh"><b>{OYINLAR.find((o) => o.id === ochiq)?.nom}</b> · {yosh} · {izoh}
           <button type="button" onClick={() => { setUrug((u) => u + 1); setGap(""); }}>🔄 {__kbUi("Qaytadan")}</button>
-          <button type="button" onClick={() => setOchiq(null)}>✕</button></div>
+          <button type="button" onClick={() => { kabuJimm(); setOchiq(null); }}>✕</button></div>
         <div className="os-oyin">
           <Oyin key={`${ochiq}-${urug}-${yosh}-${izoh}-${toplam}-${tilDarsi}`} id={ochiq} elementlar={elementlar} yosh={yosh} til={tilDarsi ? "en" : "uz"} izoh={izoh}
             fasl={["qish", "qish", "bahor", "bahor", "bahor", "yoz", "yoz", "yoz", "kuz", "kuz", "kuz", "qish"][new Date().getMonth()]}
