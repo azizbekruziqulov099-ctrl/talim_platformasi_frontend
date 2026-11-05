@@ -192,7 +192,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const [game, setGame] = useState(null);
   const [oyinQ, setOyinQ] = useState(null);
   const [harakatQ, setHarakatQ] = useState(null);
-  const oynalgan = useRef(new Set());   // REV347: shu darsda o'ynalgan o'yinlar — qayta tushuntirilmaydi   // REV342: harakat qadami (171/172/175)   // REV325: Miya qadamidagi o'yin — { stepIdx, id, elementlar, sonlar }
+  const oynalgan = useRef(new Set());
+  const sirOchildi = useRef(false);   // REV359: sirli quti darsda bir marta   // REV347: shu darsda o'ynalgan o'yinlar — qayta tushuntirilmaydi   // REV342: harakat qadami (171/172/175)   // REV325: Miya qadamidagi o'yin — { stepIdx, id, elementlar, sonlar }
   const [tanlov, setTanlov] = useState(null);
   const [stiker, setStiker] = useState(null);   // REV333: dars oxirida berilgan stiker   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
@@ -865,6 +866,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       // «birga» va «amaliy» qadamida o'quvchi o'zi ishlaydi — dars shu yerda kutadi.
       // REV121: «Top-chi» o'yini — so'zlar bilan bog'langan rasmlar bo'lsa, bola bosishini kutadigan haqiqiy o'yin
       // REV325: Miya'da o'yin raqami bor — o'yin dvigateli o'ynaydi, tugagach dars davom etadi
+      // REV359: dars sirli qutidan boshlanadi — kirishdan keyin bola darsning yangi narsalarini qutidan topib ochadi
+      if (autoplay && kid && s.turi === "kirish" && !s._ochilish && next >= opening.length && !sirOchildi.current) {
+        const o = qadamOyini({ turi: "amaliy", oyin: 119, doska: "", ovoz: "" }, { yosh: yoshGuruh(grade), darsSozlari: darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [],
+          darsElementlari: darsElementlari(steps.slice(opening.length)) });
+        if (o) { sirOchildi.current = true; const tanish = oynalgan.current.has(119); oynalgan.current.add(119); setOyinQ({ stepIdx: next, ...o, tanish }); return; }
+      }
       if (autoplay && (kid || boshlangich) && s.turi === "amaliy" && s.oyin && next >= opening.length) {
         if (HARAKAT_OYINLARI.has(Number(s.oyin))) {   // REV342: harakat — bola bajaradi, «Bajardim!» bosadi
           const em = (String(s.doska || "").match(/\p{Extended_Pictographic}/u) || [])[0] || "";
@@ -1762,8 +1769,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             {oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam">
               <Oyin id={oyinQ.id} elementlar={oyinQ.elementlar} sonlar={oyinQ.sonlar} yosh={yoshGuruh(grade)} til={darsTil || "uz"} izoh={tIzoh}
                 rasm={oyinRasmi}
+                onSay={(t, tugadi) => say(t, tugadi)}
                 mavzu={String(lesson?.topic?.mavzu || "").replace(/^\s*\d+[.)]\s*/, "")} tanish={oyinQ.tanish} fasl={["qish", "qish", "bahor", "bahor", "bahor", "yoz", "yoz", "yoz", "kuz", "kuz", "kuz", "qish"][new Date().getMonth()]}
-                onSay={(t) => say(t)}
                 onNatija={(togri, xatolar, info) => {
                   if (kidPlan) oyinNatijaYoz(apiBase, token, { darsKod: topicCode, oyinId: oyinQ.id, togri, xato: Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0, soniya: info?.soniya });   // REV329
                   const my = oyinQ.stepIdx; setOyinQ(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }} />

@@ -75,10 +75,16 @@ function OyinIchki({
     return () => { tirik.current = false; taymerlar.current.forEach(clearTimeout); taymerlar.current.clear(); };
   }, []);
 
+  // REV359: ustoz gapirayotgani ma'lum — mikrofon faqat gap tugagach ochiladi (ovoz kelmasa — taxminiy vaqtdan keyin)
+  const [gapirmoqda, setGapirmoqda] = useState(false);
+  const gapId = useRef(0);
   const say = useCallback((text) => {
     const t = String(text || "").trim();
     if (!t) return;
-    try { sayRef.current?.(t); } catch { /* ovoz chiqmasa ham o'yin davom etadi */ }
+    const id = ++gapId.current; setGapirmoqda(true);
+    const tugadi = () => { if (gapId.current === id) setGapirmoqda(false); };
+    setTimeout(tugadi, Math.min(20000, 1500 + t.replace(/\[\/?\w\w\]/g, "").length * 95));   // ovoz tugaganini bildirmasa ham
+    try { sayRef.current?.(t, tugadi); } catch { tugadi(); }
   }, []);
 
   // har raund boshida ustozning gapi (1-raundda kirish bilan) — bir marta
@@ -136,6 +142,7 @@ function OyinIchki({
   const quloq = belgiSrc("👂");
   const orqa = belgiSrc("⬅️");
   const props = {
+    gapirmoqda,
     holat, raund, raundIdx, joriy, kadr: Boolean(kadr), fb, ishora, qulf: Boolean(kadr) || tamom,
     yosh: y, kichik: y === "2-3", katta: y === "6-7", til, izoh, rasm, onTingla, qayta,
     javob, say, setKabu, raundMatni: raundGapi(holat, { izoh, til, birinchi: holat.raund === 0 }),

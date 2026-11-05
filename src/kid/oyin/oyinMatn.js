@@ -1284,6 +1284,39 @@ Object.assign(OYIN_MATN, {
  }
 });
 
+// REV359: sirli quti
+OYIN_MATN.sirliQuti = {
+  nom: { uz: "Sirli quti", ru: "Волшебная коробка", en: "Mystery box", de: "Geheimnisvolle Kiste", es: "Caja misteriosa" },
+  kirish: { uz: "Kabu sirli quti olib keldi! Ichida kim bor? Diqqat bilan qara va tingla.", ru: "Кабу принёс волшебную коробку! Кто внутри? Смотри и слушай внимательно.",
+    en: "Kabu brought a mystery box! Who is inside? Look and listen carefully.", de: "Kabu hat eine geheimnisvolle Kiste mitgebracht! Wer ist drin? Schau und hör gut zu.",
+    es: "¡Kabu trajo una caja misteriosa! ¿Quién está dentro? Mira y escucha con atención." },
+  raundOvoz: { uz: ["Qutidan ovoz kelyapti: «{o}» Qutida kim bor?", "Tingla: «{o}» Bu kim ekan?"], ru: ["Из коробки слышно: «{o}» Кто в коробке?", "Послушай: «{o}» Кто это?"],
+    en: ["A sound from the box: “{o}” Who is inside?", "Listen: “{o}” Who is it?"], de: ["Aus der Kiste kommt: „{o}“ Wer ist drin?", "Hör zu: „{o}“ Wer ist das?"],
+    es: ["De la caja sale: «{o}» ¿Quién está dentro?", "Escucha: «{o}» ¿Quién es?"] },
+  raundSoz: { uz: ["Qutida — {t}. Qaysi rasm?", "Qutidagi narsaning nomi — {t}. Topib bos!"], ru: ["В коробке — {t}. Какая картинка?", "В коробке {t}. Найди!"],
+    en: ["In the box is {t}. Which picture?", "The box has {t} inside. Find it!"], de: ["In der Kiste ist {t}. Welches Bild?", "In der Kiste ist {t}. Finde es!"],
+    es: ["En la caja hay {t}. ¿Qué dibujo es?", "Dentro está {t}. ¡Encuéntralo!"] },
+  raund: { uz: ["Qutidan nimadir ko‘rinib turibdi. Bu nima?", "Qara, qutidan bir uchi chiqib turibdi. Qaysi biri?"], ru: ["Из коробки что-то выглядывает. Что это?", "Смотри, что-то торчит из коробки. Что это?"],
+    en: ["Something is peeking out of the box. What is it?", "Look, something is sticking out. Which one?"], de: ["Etwas schaut aus der Kiste. Was ist das?", "Schau, da guckt etwas heraus. Welches?"],
+    es: ["Algo asoma de la caja. ¿Qué es?", "Mira, algo sale de la caja. ¿Cuál es?"] },
+};
+
+// REV359: «Ayt va och» — hikoya, avval nom, keyin bola aytadi; 2 marta ayta olmasa — bosib ochadi
+Object.assign(OYIN_MATN.aytOch, {
+  kirish: { uz: "Bu sehrli eshik! U ichidagi narsaning nomini eshitsa, o‘zi ochiladi.", ru: "Это волшебная дверь! Она открывается, если услышит имя того, что внутри.",
+    en: "This is a magic door! It opens when it hears the name of what is inside.", de: "Das ist eine Zaubertür! Sie geht auf, wenn sie den Namen von dem hört, was drin ist.",
+    es: "¡Es una puerta mágica! Se abre cuando oye el nombre de lo que hay dentro." },
+  bosib: { uz: "Hechqisi yo‘q! Qaysi biri {t}? Bos — eshik ochiladi.", ru: "Ничего страшного! Где {t}? Нажми — и дверь откроется.", en: "That's okay! Which one is {t}? Tap it and the door opens.",
+    de: "Macht nichts! Welches ist {t}? Tipp darauf, dann geht die Tür auf.", es: "¡No pasa nada! ¿Cuál es {t}? Tócalo y la puerta se abre." },
+  yana: { uz: "Eshik eshitmadi. Yana bir marta, baland ovozda: {t}", ru: "Дверь не услышала. Ещё раз, погромче: {t}", en: "The door didn't hear. Once more, loudly: {t}",
+    de: "Die Tür hat es nicht gehört. Noch einmal, laut: {t}", es: "La puerta no lo oyó. Otra vez, más fuerte: {t}" },
+});
+OYIN_MATN.aytOch.raund = { uz: ["Bu — {t}. Endi sen ayt: {t}!", "Eshik ortida — {t}. Ayt: {t}!", "Qara, bu {t}. Baland ovozda ayt!"],
+  ru: ["Это — {t}. Теперь скажи ты: {t}!", "За дверью — {t}. Скажи: {t}!", "Смотри, это {t}. Скажи громко!"],
+  en: ["This is {t}. Now you say it: {t}!", "Behind the door is {t}. Say: {t}!", "Look, it's {t}. Say it loudly!"],
+  de: ["Das ist {t}. Jetzt sag du: {t}!", "Hinter der Tür ist {t}. Sag: {t}!", "Schau, das ist {t}. Sag es laut!"],
+  es: ["Esto es {t}. Ahora dilo tú: {t}!", "Detrás de la puerta está {t}. Di: {t}!", "Mira, es {t}. ¡Dilo en voz alta!"] };
+
 // REV347: asosiy o'yinlarning raund gaplari — har raundda boshqa variant (3 tadan, 5 tilda)
 const RAUND_VARIANTLAR = {
  "eshitBos": {
@@ -1638,7 +1671,7 @@ const RAUND_VARIANTLAR = {
   ]
  }
 };
-for (const [k, v] of Object.entries(RAUND_VARIANTLAR)) if (OYIN_MATN[k]) OYIN_MATN[k].raund = v;
+for (const [k, v] of Object.entries(RAUND_VARIANTLAR)) if (OYIN_MATN[k] && k !== "aytOch") OYIN_MATN[k].raund = v;   // REV359: aytOch o'zining yangi gaplari bilan
 
 /** O'yin gapi izoh tilida, o'rinlari to'ldirilgan. Bo'sh {t} qolsa — gap boshidagi ortiqcha tinish belgilari olib tashlanadi. */
 export function oyinMatn(kalit, gapKaliti, izoh = "uz", vars = {}, i = 0) {

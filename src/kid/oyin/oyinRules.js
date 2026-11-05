@@ -32,6 +32,9 @@ export const OYINLAR = [
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
   { id: 76, kalit: "joylashuv", nom: "Qayerda?", belgi: "📦", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 1 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
+  // REV359: sirli quti — darsning yangi narsasi qutida: bir qismi ko'rinadi, ovozi eshitiladi; bola 2–4 rasmdan topadi
+  { id: 119, kalit: "sirliQuti", nom: "Sirli quti", belgi: "🎁", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
+    raund: { "2-3": 3, "4-5": 4, "6-7": 4 }, soniya: { "2-3": 14, "4-5": 13, "6-7": 12 } },
   // REV351: eshitish o'yinlari
   { id: 121, kalit: "hayvonOvoz", nom: "Kim ovoz beryapti?", belgi: "👂", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
     raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 9, "4-5": 8, "6-7": 8 } },
@@ -451,6 +454,11 @@ function yollarRaund(els, n, rnd) {
 }
 
 const YASOVCHI = {
+  // REV359: sirli quti — har raundda darsning bitta yangi narsasi; hayvon bo'lsa — ovozi ham
+  sirliQuti: ({ els, n, rnd, R, izoh }) => navbat(els, Math.min(R, els.length), rnd).map((el) => {
+    const o = HAYVON_OVOZ.find((h) => h.w.e === el.emoji);
+    return { tur: "tanlov", savol: { el, ovoz: o ? (o.o[izoh] || o.o.uz) : "" }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k };
+  }),
   // REV351: eshitish — ovoz aytiladi (izoh tilida), bola egasini topadi
   hayvonOvoz: ({ n, rnd, R, izoh }) => ovozRaund(HAYVON_OVOZ, { n, rnd, R, izoh }),
   transportOvoz: ({ n, rnd, R, izoh }) => ovozRaund(TRANSPORT_OVOZ, { n, rnd, R, izoh }),
@@ -918,7 +926,7 @@ export function tekshir(holat, javob) {
         const b = aytishBaho(javob.alts, r.savol.el, javob.til || holat.til, j.urinish, holat.yosh);
         if (b.ok) { togri = true; raundTugadi = true; voqea = { tur: "aytdi", baho: b }; }
         else if (j.urinish < 1) { j.urinish += 1; togri = false; xatoHisob = false; voqea = { tur: "yana", baho: b }; }
-        else { togri = false; raundTugadi = true; voqea = { tur: "otdi", baho: b }; }
+        else { j.bosib = true; togri = false; xatoHisob = false; voqea = { tur: "bosib", baho: b }; }   // REV359: 2 marta ayta olmasa — 2 ta rasmdan bosib ochadi (uyalmasin)
         break;
       }
       if (!tanlov(kalitOl(javob))) return befarq;
@@ -1080,7 +1088,7 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
   let gap = "";
   switch (k) {
     case "eshitBos": case "oxshash": case "soya": case "joylashuv": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }, xi); break;
-    case "aytOch": gap = M(k, holat.mik ? "raund" : "raundBos", izoh, { t: nom(r.savol.el) }); break;
+    case "aytOch": gap = M(k, holat.mik && !j.bosib ? "raund" : "raundBos", izoh, { t: nom(r.savol.el) }, xi); break;
     case "ketmaKet": gap = M(k, "raund", izoh, { q: r.savol.qator.map(nom).filter(Boolean).join(", ") }, xi); break;
     case "tartib": case "kapalak": case "gulOstir": case "kunTartibi": case "qolYuvish": case "suvSayohati": case "fasllar": case "tishTozalash": case "osish": {
       const els = r.togri.map((x) => r.variantlar.find((v) => v.k === x)?.el);
@@ -1107,6 +1115,7 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "onaBola": case "uyiQayerda": case "kasbAsbob": case "hayvonOvqat": case "nimaBilan": case "sezgi":
       gap = M(k, "raund", izoh, { t: r.savol.el.uz }, xi); break;
     case "faslMeva": gap = M(k, "raund", izoh, { t: r.savol.el.uz }, xi); break;
+    case "sirliQuti": gap = r.savol.ovoz ? M(k, "raundOvoz", izoh, { o: r.savol.ovoz }, xi) : r.savol.el.say ? M(k, "raundSoz", izoh, { t: nom(r.savol.el) }, xi) : M(k, "raund", izoh, {}, xi); break;
     case "hayvonOvoz": case "transportOvoz": gap = M(k, "raund", izoh, { t: r.savol.ovoz }, xi); break;
     case "faslOvoz": gap = M(k, "raund", izoh, { t: r.savol.tasvir }, xi); break;
     case "birinchiHarf": gap = M(k, "raund", izoh, { h: r.savol.harf }, xi); break;
@@ -1139,7 +1148,7 @@ export function javobGapi(eski, natija, { izoh = "uz", til } = {}) {
   const maqtov = umumiyGap("maqtov", izoh, i);
   const dalda = umumiyGap("dalda", izoh, i);
   const v = natija.voqea;
-  const raundEl = r.savol?.el && ["eshitBos", "aytOch", "oxshash", "haYoq"].includes(k) ? r.savol.el : null;
+  const raundEl = r.savol?.el && ["eshitBos", "aytOch", "oxshash", "haYoq", "sirliQuti"].includes(k) ? r.savol.el : null;
   let gap = "";
   if (v?.tur === "mikYoq") gap = `${M(k, "mikYoq", izoh)} ${raundGapi(natija.holat, { izoh, til: t })}`;
   else if (v?.tur === "sanoq") gap = `${teg(String(v.son), t)}${v.oxirgi ? `. ${M(k, "nechta", izoh)}` : ""}`;
@@ -1152,6 +1161,7 @@ export function javobGapi(eski, natija, { izoh = "uz", til } = {}) {
     else if (v?.tur === "juft") gap = "";      // kartaning nomi ochilganda aytilgan
   } else if (natija.togri === false) {
     if (v?.tur === "yana") gap = M(k, "yana", izoh, { t: nomOvoz(r.savol.el, t) });
+    else if (v?.tur === "bosib") gap = M(k, "bosib", izoh, { t: nomOvoz(r.savol.el, t) });   // REV359
     else if (v?.tur === "tayyor") gap = M(k, v.soni < v.kerak ? "kam" : "kop", izoh);
     else if (k === "juft") gap = "";
     else if (k === "eshitBos" || (k === "aytOch" && !eski.mik)) gap = `${dalda} ${nomOvoz(r.savol.el, t)}`;

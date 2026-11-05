@@ -12,7 +12,7 @@ const EL = [
   ["cat", "mushuk", "🐱"], ["dog", "it", "🐶"], ["apple", "olma", "🍎"], ["ball", "to‘p", "⚽"],
   ["sun", "quyosh", "☀️"], ["car", "mashina", "🚗"], ["fish", "baliq", "🐟"], ["bird", "qush", "🐦"],
 ].map(([say, uz, emoji]) => ({ say, uz, emoji, image: "", rom: "" }));
-const IDLAR = [116, 117, 83, 89, 88, 86, 90, 91, 32, 31, 35, 38, 55, 97, 33, 68, 76, 103, 93, 106, 114, 61, 62, 63, 64, 49, 57, 43, 59, 149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165, 152, 146, 29, 157, 153, 15, 156, 166, 121, 123, 142, 118, 120];   // REV335: fazoviy o'yinlar
+const IDLAR = [116, 117, 83, 89, 88, 86, 90, 91, 32, 31, 35, 38, 55, 97, 33, 68, 76, 103, 93, 106, 114, 61, 62, 63, 64, 49, 57, 43, 59, 149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165, 152, 146, 29, 157, 153, 15, 156, 166, 121, 123, 142, 118, 120, 119];   // REV335: fazoviy o'yinlar
 const URUGLAR = Array.from({ length: 25 }, (_, i) => i + 1);
 const kalitlar = (r) => r.variantlar.map((v) => v.k);
 const takrorsiz = (arr) => new Set(arr).size === arr.length;
@@ -322,7 +322,9 @@ test("REV324: Ayt va och — ovoz bahosi, 2-urinish, mikrofon yo'q", () => {
   const a = tekshir(h, { alts: ["zzzz"] });
   assert.equal(a.voqea.tur, "yana"); assert.equal(a.holat.xatolar, 0, "1-urinish — xato emas");
   const b = tekshir(a.holat, { alts: [] });
-  assert.equal(b.voqea.tur, "otdi"); assert.equal(b.raundTugadi, true); assert.equal(b.holat.xatolar, 1);
+  // REV359: 2-xatoda raund tugamaydi — bola 2 ta rasmdan bosib ochadi (uyalib qolmasin)
+  assert.equal(b.voqea.tur, "bosib"); assert.equal(b.raundTugadi, false); assert.equal(b.holat.joriy.bosib, true);
+  const bb = tekshir(b.holat, b.holat.raundlar[b.holat.raund].togri); assert.equal(bb.raundTugadi, true);
   const m = tekshir(h, { mikYoq: true });
   assert.equal(m.holat.mik, false);
   assert.ok(raundGapi(m.holat, { izoh: "uz" }).includes("Bos"), "mikrofonsiz — bosib ochadi");

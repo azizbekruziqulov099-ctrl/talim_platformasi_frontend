@@ -34,9 +34,10 @@ export default function OyinSinov() {
   const ruyxat = useMemo(() => OYINLAR.filter((o) => !HARAKAT_OYINLARI.has(o.id) && o.yosh.includes(yosh)), [yosh]);
   const elementlar = useMemo(() => TOPLAMLAR[toplam].el.map(([e, uz, en], i) => ({ k: `e${i}`, emoji: e, uz, ...(tilDarsi ? { say: en } : {}) })), [toplam, tilDarsi]);
   const belgila = (id, qiymat) => { const d = { ...belgilar, [id]: { ...(belgilar[id] || {}), ...qiymat, vaqt: new Date().toISOString().slice(0, 16) } }; setBelgilar(d); yoz(d); };
-  const ayt = (t) => {
+  const ayt = (t, tugadi) => {
     setGap(String(t || "").replace(/\[\/?\w\w\]/g, ""));
-    try { const u = new SpeechSynthesisUtterance(String(t || "").replace(/\[\/?\w\w\]/g, "")); u.lang = OVOZ_TIL[izoh] || "uz-UZ"; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch { /* ovoz yo'q */ }
+    try { const u = new SpeechSynthesisUtterance(String(t || "").replace(/\[\/?\w\w\]/g, "")); u.lang = OVOZ_TIL[izoh] || "uz-UZ";
+      u.onend = () => tugadi?.(); u.onerror = () => tugadi?.(); window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch { tugadi?.(); }
   };
   const hisobot = () => OYINLAR.filter((o) => belgilar[o.id]).map((o) => `${o.id} ${o.nom}: ${belgilar[o.id].holat === "ok" ? "✅ yoqdi" : belgilar[o.id].holat === "tuzat" ? "🛠 tuzatish kerak" : "—"}${belgilar[o.id].izoh ? ` — ${belgilar[o.id].izoh}` : ""}`).join("\n");
   const soni = { ok: Object.values(belgilar).filter((b) => b.holat === "ok").length, tuzat: Object.values(belgilar).filter((b) => b.holat === "tuzat").length };
@@ -72,7 +73,7 @@ export default function OyinSinov() {
         <div className="os-oyin">
           <Oyin key={`${ochiq}-${urug}-${yosh}-${izoh}-${toplam}-${tilDarsi}`} id={ochiq} elementlar={elementlar} yosh={yosh} til={tilDarsi ? "en" : "uz"} izoh={izoh}
             fasl={["qish", "qish", "bahor", "bahor", "bahor", "yoz", "yoz", "yoz", "kuz", "kuz", "kuz", "qish"][new Date().getMonth()]}
-            mavzu={TOPLAMLAR[toplam].nom.replace(/^\S+\s/, "")} rasm={rasm} urug={urug} onSay={(t) => ayt(t)} onNatija={() => {}} />
+            mavzu={TOPLAMLAR[toplam].nom.replace(/^\S+\s/, "")} rasm={rasm} urug={urug} onSay={(t, tugadi) => ayt(t, tugadi)} onNatija={() => {}} />
         </div>
         <p className="os-gap" aria-live="polite">🗣️ {gap || "…"}</p>
       </div>

@@ -18,7 +18,7 @@ function Eshik({ el, rasm, ochiq }) {
 }
 
 export default function AytVaOch(p) {
-  const { holat, raund, raundIdx, joriy, javob, ishora, qulf, rasm, katta, kadr, say, matn, nom, onTingla, setKabu, raundMatni, fb } = p;
+  const { holat, raund, raundIdx, joriy, javob, ishora, qulf, rasm, katta, kadr, say, matn, nom, onTingla, setKabu, fb, gapirmoqda } = p;
   const mik = holat.mik;
   const [tinglayapti, setTinglayapti] = useState(false);
   const taymer = useTaymer();
@@ -41,19 +41,23 @@ export default function AytVaOch(p) {
       setTinglayapti(false); setKabu?.(null);
       if (res.xato === "ruxsat" || res.xato === "yoq") { mikYoqDeb(); javob({ mikYoq: true }); return; }
       const n = javob({ alts: res.alts || [], til: holat.til });
-      if (n?.voqea?.tur === "yana") taymer(tingla, gapVaqti(matn("yana", { t: nom(raund.savol.el) })) + 300);
+      if (n?.voqea?.tur === "yana") setQayta((x) => x + 1);   // REV359: ustoz «yana bir marta» deydi — gap tugagach mikrofon qayta ochiladi
     });
   };
+  const [qayta, setQayta] = useState(0);
 
-  // har raund boshida: ustoz gapirib bo'lgach mikrofon o'zi ochiladi
+  // REV359: mikrofon faqat ustoz gapirib BO'LGACH ochiladi (ustoz gapirayotganda yoniq turmaydi)
   useEffect(() => {
-    if (!mik || kadr || qulf) return undefined;
-    const id = taymer(tingla, gapVaqti(raundMatni) + 250);
-    return () => { clearTimeout(id); joriyMik.current?.stop?.(); joriyMik.current = null; setTinglayapti(false); };
-  }, [raundIdx, mik]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!mik || kadr || qulf || gapirmoqda || joriy.bosib) return undefined;
+    const id = taymer(tingla, 350);
+    return () => { clearTimeout(id); };
+  }, [raundIdx, mik, gapirmoqda, qayta, kadr, qulf, joriy.bosib]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { joriyMik.current?.stop?.(); joriyMik.current = null; }, [raundIdx]);
 
   const ochiq = kadr && (fb?.togri || !mik);
-  if (mik) {
+  // REV359: ayta olmagan bola — to'g'ri eshik va yana bittasidan tanlaydi
+  const variantlar = joriy.bosib ? [raund.variantlar.find((v) => v.k === raund.togri), raund.variantlar.find((v) => v.k !== raund.togri)].filter(Boolean) : raund.variantlar;
+  if (mik && !joriy.bosib) {
     const mikSrc = belgiSrc("🎤");
     return (
       <div className="oy-sahna">
@@ -70,8 +74,8 @@ export default function AytVaOch(p) {
   }
   return (
     <div className="oy-sahna">
-      <Variantlar n={raund.variantlar.length}>
-        {raund.variantlar.map((v) => {
+      <Variantlar n={variantlar.length}>
+        {variantlar.map((v) => {
           const h = tugmaHolati(p, v.k);
           return (
             <Tugma key={v.k} label={v.el.say || v.el.uz} holat={h} ishora={ishora === v.k} className={`oy-eshik ${h === "togri" ? "is-ochiq" : ""}`}
