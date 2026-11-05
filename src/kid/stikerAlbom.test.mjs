@@ -10,3 +10,14 @@ test('REV333: stiker albomi', () => {
   const al = albomOl('bola', s); assert.equal(al.jami, 5); assert.equal(al.sanoq.medal_oltin, 1);
   assert.deepEqual(keyingiMukofot(5), { qoldi: 5, id: 'kubok' }); assert.deepEqual(keyingiMukofot(17), { qoldi: 3, id: 'toj' });
 });
+import { orolHolati } from './stikerAlbom.js';
+test('REV334: haftalik orol', () => {
+  const m = new Map(); const s = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) };
+  const dush = new Date('2026-11-02T09:00:00Z');   // dushanba
+  for (let i = 0; i < 3; i++) stikerBer(`A${i}`, { s, sana: new Date(dush.getTime() + i * 864e5) });
+  let h = orolHolati(albomOl('bola', s), new Date('2026-11-05T09:00:00Z'));
+  assert.equal(h.soni, 3); assert.deepEqual(h.qismlar, ['orol', 'orol_qism_daraxt', 'orol_qism_uy']); assert.equal(h.tugadi, false);
+  stikerBer('A3', { s, sana: new Date('2026-11-06T09:00:00Z') }); stikerBer('A4', { s, sana: new Date('2026-11-07T09:00:00Z') });
+  h = orolHolati(albomOl('bola', s), new Date('2026-11-08T09:00:00Z')); assert.ok(h.tugadi); assert.equal(h.orollar, 1);
+  h = orolHolati(albomOl('bola', s), new Date('2026-11-10T09:00:00Z')); assert.equal(h.soni, 0);   // yangi hafta — yangi orol
+});

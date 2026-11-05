@@ -19,3 +19,9 @@
 .sa-kichik{width:28px;height:28px}
 .kt-albom{font-size:30px;line-height:1;width:64px;height:64px;border-radius:50%;border:0;background:#fff;box-shadow:0 4px 12px #0002;cursor:pointer;margin-left:10px}
 @media (prefers-reduced-motion:reduce){.sa-yangi img{animation:none}}
+/* REV334: haftalik orol */
+.sa-orol{position:relative;border-radius:18px;overflow:hidden;margin-bottom:12px;aspect-ratio:3/2;background:#bfe7ff}
+.sa-orol-fon{width:100%;height:100%;object-fit:cover;display:block}
+.sa-orol.is-bosh .sa-orol-fon{filter:grayscale(.7) brightness(1.1);opacity:.55}
+.sa-orol-qism{position:absolute;height:auto;filter:drop-shadow(0 4px 6px #0004);animation:sa-pop .7s cubic-bezier(.3,1.6,.5,1) calc(var(--i) * .15s) both}
+.sa-orol-yorliq{position:absolute;left:8px;bottom:8px;padding:4px 10px;border-radius:999px;background:#ffffffe6;font:700 13px/1.2 inherit;color:#2b3452}
