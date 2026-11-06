@@ -8,6 +8,7 @@ import XbMashq from "./XbMashq.jsx";
 import XbImtihon, { DavlatDiagramma, XbNatija } from "./XbImtihon.jsx";
 import { XbUstoz } from "./XbDoska.jsx";
 import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
+import { OquvchiSinf } from "./XbSinflar.jsx";   // REV373
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
 import { GAP_TUR, IMTIHON_BELGI, darajaNomi, mavzuBelgi, sinfRaqami, solishtirishQatorlari } from "./xbRules.js";
 import XbQollanma from "./XbQollanma.jsx";   // REV262
@@ -103,6 +104,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       </div>
     </header>
     {kat.tayyor_emas && <div className="xb-panel xb-ogoh-panel"><p>🌐 {kat.tayyor_emas}</p></div>}
+    {kuzatuv && kuzatuv.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} />}
     {!kat.toplamlar?.length && <div className="xb-panel xb-ogoh-panel"><p>📦 {T("Xalqaro baholash materiallari hali yuklanmagan. Tez orada shu yerda TIMSS va PISA savollari va darslari paydo bo‘ladi.")}</p></div>}
     {["TIMSS", "PISA"].map((dastur) => <div key={dastur} className="xb-toplam-guruh">
       <h4>{dastur === "TIMSS" ? T("TIMSS — 4- va 8-sinf: matematika va tabiiy fanlar") : T("PISA — 15 yosh (9–10-sinf): bilimni hayotda qo‘llash")}</h4>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
+import { OqituvchiSinflar } from "./XbSinflar.jsx";   // REV373
 import XbSavol from "./XbSavol.jsx";
 import XbDoska from "./XbDoska.jsx";
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
@@ -92,19 +93,23 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
   const [tanlangan, setTanlangan] = useState(null);
   const [ochiq, setOchiq] = useState(null);
   const [til, setTil] = useState(xbTil());   // REV270: qaysi tildagi natijalar ko'rilmoqda (sukut bo'yicha — interfeys tili)
+  const [xbSinf, setXbSinf] = useState(0);   // REV373: o'qituvchi ochgan sinf (0 — maktab bo'yicha)
   const admin = kuzatuv?.rol === "admin";
-  const params = { sinf, harf, maktab_id: maktab || 0, til };
+  const mustaqil = Boolean(kuzatuv?.mustaqil);
+  const params = { sinf, harf, maktab_id: maktab || 0, til, xb_sinf: xbSinf || 0 };
   useEffect(() => {
     let t = true; setD(null); setX(null); setXato("");
     xbFetch(apiBase, "/api/xalqaro/sinf_natija", token, { params }).then((r) => t && setD(r)).catch((e) => t && setXato(e.message));
     xbFetch(apiBase, "/api/xalqaro/sinf_xatolar", token, { params }).then((r) => t && setX(r)).catch(() => t && setX({ savollar: [], mavzular: [] }));
     return () => { t = false; ovoz.hush(); };
-  }, [maktab, sinf, harf, til]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [maktab, sinf, harf, til, xbSinf]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (tanlangan) return <OquvchiTafsilot apiBase={apiBase} token={token} id={tanlangan} jins={jins} ustoz={ustoz} til={til} onYopish={() => setTanlangan(null)} />;
   const j = d?.jamlama;
   return <div className="xb-panel">
     <h3>👩‍🏫 {admin ? T("Admin: xalqaro baholash nazorati") : T("O‘qituvchi paneli: sinfim xalqaro baholashda")}</h3>
+    <OqituvchiSinflar apiBase={apiBase} token={token} tanlangan={xbSinf} onTanla={setXbSinf} />
+    {xbSinf > 0 && <p className="xb-muted xb-kichik">🏫 {T("Quyida — tanlangan sinfingiz o‘quvchilari. Hammasini ko‘rish uchun sinfni qayta bosing.")}</p>}
     {admin && kuzatuv.platforma && <div className="xb-kartalar">
       <div className="xb-karta"><small>{T("Platformada faol o‘quvchi")}</small><b>{kuzatuv.platforma.oquvchi}</b></div>
       <div className="xb-karta"><small>{T("Jami javoblar")}</small><b>{kuzatuv.platforma.javob}</b></div>
@@ -114,10 +119,10 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
     <div className="xb-filtr">
       {admin && <label className="xb-tanla">{T("Maktab")}: <select value={maktab} onChange={(e) => setMaktab(Number(e.target.value))}>
         <option value={0}>{T("Butun platforma")}</option>{(kuzatuv.maktablar || []).map((m) => <option key={m.id} value={m.id}>{m.nomi} ({m.oquvchi})</option>)}</select></label>}
-      <label className="xb-tanla">{T("Sinf")}: <select value={sinf} onChange={(e) => setSinf(e.target.value)}><option value="">{T("Hammasi")}</option>
+      {!xbSinf && !mustaqil && <><label className="xb-tanla">{T("Sinf")}: <select value={sinf} onChange={(e) => setSinf(e.target.value)}><option value="">{T("Hammasi")}</option>
         {Array.from({ length: 11 }, (_, k) => <option key={k} value={String(k + 1)}>{tf("{n}-sinf", { n: k + 1 })}</option>)}</select></label>
       <label className="xb-tanla">{T("Harf")}: <select value={harf} onChange={(e) => setHarf(e.target.value)}><option value="">—</option>
-        {["A", "B", "V", "G", "D", "E"].map((h) => <option key={h} value={h}>{h}</option>)}</select></label>
+        {["A", "B", "V", "G", "D", "E"].map((h) => <option key={h} value={h}>{h}</option>)}</select></label></>}
       <label className="xb-tanla">🌐 {T("Ta’lim tili")}: <select value={til} onChange={(e) => setTil(e.target.value)}>
         {XB_TILLAR.map((k) => <option key={k} value={k}>{XB_TIL_BAYROQ[k]} {XB_TIL_NOMI[k]}</option>)}</select></label>
     </div>

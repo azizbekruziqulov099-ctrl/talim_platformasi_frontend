@@ -615,6 +615,15 @@ function Chempionat(props) { return lazyPanel(LazyChempionat, props); }
 const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
 const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
 const LazyXalqaroBaholash = _samtmLazyRetry(() => import("./xalqaro/XalqaroBaholash.jsx"));   // REV260: xalqaro baholash
+// REV373: ?xb_sinf=KOD — o'qituvchining sinf taklifi: kodni eslab qolamiz (kirishdan keyin ham), keyin «Xalqaro baholash» ochiladi
+try {
+  const _xbk = new URLSearchParams(window.location.search).get("xb_sinf");
+  if (_xbk && /^[A-Za-z0-9]{4,12}$/.test(_xbk)) {
+    window.localStorage.setItem("kabutar:xb:taklif", _xbk.toUpperCase());
+    const _u = new URL(window.location.href); _u.searchParams.delete("xb_sinf"); window.history.replaceState(null, "", _u.toString());
+  }
+} catch { /* */ }
+const _xbTaklifBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:xb:taklif")); } catch { return false; } };
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
   const { fetch: scopedFetch, scope } = useCurriculum();
@@ -14533,7 +14542,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         if (controller.signal.aborted) return;
         if (!readOnly) { rememberAccount(u, token, takeLoginMethod()); if (loginAccountRole(u)) saveLoginRole(loginAccountRole(u)); }
         setFoydalanuvchi(u);
-        setTab(current => current || ((initialCourses || initialCourseId) ? "kurslar" : botStartTab() || (!readOnly && bellashuv.kod ? "bellashuv" : !readOnly && shashka.kod ? "shashka" : !readOnly && shaxmat.kod ? "shaxmat" : "") || initialEducationTab(u)));
+        setTab(current => current || (_xbTaklifBor() ? "xalqaro" : "") || ((initialCourses || initialCourseId) ? "kurslar" : botStartTab() || (!readOnly && bellashuv.kod ? "bellashuv" : !readOnly && shashka.kod ? "shashka" : !readOnly && shaxmat.kod ? "shaxmat" : "") || initialEducationTab(u)));
         setHolat("tayyor");
       }).catch((error) => {
         if (controller.signal.aborted) return;

@@ -209,3 +209,26 @@
 .xb-karta.xb-karta-keng{grid-column:1/-1}
 .xb-karta .xb-fikr-q b{font-size:14px!important;line-height:1.2}
 .xb-karta .xb-fikr-q span:first-child{font-size:13px;color:#475569}
+/* REV373: sinflar */
+.xb-sinflar{display:flex;flex-direction:column;gap:10px}
+.xb-sinf-bosh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.xb-sinf-bosh h4{margin:0}
+.xb-sinf-forma{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:rgba(127,127,127,.07)}
+.xb-sinf-forma label{display:flex;flex-direction:column;gap:4px;font-weight:600}
+.xb-sinf-forma input,.xb-sinf-forma select,.xb-sinf-boshqar input{padding:9px 10px;border-radius:10px;border:1px solid rgba(127,127,127,.4);font:inherit}
+.xb-sinf-royxat{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.xb-sinf-karta{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;border:2px solid rgba(127,127,127,.2);background:var(--xb-fon,#fff);text-align:left}
+.xb-sinf-karta.is-on{border-color:#1b4b7a;box-shadow:0 0 0 3px rgba(27,75,122,.15)}
+.xb-sinf-karta small{display:block;opacity:.7}
+.xb-sinf-tanla{background:none;border:none;padding:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
+button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
+.xb-sinf-kod{font:700 26px/1 ui-monospace,monospace;letter-spacing:4px;padding:8px;border-radius:10px;background:rgba(27,75,122,.08);text-align:center}
+.xb-sinf-tugmalar{display:flex;flex-wrap:wrap;gap:6px}
+.xb-sinf-raqamlar{display:flex;flex-wrap:wrap;gap:6px}.xb-sinf-raqamlar .xb-btn{min-width:44px}.xb-sinf-raqamlar .is-on{background:#1b4b7a;color:#fff}
+.xb-kod-input{font:700 22px ui-monospace,monospace!important;letter-spacing:4px;text-transform:uppercase;max-width:220px}
+.xb-sinf-boshqar{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;border:2px dashed rgba(127,127,127,.35)}
+.xb-sinf-boshqar label{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.xb-sinf-azolar{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px}.xb-sinf-azolar li{display:flex;justify-content:space-between;align-items:center}
+.xb-ok{color:#1e7d3a;font-weight:600}
+.xb-btn-xavf{color:#b3261e}
+.xb-sinf-forma .xb-tablar{flex-wrap:wrap;overflow:visible}
