@@ -3,7 +3,7 @@ import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePrefer
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowLeft, Copy, Download, Forward, Loader2, MessageCircle, MoreHorizontal, Pencil, Phone, Reply, Search, Send, ShieldCheck, Trash2, Video } from "lucide-react";
 import KabutarAccount, { KabutarAccountButton, useKabutarPreferences } from "./KabutarAccount.jsx";
-import { kabutarRequest, normalizeKabutarId, copyKabutarText } from "./kabutarAccountRules.js";
+import { kabutarRequest, normalizeKabutarId, copyKabutarText, suhbatKaliti } from "./kabutarAccountRules.js";
 import { startKabutarPoll, mergeKabutarMessages } from "./kabutarPolling.js";
 import KabutarMessageCanvas from "./KabutarMessageCanvas.jsx";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
@@ -102,6 +102,11 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const [tvKorinadi, setTvKorinadi] = useState(true);   // REV389: admin Kabutar TV ni o'chirib-yoqadi
   useEffect(() => { fetch(`${String(apiBase || "").replace(/\/+$/, "")}/api/kabutar_tv/korinish`).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.korinadi === false) setTvKorinadi(false); }).catch(() => {}); }, [apiBase]);
   const [emojiOchiq, setEmojiOchiq] = useState(false);
+  const [qatorMenyu, setQatorMenyu] = useState(null);
+  const qoralamaT = useRef(null);
+  const qoralamaYoz = (v) => { const k = suhbatKaliti(peerRef.current); if (!k || editing) return; clearTimeout(qoralamaT.current);
+    qoralamaT.current = setTimeout(() => { const d = { ...(preferences.settings.drafts || {}) }; if (v.trim()) d[k] = v; else delete d[k]; preferences.updateSettings({ drafts: d }); }, 600); };   // REV393: {kalit, x, y} — suhbat qatori menyusi
+  const [arxivKorinish, setArxivKorinish] = useState(false);
   const [peerHolat, setPeerHolat] = useState({ matn: "", yozmoqda: false, kimlar: [] });   // REV391: «yozmoqda…», «onlayn»
   const yozmoqdaRef = useRef(0);
   const requestedContactRef = useRef(null);
@@ -191,7 +196,9 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   };
   const restoreDraft = key => {
     const draft = draftsRef.current.get(key);
-    setText(draft?.text || ""); setReplyTo(draft?.replyTo || null); setEditing(draft?.editing || null);
+    // REV393: sahifa qayta ochilganda ham qoralama qoladi (saqlangan qoralama — faqat asosiy suhbat uchun)
+    const saqlangan = !draft && /:main$/.test(key) ? preferences.settings.drafts?.[suhbatKaliti(peerRef.current)] : "";
+    setText(draft?.text || saqlangan || ""); setReplyTo(draft?.replyTo || null); setEditing(draft?.editing || null);
   };
   const closeDiscussion = () => {
     if (sending || mediaBusy) return;
@@ -622,6 +629,7 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
       if (stillHere()) {
         if (!file) setText(current => current.trim() === body ? "" : current);
         setReplyTo(null); draftsRef.current.delete(sendContext);
+        { const k = suhbatKaliti(peerRef.current); clearTimeout(qoralamaT.current); if (k && preferences.settings.drafts?.[k]) { const d = { ...preferences.settings.drafts }; delete d[k]; preferences.updateSettings({ drafts: d }); } }   // REV393
         if (threadTargetId) setThreadRefresh(value => value + 1);
         scrollIntent.current = { key: targetKey, mode: "bottom" };
         if (messagesRef.current.length >= KABUTAR_MESSAGE_WINDOW) setHasOlder(true);
@@ -673,6 +681,16 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const scopedSuhbatlar = (directory?.suhbatlar || []).filter(x => !scopedIds || scopedIds.has(String(x.user_id)));
   const scopeMeta = activeScope ? (KABUTAR_TURI[activeScope.turi] || KABUTAR_TURI.maktab) : null;
   const accent = scopeMeta ? scopeMeta.rang : palette.button;
+  // REV393: Telegram kabi — qadash (📌), arxiv (🗄), ovozsiz (🔕), qoralama
+  const sozl = preferences.settings;
+  const qadalgan = new Set(sozl.pinned || []), arxivda = new Set(sozl.archived || []), ovozsiz = new Set(sozl.muted || []);
+  const almashtir = (nom, kalit) => { const ro = new Set(sozl[nom] || []); if (ro.has(kalit)) ro.delete(kalit); else ro.add(kalit); preferences.updateSettings({ [nom]: [...ro] }); };
+  const tartibla = (ro, kalitOl) => ro.filter((x) => arxivKorinish === arxivda.has(kalitOl(x))).sort((a, b) => Number(qadalgan.has(kalitOl(b))) - Number(qadalgan.has(kalitOl(a))));
+  const qatorBelgi = (kalit) => <>{qadalgan.has(kalit) && <span className="kb-qator-belgi" title={t("Qadalgan")}>📌</span>}{ovozsiz.has(kalit) && <span className="kb-qator-belgi" title={t("Ovozsiz")}>🔕</span>}</>;
+  const qatorTegi = (kalit) => ({ onContextMenu: (e) => { e.preventDefault(); setQatorMenyu({ kalit, x: e.clientX, y: e.clientY }); },
+    onTouchStart: () => { clearTimeout(uzoqRef.current); uzoqRef.current = setTimeout(() => { navigator.vibrate?.(15); setQatorMenyu({ kalit, x: 60, y: 160 }); }, 500); },
+    onTouchEnd: () => clearTimeout(uzoqRef.current), onTouchMove: () => clearTimeout(uzoqRef.current) });
+  const arxivSoni = [...(chatDirectory.guruhlar || []).map((g) => `g${g.id}`), ...(directory?.suhbatlar || []).map((x) => `u${x.user_id}`)].filter((k) => arxivda.has(k)).length;
   const visibleGroups = (chatDirectory.guruhlar || []).filter(group => {
     if (KANALLAR_REJIMI && !String(group.manba_turi || "").startsWith("kabutar_tv")) return false;
     if (!tvKorinadi && !toliq && String(group.manba_turi || "").startsWith("kabutar_tv")) return false;
@@ -725,20 +743,22 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
           {idError && <div className="mt-1.5 text-[11px] font-bold" style={{ color: palette.red }}>{t(idError)}</div>}
           {idResult && <button onClick={() => { setAccountView({ page: "profile", person: { ...idResult, izoh: idResult.qisqa, rol: "suhbat" } }); setIdResult(null); setIdQuery(""); }} className="mt-2 w-full text-left rounded-xl border p-2.5" style={{ borderColor: palette.green, background: palette.mint }}><div className="text-sm font-black" style={{ color: palette.ink }}>{idResult.full_name} <span className="text-[10px]" style={{ color: palette.green }}>✓ {idResult.kabutar_id}</span></div>{(idResult.rollar || []).map((r, i) => <div key={i} className="text-[11px]" style={{ color: palette.muted }}>{__kbUi(r.rol)}{r.muassasa ? __kbUi(` — ${r.muassasa}`) : __kbUi("")}</div>)}<div className="text-[10px] mt-1 font-black" style={{ color: palette.blue }}>{t("Profilini ko‘rish ›")}</div></button>}
         </div></details>}
+        {directory && !KANALLAR_REJIMI && (arxivSoni > 0 || arxivKorinish) && <button type="button" className="kb-arxiv-qator" onClick={() => setArxivKorinish((x) => !x)}>
+          <span className="kb-arxiv-belgi" aria-hidden="true">{arxivKorinish ? "←" : "🗄"}</span><span>{arxivKorinish ? t("Barcha suhbatlarga qaytish") : t("Arxiv")}</span>{!arxivKorinish && <small>{arxivSoni}</small>}</button>}
         {directory && visibleGroups.length > 0 && <div className="border-b" style={{ borderColor: palette.line }}>
           <div className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.blue }}>{t("Avtomatik guruhlar")}</div>
-          {visibleGroups.slice(0, directoryLimit).map(group => <button key={`g-${group.id}`} onClick={() => openPeer({ guruh_id: group.id, full_name: group.nomi, izoh: String(group.manba_turi || "").startsWith("kabutar_tv") ? (group.manba_turi === "kabutar_tv_markaz" ? "Markaz TV · har kuni yangi ko‘rsatuv" : "Kabutar TV · har kuni yangi ko‘rsatuv") : `${group.turi} · rasmiy guruh`, rol: "guruh", kanal: String(group.manba_turi || "").startsWith("kabutar_tv") })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.guruh_id === group.id ? palette.sky : undefined }}>
+          {tartibla(visibleGroups, (g) => `g${g.id}`).slice(0, directoryLimit).map(group => <button key={`g-${group.id}`} {...qatorTegi(`g${group.id}`)} onClick={() => openPeer({ guruh_id: group.id, full_name: group.nomi, izoh: String(group.manba_turi || "").startsWith("kabutar_tv") ? (group.manba_turi === "kabutar_tv_markaz" ? "Markaz TV · har kuni yangi ko‘rsatuv" : "Kabutar TV · har kuni yangi ko‘rsatuv") : `${group.turi} · rasmiy guruh`, rol: "guruh", kanal: String(group.manba_turi || "").startsWith("kabutar_tv") })} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50" style={{ background: peer?.guruh_id === group.id ? palette.sky : undefined }}>
             <div className="kb-list-avatar w-10 h-10 rounded-full flex items-center justify-center text-lg text-white shrink-0" style={{ background: avatarRangi(group.nomi) }}>👥</div>
-            <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{group.nomi}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{preferences.settings.showPreviews ? (group.oxirgi_matn || (group.oxirgi_fayl_turi ? t("Media xabar") : t("Hali xabar yo‘q"))) : t("Guruh xabarlari")}</div></div>
-            {Number(group.okilmagan_soni || 0) > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center" style={{ background: "var(--ui-danger-action, #a23d45)" }}>{group.okilmagan_soni}</span>}
+            <div className="min-w-0 flex-1"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{qatorBelgi(`g${group.id}`)}{group.nomi}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{preferences.settings.showPreviews ? (group.oxirgi_matn || (group.oxirgi_fayl_turi ? t("Media xabar") : t("Hali xabar yo‘q"))) : t("Guruh xabarlari")}</div></div>
+            {Number(group.okilmagan_soni || 0) > 0 && <span className={`min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center ${ovozsiz.has(`g${group.id}`) ? "is-ovozsiz" : ""}`} style={{ background: "var(--ui-danger-action, #a23d45)" }}>{group.okilmagan_soni}</span>}
           </button>)}
         </div>}
-        {directory && !KANALLAR_REJIMI && listTab !== "groups" && __kbUi((() => { const list = scopedSuhbatlar.filter(x => visibleContactIds.has(String(x.user_id))).filter(x => !q || String(x.full_name).toLocaleLowerCase("uz").includes(q) || String(x.izoh || "").toLocaleLowerCase("uz").includes(q)); if (!list.length) return null; return <div>
+        {directory && !KANALLAR_REJIMI && listTab !== "groups" && __kbUi((() => { const list = tartibla(scopedSuhbatlar.filter(x => visibleContactIds.has(String(x.user_id))).filter(x => !q || String(x.full_name).toLocaleLowerCase("uz").includes(q) || String(x.izoh || "").toLocaleLowerCase("uz").includes(q)), (x) => `u${x.user_id}`); if (!list.length) return null; return <div>
           <div className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-[.12em]" style={{ color: palette.ink }}>{t("Suhbatlarim")}</div>
-          {list.map(item => <button key={`s-${item.user_id}`} onClick={() => openPeer({ ...item, rol: item.tashqi ? "tashqi" : "suhbat" })} className={`kb-list-row w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50 ${peer?.user_id === item.user_id ? "is-on" : ""}`} style={{ background: peer?.user_id === item.user_id ? palette.sky : undefined }}>
+          {list.map(item => <button key={`s-${item.user_id}`} {...qatorTegi(`u${item.user_id}`)} onClick={() => openPeer({ ...item, rol: item.tashqi ? "tashqi" : "suhbat" })} className={`kb-list-row w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50 ${peer?.user_id === item.user_id ? "is-on" : ""}`} style={{ background: peer?.user_id === item.user_id ? palette.sky : undefined }}>
             <div className="kb-list-avatar w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0" style={{ background: avatarRangi(item.full_name) }}>{__kbUi(kabutarInitials(item.full_name))}</div>
-            <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{item.full_name}</div>{item.oxirgi_xabar_at && <span className="text-[10px] shrink-0" style={{ color: palette.muted }}>{__kbUi(kabutarTime(item.oxirgi_xabar_at, locale))}</span>}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{preferences.settings.showPreviews ? __kbUi(`${item.izoh ? item.izoh + " · " : ""}${item.oxirgi_meniki ? "Siz: " : ""}${item.oxirgi_matn || ""}`) : t("Shaxsiy suhbat")}</div></div>
-            {item.oqilmagan > 0 && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center" style={{ background: "var(--ui-danger-action, #a23d45)" }}>{item.oqilmagan}</span>}
+            <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><div className="text-sm font-black truncate" style={{ color: palette.ink }}>{qatorBelgi(`u${item.user_id}`)}{item.full_name}</div>{item.oxirgi_xabar_at && <span className="text-[10px] shrink-0" style={{ color: palette.muted }}>{__kbUi(kabutarTime(item.oxirgi_xabar_at, locale))}</span>}</div><div className="text-[11px] truncate" style={{ color: palette.muted }}>{sozl.drafts?.[`u${item.user_id}`] && peer?.user_id !== item.user_id ? <><span className="kb-qoralama">{t("Qoralama")}:</span> {sozl.drafts[`u${item.user_id}`]}</> : preferences.settings.showPreviews ? __kbUi(`${item.izoh ? item.izoh + " · " : ""}${item.oxirgi_meniki ? "Siz: " : ""}${item.oxirgi_matn || ""}`) : t("Shaxsiy suhbat")}</div></div>
+            {item.oqilmagan > 0 && <span className={`min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-black text-white flex items-center justify-center ${ovozsiz.has(`u${item.user_id}`) ? "is-ovozsiz" : ""}`} style={{ background: "var(--ui-danger-action, #a23d45)" }}>{item.oqilmagan}</span>}
           </button>)}
         </div>; })())}
         {directory && !KANALLAR_REJIMI && listTab !== "groups" && scopedMuassasalar.map(m => { const groupsHere = KABUTAR_GROUPS.map(([key, label, color]) => [key, label, color, (m.azolar || []).filter(a => visibleContactIds.has(String(a.user_id)) && a.guruh === key && (!q || String(a.full_name).toLocaleLowerCase("uz").includes(q) || String(a.izoh || "").toLocaleLowerCase("uz").includes(q)))]).filter(g => g[3].length); if (!groupsHere.length) return null; return <div key={`${m.turi}-${m.muassasa_id}`}>
@@ -825,7 +845,7 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
             {active && !peer.kanal && <KabutarMediaComposer key={`${apiBase}:${token}:${composerKey}`} conversationKey={composerKey} conversationLabel={peer.full_name} disabled={!canWrite || Boolean(threadTargetId && !threadRoot) || sending || Boolean(editing) || Boolean(call) || Boolean(meetingGroupId) || directory?.policy?.eligible === false} onSend={send} onBusyChange={setMediaBusy}/>}
             <button type="button" className={`kb-emoji-btn ${emojiOchiq ? "is-on" : ""}`} onClick={() => setEmojiOchiq((x) => !x)} aria-label={t("Emoji")} aria-expanded={emojiOchiq}>😊</button>
             {emojiOchiq && <div className="kb-emoji-panel" role="dialog" aria-label={t("Emoji")}>{EMOJILAR.map((e) => <button key={e} type="button" onClick={() => { const el = textareaRef.current; const a = el?.selectionStart ?? text.length, b = el?.selectionEnd ?? text.length; setText(text.slice(0, a) + e + text.slice(b)); setTimeout(() => { el?.focus(); el?.setSelectionRange?.(a + e.length, a + e.length); }, 0); }}>{e}</button>)}</div>}
-            <textarea ref={textareaRef} maxLength={peer.kanal ? 500 : 4000} disabled={!canWrite || Boolean(threadTargetId && !threadRoot) || directory?.policy?.eligible === false} value={text} onChange={e => { setText(e.target.value);
+            <textarea ref={textareaRef} maxLength={peer.kanal ? 500 : 4000} disabled={!canWrite || Boolean(threadTargetId && !threadRoot) || directory?.policy?.eligible === false} value={text} onChange={e => { setText(e.target.value); qoralamaYoz(e.target.value);
               const now = Date.now(); if (peer && !peer.kanal && now - yozmoqdaRef.current > 3000) { yozmoqdaRef.current = now;
                 const fd = new FormData(); fd.append("token", token); if (peer.guruh_id) fd.append("guruh_id", String(peer.guruh_id)); else fd.append("boshqa_user_id", String(peer.user_id));
                 fetch(`${String(apiBase || "").replace(/\/+$/, "")}/api/chat/yozmoqda`, { method: "POST", body: fd }).catch(() => {}); } }} onKeyDown={e => { if (!mediaBusy && !sending && e.key === "Enter" && !e.shiftKey && !e.nativeEvent?.isComposing && preferences.settings.enterToSend) { e.preventDefault(); send(); } }} rows={1} placeholder={threadTargetId ? t("Izoh yozing…") : preferences.settings.enterToSend ? t("Xabar yozing… Enter — yuborish") : t("Xabar yozing…")} aria-label={t("Xabar matni")} className="flex-1 resize-none px-3 py-2.5 rounded-xl border text-sm outline-none max-h-32" style={{ borderColor: palette.line }}/>
@@ -834,6 +854,12 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
         </>}
       </section>
     </div>
+    {qatorMenyu && <><div className="kb-qm-fon" onClick={() => setQatorMenyu(null)} onContextMenu={(e) => { e.preventDefault(); setQatorMenyu(null); }} />
+      <div className="kb-qator-menyu" role="menu" style={{ left: Math.min(qatorMenyu.x, (typeof window !== "undefined" ? window.innerWidth : 400) - 230), top: Math.min(qatorMenyu.y, (typeof window !== "undefined" ? window.innerHeight : 600) - 200) }}>
+        <button type="button" role="menuitem" disabled={!qadalgan.has(qatorMenyu.kalit) && qadalgan.size >= 10} onClick={() => { almashtir("pinned", qatorMenyu.kalit); setQatorMenyu(null); }}>📌 {qadalgan.has(qatorMenyu.kalit) ? t("Qadashni olib tashlash") : t("Tepaga qadash")}</button>
+        <button type="button" role="menuitem" onClick={() => { almashtir("muted", qatorMenyu.kalit); setQatorMenyu(null); }}>{ovozsiz.has(qatorMenyu.kalit) ? `🔔 ${t("Ovozni yoqish")}` : `🔕 ${t("Ovozsiz qilish")}`}</button>
+        <button type="button" role="menuitem" onClick={() => { almashtir("archived", qatorMenyu.kalit); setQatorMenyu(null); }}>🗄 {arxivda.has(qatorMenyu.kalit) ? t("Arxivdan chiqarish") : t("Arxivga olish")}</button>
+      </div></>}
     {safetyView && <KabutarSafety key={`${apiBase}:${token}:${safetyView.mode}:${safetyView.message?.id || safetyView.person?.user_id || "list"}`} apiBase={apiBase} token={token} view={safetyView} onClose={() => setSafetyView(null)} onBlocked={blockedId => { if (blockedId && Number(peerRef.current?.user_id) === Number(blockedId)) { setPeer(null); peerRef.current = null; setMessages([]); outgoingRef.current?.controller.abort(); } loadDirectory(); }}/>}
     {meetingGroupId && <KabutarMeetingDialog key={`${apiBase}:${token}:${meetingGroupId}`} apiBase={apiBase} token={token} groupId={meetingGroupId} onClose={() => setMeetingGroupId(null)}/>}
     {call && <KabutarCallDialog key={`${apiBase}:${token}:${call.callId || `${call.peer?.id}:${call.mode}`}`} apiBase={apiBase} token={token} {...call} onClose={() => setCall(null)}/>}

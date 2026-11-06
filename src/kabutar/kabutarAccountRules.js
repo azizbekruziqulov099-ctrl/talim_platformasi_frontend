@@ -3,7 +3,10 @@
 export const DEFAULT_KABUTAR_SETTINGS = Object.freeze({
   textSize: 15, enterToSend: false, showPreviews: true,
   messageLayout: "classic", canvasShape: "keyboard", canvasHeight: 30, groupThreads: true,
+  pinned: [], archived: [], muted: [], drafts: {},   // REV393: qadalgan, arxiv, ovozsiz suhbatlar va qoralamalar («u12», «g5»)
 });
+const KALIT = /^[ug]\d{1,12}$/;
+const kalitlar = (v, max) => [...new Set((Array.isArray(v) ? v : []).map(String).filter((x) => KALIT.test(x)))].slice(0, max);
 
 export function normalizeKabutarId(value) {
   const compact = String(value || "").trim().replace(/^KB[\s-]*/i, "");
@@ -19,8 +22,14 @@ export function normalizeSettings(value) {
     canvasShape: ["keyboard", "grid", "heart", "crescent", "edges"].includes(value?.canvasShape) ? value.canvasShape : "keyboard",
     canvasHeight: [20, 30, 40].includes(Number(value?.canvasHeight)) ? Number(value.canvasHeight) : 30,
     groupThreads: value?.groupThreads !== false,
+    pinned: kalitlar(value?.pinned, 10),   // Telegram kabi — ko'pi bilan 10 ta qadalgan
+    archived: kalitlar(value?.archived, 500),
+    muted: kalitlar(value?.muted, 500),
+    drafts: Object.fromEntries(Object.entries(value?.drafts && typeof value.drafts === "object" ? value.drafts : {})
+      .filter(([k, v]) => KALIT.test(k) && typeof v === "string" && v.trim()).slice(-100).map(([k, v]) => [k, v.slice(0, 4000)])),
   };
 }
+export const suhbatKaliti = (x) => (x?.guruh_id ? `g${x.guruh_id}` : x?.user_id != null ? `u${x.user_id}` : "");
 
 export function contactRecord(value) {
   const id = Number(value?.user_id);
