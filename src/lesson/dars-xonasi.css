@@ -1081,3 +1081,19 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .qd-t:disabled{opacity:.45}
 .qd-javob{height:42px;padding:0 16px;border-radius:12px;border:none;background:#1f7a45;color:#fff;font:700 15px system-ui,sans-serif;cursor:pointer}
 @media (max-width:520px){.qd-savol{font-size:15px;max-height:26%}.qd-asboblar{gap:6px}.qd-t{padding:0 8px;font-size:13px}}
+/* REV386: panel burchagidagi soat; yozuv yengilroq; tayanch — haqiqiy elektron panel stendi (ustun, ko'ndalang, g'ildirakli oyoqlar) */
+.dx-root.dx-sinf .dx-sinf-fon .us-soat{display:none}
+.dx-panel-soat{position:absolute;top:.8cqh;right:1cqw;z-index:4;padding:.3cqh .9cqw;border-radius:.9cqh;background:rgba(0,0,0,.35);color:#cfe9ff;font:600 clamp(10px,2.1cqh,18px)/1.2 ui-monospace,monospace;letter-spacing:1px;pointer-events:none}
+.dx-root.dx-sinf .dx-board{font-weight:400}
+.dx-root.dx-sinf .dx-board .dx-line,.dx-root.dx-sinf .dx-board .mdx-line,.dx-root.dx-sinf .dx-board p{font-weight:400}
+.dx-root.dx-sinf .dx-board b,.dx-root.dx-sinf .dx-board strong{font-weight:600}
+.dx-root.dx-sinf .dx-title{font-weight:600}
+.dx-tayanch i{width:1.4cqw;min-width:7px;height:calc(100% - 2.6cqh);border-radius:3px;background:linear-gradient(90deg,#1f252e,#6b7585 45%,#2a313b)}
+.dx-tayanch i:nth-child(1){left:22%}.dx-tayanch i:nth-child(2){right:22%}
+.dx-tayanch u{position:absolute;left:22%;right:22%;top:38%;height:1cqh;min-height:5px;border-radius:3px;background:linear-gradient(#5b6575,#2a313b)}
+.dx-tayanch b{left:12%;right:12%;bottom:1.2cqh;height:1.2cqh;border-radius:6px}
+.dx-tayanch s{position:absolute;bottom:0;width:1.8cqh;height:1.8cqh;min-width:8px;min-height:8px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#6b7585,#1a1f27);text-decoration:none}
+.dx-tayanch s:nth-of-type(1){left:12%}.dx-tayanch s:nth-of-type(2){right:12%}
+.dx-tushundim{display:block;margin:10px auto 0;font-size:1.05em;animation:dx-tush 1.6s ease-in-out infinite}
+@keyframes dx-tush{50%{transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.dx-tushundim{animation:none}}

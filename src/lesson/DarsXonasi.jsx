@@ -73,6 +73,12 @@ const IZOH_5 = ["uz", "ru", "en", "de", "es"];
 const izohL = (x) => (IZOH_5.includes(x) ? x : "uz");
 // REV269: doskaga bo'r bilan yozilgandek — yangi qator harfma-harf chiqadi (≈28 harf/soniya, uzun qator ~4 s ichida);
 // formula/LaTeX bo'lsa (yarim yozilgan ifoda buziladi) yoki «harakatni kamaytirish» yoqilgan bo'lsa — darhol to'liq.
+// REV386: elektron panel burchagidagi soat (haqiqiy vaqt)
+function PanelSoat() {
+  const [v, setV] = useState(() => new Date());
+  useEffect(() => { const t = setInterval(() => setV(new Date()), 20000); return () => clearInterval(t); }, []);
+  return <div className="dx-panel-soat" aria-label={__kbUi("Soat")}>{String(v.getHours()).padStart(2, "0")}:{String(v.getMinutes()).padStart(2, "0")}</div>;
+}
 function BordaYozish({ text = "", faol = false, children }) {
   const matn = String(text || "");
   const sodda = !/[$\\{}^_]/.test(matn);
@@ -81,8 +87,9 @@ function BordaYozish({ text = "", faol = false, children }) {
   const yozildi = useRef(!(faol && sodda && !kamHarakat));
   useEffect(() => {
     if (yozildi.current) { setN(matn.length); return undefined; }
-    const qadam = Math.max(1, Math.round(matn.length / 110));      // juda uzun qator ham ~4 s da tugaydi
-    const t = setInterval(() => setN((x) => { const y = Math.min(matn.length, x + qadam); if (y >= matn.length) { clearInterval(t); yozildi.current = true; } return y; }), 36);
+    // REV386: yozuv ustoz gapi bilan birga ketadi (~15 harf/soniya); juda uzun qator ham 10 s da tugaydi
+    const qadam = Math.max(1, Math.round(matn.length / 150));
+    const t = setInterval(() => setN((x) => { const y = Math.min(matn.length, x + qadam); if (y >= matn.length) { clearInterval(t); yozildi.current = true; } return y; }), 66);
     return () => clearInterval(t);
   }, [matn]); // eslint-disable-line react-hooks/exhaustive-deps
   const qism = n >= matn.length ? matn : matn.slice(0, n);
@@ -250,8 +257,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const [ozimYozaman, setOzimYozaman] = useState(false);   // REV385
+  const [rasmKut, setRasmKut] = useState(null);   // REV386: rasm qadamida «Tushundim» kutilmoqda
   const [tanlanganVar, setTanlanganVar] = useState(null);
-  useEffect(() => { setOzimYozaman(false); setTanlanganVar(null); }, [idx]);
+  useEffect(() => { setOzimYozaman(false); setTanlanganVar(null); setRasmKut((x) => (x === idx ? x : null)); }, [idx]);
   const idxRef = useRef(idx);
   idxRef.current = idx;
   const rateRef = useRef(rate);
@@ -508,7 +516,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins: ovozJinsi,
       ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}),   // REV233: inglizcha/ruscha izohli dars — o'zbek talaffuzida o'qilmasin
       // REV122: ustoz — tabiiy (odam) ovozi: ohang ko'tarilmaydi, tezlik biroz tabiiyroq; robot Kabu — yuqoriroq ohang
-      ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz }) : kabuGapiradi ? { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz } : {}),
+      ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz }) : kabuGapiradi ? { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz }
+        : { tezlik: (() => { const n = parseInt(String(gradeRef.current || ""), 10); return n && n <= 4 ? "-12%" : n && n <= 7 ? "-8%" : "-4%"; })() }),   // REV386: maktab ustozi sekinroq
       ...(takror ? { takror: "1" } : {}), ...(attempt ? { q: String(attempt) } : {}) });
     return `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${params}`;
   }, [apiBase, jins]);
@@ -1027,7 +1036,12 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => { qaytar(); setStepFinished(true); setPlaying(true);
         // REV381: gap tugagach o'quvchi doskani ko'rib, tushunib olishi uchun biroz kutiladi (rasm/chizma/formula bo'lsa — ko'proq)
         const d = String(step.doska || ""); const chizma = /\[(rasm|sxema|jadval|grafik|chiz)|<svg|\\frac|\\sqrt|\$\$/i.test(d) || Boolean(step.rasm);
-        const kut = kid ? (chizma ? 1600 : 500) : Math.min(6000, (chizma ? 3200 : 1200) + Math.min(2000, d.length * 6));
+        if (chizma && !kid) {   // REV386: rasmni ko'rib, tushunib olsin — «Tushundim ▶» bosadi (yoki 15 s dan keyin o'zi)
+          setRasmKut(idx);
+          setTimeout(() => { if (playingRef.current && idxRef.current === idx) { setRasmKut(null); go(idx + 1, true); } }, 15000);
+          return;
+        }
+        const kut = kid ? (chizma ? 1600 : 500) : Math.min(6000, 1200 + Math.min(2000, d.length * 6));
         setTimeout(() => { if (playingRef.current && idxRef.current === idx) go(idx + 1, true); }, kut); }); }
       else qaytar();
       return;
@@ -1868,6 +1882,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               })}
             </div>
             {range.filter((i) => steps[i].rasm).map((i) => <img key={`img-${steps[i].id}`} className="dx-pic" src={mediaUrl(steps[i].rasm)} alt="" loading="lazy" />)}
+            {rasmKut === idx && <button type="button" className="dx-btn dx-primary dx-tushundim" onClick={() => { setRasmKut(null); hush(); go(idx + 1, true); }}>✅ {__kbUi("Tushundim, davom etamiz")} ▶</button>}
             {/* REV89: til darsida bola iborani o'zi aytadi — mikrofon tanib, yulduz beradi */}
             {/* REV385: nazariy qismdagi savol — 4 ta (ha/yo'q bo'lsa 2 ta) variant; xohlasa o'zi yozadi */}
             {step.turi === "birga" && step.javob && (() => {
@@ -1997,7 +2012,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             hidden={!(step && step.turi === "amaliy")}>✏️ {__kbUi("Yozish")}</button>
         </div>}
         <div className="dx-ledge" aria-hidden="true" />
-        {sinfXona && !kid && !kabuMuhit && <div className="dx-tayanch" aria-hidden="true"><i /><i /><b /></div>}
+        {sinfXona && !kid && !kabuMuhit && <><PanelSoat /><div className="dx-tayanch" aria-hidden="true"><i /><i /><u /><b /><s /><s /></div></>}
       </div>
 
       {!kid && <aside className={`dx-teacher ${speaking ? "is-speaking" : ""}`} aria-label={__kbUi("O‘qituvchi")} style={sinfXona ? foiz(kabuMuhit ? kabuJoy.gap : joy.gap) : undefined}>

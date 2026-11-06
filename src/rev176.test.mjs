@@ -76,12 +76,11 @@ test('integratsiya: imtihon kartalari, sinfxonada doskaga sig‘dirish, ustoz te
 
 import { sinfJoyi } from "./lesson/maktabMashqRules.js";
 import { XONALAR } from "./kid/ustozlar.js";
-test("REV176: doska deraza va devor soatini to'smaydi, ustoz derazaga qarama-qarshi", () => {
+test("REV176/REV386: doska derazani to'smaydi (soat — panel burchagida), ustoz derazaga qarama-qarshi", () => {
   for (const [k, x] of Object.entries(XONALAR)) {
     const j = sinfJoyi(k); const d = j.doska;
     const oyna = x.deraza;
     if (oyna) assert.ok(d.l >= oyna.l + oyna.w - 0.5 || d.l + d.w <= oyna.l + 0.5, `${k}: doska derazani to'smaydi`);
-    if (x.soat) { const rx = x.soat.w / 2, ry = rx * 1586 / 992, sx = x.soat.x, sy = x.soat.y; assert.ok(sx + rx <= d.l || sx - rx >= d.l + d.w || sy + ry <= d.t || sy - ry >= d.t + d.h, `${k}: soat to'liq ochiq (REV177: chetlari ham)`); }
     assert.equal(j.ustoz, (oyna?.l ?? 0) + (oyna?.w ?? 0) / 2 > 50 || k === "matematika" ? "chap" : "ong", k);
     assert.ok(j.gap.t + j.gap.h <= 100.5);
   }
