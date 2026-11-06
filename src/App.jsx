@@ -14832,6 +14832,21 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-gamburger span{display:block;width:18px;height:2.5px;border-radius:2px;background:#1B4B7A;transition:transform .15s,opacity .15s}
         .samtm-gamburger.is-on span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}.samtm-gamburger.is-on span:nth-child(2){opacity:0}.samtm-gamburger.is-on span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
         .samtm-chap{display:flex;align-items:center}
+        /* REV387: ☰ — aniq ko'rinadi (ko'k fon, oq chiziqlar), o'ng tepada Ta'lim/Kabutar va robot */
+        .samtm-top-switch .samtm-gamburger{background:#1B4B7A !important;border-color:#1B4B7A !important;box-shadow:0 2px 8px rgba(27,75,122,.25)}
+        .samtm-top-switch .samtm-gamburger span{background:#fff !important}
+        .samtm-top-switch .samtm-gamburger.is-on{background:#123553 !important}
+        .samtm-logo{display:inline-flex;margin-left:4px}.samtm-logo img{width:30px !important;height:30px !important;border-radius:9px !important;box-shadow:none !important}
+        .samtm-ong{display:flex !important;align-items:center;gap:8px;justify-content:flex-end}
+        .samtm-makon{display:inline-flex;padding:3px;gap:3px;border-radius:14px;background:#EEF2F6;border:1px solid #dde3ea}
+        .samtm-makon-t{position:relative;display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:none;border-radius:11px;background:transparent;color:#3a4a5c;font:800 14px system-ui,sans-serif;cursor:pointer}
+        .samtm-makon-t.on{background:#1B4B7A;color:#fff;box-shadow:0 2px 8px rgba(27,75,122,.28)}
+        .samtm-top-switch.is-kabutar .samtm-makon-t.on{background:#0D7A77;box-shadow:0 2px 8px rgba(13,122,119,.28)}
+        .samtm-makon-t .samtm-nuqta{position:absolute;top:2px;right:4px}
+        .samtm-robot-tepa{width:42px;height:42px;border-radius:13px;border:1px solid #cfe5e5;background:#eafbfa;color:#087c82;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+        .samtm-robot-tepa.on{background:#087c82;color:#fff}
+        .samtm-top-switch .kb-interface-button{display:none !important}
+        @media (max-width:560px){.samtm-makon-t span{display:none}.samtm-makon-t{padding:0 11px}}
         @keyframes samtm-yon-kir{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
         @media (prefers-reduced-motion:reduce){.premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{animation:none}}
         .samtm-yon-toggle{position:fixed;left:8px;bottom:14px;z-index:2147483050;width:40px;height:40px;border-radius:12px;border:1px solid #E5E1D8;background:#fff;color:#1B4B7A;font-weight:900;box-shadow:0 6px 20px rgba(23,50,75,.15)}
@@ -14863,7 +14878,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-profil-menyu button:hover{background:#F2F6F8!important}
         .samtm-profil-rol{padding:10px 12px;font-weight:800;color:#21384C;border-bottom:1px solid #EEE;margin-bottom:4px;display:flex;flex-direction:column}
         .samtm-profil-rol small{font-weight:600;color:#7A8794}
-        .samtm-robot{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2147483090;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+        .samtm-robot{position:fixed;right:10px;top:calc(var(--samtm-portal-top,64px) + 6px);bottom:auto !important;z-index:2147483090;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
         @media(min-width:821px){.samtm-robot{bottom:18px}}
         .samtm-robot-fab{width:54px;height:54px;border-radius:50%;border:0;background:#8B5FBF;color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(139,95,191,.35)}
         .samtm-robot-oyna{width:min(340px,calc(100vw - 28px));background:#fff;border:1px solid #E5E1D8;border-radius:16px;box-shadow:0 14px 40px rgba(23,50,75,.18);padding:8px}
@@ -14882,11 +14897,18 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           <div className="samtm-chap">
             {!kabutarOchiq && <button type="button" className={`samtm-gamburger ${yonMenyuOchiq ? "is-on" : ""}`} onClick={yonMenyuniAlmashtir} aria-expanded={yonMenyuOchiq}
               aria-label={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")} title={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")}><span /><span /><span /></button>}
-            <button type="button" role="tab" aria-selected={!kabutarOchiq} className={`samtm-belgi ${kabutarOchiq ? "" : "on"}`} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")} aria-label={uiT("Ta’lim maydoni")}>
-              <img className="samtm-emblema" src={__kbEmblema} alt="" width="26" height="26" style={{ width: 28, height: 28, borderRadius: 8, boxShadow: "none" }} /></button>
+            <span className="samtm-logo"><img className="samtm-emblema" src={__kbEmblema} alt="" width="28" height="28" /></span>
           </div>
           <div className="samtm-ong">
-            <button type="button" role="tab" aria-selected={kabutarOchiq} className={`samtm-belgi ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")} aria-label={uiT("Kabutar")}>
+            {/* REV387: o'ng tepada ikkita qalin tugma — Ta'lim va Kabutar; robot ham shu yerda (ekranga xalaqit bermaydi) */}
+            <div className="samtm-makon" role="tablist" aria-label={uiT("Bo‘lim")}>
+              <button type="button" role="tab" aria-selected={!kabutarOchiq} className={`samtm-makon-t ${kabutarOchiq ? "" : "on"}`} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")}>
+                <GraduationCap size={18} /> <span>{uiT("Ta’lim")}</span></button>
+              <button type="button" role="tab" aria-selected={kabutarOchiq} className={`samtm-makon-t ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}>
+                <MessageCircle size={18} /> <span>{uiT("Kabutar")}</span>{!kabutarTezKunda && kabutarOqilmagan > 0 && <b className="samtm-nuqta">{kabutarOqilmagan}</b>}</button>
+            </div>
+            {!kabutarOchiq && <button type="button" className={`samtm-robot-tepa ${robotOchiq ? "on" : ""}`} onClick={() => setRobotOchiq((v) => !v)} aria-expanded={robotOchiq} aria-label={uiT("AI yordamchi")} title={uiT("AI yordamchi — savol yoki kitobdagi kod")}><Bot size={20} /></button>}
+            <button type="button" hidden className={`samtm-belgi ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")} aria-label={uiT("Kabutar")}>
               <MessageCircle size={20} />{!kabutarTezKunda && kabutarOqilmagan > 0 && <b className="samtm-nuqta">{kabutarOqilmagan}</b>}</button>
             <InterfaceSettingsButton/>
             <div className="samtm-profil">
@@ -14901,7 +14923,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
                   {!readOnly && onProfiles && !bolaQurilmasi() && <button type="button" role="menuitem" onClick={() => onProfiles(foydalanuvchi)}><Users size={16} /> {uiT("Profilni almashtirish")}</button>}
                   {oqituvchiMi && oqituvchiFanlari.length > 0 && <button type="button" role="menuitem" onClick={() => setFanTanlash(true)}><BookOpen size={16} /> {uiT("Fanlarim")}</button>}
                   <button type="button" role="menuitem" onClick={() => tabTanlandi("xabar")}><Bell size={16} /> {uiT("Bildirishnomalar")}</button>
-                  <button type="button" role="menuitem" onClick={() => document.querySelector(".samtm-top-switch .kb-interface-button")?.click()}>⚙ {uiT("Til va ko‘rinish")}</button>
+                  <button type="button" role="menuitem" onClick={() => document.querySelector(".samtm-top-switch .kb-interface-button")?.click()}>🌐 {uiT("Til va ko‘rinish")}</button>
+                  <button type="button" role="menuitem" onClick={() => setRobotOchiq(true)}><Bot size={16} /> {uiT("AI yordamchi")}</button>
+                  <button type="button" role="menuitem" onClick={() => kabutarniOch(!kabutarOchiq)}><MessageCircle size={16} /> {kabutarOchiq ? uiT("Ta’lim maydoniga") : uiT("Kabutar — suhbatlar")}</button>
                   {!readOnly && <button type="button" role="menuitem" onClick={() => setAccountOpen(true)}>🔐 {uiT("Akkaunt va kirish")}</button>}
                 </div></>}
             </div>
@@ -14914,7 +14938,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
             <YordamchiKod open={assistantOpen} onAssistant={(text) => { setRobotOchiq(false); setAssistantSeed(text ? { text, n: Date.now() } : null); setAssistantOpen(text ? true : (v) => !v); }}
               onCode={(code) => { setRobotOchiq(false); setKodTrigger({ code, n: Date.now() }); }} />
           </div>}
-          <button type="button" className="samtm-robot-fab" onClick={() => setRobotOchiq((v) => !v)} aria-expanded={robotOchiq} aria-label={uiT("AI yordamchi")} title={uiT("AI yordamchi — savol yoki kitobdagi kod")}>🤖</button>
+          {/* REV387: pastki burchakdagi robot tugmasi olib tashlandi — robot tepada (☰ yonida emas, o'ng tepada) */}
         </div>
       </>}
       <KabutarAssistant open={assistantOpen && !testDavomida && tab !== "test"} onClose={() => setAssistantOpen(false)} token={token} apiBase={API_BASE} user={foydalanuvchi} readOnly={readOnly} seed={assistantSeed} />

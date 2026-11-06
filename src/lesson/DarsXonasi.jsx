@@ -79,19 +79,23 @@ function PanelSoat() {
   useEffect(() => { const t = setInterval(() => setV(new Date()), 20000); return () => clearInterval(t); }, []);
   return <div className="dx-panel-soat" aria-label={__kbUi("Soat")}>{String(v.getHours()).padStart(2, "0")}:{String(v.getMinutes()).padStart(2, "0")}</div>;
 }
-function BordaYozish({ text = "", faol = false, children }) {
+function BordaYozish({ text = "", faol = false, gapir = true, children }) {
   const matn = String(text || "");
   const sodda = !/[$\\{}^_]/.test(matn);
   const kamHarakat = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const [n, setN] = useState(faol && sodda && !kamHarakat ? 0 : matn.length);
   const yozildi = useRef(!(faol && sodda && !kamHarakat));
+  // REV387: ovoz yuklanayotganda yozuv kutib turadi — ustoz gapira boshlaganda birga yoziladi (3 s dan keyin baribir boshlanadi)
+  const [boshla, setBoshla] = useState(gapir);
+  useEffect(() => { if (gapir) setBoshla(true); else if (!boshla) { const t = setTimeout(() => setBoshla(true), 3000); return () => clearTimeout(t); } return undefined; }, [gapir]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (yozildi.current) { setN(matn.length); return undefined; }
+    if (!boshla) return undefined;
     // REV386: yozuv ustoz gapi bilan birga ketadi (~15 harf/soniya); juda uzun qator ham 10 s da tugaydi
     const qadam = Math.max(1, Math.round(matn.length / 150));
     const t = setInterval(() => setN((x) => { const y = Math.min(matn.length, x + qadam); if (y >= matn.length) { clearInterval(t); yozildi.current = true; } return y; }), 66);
     return () => clearInterval(t);
-  }, [matn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [matn, boshla]); // eslint-disable-line react-hooks/exhaustive-deps
   const qism = n >= matn.length ? matn : matn.slice(0, n);
   return <span className={`dx-yozish ${n < matn.length ? "is-yozilmoqda" : ""}`}>{children(qism)}{n < matn.length && <i className="dx-bor" aria-hidden="true" />}</span>;
 }
@@ -1878,7 +1882,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
                   ...qatorlar.map((el) => ({ el, o: joyla(String(el.key)) })),
                   ...qoshimcha.map((q) => { const hozir = speaking && q.ks.includes(nutqI);
                     return { o: joyla(`${steps[i].id}-n${q.j}`), el: <div key={`${steps[i].id}-n${q.j}`}
-                      className={`dx-line dx-nutq is-kim-${q.kim} ${hozir ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}<BordaYozish faol={hozir} text={q.matn}>{(t) => (q.kim === "til" ? <BosiladiganQator text={t} onSoz={sozBosildi} /> : <BoardText text={t} />)}</BordaYozish></div> }; }),
+                      className={`dx-line dx-nutq is-kim-${q.kim} ${hozir ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}<BordaYozish faol={hozir} gapir={speaking} text={q.matn}>{(t) => (q.kim === "til" ? <BosiladiganQator text={t} onSoz={sozBosildi} /> : <BoardText text={t} />)}</BordaYozish></div> }; }),
                 ];
                 return elementlar.sort((a, b) => a.o - b.o).map((x) => x.el);
               })}
