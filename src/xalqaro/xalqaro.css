@@ -257,3 +257,7 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-bolim-bosh{margin:8px 0 12px}
 @media (prefers-color-scheme:dark){.xb-menyu-karta{background:rgba(255,255,255,.04)}}
 @media (max-width:560px){.xb-menyu{grid-template-columns:1fr 1fr;gap:8px}.xb-menyu-karta{padding:12px}.xb-menyu-karta b{font-size:15px}.xb-menyu-karta small{font-size:12px}.xb-menyu-belgi{font-size:28px}}
+/* REV376: sinf sahifasi */
+.xb-sinf-sahifa-bosh{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:0 0 10px;border-radius:16px;background:rgba(27,75,122,.06)}
+.xb-sinf-sahifa-bosh h3{margin:0 0 4px}
+.xb-maktab-karta{margin-top:12px;max-width:420px}

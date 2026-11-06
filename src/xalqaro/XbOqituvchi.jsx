@@ -66,7 +66,18 @@ function OquvchiTafsilot({ apiBase, token, id, jins, ustoz, til, onYopish }) {
       {d.mavzular.length ? <div className="xb-ustunlar">{d.mavzular.map((m) => <div key={m.kalit} className="xb-ustun-q"><span>{m.nom} <small className="xb-muted">({TOPLAM_NOMI[m.toplam]})</small></span>
         <span className="xb-progress"><i style={{ width: `${m.foiz}%`, background: m.foiz >= 70 ? "#1f8a4c" : m.foiz >= 40 ? "#1b6fd8" : "#c77d00" }} /></span><b>{m.ozlashtirgan}/{m.jami}</b></div>)}</div>
         : <p className="xb-muted">{T("Hali mashq qilmagan.")}</p>}</section>
-    <section className="xb-blok"><h4>📝 {T("Imtihonlar")}</h4>
+    {/* REV376: o'qigan darslari va eng ko'p ishlagan mavzulari */}
+    <section className="xb-blok"><h4>📖 {T("O‘qigan darslari")} ({(d.darslar || []).filter((x) => x.tugadi).length} {T("ta tugatgan")})</h4>
+      {(d.darslar || []).length ? <div className="xb-ustunlar">{d.darslar.map((x) => <div key={x.kalit} className="xb-ustun-q">
+        <span>{x.tugadi ? "✅" : "▶️"} {x.nom} <small className="xb-muted">({TOPLAM_NOMI[x.toplam] || ""})</small></span>
+        <small className="xb-muted">{x.tugadi ? T("tugatgan") : T("ochgan, tugatmagan")} · {x.ochildi} {T("marta ochgan")} · {new Date(x.oxirgi).toLocaleDateString()}</small></div>)}</div>
+        : <p className="xb-muted">{T("Hali dars ochmagan.")}</p>}</section>
+    <section className="xb-blok"><h4>🏋️ {T("Eng ko‘p ishlagan 10 mavzusi")}</h4>
+      {(d.kop_ishlagan || []).length ? <table className="xb-jadval"><thead><tr><th>{T("Mavzu")}</th><th>{T("Urinish")}</th><th>{T("To‘g‘ri")}</th><th>%</th><th>{T("Oxirgi")}</th></tr></thead>
+        <tbody>{d.kop_ishlagan.map((m) => <tr key={m.kalit}><td>{m.nom} <small className="xb-muted">({TOPLAM_NOMI[m.toplam] || ""})</small></td><td>{m.urinish}</td><td>{m.togri}/{m.savol}</td>
+          <td><b style={{ color: m.foiz >= 70 ? "#1f8a4c" : m.foiz >= 40 ? "#1b6fd8" : "#c77d00" }}>{m.foiz}%</b></td><td>{m.oxirgi ? new Date(m.oxirgi).toLocaleDateString() : "—"}</td></tr>)}</tbody></table>
+        : <p className="xb-muted">{T("Hali mashq qilmagan.")}</p>}</section>
+    <section className="xb-blok"><h4>📝 {T("Oxirgi 10 ta imtihon")}</h4>
       {d.imtihonlar.length ? <table className="xb-jadval"><thead><tr><th>{T("Imtihon")}</th><th>{T("Davr")}</th><th>{T("Ball")}</th><th>%</th><th>{T("Chiqish")}</th></tr></thead>
         <tbody>{d.imtihonlar.map((e) => <tr key={e.id}><td>{IMTIHON_BELGI[e.tur]} {e.nom}{e.rasmiy ? "" : ` (${T("mashq")})`}</td><td>{e.davr}</td><td>{e.ball ?? "—"} {e.daraja ? `· ${e.daraja}` : ""}</td><td>{e.foiz}%</td>
           <td>{e.chiqishlar ? `⚠️ ${e.chiqishlar}` : "—"}</td></tr>)}</tbody></table> : <p className="xb-muted">{T("Imtihon topshirmagan.")}</p>}</section>
@@ -95,22 +106,37 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
   const [til, setTil] = useState(xbTil());   // REV270: qaysi tildagi natijalar ko'rilmoqda (sukut bo'yicha — interfeys tili)
   const [xbSinf, setXbSinf] = useState(0);   // REV373: o'qituvchi ochgan sinf (0 — maktab bo'yicha)
   const [xbFan, setXbFan] = useState("");    // REV374: tanlangan sinf fani — natijalar shu fan bo'yicha
+  // REV376: panel bosh sahifasi — sinflar ro'yxati; sinf bosilsa — alohida «sinf sahifasi»; maktab/platforma — alohida sahifa
+  const [korinish, setKorinish] = useState(null);   // null | { tur: "sinf", s } | { tur: "maktab" }
   const admin = kuzatuv?.rol === "admin";
   const mustaqil = Boolean(kuzatuv?.mustaqil);
   const params = { sinf, harf, maktab_id: maktab || 0, til, xb_sinf: xbSinf || 0, toplam: xbSinf ? xbFan : "" };
   useEffect(() => {
     let t = true; setD(null); setX(null); setXato("");
+    if (!korinish) return () => { t = false; };   // REV376: bosh sahifada natijalar yuklanmaydi
     xbFetch(apiBase, "/api/xalqaro/sinf_natija", token, { params }).then((r) => t && setD(r)).catch((e) => t && setXato(e.message));
     xbFetch(apiBase, "/api/xalqaro/sinf_xatolar", token, { params }).then((r) => t && setX(r)).catch(() => t && setX({ savollar: [], mavzular: [] }));
     return () => { t = false; ovoz.hush(); };
-  }, [maktab, sinf, harf, til, xbSinf, xbFan]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [maktab, sinf, harf, til, xbSinf, xbFan, korinish]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (tanlangan) return <OquvchiTafsilot apiBase={apiBase} token={token} id={tanlangan} jins={jins} ustoz={ustoz} til={til} onYopish={() => setTanlangan(null)} />;
   const j = d?.jamlama;
+  if (!korinish) return <div className="xb-panel">
+    <h3>👩‍🏫 {admin ? T("Admin: xalqaro baholash nazorati") : T("O‘qituvchi paneli")}</h3>
+    <p className="xb-muted">{T("Sinfni bosing — o‘sha sinfning sahifasi ochiladi: o‘quvchilar, ularning natijalari, o‘qigan darslari, imtihonlari va xatolari.")}</p>
+    <OqituvchiSinflar apiBase={apiBase} token={token} tanlangan={0} onTanla={(id, sn) => { if (!id) return; setXbSinf(id); setXbFan(sn?.toplam || ""); setOyna("oquvchilar"); setKorinish({ tur: "sinf", s: sn }); }} />
+    {(admin || !mustaqil) && <button type="button" className="xb-menyu-karta xb-maktab-karta" onClick={() => { setXbSinf(0); setXbFan(""); setKorinish({ tur: "maktab" }); }}>
+      <span className="xb-menyu-belgi" aria-hidden="true">{admin ? "🌐" : "🏫"}</span><b>{admin ? T("Maktablar va butun platforma") : T("Maktabim o‘quvchilari")}</b>
+      <small>{admin ? T("Istalgan maktab yoki butun platforma bo‘yicha natijalar") : T("Maktabingizdagi o‘quvchilar — sinf va harf bo‘yicha")}</small></button>}
+  </div>;
+  const sn = korinish.tur === "sinf" ? korinish.s : null;
   return <div className="xb-panel">
-    <h3>👩‍🏫 {admin ? T("Admin: xalqaro baholash nazorati") : T("O‘qituvchi paneli: sinfim xalqaro baholashda")}</h3>
-    <OqituvchiSinflar apiBase={apiBase} token={token} tanlangan={xbSinf} onTanla={(id, s) => { setXbSinf(id); setXbFan(id && s ? s.toplam : ""); }} />
-    {xbSinf > 0 && <p className="xb-fan-xulosa">🏫 {T("Quyida — tanlangan sinfingiz o‘quvchilari, faqat shu fan bo‘yicha")}: <b>{fanMatn(xbFan)}</b>. {T("Hammasini ko‘rish uchun sinfni qayta bosing.")}</p>}
+    <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setKorinish(null); setXbSinf(0); }}>← {T("Sinflarim")}</button></div>
+    {sn ? <div className="xb-sinf-sahifa-bosh">
+      <div><h3>🏫 {sn.nom}</h3><span className="xb-fan-yorliq">{fanMatn(sn.toplam)}</span>
+        <small className="xb-muted"> · {tf("{n}-sinf", { n: sn.sinf })} · 👥 {d?.jamlama?.jami ?? sn.azolar} {T("o‘quvchi")}</small></div>
+      <div className="xb-sinf-kod" title={T("Taklif kodi")}>{sn.kod}</div>
+    </div> : <h3>{admin ? `🌐 ${T("Maktablar va butun platforma")}` : `🏫 ${T("Maktabim o‘quvchilari")}`}</h3>}
     {admin && kuzatuv.platforma && <div className="xb-kartalar">
       <div className="xb-karta"><small>{T("Platformada faol o‘quvchi")}</small><b>{kuzatuv.platforma.oquvchi}</b></div>
       <div className="xb-karta"><small>{T("Jami javoblar")}</small><b>{kuzatuv.platforma.javob}</b></div>
@@ -118,9 +144,9 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
       <div className="xb-karta"><small>{T("O‘rtacha ball")}</small><b>{kuzatuv.platforma.ortacha_ball ?? "—"}</b></div>
     </div>}
     <div className="xb-filtr">
-      {admin && <label className="xb-tanla">{T("Maktab")}: <select value={maktab} onChange={(e) => setMaktab(Number(e.target.value))}>
+      {admin && !sn && <label className="xb-tanla">{T("Maktab")}: <select value={maktab} onChange={(e) => setMaktab(Number(e.target.value))}>
         <option value={0}>{T("Butun platforma")}</option>{(kuzatuv.maktablar || []).map((m) => <option key={m.id} value={m.id}>{m.nomi} ({m.oquvchi})</option>)}</select></label>}
-      {!xbSinf && !mustaqil && <><label className="xb-tanla">{T("Sinf")}: <select value={sinf} onChange={(e) => setSinf(e.target.value)}><option value="">{T("Hammasi")}</option>
+      {!sn && <><label className="xb-tanla">{T("Sinf")}: <select value={sinf} onChange={(e) => setSinf(e.target.value)}><option value="">{T("Hammasi")}</option>
         {Array.from({ length: 11 }, (_, k) => <option key={k} value={String(k + 1)}>{tf("{n}-sinf", { n: k + 1 })}</option>)}</select></label>
       <label className="xb-tanla">{T("Harf")}: <select value={harf} onChange={(e) => setHarf(e.target.value)}><option value="">—</option>
         {["A", "B", "V", "G", "D", "E"].map((h) => <option key={h} value={h}>{h}</option>)}</select></label></>}
@@ -138,12 +164,12 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
     <nav className="xb-tablar">{[["oquvchilar", "👥 O‘quvchilar"], ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
       <button key={k} type="button" className={oyna === k ? "is-on" : ""} onClick={() => setOyna(k)}>{T(n)}</button>)}</nav>
     {oyna === "oquvchilar" && (!d ? <p className="xb-muted">⏳</p> : d.oquvchilar.length ? <div className="xb-jadval-wrap"><table className="xb-jadval">
-      <thead><tr><th>{T("O‘quvchi")}</th><th>{T("Sinf")}</th><th>{T("Holat")}</th><th>{T("Bu hafta")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Ochiq xato")}</th><th>{T("Oxirgi ball")}</th><th>{T("Zaif mavzu")}</th><th>🌐 {T("Tillar")}</th></tr></thead>
+      <thead><tr><th>{T("O‘quvchi")}</th><th>{T("Sinf")}</th><th>{T("Holat")}</th><th>{T("Bu hafta")}</th><th>📖 {T("Darslar")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Ochiq xato")}</th><th>{T("Oxirgi ball")}</th><th>{T("Zaif mavzu")}</th><th>🌐 {T("Tillar")}</th></tr></thead>
       <tbody>{d.oquvchilar.map((o) => <tr key={o.user_id} className={`xb-bosiladi ${o.holat !== "faol" ? "is-sust" : ""}`} onClick={() => setTanlangan(o.user_id)} tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter") setTanlangan(o.user_id); }}>
         <td><b>{o.full_name}</b></td><td>{o.class}{o.harf}</td>
         <td>{HOLAT[o.holat][0]} {T(HOLAT[o.holat][1])}{o.kun_oldin !== null && o.kun_oldin > 0 ? ` · ${o.kun_oldin} ${T("kun")}` : ""}{!o.haftalik_topshirdi ? ` · ⏳ ${T("haftalik yo‘q")}` : ""}</td>
-        <td>{o.hafta}</td><td>{o.ozlashtirgan}/{o.urinish}</td><td>{o.xato ? <b className="xb-xato">{o.xato}</b> : 0}</td>
+        <td>{o.hafta}</td><td title={T("tugatgan / ochgan")}>{o.darslar ?? 0}/{o.darslar_ochgan ?? 0}</td><td>{o.ozlashtirgan}/{o.urinish}</td><td>{o.xato ? <b className="xb-xato">{o.xato}</b> : 0}</td>
         <td>{o.ball ? `${o.ball} · ${o.daraja}` : "—"}</td><td>{o.zaif_mavzu || "—"}</td><td className="xb-kichik">{tillarMatn(o.tillar) || "—"}</td></tr>)}</tbody></table>
       <p className="xb-muted">{T("Qatorni bosing — o‘quvchining har bir xatosi (nima deb javob bergani), mavzulari va imtihonlari ochiladi.")}</p></div>
       : <p className="xb-muted">{T("Bu tanlovda o‘quvchi topilmadi.")}</p>)}

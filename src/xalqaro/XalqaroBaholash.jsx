@@ -34,7 +34,7 @@ export default function XalqaroBaholash(props) {
 function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, rejim = "", til = "uz" }) {
   const ovoz = useUstozOvoz(apiBase, jins);
   // REV375: bosh sahifa — tartibli menyu (tab = "" ). Bo'lim faqat bosilganda katta bo'lib ochiladi.
-  const [tab, setTab] = useState(() => { try { return localStorage.getItem("kabutar:xb:taklif") ? "sinfim" : ""; } catch { return ""; } });
+  const [tab, setTab] = useState("");
   const [fanOchiq, setFanOchiq] = useState(false);
   const [kat, setKat] = useState(null);
   const [xato, setXato] = useState("");
@@ -47,7 +47,8 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   useEffect(() => {
     if (rejim === "oquvchi") { setKuzatuv({ rol: "oquvchi" }); return undefined; }
     let tirik = true;
-    xbFetch(apiBase, "/api/xalqaro/kuzatuv", token).then((r) => { if (!tirik) return; setKuzatuv(r); }).catch(() => tirik && setKuzatuv({ rol: "oquvchi" }));
+    xbFetch(apiBase, "/api/xalqaro/kuzatuv", token).then((r) => { if (!tirik) return; setKuzatuv(r);
+      try { if (localStorage.getItem("kabutar:xb:taklif")) { if (r.rol === "oquvchi") setTab("sinfim"); else localStorage.removeItem("kabutar:xb:taklif"); } } catch { /* */ } }).catch(() => tirik && setKuzatuv({ rol: "oquvchi" }));
     return () => { tirik = false; };
   }, [rejim]); // eslint-disable-line react-hooks/exhaustive-deps
   const panel = kuzatuv && kuzatuv.rol !== "oquvchi";
@@ -74,7 +75,8 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   const tp = useMemo(() => kat?.toplamlar?.find((t) => t.kalit === toplam), [kat, toplam]);
   const ustoz = ustozFor(tp?.ustoz_fan || "Matematika");
   const orqaga = useCallback(() => { setEkran(null); setYangila((n) => n + 1); }, []);
-  const ochDars = (m) => { ovoz.hush(); setEkran({ tur: "dars", kod: m.dars_kodi, fan: m.fan || tp?.ustoz_fan, mavzu: m.kalit, sinf: m.sinf || tp?.sinf }); };
+  const darsYoz = (mavzu, tugadi = false) => { if (mavzu) xbFetch(apiBase, "/api/xalqaro/dars_kordi", token, { method: "POST", body: { mavzu, tugadi } }).catch(() => {}); };   // REV376
+  const ochDars = (m) => { ovoz.hush(); darsYoz(m.kalit); setEkran({ tur: "dars", kod: m.dars_kodi, fan: m.fan || tp?.ustoz_fan, mavzu: m.kalit, sinf: m.sinf || tp?.sinf }); };
   const ochMashq = (m, extra = {}) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { mavzu: m?.kalit || "", toplam, ...extra }, sarlavha: m?.nom ? `${T("Mashq")}: ${m.nom}` : T("Aralash mashq") }); };
 
   if (xato) return <div className="xb-root"><p className="xb-xato">{T(xato)}</p></div>;
@@ -84,7 +86,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     <button type="button" className="xb-btn" onClick={orqaga}>← {T("Xalqaro baholashga qaytish")}</button>
     <React.Suspense fallback={<p className="xb-muted">{T("Dars yuklanmoqda…")}</p>}>
       <DarsXonasi apiBase={apiBase} token={token} topicCode={ekran.kod} fan={ekran.fan} grade={`${ekran.sinf}-sinf`} jins={jins}
-        learnerGender={user?.jins || ""} cheklovsiz={cheklovsiz} onOpenTest={() => ochMashq({ kalit: ekran.mavzu })} onClose={orqaga} />
+        learnerGender={user?.jins || ""} cheklovsiz={cheklovsiz} onOpenTest={() => { darsYoz(ekran.mavzu, true); ochMashq({ kalit: ekran.mavzu }); }} onClose={orqaga} />
     </React.Suspense>
   </div>;
   if (ekran?.tur === "maktab") return <div className="xb-root">
