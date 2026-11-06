@@ -22,7 +22,7 @@ export default function SavatgaSol(p) {
       <div className={`oy-savat ${ustida ? "is-ustida" : ""}`} data-tushadi="savat"
         onPointerEnter={() => setUstida(true)} onPointerLeave={() => setUstida(false)}>
         <img src={JR.savat} alt="" draggable="false" />
-        <div className="oy-savat-ichi">
+        <div className="oy-savat-ichi" style={{ "--n": Math.max(1, ichida.length) }}>
           {ichida.map((k) => {
             const v = raund.variantlar.find((x) => x.k === k);
             return raund.savol.avto
@@ -33,6 +33,7 @@ export default function SavatgaSol(p) {
           })}
         </div>
       </div>
+      <div className="oy-savat-past">   {/* REV372: tokcha va ✓ tugmasi bir qatorda — ekranga sig'adi */}
       <div className="oy-tokcha">
         {raund.variantlar.filter((v) => !ichida.includes(v.k)).map((v) => (
           <Surilma key={`${v.k}-${xatoK === v.k ? fb.n : 0}`} data={v.k} label={v.el.say || v.el.uz} disabled={qulf}
@@ -48,6 +49,7 @@ export default function SavatgaSol(p) {
           {tayyorSrc ? <img src={tayyorSrc} alt="" draggable="false" /> : <span className="oy-emoji">✅</span>}
         </Tugma>
       )}
+      </div>
     </div>
   );
 }

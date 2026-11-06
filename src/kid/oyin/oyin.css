@@ -364,3 +364,14 @@ button.oy-esh-quloq,button.oy-sq-ovoz{border:0;background:none;cursor:pointer;pa
 .oy-root.is-katta { --oy-karta-k: clamp(120px, 21vmin, 230px); }
 .oy-rasm img { width: min(100%, calc(var(--oy-karta-k) - 16px)); }
 @media (max-width:520px){.oy-root{--oy-karta-k:clamp(120px,38vw,170px)}.oy-root.is-kichik{--oy-karta-k:clamp(140px,42vw,190px)}}
+/* REV372: «Savatga sol» — hammasi ekranga sig'adi: savat ixcham, narsalar savat ichida bir qatorda (ko'paysa kichrayadi),
+   tokcha va ✓ tugmasi bir qatorda */
+.oy-root .oy-savat{width:clamp(150px,30vmin,230px);min-height:0}
+.oy-root .oy-savat > img{width:100%;height:auto;max-height:28vh}
+.oy-root .oy-savat-ichi{position:absolute;left:16%;right:16%;top:30%;height:30%;display:flex;flex-wrap:nowrap;justify-content:center;align-items:center;gap:0;overflow:visible}
+.oy-root .oy-savat-ichi > *{flex:0 1 auto;width:min(60px,calc(100% / var(--n)));height:auto;min-width:0;min-height:0;margin:0 -2px;padding:0;background:transparent;box-shadow:none}
+.oy-root .oy-savat-ichi .oy-rasm img,.oy-root .oy-savat-ichi img{width:100%;height:auto;max-width:60px;object-fit:contain}
+.oy-savat-past{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.oy-root .oy-savat-past .oy-tokcha .oy-rasm img{width:clamp(64px,14vmin,120px);height:clamp(64px,14vmin,120px)}
+.oy-root .oy-maqsad .oy-rasm img{width:clamp(56px,11vmin,96px);height:clamp(56px,11vmin,96px)}
+.oy-savat-past > .oy-tugma.is-ikon{flex:none;width:clamp(64px,12vmin,92px);height:clamp(64px,12vmin,92px)}
