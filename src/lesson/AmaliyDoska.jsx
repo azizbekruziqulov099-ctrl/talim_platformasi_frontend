@@ -144,7 +144,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       <button type="button" className="dx-btn dx-primary" disabled={!answer} onClick={submit}>{__kbUi("Tekshirish")}</button>
       {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}
     </div>}
-    {klav && <MatKlaviatura qiymat={answer} onChange={(v) => { setAnswer(v); setFeedback(null); }} onTekshir={submit} onYop={() => setKlav(false)} />}
+    {klav && <MatKlaviatura kutilgan={kutilgan} qiymat={answer} onChange={(v) => { setAnswer(v); setFeedback(null); }} onTekshir={submit} onYop={() => setKlav(false)} />}
     {picked !== null && picked !== item.togri && item.xatolar?.[String(picked)] && <p className="mdx-xato">⚠ <BoardText text={stripSpeechTags(item.xatolar[String(picked)])} /></p>}
     {maslahatN > 0 && <div className="mdx-maslahatlar">{(item.maslahat || []).slice(0, maslahatN).map((m, i) => <p key={i}>💡 <BoardText text={m} /></p>)}</div>}
     {shown > 0 && <div className="dx-solution" aria-live="polite">

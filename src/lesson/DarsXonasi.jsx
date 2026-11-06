@@ -1021,7 +1021,11 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       const qaytar = () => { setRate(avvalgi); rateRef.current = avvalgi; };
       setPlaying(false); setRate(0.85); rateRef.current = 0.85; setPicRev((r) => r + 1);
       if (first) { setVariant(first); say(first.ovoz || first.doska, () => { qaytar(); setVariant(null); setPlaying(true); go(idx + 1, true); }); return; }
-      if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => { qaytar(); setStepFinished(true); setPlaying(true); go(idx + 1, true); }); }
+      if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => { qaytar(); setStepFinished(true); setPlaying(true);
+        // REV381: gap tugagach o'quvchi doskani ko'rib, tushunib olishi uchun biroz kutiladi (rasm/chizma/formula bo'lsa — ko'proq)
+        const d = String(step.doska || ""); const chizma = /\[(rasm|sxema|jadval|grafik|chiz)|<svg|\\frac|\\sqrt|\$\$/i.test(d) || Boolean(step.rasm);
+        const kut = kid ? (chizma ? 1600 : 500) : Math.min(6000, (chizma ? 3200 : 1200) + Math.min(2000, d.length * 6));
+        setTimeout(() => { if (playingRef.current && idxRef.current === idx) go(idx + 1, true); }, kut); }); }
       else qaytar();
       return;
     }
@@ -1405,7 +1409,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
       el.style.setProperty("--dx-sig", "1");
       // REV313: yozuv yirik qoladi (0.85 dan kichraymaydi); baribir sig'masa — YANGI SAHIFA: oldingi qatorlar yashiriladi,
       // doskada hozirgi qator qoladi (haqiqiy elektron panel kabi «+»), oldingi sahifani ◀ bilan ko'rish mumkin
-      for (let k = 0; k < 24 && el.scrollHeight > el.clientHeight + 2 && z > 0.85; k++) { z = Math.round((z - 0.05) * 100) / 100; el.style.setProperty("--dx-sig", String(z)); }
+      const zMin = el.closest(".dx-yotiq") ? 0.7 : 0.85;   // REV381: telefonda (buralgan dars) yozuv ko'proq kichrayib sig'sin
+      for (let k = 0; k < 24 && el.scrollHeight > el.clientHeight + 2 && z > zMin; k++) { z = Math.round((z - 0.05) * 100) / 100; el.style.setProperty("--dx-sig", String(z)); }
       if (el.scrollHeight > el.clientHeight + 2) {
         // yangi sahifa: eng eski qatorlar bittalab oldingi sahifaga o'tadi — doskaga sig'guncha (yangi qatorlar ko'rinib turadi)
         const qatorlar = [...new Set(el.querySelectorAll(".dx-line:not(.is-sahifa-yashirin), .mdx-line:not(.is-sahifa-yashirin)"))]

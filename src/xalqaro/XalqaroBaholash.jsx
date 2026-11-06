@@ -9,6 +9,7 @@ import XbImtihon, { DavlatDiagramma, XbNatija } from "./XbImtihon.jsx";
 import { XbUstoz } from "./XbDoska.jsx";
 import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
 import { OquvchiSinf } from "./XbSinflar.jsx";   // REV373
+import XbNatijalarim from "./XbNatijalarim.jsx";   // REV381
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
 import { GAP_TUR, IMTIHON_BELGI, darajaNomi, mavzuBelgi, sinfRaqami, solishtirishQatorlari } from "./xbRules.js";
 import XbQollanma from "./XbQollanma.jsx";   // REV262
@@ -133,6 +134,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         ...(panel ? [["panel", "👩‍🏫", kuzatuv.rol === "admin" ? T("Admin nazorati") : T("Mening sinflarim va natijalar"), T("Sinf ochish, kod va havola, o‘quvchilar natijasi va xatolari")],
           ["metod", "🎓", T("O‘qitish metodlari"), T("TIMSS va PISA bo‘yicha dars berish usullari")]] : []),
         ...(kuzatuv?.rol === "oquvchi" ? [["sinfim", "🏫", T("Sinfim"), T("O‘qituvchingiz sinfiga kod yoki parol bilan qo‘shilish")]] : []),
+        ["natija", "📊", T("Natijalarim"), T("Har mavzu bo‘yicha foizlar, imtihonlar va ballar")],
         ["kurs", "📚", T("Kurs: mavzular"), T("Har mavzu: dars, keyin 20 ta mashq")],
         ["imtihon", "📝", T("Imtihonlar"), T("Haftalik, oylik, choraklik va yillik sinov")],
         ["takror", "🔁", T("Takrorlash"), kat.takror ? tf("Bugun {n} ta savol kutyapti", { n: kat.takror }) : T("Xato qilingan savollar qayta so‘raladi")],
@@ -145,6 +147,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
     {tab === "sinfim" && kuzatuv?.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
+    {tab === "natija" && <XbNatijalarim apiBase={apiBase} token={token} kat={kat} toplam={toplam} til={til} onMashq={(m) => ochMashq(m)} onDars={(m) => ochDars(m)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
     {tab === "kurs" && tp && <Kurs tp={tp} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq} />}
     {tab === "imtihon" && <Imtihonlar apiBase={apiBase} token={token} toplam={toplam} onBoshla={(info) => setEkran({ tur: "imtihon", info })} onNatija={(id) => setEkran({ tur: "natija", id })} />}

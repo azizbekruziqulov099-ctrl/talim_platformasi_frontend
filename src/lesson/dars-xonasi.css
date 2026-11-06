@@ -1029,3 +1029,15 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-harakat-tugma{border:0;border-radius:20px;padding:16px 28px;background:#2ec4b6;color:#fff;font:800 22px/1 inherit;box-shadow:0 6px 0 #1f8f85;cursor:pointer}
 .dx-harakat-tugma:active{transform:translateY(4px);box-shadow:0 2px 0 #1f8f85}
 @media (prefers-reduced-motion:reduce){.dx-harakat-belgi{animation:none}}
+/* REV381: harfli klaviatura — 123 / abc / абв */
+.mk-harflar{display:flex;flex-direction:column;gap:5px}
+.mk-qator{display:flex;gap:4px;justify-content:center}
+.mk-qator .mk-t{flex:1 1 0;min-width:0;padding:0;font-size:16px}
+.mk-t.is-bosh{flex:4 1 0}
+.mk-t.is-on{background:#1B4B7A;color:#fff;border-color:#1B4B7A}
+.mk-pastki{grid-template-columns:auto 1fr 2fr}
+.mk-rejim{display:flex;gap:4px}.mk-rejim .mk-t{min-width:44px;padding:0 6px;font-size:14px}
+.dx-root.dx-yotiq .mk-panel:has(.mk-harflar){width:min(440px,48%)}
+.dx-root.dx-yotiq .mk-qator .mk-t{min-height:32px;font-size:14px}
+.dx-root.dx-yotiq .mk-pastki{grid-template-columns:1fr;gap:4px}
+@media (max-width:420px){.mk-qator .mk-t{font-size:14px;min-height:40px}.mk-pastki{grid-template-columns:1fr 1fr}.mk-rejim{grid-column:1/-1}}

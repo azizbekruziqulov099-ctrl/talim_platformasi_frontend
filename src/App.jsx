@@ -14385,14 +14385,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   const [oqituvchiBoshlanishKorinishi, setOqituvchiBoshlanishKorinishi] = useState(null);
   const [ishxonaTanlash, setIshxonaTanlash] = useState(null); // bir necha ishxona bo'lsa kirishda tanlash
   const [ishJoyiAniqlandi, setIshJoyiAniqlandi] = useState(false);
-  const [yonMenyuOchiq, setYonMenyuOchiq] = useState(() => {
-    try { return window.localStorage.getItem("samtm_yon_menyu") !== "0"; } catch { return true; }
-  });
-  const yonMenyuniAlmashtir = useCallback(() => setYonMenyuOchiq((joriy) => {
-    const yangi = !joriy;
-    try { window.localStorage.setItem("samtm_yon_menyu", yangi ? "1" : "0"); } catch { /* jim */ }
-    return yangi;
-  }), []);
+  // REV381: menyu doim ochiq turmaydi — ☰ bosilganda chiqadi, bo'lim tanlangach o'zi yopiladi (telefon va kompyuterda)
+  const [yonMenyuOchiq, setYonMenyuOchiq] = useState(false);
+  const yonMenyuniAlmashtir = useCallback(() => setYonMenyuOchiq((joriy) => !joriy), []);
   // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
   // Kirganda avval Ta'lim maydoni ochiladi; Kabutar — tepadagi tugma bilan.
   const [kabutarOchiq, setKabutarOchiq] = useState(false);
@@ -14824,6 +14819,21 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         @media (max-width:1120px) and (min-width:821px){.samtm-muassasa-strip{margin-left:92px}}
         @media (max-width:820px){.samtm-muassasa-strip{margin-left:0}}
         .samtm-yon-yopiq .premium-sidebar{display:none !important}.samtm-yon-yopiq .premium-app-main{margin-left:0 !important}
+        /* REV381: ☰ menyu — ustidan ochiladigan panel; asosiy sahifa doim to'liq kenglikda; pastki menyu satri o'rniga ☰ */
+        .premium-app-main{margin-left:0 !important}
+        .premium-mobile-nav{display:none !important}
+        .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{display:flex !important;width:min(300px,86vw) !important;padding-inline:16px !important;z-index:2147483080 !important;box-shadow:12px 0 40px rgba(10,25,40,.35);animation:samtm-yon-kir .18s ease-out}
+        .premium-app-shell:not(.samtm-yon-yopiq) :is(.premium-side-brand > div:last-child,.premium-role-card > div,.premium-side-link > span:last-child,.premium-side-nav > p,.premium-side-status > div){display:block !important}
+        .premium-app-shell:not(.samtm-yon-yopiq) .premium-side-link{display:flex !important;justify-items:start !important}
+        .premium-app-shell:not(.samtm-yon-yopiq) :is(.premium-side-brand,.premium-role-card){justify-content:flex-start !important}
+        @media (max-width:820px){.premium-app-main{padding-bottom:max(16px,env(safe-area-inset-bottom)) !important}}
+        .samtm-yon-fon{position:fixed;inset:0;z-index:2147483070;background:rgba(10,20,35,.35)}
+        .samtm-gamburger{width:40px;height:40px;border-radius:12px;border:1px solid #E5E1D8;background:#fff;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;margin-right:6px;padding:0}
+        .samtm-gamburger span{display:block;width:18px;height:2.5px;border-radius:2px;background:#1B4B7A;transition:transform .15s,opacity .15s}
+        .samtm-gamburger.is-on span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}.samtm-gamburger.is-on span:nth-child(2){opacity:0}.samtm-gamburger.is-on span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+        .samtm-chap{display:flex;align-items:center}
+        @keyframes samtm-yon-kir{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
+        @media (prefers-reduced-motion:reduce){.premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{animation:none}}
         .samtm-yon-toggle{position:fixed;left:8px;bottom:14px;z-index:2147483050;width:40px;height:40px;border-radius:12px;border:1px solid #E5E1D8;background:#fff;color:#1B4B7A;font-weight:900;box-shadow:0 6px 20px rgba(23,50,75,.15)}
         @media (max-width:820px){.samtm-yon-toggle{display:none}}
         .samtm-muassasa-card{display:flex;align-items:stretch;flex:0 0 auto;min-width:140px;max-width:220px;border-radius:16px;border:1px solid #E5E1D8;background:#fff;transition:all .18s;overflow:hidden}
@@ -14870,6 +14880,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
             Qolganlari (rol, profillar, bildirishnoma, sozlama, akkaunt) profil menyusida; yordamchi — o'ng pastda robot. */}
         <div className={`samtm-top-switch samtm-ixcham ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
           <div className="samtm-chap">
+            {!kabutarOchiq && <button type="button" className={`samtm-gamburger ${yonMenyuOchiq ? "is-on" : ""}`} onClick={yonMenyuniAlmashtir} aria-expanded={yonMenyuOchiq}
+              aria-label={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")} title={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")}><span /><span /><span /></button>}
             <button type="button" role="tab" aria-selected={!kabutarOchiq} className={`samtm-belgi ${kabutarOchiq ? "" : "on"}`} onClick={() => kabutarniOch(false)} title={uiT("Ta’lim maydoni — turgan joyingiz saqlanadi")} aria-label={uiT("Ta’lim maydoni")}>
               <img className="samtm-emblema" src={__kbEmblema} alt="" width="26" height="26" style={{ width: 28, height: 28, borderRadius: 8, boxShadow: "none" }} /></button>
           </div>
@@ -14953,8 +14965,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           </button>
         </div>; })}
       </div>}
-      <button type="button" className="samtm-yon-toggle" onClick={yonMenyuniAlmashtir} title={yonMenyuOchiq ? uiT("Yon menyuni yopish") : uiT("Yon menyuni ochish")}>{yonMenyuOchiq ? __kbUi("‹") : __kbUi("›")}</button>
-      <div className={`premium-app-shell ${yonMenyuOchiq ? "" : "samtm-yon-yopiq"}`} style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
+      {yonMenyuOchiq && <div className="samtm-yon-fon" onClick={() => setYonMenyuOchiq(false)} aria-hidden="true" />}
+      <div className={`premium-app-shell ${yonMenyuOchiq ? "" : "samtm-yon-yopiq"}`} onClickCapture={(e) => {
+        if (yonMenyuOchiq && e.target?.closest?.(".premium-side-nav button, .premium-side-profile button")) setTimeout(() => setYonMenyuOchiq(false), 0); }} style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
         <main className="premium-app-main">
           {/* REV226: sahifa sarlavhasi va tugmalar profil menyusiga o'tdi — sahifa butun ekranni egallaydi */}
           <div className="premium-page-stage">

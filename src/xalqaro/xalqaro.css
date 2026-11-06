@@ -267,3 +267,15 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-bosh-sinf ol{margin:6px 0 0 20px;padding:0;display:flex;flex-direction:column;gap:8px}
 .xb-bosh-sinf code{word-break:break-all;padding:2px 6px;border-radius:6px;background:rgba(127,127,127,.12)}
 .xb-kod-ichki{display:inline-block;font-size:20px;padding:4px 10px;margin-left:4px}
+/* REV381: Natijalarim */
+.xb-chiziq{display:block;height:10px;border-radius:5px;background:rgba(127,127,127,.18);overflow:hidden;flex:1}
+.xb-chiziq i{display:block;height:100%;border-radius:5px}
+.xb-karta .xb-chiziq{margin-top:6px}
+.xb-nat-mavzular{display:flex;flex-direction:column;gap:8px}
+.xb-nat-mavzu{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(120px,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;border:1px solid rgba(127,127,127,.2)}
+.xb-nat-nom{display:flex;flex-direction:column;gap:2px;min-width:0}
+.xb-nat-foiz{display:flex;align-items:center;gap:8px}
+.xb-nat-tugma{display:flex;gap:6px}
+.xb-nat-imt{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.xb-nat-imt-q{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:14px;border:1px solid rgba(127,127,127,.2)}
+@media (max-width:640px){.xb-nat-mavzu{grid-template-columns:1fr}.xb-nat-tugma{justify-content:flex-end}}
