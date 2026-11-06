@@ -1,0 +1,46 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { bosqichlar, bosqichHolati, bosqichSozlama, yulduzHisob, xonaOyinlari, xonaElementlar, XONA_OYINLAR } from "./xonaRules.js";
+import { XONA_TOPLAM } from "./xonaData.js";
+import { oyinYasa } from "../oyin/oyinRules.js";
+test("REV371: to'plamlar — har narsada rasm va 5 tilda nom", () => {
+  const hammasi = XONA_TOPLAM.flatMap((p) => p.items);
+  assert.ok(hammasi.length >= 150 && hammasi.length <= 200, String(hammasi.length));
+  for (const x of hammasi) { assert.ok(x.r); for (const t of ["uz", "ru", "en", "de", "es"]) assert.ok(x.s[t], `${x.s.uz} ${t}`); }
+});
+test("REV371: har o'yinda 7–20 bosqich, har bosqichda 6–15 narsa, narsa takrorlanmaydi", () => {
+  for (const id of XONA_OYINLAR) {
+    const b = bosqichlar(id); assert.ok(b.length >= 7 && b.length <= 20, `${id}: ${b.length}`);
+    const uz = b.flatMap((x) => x.items.map((i) => i.s.uz)); assert.equal(new Set(uz).size, uz.length);
+    for (const x of b) assert.ok(x.items.length >= 6 && x.items.length <= 15);
+  }
+  assert.notEqual(bosqichlar(116)[0].toplam, bosqichlar(83)[0].toplam);   // o'yinlar boshqa mavzudan boshlanadi
+});
+test("REV371: qulf — 1-bosqich ochiq, keyingisi o'tilgandan keyingi kuni va faqat obunada", () => {
+  assert.equal(bosqichHolati({}, 1, {}), "ochiq");
+  assert.equal(bosqichHolati({}, 2, { obuna: true, bugun: "2026-11-07" }), "qulf");
+  const p = { 1: { sana: "2026-11-07", yulduz: 3 } };
+  assert.equal(bosqichHolati(p, 2, { obuna: true, bugun: "2026-11-07" }), "ertaga");
+  assert.equal(bosqichHolati(p, 2, { obuna: true, bugun: "2026-11-08" }), "ochiq");
+  assert.equal(bosqichHolati(p, 2, { obuna: false, bugun: "2026-11-08" }), "obuna");
+  assert.equal(bosqichHolati(p, 1, {}), "otdi");
+});
+test("REV371: bosqich o'yini — 10 raund, har raundda boshqa narsa, variantlar bosqich sayin ko'payadi", () => {
+  const b = bosqichlar(116)[0]; const els = xonaElementlar(b, "ru");
+  assert.ok(els[0].uz && els[0].uz !== b.items[0].s.uz);
+  const h = oyinYasa(116, { elementlar: els, yosh: "4-5", urug: 3, izoh: "uz", ...bosqichSozlama("4-5", 1) });
+  assert.equal(h.raundlar.length, 10);
+  assert.equal(new Set(h.raundlar.map((r) => r.togri)).size, 10);
+  assert.ok(bosqichSozlama("2-3", 1).variantSoniMajbur === 2 && bosqichSozlama("6-7", 10).variantSoniMajbur === 4);
+  assert.equal(yulduzHisob(10, 0), 3); assert.equal(yulduzHisob(4, 6), 0);
+  assert.ok(xonaOyinlari("2-3").length >= 6 && xonaOyinlari("6-7").length >= 8);
+});
+
+test("REV371: xonadagi har o'yin har bosqichda quriladi (2-3 / 4-5 / 6-7)", () => {
+  for (const y of ["2-3", "4-5", "6-7"]) for (const o of xonaOyinlari(y)) {
+    for (const b of bosqichlar(o.id)) {
+      const h = oyinYasa(o.id, { elementlar: xonaElementlar(b, "uz"), yosh: y, urug: b.i, izoh: "uz", ...bosqichSozlama(y, b.i) });
+      assert.ok(h && h.raundlar.length >= 5, `${o.id} ${y} ${b.i}`);
+    }
+  }
+});

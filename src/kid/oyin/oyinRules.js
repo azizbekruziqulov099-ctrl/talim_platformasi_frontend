@@ -822,7 +822,7 @@ export function joriyBosh(r) {
  * togri }], raund, xatolar, togriSoni, tugadi, joriy } yoki null (o'yin topilmadi / yoshga mos emas / elementlar kam).
  * urug' — takrorlanadigan tasodif uchun (sinovlarda). mik — mikrofon bormi (117 «Ayt va och» uchun).
  */
-export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til = "en", mik = true, mavzu = "", tanish = false, izoh = "uz", fasl = "", kirishDaraja = "" } = {}) {
+export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til = "en", mik = true, mavzu = "", tanish = false, izoh = "uz", fasl = "", kirishDaraja = "", raundSoni = 0, variantSoniMajbur = 0 } = {}) {
   const o = oyinOl(id);
   if (!o) return null;
   const y = yoshNorm(yosh);
@@ -830,10 +830,10 @@ export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til
   const q = qiyinlikNorm(qiyinlik);
   const els = elementlarTayyor(elementlar);
   const rnd = tasodif(urug);
-  const n = variantSoni(y, q);
+  const n = variantSoniMajbur ? Math.max(2, Math.min(4, variantSoniMajbur)) : variantSoni(y, q);   // REV371: o'yinlar xonasi bosqichi
   const darsSonlari = sonOraligi(y, sonlar, q);   // sonlar = [] — darsda son yo'q
   const son = darsSonlari || sonOraligi(y, undefined, q);
-  const raundlar = YASOVCHI[o.kalit]({ els, y, n, rnd, son, sonBor: Boolean(darsSonlari), R: o.raund[y], q, izoh: ["uz", "ru", "en", "de", "es"].includes(izoh) ? izoh : "uz", fasl });
+  const raundlar = YASOVCHI[o.kalit]({ els, y, n, rnd, son, sonBor: Boolean(darsSonlari), R: raundSoni || o.raund[y], q, izoh: ["uz", "ru", "en", "de", "es"].includes(izoh) ? izoh : "uz", fasl });
   if (!raundlar.length) return null;
   return {
     id: o.id, kalit: o.kalit, nom: o.nom, harakat: o.harakat, yosh: y, til: str(til) || "en", qiyinlik: q, variantSoni: n,

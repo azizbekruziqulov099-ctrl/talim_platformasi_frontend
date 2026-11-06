@@ -1,0 +1,23 @@
+/* REV371: o'yinlar xonasi — butun ekran, telefon va kompyuterga moslashadi */
+.ox-root{position:fixed;inset:0;z-index:60;background:linear-gradient(180deg,#fff8e8,#e8f4ff);overflow:auto;padding:max(14px,env(safe-area-inset-top)) 14px max(18px,env(safe-area-inset-bottom));font-family:inherit;color:#2b3452}
+.ox-bosh{display:flex;align-items:center;gap:10px;margin:0 auto 12px;max-width:1100px}
+.ox-bosh h2{margin:0;font-size:clamp(20px,4.5vmin,32px);font-weight:800}
+.ox-orqa{width:48px;height:48px;border-radius:50%;border:none;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.12);font-size:22px;cursor:pointer;flex:none}
+.ox-oyin .ox-orqa{position:fixed;top:max(10px,env(safe-area-inset-top));right:10px;z-index:70}
+.ox-oyinlar{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(140px,26vmin,200px),1fr));gap:14px;max-width:1100px;margin:0 auto}
+.ox-oyin-karta{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;border:none;border-radius:24px;background:#fff;box-shadow:0 6px 18px rgba(43,52,82,.12);cursor:pointer;font-size:clamp(14px,2.6vmin,18px)}
+.ox-belgi{font-size:clamp(44px,10vmin,72px);line-height:1}
+.ox-progress{width:80%;height:8px;border-radius:4px;background:#eee;overflow:hidden}.ox-progress span{display:block;height:100%;background:#4caf50}
+.ox-yol{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(110px,20vmin,160px),1fr));gap:14px;max-width:1100px;margin:0 auto}
+.ox-bosqich{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:none;border-radius:22px;background:#fff;box-shadow:0 5px 14px rgba(43,52,82,.12);cursor:pointer}
+.ox-bosqich-son{font-size:clamp(18px,4vmin,26px);font-weight:800}
+.ox-bosqich-rasm img{width:clamp(64px,13vmin,110px);height:clamp(64px,13vmin,110px);object-fit:contain}
+.ox-bosqich.is-qulf,.ox-bosqich.is-obuna,.ox-bosqich.is-ertaga{opacity:.55;filter:grayscale(.7)}
+.ox-bosqich.is-ochiq{outline:4px solid #ffc83d;animation:ox-tep 1.6s ease-in-out infinite}
+.ox-bosqich.is-otdi{background:#eaf8ec}
+.ox-yulduz{min-height:20px;font-size:16px}
+.ox-xabar{max-width:1100px;margin:0 auto 12px;padding:10px 14px;border-radius:14px;background:#fff;font-weight:600;text-align:center}
+.ox-oyin{padding:0;background:#fff}
+.ox-oyin .oy-root{position:absolute;inset:0;border-radius:0}
+@keyframes ox-tep{50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){.ox-bosqich.is-ochiq{animation:none}}

@@ -68,7 +68,11 @@ export default function AytVaOch(p) {
       <div className="oy-sahna">
         <div className={`oy-eshik2 ${ochiq ? "is-ochiq" : ""} ${kadr && fb?.togri === false ? "is-xato" : ""}`} aria-hidden="true">
           <span className="oy-eshik2-ichi"><Rasm el={raund.savol.el} rasm={rasm} /></span>
-          {eshikSrc ? <img className="oy-eshik2-qanot" src={eshikSrc} alt="" draggable="false" /> : <span className="oy-eshik2-qanot oy-eshik2-yasama" />}
+          <span className="oy-eshik2-qanot">
+            {eshikSrc ? <img src={eshikSrc} alt="" draggable="false" /> : <span className="oy-eshik2-yasama" />}
+            {/* REV371: eshik oynasi — ortidagi kim ekani ko'rinib turadi, bola nomini aytadi */}
+            <span className="oy-eshik2-oyna"><Rasm el={raund.savol.el} rasm={rasm} /></span>
+          </span>
         </div>
         {katta && kadr ? <Soz el={raund.savol.el} /> : null}
         <button type="button" className={`oy-tugma is-ikon oy-mik ${tinglayapti ? "is-tinglayapti" : ""}`} disabled={qulf || tinglayapti}
