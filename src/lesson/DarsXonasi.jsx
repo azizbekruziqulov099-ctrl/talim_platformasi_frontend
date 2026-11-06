@@ -689,6 +689,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const prefetchQadam = (j) => {
     const s = steps[j];
     if (!s) return;
+    // REV387: qadam rasmi ham oldindan yuklanadi — doskada kechikmay chiqadi
+    if (s.rasm) { const u = mediaUrl(s.rasm); if (u && !prefetched.current.has(`img:${u}`)) { prefetched.current.add(`img:${u}`); try { const im = new Image(); im.decoding = "async"; im.src = u; } catch { /* */ } } }
     const spoken = stepSpeech(s, j);
     if (micRejim() && j >= opening.length && spoken.includes("⏸")) sozBolaklari(spoken, darsTil, qadamMaqsadi(steps[j])).forEach((b) => prefetch(b.matn, false));
     else if (micRejim() && j >= opening.length && kinds[j] === "new" && kidTakrorStep(s)) prefetch(spoken, false);
@@ -701,7 +703,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   useEffect(() => {
     if (!steps.length || mode !== "idle") return undefined;
     const t = setTimeout(() => {
-      [0, 1].forEach((j) => prefetchQadamRef.current(j));
+      [0, 1, 2].forEach((j) => prefetchQadamRef.current(j));
     }, 1500);
     return () => clearTimeout(t);
   }, [steps, mode]);
@@ -874,7 +876,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     setOyinQ((x) => (x && x.stepIdx !== next ? null : x));
     setHarakatQ((x) => (x && x.stepIdx !== next ? null : x));
     const spoken = stepSpeech(s, next);
-    [next + 1, next + 2].forEach((j) => prefetchQadam(j));
+    [next + 1, next + 2, next + 3].forEach((j) => prefetchQadam(j));   // REV387: 3 qadam oldindan — ustoz qotmaydi
     if (kid && next > 0 && kinds[next] !== kinds[next - 1]) { if (kinds[next] === "new") chime(); else if (kinds[next] === "review") soft(); }
     let micBilan = false;
     const qadamTugadi = () => {
