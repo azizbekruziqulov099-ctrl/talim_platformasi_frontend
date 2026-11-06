@@ -8,6 +8,23 @@ const norm = (value) => String(value ?? "")
   .replace(/,/g, ".")
   .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "$1/$2");
 
+// REV384: so'z javob — o'quvchi asosiy so'zni yozsa yetadi: «juft» ↔ «Juft son», «6 — juft», «juft (6 : 2 = 3)».
+// Inkor bo'lgan javob («toq emas») bunday qisqa solishtirilmaydi — u faqat to'liq mos kelsa to'g'ri.
+const INKOR = new Set(["emas", "yoq", "yo'q", "not", "no", "нет", "не", "nicht", "kein", "keine"]);
+const sozlar = (v) => String(v ?? "").toLowerCase()
+  .replace(/ö/g, "o'").replace(/ğ/g, "g'").replace(/ş/g, "sh").replace(/ç/g, "ch").replace(/[‘’ʻʼ`]/g, "'")
+  .replace(/\([^)]*\)|\$[^$]*\$/g, " ").replace(/[^\p{L}'\s-]/gu, " ").split(/[\s-]+/).map((w) => w.replace(/^'+|'+$/g, "")).filter((w) => w.length > 0);
+export function sozJavobMos(given, kutilgan = []) {
+  const g = sozlar(given);
+  if (!g.length || g.join("").length < 2 || g.some((w) => INKOR.has(w))) return false;
+  return kutilgan.some((k) => {
+    const e = sozlar(k);
+    if (!e.length || e.some((w) => INKOR.has(w)) || g.length > e.length) return false;
+    for (let i = 0; i + g.length <= e.length; i += 1) if (g.every((w, j) => e[i + j] === w)) return true;
+    return false;
+  });
+}
+
 // «kutilgan_javob»da bir nechta to'g'ri javob | yoki ; bilan ajratiladi: 2/6|1/3
 // REV312: son qiymati — «5/8», «5:8», «0,625», «1 1/2» (aralash son), «-3» bir xil qiymat sifatida solishtiriladi
 export function sonQiymat(v) {
@@ -25,6 +42,7 @@ export function checkAnswer(given, expected) {
   if (!answer) return false;
   const kutilgan = String(expected ?? "").split(/[|;]/).map((x) => x.trim()).filter(Boolean);
   if (kutilgan.map(norm).includes(answer)) return true;
+  if (sozJavobMos(given, kutilgan)) return true;   // REV384
   const g = sonQiymat(given);
   // «12 ta olma» kabi javobda boshidagi son ham qabul qilinadi
   const sonli = (k) => { const v = sonQiymat(k); if (v !== null) return v; const m = String(k).replace(/\$/g, "").match(/^\s*(-?\d+(?:[.,]\d+)?(?:\s*[/:]\s*\d+)?)(?=\s|$)/); return m ? sonQiymat(m[1]) : null; };

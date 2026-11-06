@@ -86,10 +86,11 @@ export const mashqYulduz = (togri, jami) => { const p = jami ? togri / jami : 0;
  * REV177: test va tekshiruvda sinfxona (va ustoz) ko'rsatilmaydi — Kabuning o'z muhiti (DarsXonasi: kabuMuhit).
  */
 export const SINF_JOY = {
-  til: { ustoz: "ong", doska: { l: 33.5, t: 21.5, w: 41.5, h: 53 } },          // deraza chapda, soat tepada o'rtada
-  onatili: { ustoz: "chap", doska: { l: 26, t: 3, w: 42.5, h: 70 } },     // deraza o'ngda, soat chapda (ustoz tomonda)
-  atrofolam: { ustoz: "chap", doska: { l: 30.5, t: 3, w: 56.5, h: 70 } },   // deraza o'ng chekkada
-  matematika: { ustoz: "chap", doska: { l: 27, t: 3, w: 60, h: 70 } },    // soat o'ng tepada, deraza chap chekkada
+  // REV384: doska kattaroq (chapga, o'ngga, pastga), ustoz chetroqda; doska tagida oyoqli tayanch (haqiqiy elektron panel)
+  til: { ustoz: "ong", doska: { l: 33.5, t: 21.5, w: 46, h: 60 } },          // deraza chapda, soat tepada o'rtada
+  onatili: { ustoz: "chap", doska: { l: 22, t: 2, w: 47, h: 76 } },     // deraza o'ngda, soat chapda (ustoz tomonda)
+  atrofolam: { ustoz: "chap", doska: { l: 30, t: 2, w: 58, h: 76 } },   // deraza o'ng chekkada
+  matematika: { ustoz: "chap", doska: { l: 21, t: 2, w: 67, h: 76 } },    // soat o'ng tepada, deraza chap chekkada
 };
 /** REV181: juft — ikki ustoz (doskaning ikki yonida): doska ular orasidagi butun joyni egallaydi (19%–81%). */
 export function sinfJoyi(xonaKey = "", { juft = false } = {}) {

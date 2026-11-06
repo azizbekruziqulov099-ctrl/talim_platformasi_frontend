@@ -1983,6 +1983,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             hidden={!(step && step.turi === "amaliy")}>✏️ {__kbUi("Yozish")}</button>
         </div>}
         <div className="dx-ledge" aria-hidden="true" />
+        {sinfXona && !kid && !kabuMuhit && <div className="dx-tayanch" aria-hidden="true"><i /><i /><b /></div>}
       </div>
 
       {!kid && <aside className={`dx-teacher ${speaking ? "is-speaking" : ""}`} aria-label={__kbUi("O‘qituvchi")} style={sinfXona ? foiz(kabuMuhit ? kabuJoy.gap : joy.gap) : undefined}>

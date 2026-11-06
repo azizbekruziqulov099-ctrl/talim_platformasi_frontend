@@ -14,7 +14,8 @@ const TUGMALAR = [
 const KALIT = { "×": "*", "−": "-", ":": ":", "/": "/" };
 // REV381: harflar ham — javob so'z bo'lsa (ona tili, tarix, biologiya…) telefon klaviaturasi chiqmaydi, shu panelda yoziladi
 const HARFLAR = {
-  lat: [["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"], ["a", "s", "d", "f", "g", "h", "j", "k", "l", "oʻ"], ["z", "x", "c", "v", "b", "n", "m", "gʻ", "ʼ", "-"]],
+  // REV384: yangi alifbo (ö, ğ, ş, ç) ham eski yozuv (oʻ, gʻ, sh, ch) ham — ikkalasi to'g'ri qabul qilinadi
+  lat: [["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"], ["a", "s", "d", "f", "g", "h", "j", "k", "l"], ["z", "x", "c", "v", "b", "n", "m"], ["ö", "ğ", "ş", "ç", "oʻ", "gʻ", "ʼ", "-"]],
   kir: [["й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х"], ["ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э"], ["я", "ч", "с", "м", "и", "т", "ь", "б", "ю", "ъ", "ё"]],
 };
 export const harfliJavob = (t) => /[A-Za-zА-Яа-яЁёʻʼ‘’]/.test(String(t || "").replace(/\b(x|y)\b/g, ""));
@@ -28,10 +29,11 @@ export function javobLatex(t) {
 export function JavobKorinishi({ qiymat, bosh = "Javobni yozing" }) {
   const html = useMemo(() => {
     if (!qiymat) return "";
+    if (/[A-Za-zА-Яа-яЁёÖöĞğŞşÇçʻʼ‘’]{2,}/.test(String(qiymat).replace(/\b[xy]\b/g, ""))) return "";   // REV384: so'z — oddiy matn (formula emas)
     try { return katex.renderToString(javobLatex(qiymat), { throwOnError: false, output: "html", strict: "ignore" }); } catch { return ""; }
   }, [qiymat]);
   if (!qiymat) return <span className="mk-javob-bosh">{__kbUi(bosh)}</span>;
-  return html ? <span className="mk-javob-formula" dangerouslySetInnerHTML={{ __html: html }} /> : <span>{qiymat}</span>;
+  return html ? <span className="mk-javob-formula" dangerouslySetInnerHTML={{ __html: html }} /> : <span className="mk-javob-matn">{qiymat}</span>;
 }
 
 export default function MatKlaviatura({ qiymat, onChange, onTekshir, onYop, kutilgan = "" }) {

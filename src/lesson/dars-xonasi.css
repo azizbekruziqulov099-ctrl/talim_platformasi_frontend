@@ -1042,3 +1042,12 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-yotiq .mk-pastki{grid-template-columns:1fr;gap:4px}
 @media (max-width:420px){.mk-qator .mk-t{font-size:14px;min-height:40px}.mk-pastki{grid-template-columns:1fr 1fr}.mk-rejim{grid-column:1/-1}}
 .dx-btn.dx-orqa{font-weight:700}
+/* REV384: ustoz chaproqda (doskaga joy), elektron panel tagida oyoqli tayanch — polga tushadi */
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher{left:-1.5%;height:82%}
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-ong .dx-sinf-fon .us-teacher{right:-1.5%;height:82%}
+.dx-tayanch{position:absolute;left:0;right:0;top:100%;height:19cqh;pointer-events:none;z-index:-1}
+.dx-tayanch i{position:absolute;top:0;width:1.1cqw;min-width:6px;height:calc(100% - 1.4cqh);background:linear-gradient(90deg,#2b3340,#5b6575 45%,#2b3340)}
+.dx-tayanch i:nth-child(1){left:24%}.dx-tayanch i:nth-child(2){right:24%}
+.dx-tayanch b{position:absolute;bottom:0;left:16%;right:16%;height:1.4cqh;min-height:6px;border-radius:999px;background:linear-gradient(#4a5464,#232a35);box-shadow:0 .6cqh 1.2cqh rgba(0,0,0,.25)}
+.dx-root.dx-yotiq .dx-tayanch{height:14cqh}
+.mk-javob-matn{font:600 20px system-ui,sans-serif;letter-spacing:.2px}
