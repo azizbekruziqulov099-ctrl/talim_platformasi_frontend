@@ -28,3 +28,12 @@
 .ox-yosh{display:flex;align-items:center;gap:8px;max-width:1100px;margin:0 auto 12px;font-weight:700}
 .ox-yosh button{min-width:56px;padding:8px 12px;border-radius:14px;border:2px solid #d9dfe8;background:#fff;font:inherit;font-weight:700;cursor:pointer}
 .ox-yosh button.is-on{border-color:#1B4B7A;background:#1B4B7A;color:#fff}
+/* REV383: o'yindan chiqish — chap tepada aniq «← Ortga» (o'yin tugmalari bilan ustma-ust tushmaydi); bosqich oxirida natija oynasi */
+.ox-orqa-oyin{position:fixed;top:max(10px,env(safe-area-inset-top));left:10px;z-index:70;padding:10px 16px;border:none;border-radius:999px;background:#fff;color:#1B4B7A;font:700 16px system-ui,sans-serif;box-shadow:0 3px 12px rgba(0,0,0,.18);cursor:pointer}
+.ox-natija{position:fixed;inset:0;z-index:80;display:grid;place-items:center;background:rgba(15,30,50,.45);padding:16px}
+.ox-natija-karta{width:min(420px,100%);background:#fff;border-radius:24px;padding:22px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:10px;align-items:center}
+.ox-natija-yulduz{font-size:48px;line-height:1}
+.ox-natija-karta b{font-size:19px}
+.ox-natija-tugmalar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.ox-tugma{padding:12px 18px;border-radius:16px;border:2px solid #d9dfe8;background:#fff;font:700 16px system-ui,sans-serif;cursor:pointer}
+.ox-tugma.is-asosiy{background:#1B4B7A;border-color:#1B4B7A;color:#fff}

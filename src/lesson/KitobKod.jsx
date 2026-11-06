@@ -111,7 +111,7 @@ export default function KitobKodQidiruv({ apiBase, token, jins = "qiz", hideBar 
       {item && lesson && <>
         <button type="button" className="dx-btn" onClick={() => setLesson(false)}>{__kbUi("← Topshiriqqa qaytish")}</button>
         <React.Suspense fallback={<p className="dx-status">{__kbUi("Dars yuklanmoqda…")}</p>}>
-          <DarsXonasi apiBase={apiBase} token={token} topicCode={item.mavzu.topic_code} fan={item.mavzu.fan} grade={item.mavzu.sinf} jins={jins} />
+          <DarsXonasi apiBase={apiBase} token={token} topicCode={item.mavzu.topic_code} fan={item.mavzu.fan} grade={item.mavzu.sinf} jins={jins} onClose={() => setLesson(false)} />
         </React.Suspense>
       </>}
     </section>

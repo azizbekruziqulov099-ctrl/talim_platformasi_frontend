@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const o = (f) => fs.readFileSync(new URL(f, import.meta.url), 'utf8');
 
-test('telefonda dars sahifasi ochilishi bilan to\'liq ekran (surib qidirish kerak emas), ✕ darsdan chiqaradi', () => {
+test('telefonda dars sahifasi ochilishi bilan to\'liq ekran (surib qidirish kerak emas), ✕ darsdan chiqaradi (REV383: oldingi sahifaga qaytaradi)', () => {
   const dx = o('./lesson/DarsXonasi.jsx');
   assert.match(dx, /\(telefon && mode === "idle" && !error\)/);
-  assert.match(dx, /focus && !\(mode === "idle" && onClose\) \? exitLesson/);
+  assert.match(dx, /onClick=\{onClose \? \(\) => \{ exitLesson\(\); hush\(\); onClose\(\); \} : exitLesson\}/);
 });
 
 test('REV313/REV381: doska yozuvi 0.85 dan (buralgan telefonda 0.7 dan) kichraymaydi; sig\'masa — yangi sahifa (eski qatorlar oldingi sahifaga)', () => {

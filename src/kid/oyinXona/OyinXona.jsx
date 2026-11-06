@@ -15,6 +15,10 @@ const MATN = {
   ertaga: { uz: "Ertaga ochiladi", ru: "Откроется завтра", en: "Opens tomorrow", de: "Öffnet morgen", es: "Se abre mañana" },
   qulf: { uz: "Avval oldingi bosqichni o‘ta", ru: "Сначала пройди предыдущий уровень", en: "Finish the previous level first", de: "Schaffe zuerst die vorige Stufe", es: "Primero supera el nivel anterior" },
   obuna: { uz: "Bu bosqich obunada ochiladi", ru: "Этот уровень открывается по подписке", en: "This level opens with a subscription", de: "Diese Stufe gibt es mit Abo", es: "Este nivel se abre con suscripción" },
+  ortga: { uz: "Ortga", ru: "Назад", en: "Back", de: "Zurück", es: "Atrás" },
+  qayta: { uz: "Qayta o‘ynash", ru: "Сыграть ещё", en: "Play again", de: "Nochmal spielen", es: "Jugar otra vez" },
+  bosqichlar: { uz: "Bosqichlar", ru: "Уровни", en: "Levels", de: "Stufen", es: "Niveles" },
+  togri: { uz: "To‘g‘ri javoblar", ru: "Правильных ответов", en: "Correct answers", de: "Richtige Antworten", es: "Respuestas correctas" },
   otdi: { uz: "Barakalla! Bosqich o‘tildi. Keyingisi ertaga ochiladi.", ru: "Молодец! Уровень пройден. Следующий откроется завтра.", en: "Well done! Level complete. The next one opens tomorrow.", de: "Super! Stufe geschafft. Die nächste öffnet morgen.", es: "¡Muy bien! Nivel superado. El siguiente se abre mañana." },
   yana: { uz: "Yana bir urinib ko‘ramiz!", ru: "Попробуем ещё раз!", en: "Let's try once more!", de: "Wir versuchen es noch einmal!", es: "¡Probemos otra vez!" },
 };
@@ -29,6 +33,8 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
   const [tanlangan, setTanlangan] = useState(null);   // o'yin
   const [oynaydi, setOynaydi] = useState(null);       // bosqich
   const [xabar, setXabar] = useState("");
+  const [natija, setNatija] = useState(null);
+  const [takror, setTakror] = useState(0);   // REV383: bosqich oxirida natija oynasi (o'zi chiqib ketmaydi)
   const [, setSoz] = useState(0);
   const urug = useRef(Math.floor(Math.random() * 1e6));
   const say = (s, d) => { try { onSay?.(s, d); } catch { d?.(); } };
@@ -38,24 +44,43 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
   useEffect(() => { say(t("sarlavha", izoh)); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const oyinlar = useMemo(() => xonaOyinlari(yosh, oyinYopiqmi), [yosh, h]); // eslint-disable-line react-hooks/exhaustive-deps
+  // REV383: telefonning «orqaga» tugmasi — ilovadan chiqib ketmaydi, bir qadam ortga qaytadi (o'yin → bosqichlar → o'yinlar → chiqish)
+  const qadam = oynaydi ? 2 : tanlangan ? 1 : 0;
+  const qadamRef = useRef(qadam); qadamRef.current = qadam;
+  useEffect(() => { if (qadam > 0) { try { window.history.pushState({ oxQadam: qadam }, ""); } catch { /* */ } } }, [qadam]);
+  useEffect(() => {
+    const h = () => { const q = qadamRef.current; if (q === 2) { setOynaydi(null); setNatija(null); } else if (q === 1) { setTanlangan(null); setXabar(""); } };
+    window.addEventListener("popstate", h); return () => window.removeEventListener("popstate", h);
+  }, []);
   if (!h) return <div className="ox-root"><p role="status">…</p></div>;
   const prog = (id) => h.holat?.[String(id)] || {};
 
   if (oynaydi && tanlangan) {
     const b = oynaydi;
     return <div className="ox-root ox-oyin">
-      <button type="button" className="ox-orqa" onClick={() => setOynaydi(null)} aria-label="←">✕</button>
-      <Oyin key={`${tanlangan.id}-${b.i}`} id={tanlangan.id} elementlar={xonaElementlar(b, izoh)} yosh={yosh} til={izoh} izoh={izoh} rasm={oyinRasmTop}
+      <button type="button" className="ox-orqa-oyin" onClick={() => { setNatija(null); setOynaydi(null); }}>← {t("ortga", izoh)}</button>
+      <Oyin key={`${tanlangan.id}-${b.i}-${takror}`} id={tanlangan.id} elementlar={xonaElementlar(b, izoh)} yosh={yosh} til={izoh} izoh={izoh} rasm={oyinRasmTop}
         urug={urug.current + b.i} kirishDaraja="yoq" {...bosqichSozlama(yosh, b.i, tanlangan.id)} onSay={(s, d) => say(s, d)}
         onNatija={(togri, xatolar) => {
           const xato = Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0;
           const yulduz = yulduzHisob(togri, xato);
-          if (!yulduz) { setXabar(t("yana", izoh)); say(t("yana", izoh)); setTimeout(() => setOynaydi(null), 1400); return; }
+          if (!yulduz) { setNatija({ yulduz: 0, togri, jami: togri + xato }); say(t("yana", izoh)); return; }
           fetch(`${base}/api/bola/oyin_xona/otdi`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, oyin: tanlangan.id, bosqich: b.i, yulduz }) })
             .then((r) => (r.ok ? r.json() : null)).catch(() => null)
             .then((j) => { if (j?.holat) setH(j); else setH((x) => ({ ...x, holat: { ...x.holat, [tanlangan.id]: { ...prog(tanlangan.id), [b.i]: { sana: x.bugun, yulduz } } } }));
-              setXabar(t("otdi", izoh)); say(t("otdi", izoh)); setTimeout(() => setOynaydi(null), 1600); });
+              setNatija({ yulduz, togri, jami: togri + xato }); say(t("otdi", izoh)); });
         }} />
+      {natija && <div className="ox-natija" role="dialog" aria-modal="true">
+        <div className="ox-natija-karta">
+          <div className="ox-natija-yulduz" aria-hidden="true">{natija.yulduz ? "⭐".repeat(natija.yulduz) : "💪"}</div>
+          <b>{natija.yulduz ? t("otdi", izoh) : t("yana", izoh)}</b>
+          <p>{t("togri", izoh)}: {natija.togri} / {natija.jami}</p>
+          <div className="ox-natija-tugmalar">
+            <button type="button" className="ox-tugma" onClick={() => { setNatija(null); urug.current += 101; setTakror((x) => x + 1); }}>🔁 {t("qayta", izoh)}</button>
+            <button type="button" className="ox-tugma is-asosiy" onClick={() => { setNatija(null); setOynaydi(null); }}>🗺️ {t("bosqichlar", izoh)}</button>
+          </div>
+        </div>
+      </div>}
     </div>;
   }
 

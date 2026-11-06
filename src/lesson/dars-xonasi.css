@@ -1041,3 +1041,4 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-yotiq .mk-qator .mk-t{min-height:32px;font-size:14px}
 .dx-root.dx-yotiq .mk-pastki{grid-template-columns:1fr;gap:4px}
 @media (max-width:420px){.mk-qator .mk-t{font-size:14px;min-height:40px}.mk-pastki{grid-template-columns:1fr 1fr}.mk-rejim{grid-column:1/-1}}
+.dx-btn.dx-orqa{font-weight:700}

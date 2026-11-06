@@ -1728,12 +1728,14 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className={`dx-head ${boshYigiq ? "is-yigiq" : ""}`}>
-      {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={focus && !(mode === "idle" && onClose) ? exitLesson : () => { hush(); onClose?.(); }} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
+      {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={onClose ? () => { exitLesson(); hush(); onClose(); } : exitLesson} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>
         {!kid && <p>{[lesson.topic?.fan, lesson.topic?.sinf && (/^\d+$/.test(String(lesson.topic.sinf)) ? `${lesson.topic.sinf}-sinf` : String(lesson.topic.sinf)), lesson.topic?.daraja && `${__kbUi("Daraja")} ${lesson.topic.daraja} / 30`].filter(Boolean).join(" · ")}</p>}
       </div>
       <div className="dx-head-actions">
+        {/* REV383: darsdan har doim chiqish mumkin — oldingi sahifaga qaytadi */}
+        {onClose && !focus && <button type="button" className="dx-btn dx-orqa" onClick={() => { hush(); onClose(); }}>← {__kbUi("Ortga")}</button>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}
         {kid && (questions.length > 0 || gameTotal > 0) && <span className="dx-chip dx-stars" aria-label={`${score + gameScore} ⭐`}>⭐ {score + gameScore}</span>}
