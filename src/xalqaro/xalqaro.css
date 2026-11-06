@@ -279,3 +279,4 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-nat-imt{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .xb-nat-imt-q{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:14px;border:1px solid rgba(127,127,127,.2)}
 @media (max-width:640px){.xb-nat-mavzu{grid-template-columns:1fr}.xb-nat-tugma{justify-content:flex-end}}
+.xb-test-soni{margin-left:auto;flex:none;padding:4px 10px;border-radius:999px;background:rgba(27,75,122,.1);font-weight:800;font-size:14px;white-space:nowrap}

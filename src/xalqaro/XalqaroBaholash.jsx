@@ -135,7 +135,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
           ["metod", "🎓", T("O‘qitish metodlari"), T("TIMSS va PISA bo‘yicha dars berish usullari")]] : []),
         ...(kuzatuv?.rol === "oquvchi" ? [["sinfim", "🏫", T("Sinfim"), T("O‘qituvchingiz sinfiga kod yoki parol bilan qo‘shilish")]] : []),
         ["natija", "📊", T("Natijalarim"), T("Har mavzu bo‘yicha foizlar, imtihonlar va ballar")],
-        ["kurs", "📚", T("Kurs: mavzular"), T("Har mavzu: dars, keyin 20 ta mashq")],
+        ["kurs", "📚", T("Kurs: mavzular va testlar"), tf("{m} mavzu · {s} ta test · har mavzuda dars", { m: tp?.mavzular?.length || 0, s: (tp?.mavzular || []).reduce((a, x) => a + (x.savollar || 0), 0) })],
         ["imtihon", "📝", T("Imtihonlar"), T("Haftalik, oylik, choraklik va yillik sinov")],
         ["takror", "🔁", T("Takrorlash"), kat.takror ? tf("Bugun {n} ta savol kutyapti", { n: kat.takror }) : T("Xato qilingan savollar qayta so‘raladi")],
         ["xato", "❌", T("Xatolarim"), T("Qayerda adashgansiz va nega")],
@@ -186,11 +186,12 @@ function Kurs({ tp, onMavzu, onDars, onMashq }) {
         return <li key={m.kalit} className={`xb-mavzu-q is-${b.kalit}`}>
           <button type="button" className="xb-mavzu-nom" onClick={() => onMavzu(m)}>
             <span className="xb-belgi" title={T(b.nom)}>{b.belgi}</span>
-            <span><b>{m.nom}</b><small>{m.savollar} {T("savol")} · 🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}%</small></span>
+            <span><b>{m.nom}</b><small>🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}% · {tf("{a}/{b} o‘zlashtirildi", { a: m.holat?.ozlashtirgan ?? 0, b: m.savollar })}</small></span>
+            <span className="xb-test-soni" title={T("Shu mavzudagi testlar soni")}>📝 {m.savollar}</span>
           </button>
           <span className="xb-mavzu-tug">
             {m.dars_kodi && <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onDars(m)}>🧑‍🏫 {T("Dars")}</button>}
-            <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onMashq(m)}>✍️ {T("Mashq")}</button>
+            <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onMashq(m)}>✍️ {tf("{n} ta test", { n: m.savollar })}</button>
           </span>
         </li>;
       })}</ul></section>)}

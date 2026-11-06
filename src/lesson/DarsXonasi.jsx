@@ -6,7 +6,7 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
 import ChalkText from "./ChalkText.jsx";   // REV260: doskaga harfma-harf, ovoz bilan bir xil
 import { lineProgress } from "./chalkRules.js";
-import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, visibleLines } from "./darsXonasiRules.js";
+import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, variantlarYasa, visibleLines } from "./darsXonasiRules.js";
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, dropPraiseAny, kidCorrectSpeech, kidOptions, kidPraise } from "../test/kidQuizRules.js";
 import { lessonAudience, audienceLabels } from "./lessonAudience.js";
@@ -249,6 +249,9 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   testIndexRef.current = testIndex;
   const modeRef = useRef(mode);
   modeRef.current = mode;
+  const [ozimYozaman, setOzimYozaman] = useState(false);   // REV385
+  const [tanlanganVar, setTanlanganVar] = useState(null);
+  useEffect(() => { setOzimYozaman(false); setTanlanganVar(null); }, [idx]);
   const idxRef = useRef(idx);
   idxRef.current = idx;
   const rateRef = useRef(rate);
@@ -1034,10 +1037,10 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     say(list.length ? __kbUi("Hechqisi yo‘q! Qaysi usulda qayta tushuntiray?") : __kbUi("Hechqisi yo‘q. Sekinroq qayta aytaman yoki AI ustozdan so‘raymiz."));
   };
 
-  const submitAnswer = (event) => {
-    event.preventDefault();
+  const submitAnswer = (event, tanlangan) => {
+    event?.preventDefault?.();
     if (!step) return;
-    if (checkAnswer(answer, step.javob)) {
+    if (tanlangan ? tanlangan.togri : checkAnswer(answer, step.javob)) {
       setFeedback({ ok: true, text: step.javob_izohi || __kbUi("To‘g‘ri!") });
       say(uiT(__kbUi("Barakalla, to‘g‘ri!")) + " " + (step.javob_izohi || ""), () => { if (playingRef.current) setTimeout(() => go(idx + 1, true), 800); });
     } else {
@@ -1405,8 +1408,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     el.querySelectorAll(".is-sahifa-yashirin").forEach((x) => { x.classList.remove("is-sahifa-yashirin"); delete x.dataset.sahifa; });
     const sigdir = () => {
       if (el.classList.contains("is-korish")) return;   // o'quvchi oldingi sahifani ko'ryapti — tegmaymiz
-      let z = 1;
-      el.style.setProperty("--dx-sig", "1");
+      let z = kid ? 1 : 0.9;   // REV385: maktab doskasida yozuv biroz kichikroq — ko'proq narsa sig'adi
+      el.style.setProperty("--dx-sig", String(z));
       // REV313: yozuv yirik qoladi (0.85 dan kichraymaydi); baribir sig'masa — YANGI SAHIFA: oldingi qatorlar yashiriladi,
       // doskada hozirgi qator qoladi (haqiqiy elektron panel kabi «+»), oldingi sahifani ◀ bilan ko'rish mumkin
       const zMin = el.closest(".dx-yotiq") ? 0.7 : 0.85;   // REV381: telefonda (buralgan dars) yozuv ko'proq kichrayib sig'sin
@@ -1866,11 +1869,22 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
             </div>
             {range.filter((i) => steps[i].rasm).map((i) => <img key={`img-${steps[i].id}`} className="dx-pic" src={mediaUrl(steps[i].rasm)} alt="" loading="lazy" />)}
             {/* REV89: til darsida bola iborani o'zi aytadi — mikrofon tanib, yulduz beradi */}
-            {step.turi === "birga" && step.javob && <form className="dx-answer" onSubmit={submitAnswer}>
-              <input value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label={__kbUi("Javobingiz")} placeholder={step.savol || __kbUi("Javob")} autoComplete="off" />
-              <button type="submit" className="dx-btn dx-primary">{__kbUi("Tekshirish")}</button>
-              {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
-            </form>}
+            {/* REV385: nazariy qismdagi savol — 4 ta (ha/yo'q bo'lsa 2 ta) variant; xohlasa o'zi yozadi */}
+            {step.turi === "birga" && step.javob && (() => {
+              const v = !kid && !ozimYozaman ? variantlarYasa(step, steps) : null;
+              if (v) return <div className="dx-answer dx-answer-var">
+                <div className={`dx-var-tugmalar dx-n${v.length}`}>{v.map((o, k) => <button key={k} type="button"
+                  className={`dx-var ${tanlanganVar === k ? (o.togri ? "is-ok" : "is-no") : ""}`} disabled={feedback?.ok}
+                  onClick={() => { setTanlanganVar(k); submitAnswer(null, o); }}>{v.length > 2 ? `${"ABCD"[k]}) ` : ""}<BoardText text={o.matn} /></button>)}</div>
+                <button type="button" className="dx-link" onClick={() => setOzimYozaman(true)}>✏️ {__kbUi("O‘zim yozaman")}</button>
+                {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
+              </div>;
+              return <form className="dx-answer" onSubmit={submitAnswer}>
+                <input value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label={__kbUi("Javobingiz")} placeholder={step.savol || __kbUi("Javob")} autoComplete="off" />
+                <button type="submit" className="dx-btn dx-primary">{__kbUi("Tekshirish")}</button>
+                {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
+              </form>;
+            })()}
             {variant && <div className="dx-variant">
               <span className="dx-tag">{variant.nom}</span>
               {variant.doska && <div className="dx-variant-board"><BoardText text={variant.doska} /></div>}

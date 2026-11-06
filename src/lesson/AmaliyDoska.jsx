@@ -5,6 +5,7 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { checkAnswer, javobYechimdan, speakableText } from "./darsXonasiRules.js";
 import MatKlaviatura, { JavobKorinishi } from "./MatKlaviatura.jsx";
+import QoralamaDaftar from "./QoralamaDaftar.jsx";   // REV385: misol yechish uchun oq varaq
 import { stripSpeechTags } from "../speech/language.js";
 import { conditionLines, nextShown, optionState } from "./kitobKodRules.js";
 import { MatQator } from "./MatDoska.jsx";   // REV269: matematika — yechim qatorlari jonli yoziladi
@@ -69,6 +70,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const [feedback, setFeedback] = useState(null);
   const [maslahatN, setMaslahatN] = useState(0);   // REV269: nechta maslahat ochilgan
   const [klav, setKlav] = useState(false);   // REV312: matematik klaviatura ochiqmi
+  const [daftar, setDaftar] = useState(false);   // REV385: qoralama daftar ochiqmi
   const kutilgan = item?.javob || javobYechimdan(steps);
   useEffect(() => {   // klaviatura ochiq — dars oynasi pastdan joy qoldiradi (doska yopilmaydi)
     const el = typeof document !== "undefined" ? document.querySelector(".dx-root") : null;
@@ -144,6 +146,10 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       <button type="button" className="dx-btn dx-primary" disabled={!answer} onClick={submit}>{__kbUi("Tekshirish")}</button>
       {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}
     </div>}
+    {!kid && <button type="button" className="dx-btn dx-daftar-och" onClick={() => { setKlav(false); setDaftar(true); }}>📝 {__kbUi("Qoralama daftarda yechish")}</button>}
+    {daftar && <QoralamaDaftar savol={<>{lines.map((line, i) => <p key={i}><BoardText text={line} /></p>)}</>}
+      chizma={item.rasm ? <img className="qd-rasm" src={mediaUrl(item.rasm)} alt="" /> : null}
+      onJavob={!options.length && kutilgan ? () => { setDaftar(false); setKlav(true); } : null} onYop={() => setDaftar(false)} />}
     {klav && <MatKlaviatura kutilgan={kutilgan} qiymat={answer} onChange={(v) => { setAnswer(v); setFeedback(null); }} onTekshir={submit} onYop={() => setKlav(false)} />}
     {picked !== null && picked !== item.togri && item.xatolar?.[String(picked)] && <p className="mdx-xato">⚠ <BoardText text={stripSpeechTags(item.xatolar[String(picked)])} /></p>}
     {maslahatN > 0 && <div className="mdx-maslahatlar">{(item.maslahat || []).slice(0, maslahatN).map((m, i) => <p key={i}>💡 <BoardText text={m} /></p>)}</div>}

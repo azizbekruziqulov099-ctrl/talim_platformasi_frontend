@@ -1051,3 +1051,33 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-tayanch b{position:absolute;bottom:0;left:16%;right:16%;height:1.4cqh;min-height:6px;border-radius:999px;background:linear-gradient(#4a5464,#232a35);box-shadow:0 .6cqh 1.2cqh rgba(0,0,0,.25)}
 .dx-root.dx-yotiq .dx-tayanch{height:14cqh}
 .mk-javob-matn{font:600 20px system-ui,sans-serif;letter-spacing:.2px}
+/* REV385: nazariy savol variantlari */
+.dx-answer-var{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.dx-var-tugmalar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dx-var{min-height:46px;padding:8px 12px;border-radius:12px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:inherit;font:600 1em system-ui,sans-serif;text-align:left;cursor:pointer}
+.dx-var:hover:not(:disabled){border-color:#f2c94c}
+.dx-var.is-ok{border-color:#3fbf7f;background:rgba(63,191,127,.2)}.dx-var.is-no{border-color:#ef6b6b;background:rgba(239,107,107,.18)}
+.dx-answer-var .dx-link{align-self:flex-start;background:none;border:none;color:inherit;opacity:.8;text-decoration:underline;cursor:pointer;font:inherit;font-size:.85em}
+/* REV385: qoralama daftar — oq varaq, katakli; tepada savol, pastda qalamlar */
+.dx-daftar-och{margin-top:6px}
+.qd-root{position:fixed;inset:0;z-index:2147483090;display:flex;flex-direction:column;background:#f5f2ea;color:#1d2b3a;font-family:system-ui,sans-serif}
+.dx-root.dx-yotiq .qd-root{position:absolute}
+.qd-savol{position:relative;display:flex;gap:12px;align-items:flex-start;padding:12px 56px 10px 16px;background:#fff;border-bottom:2px solid #e2ddd1;max-height:30%;overflow:auto;font-size:17px;line-height:1.45}
+.qd-savol-matn p{margin:0 0 4px}
+.qd-rasm{max-height:120px;max-width:40%;object-fit:contain}
+.qd-yop{position:absolute;top:8px;right:8px;width:44px;height:44px;border-radius:12px;border:1px solid #d9d3c7;background:#fff;font-size:18px;cursor:pointer}
+.qd-varaq{flex:1;min-height:0;padding:10px;display:flex}
+.qd-canvas{flex:1;width:100%;height:100%;border-radius:12px;border:1px solid #d9d3c7;touch-action:none;cursor:crosshair;
+  background-color:#fff;background-image:linear-gradient(#dbe6f3 1px,transparent 1px),linear-gradient(90deg,#dbe6f3 1px,transparent 1px);background-size:22px 22px}
+.qd-asboblar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #e2ddd1}
+.qd-guruh{display:flex;gap:6px;align-items:center}
+.qd-rang{width:36px;height:36px;border-radius:50%;border:3px solid #fff;background:var(--r);box-shadow:0 0 0 1px #c9c2b4;cursor:pointer}
+.qd-rang.is-on{box-shadow:0 0 0 3px #1B4B7A}
+.qd-qalin{width:44px;height:36px;border-radius:10px;border:1px solid #d9d3c7;background:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.qd-qalin i{display:block;width:24px;border-radius:9px}
+.qd-qalin.is-on{border-color:#1B4B7A;box-shadow:0 0 0 2px #1B4B7A33}
+.qd-t{height:38px;padding:0 10px;border-radius:10px;border:1px solid #d9d3c7;background:#fff;font:600 14px system-ui,sans-serif;cursor:pointer}
+.qd-t.is-on{background:#1B4B7A;color:#fff;border-color:#1B4B7A}
+.qd-t:disabled{opacity:.45}
+.qd-javob{height:42px;padding:0 16px;border-radius:12px;border:none;background:#1f7a45;color:#fff;font:700 15px system-ui,sans-serif;cursor:pointer}
+@media (max-width:520px){.qd-savol{font-size:15px;max-height:26%}.qd-asboblar{gap:6px}.qd-t{padding:0 8px;font-size:13px}}
