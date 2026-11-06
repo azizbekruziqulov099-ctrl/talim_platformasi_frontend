@@ -363,6 +363,7 @@
   inset: 0 !important;
   width: 100% !important;
   height: 100vh !important;
+  height: 100dvh !important;   /* REV378: iPhone Safari manzil paneli */
   height: 100dvh !important;
   min-height: 0 !important;
   max-height: none !important;

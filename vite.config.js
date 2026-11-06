@@ -1,8 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
+
+// REV378: har build — dist/version.json (ilova yangi versiya chiqqanini shundan biladi)
+const versiyaFayli = () => ({
+  name: "kabutar-versiya",
+  generateBundle() {
+    const m = readFileSync(new URL("./src/appVersion.js", import.meta.url), "utf8").match(/APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
+    this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify({ v: m ? m[1] : "", t: Date.now() }) });
+  },
+});
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), versiyaFayli()],
   build: {
     rollupOptions: {
       output: {

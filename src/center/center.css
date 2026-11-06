@@ -15,6 +15,7 @@
   --lc-surface: #ffffff;
   --lc-page: #f6f8fb;
   min-height: 100vh;
+  min-height: 100dvh;   /* REV378: iPhone Safari manzil paneli */
   box-sizing: border-box;
   color: var(--lc-ink);
   background:

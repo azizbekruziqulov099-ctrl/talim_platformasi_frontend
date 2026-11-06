@@ -80,6 +80,7 @@
 
 .test-game-arena {
   min-height: 100vh;
+  min-height: 100dvh;   /* REV378: iPhone Safari manzil paneli */
   padding: 18px 18px 40px;
   background:
     radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--mode-light) 34%, transparent), transparent 28%),

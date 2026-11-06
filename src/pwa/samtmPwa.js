@@ -139,13 +139,37 @@ function showInstallButton() {
   });
 }
 
+// REV378: iPhone/iPad — o'rnatish faqat «Ulashish → Bosh ekranga qo'shish» orqali (Apple boshqa yo'l bermaydi).
+// Brauzerga qarab aniq yo'riqnoma: Safari — pastdagi ⬆; Chrome — manzil satridagi ⬆; boshqasi — Safari'da ochish.
+function iosYoriqnoma() {
+  if (document.getElementById("samtm-ios-yoriq")) return;
+  const ua = String(navigator.userAgent || "");
+  const chrome = /CriOS/i.test(ua), boshqa = /FxiOS|EdgiOS|OPiOS|YaBrowser|Telegram|Instagram|FBAN|FBAV|Line\//i.test(ua);
+  const qadamlar = boshqa
+    ? ["Bu brauzerda o‘rnatib bo‘lmaydi.", "Saytni Safari’da oching: talimkabutar.uz", "Keyin pastdagi Ulashish ⬆ tugmasini bosing.", "«Bosh ekranga qo‘shish» → «Qo‘shish»."]
+    : chrome
+      ? ["Manzil satri yonidagi Ulashish ⬆ tugmasini bosing.", "Ro‘yxatni pastga suring va «Bosh ekranga qo‘shish»ni tanlang.", "«Qo‘shish»ni bosing — Kabutar bosh ekranda paydo bo‘ladi."]
+      : ["Safari pastidagi Ulashish ⬆ tugmasini bosing (kvadrat va yuqoriga strelka).", "Ro‘yxatni pastga suring va «Bosh ekranga qo‘shish»ni tanlang.", "«Qo‘shish»ni bosing — Kabutar bosh ekranda ilova bo‘lib turadi."];
+  const o = document.createElement("div");
+  o.id = "samtm-ios-yoriq"; o.setAttribute("role", "dialog"); o.setAttribute("aria-modal", "true");
+  o.style.cssText = "position:fixed;inset:0;z-index:2147483001;background:rgba(10,20,35,.55);display:flex;align-items:flex-end;justify-content:center;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))";
+  const k = document.createElement("div");
+  k.style.cssText = "width:min(440px,100%);background:#fff;color:#1d2b3a;border-radius:20px;padding:18px 18px 14px;font:15px/1.45 system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)";
+  const h = document.createElement("b"); h.textContent = uiText("📲 iPhone’ga o‘rnatish"); h.style.cssText = "display:block;font-size:18px;margin-bottom:10px";
+  const ol = document.createElement("ol"); ol.style.cssText = "margin:0 0 12px 20px;padding:0;display:flex;flex-direction:column;gap:8px";
+  for (const q of qadamlar) { const li = document.createElement("li"); li.textContent = uiText(q); ol.appendChild(li); }
+  const y = document.createElement("button"); y.type = "button"; y.textContent = uiText("Tushundim");
+  y.style.cssText = "width:100%;border:none;border-radius:14px;padding:12px;background:#1B4B7A;color:#fff;font:700 16px system-ui,sans-serif";
+  y.onclick = () => o.remove(); o.onclick = (e) => { if (e.target === o) o.remove(); };
+  k.append(h, ol, y); o.appendChild(k); document.body.appendChild(o);
+}
+
 function showManualInstallButton() {
   if (installPrompt || standaloneMode() || document.getElementById("samtm-install-app")) return;
   const ios = iosLikeDevice();
   installButton("📲 Bosh ekranga qo‘shish", "manual", () => {
-    const message = ios
-      ? "Safari pastidagi Ulashish (□↑) tugmasini bosing, keyin “Bosh ekranga qo‘shish”ni tanlang."
-      : "Brauzer menyusini oching va “Ilovani o‘rnatish” yoki “Bosh ekranga qo‘shish”ni tanlang.";
+    if (ios) { iosYoriqnoma(); dispatchPwaStatus("manual-install-help", { platform: "ios" }); return; }
+    const message = "Brauzer menyusini oching va “Ilovani o‘rnatish” yoki “Bosh ekranga qo‘shish”ni tanlang.";
     window.alert?.(uiText(message));
     dispatchPwaStatus("manual-install-help", { platform: ios ? "ios" : "other" });
   });

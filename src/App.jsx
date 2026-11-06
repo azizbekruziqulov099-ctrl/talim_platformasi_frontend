@@ -14807,9 +14807,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-top-switch button{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border-radius:14px;font-weight:900;font-size:14px;border:1px solid #E5E1D8;background:#fff;color:#5A5648;transition:all .15s}
         .samtm-top-switch button.on{background:#1B4B7A;color:#fff;border-color:#1B4B7A;box-shadow:0 8px 24px rgba(27,75,122,.25)}
         .samtm-top-switch b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#B0553A;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
-        .premium-sidebar{top:var(--samtm-portal-top,64px) !important;height:calc(100vh - var(--samtm-portal-top,64px));inset:auto auto 0 0 !important}
+        .premium-sidebar{top:var(--samtm-portal-top,64px) !important;height:calc(100vh - var(--samtm-portal-top,64px));height:calc(100dvh - var(--samtm-portal-top,64px));inset:auto auto 0 0 !important}
         .premium-topbar{top:var(--samtm-portal-top,64px) !important}
-        .samtm-kabutar-full{min-height:calc(100vh - var(--samtm-portal-top,64px))}
+        .samtm-kabutar-full{min-height:calc(100vh - var(--samtm-portal-top,64px));min-height:calc(100dvh - var(--samtm-portal-top,64px))}
         .samtm-tez-kunda{margin-left:6px;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:#FDF3E0;color:#8A5A1C;vertical-align:middle}
         .samtm-tez-kunda-panel{max-width:520px;margin:12vh auto 0;padding:32px 28px;text-align:center;background:#fff;border:1px solid #E5E1D8;border-radius:24px;box-shadow:0 12px 40px rgba(27,75,122,.08)}
         .samtm-tez-kunda-panel>span{display:block;font-size:44px;margin-bottom:8px}

@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v18-rev310";   // REV310: eski (REV308) bo‘laklar keshdan tozalanadi
+const CACHE = "samtm-shell-v19-rev378";   // REV378
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
