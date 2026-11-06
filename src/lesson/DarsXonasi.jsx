@@ -79,7 +79,7 @@ function PanelSoat() {
   useEffect(() => { const t = setInterval(() => setV(new Date()), 20000); return () => clearInterval(t); }, []);
   return <div className="dx-panel-soat" aria-label={__kbUi("Soat")}>{String(v.getHours()).padStart(2, "0")}:{String(v.getMinutes()).padStart(2, "0")}</div>;
 }
-function BordaYozish({ text = "", faol = false, gapir = true, children }) {
+function BordaYozish({ text = "", faol = false, gapir = true, onYozish, children }) {
   const matn = String(text || "");
   const sodda = !/[$\\{}^_]/.test(matn);
   const kamHarakat = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -97,6 +97,8 @@ function BordaYozish({ text = "", faol = false, gapir = true, children }) {
     return () => clearInterval(t);
   }, [matn, boshla]); // eslint-disable-line react-hooks/exhaustive-deps
   const qism = n >= matn.length ? matn : matn.slice(0, n);
+  const yozilmoqda = boshla && n < matn.length;
+  useEffect(() => { onYozish?.(yozilmoqda); return () => { if (yozilmoqda) onYozish?.(false); }; }, [yozilmoqda]); // eslint-disable-line react-hooks/exhaustive-deps
   return <span className={`dx-yozish ${n < matn.length ? "is-yozilmoqda" : ""}`}>{children(qism)}{n < matn.length && <i className="dx-bor" aria-hidden="true" />}</span>;
 }
 // REV264: doskadagi o'rganilayotgan tildagi qator — har so'zini bosib tushuntirish olish mumkin (pastki yozuv o'rniga)
@@ -261,7 +263,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const [ozimYozaman, setOzimYozaman] = useState(false);   // REV385
-  const [rasmKut, setRasmKut] = useState(null);   // REV386: rasm qadamida «Tushundim» kutilmoqda
+  const [rasmKut, setRasmKut] = useState(null);
+  const [doskaYoz, setDoskaYoz] = useState(false);   // REV392: doskaga yozilmoqda — ustoz doskaga qaraydi   // REV386: rasm qadamida «Tushundim» kutilmoqda
   const [tanlanganVar, setTanlanganVar] = useState(null);
   useEffect(() => { setOzimYozaman(false); setTanlanganVar(null); setRasmKut((x) => (x === idx ? x : null)); }, [idx]);
   const idxRef = useRef(idx);
@@ -1773,7 +1776,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
     <div className="dx-room">
       {sinfXona && !kabuMuhit && <div className="dx-sinf-fon" aria-hidden="true">
-        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
+        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={!kid && doskaYoz && !ikkinchi ? "yozadi" : kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
       </div>}
       {kabuMuhit && <div className={`dx-kabu-fon ${kabuJuftMuhit ? "is-juft" : ""}`} aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
         {kabuJuftMuhit ? <>
@@ -1882,7 +1885,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
                   ...qatorlar.map((el) => ({ el, o: joyla(String(el.key)) })),
                   ...qoshimcha.map((q) => { const hozir = speaking && q.ks.includes(nutqI);
                     return { o: joyla(`${steps[i].id}-n${q.j}`), el: <div key={`${steps[i].id}-n${q.j}`}
-                      className={`dx-line dx-nutq is-kim-${q.kim} ${hozir ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}<BordaYozish faol={hozir} gapir={speaking} text={q.matn}>{(t) => (q.kim === "til" ? <BosiladiganQator text={t} onSoz={sozBosildi} /> : <BoardText text={t} />)}</BordaYozish></div> }; }),
+                      className={`dx-line dx-nutq is-kim-${q.kim} ${hozir ? "is-hozir" : ""}`}>{kimBelgi(q.kim)}<BordaYozish faol={hozir} gapir={speaking} onYozish={setDoskaYoz} text={q.matn}>{(t) => (q.kim === "til" ? <BosiladiganQator text={t} onSoz={sozBosildi} /> : <BoardText text={t} />)}</BordaYozish></div> }; }),
                 ];
                 return elementlar.sort((a, b) => a.o - b.o).map((x) => x.el);
               })}

@@ -1097,3 +1097,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-tushundim{display:block;margin:10px auto 0;font-size:1.05em;animation:dx-tush 1.6s ease-in-out infinite}
 @keyframes dx-tush{50%{transform:scale(1.04)}}
 @media (prefers-reduced-motion:reduce){.dx-tushundim{animation:none}}
+/* REV392: doskaga yozuvchi poza — o'ng tomondagi ustoz chapga (doskaga) qaraydi */
+.dx-root.dx-sinf.dx-ustoz-ong .dx-sinf-fon .us-teacher.poza-7 .us-ich{transform:scaleX(-1)}
+.dx-root.dx-sinf .dx-sinf-fon .us-teacher.poza-7{height:80%}

@@ -37,9 +37,10 @@ export const XONA = { sardor: "matematika", nilufar: "onatili", malika: "atrofol
   dmitriy: "matematika", daniel: "matematika", svetlana: "atrofolam", oliver: "atrofolam", olga: "onatili", sarah: "onatili",   // REV240
   ...Object.fromEntries(Object.values(TIL_USTOZ).map((k) => [k, `til_${k}`])) };
 
-/** Poza raqami (rasmdagi tartib): 1 tik turish, 2 salom, 3 ko'rsatish, 4 o'ylash, 5 quvonish, 6 tinglash. */
+/** Poza raqami (rasmdagi tartib): 1 tik turish, 2 salom, 3 ko'rsatish, 4 o'ylash, 5 quvonish, 6 tinglash, 7 doskaga yozish. */
 export function pozaFor(mood = "", { hasPics = false, listening = false } = {}) {
   const m = new Set(String(mood).split(/\s+/).filter(Boolean));
+  if (m.has("yozadi")) return 7;   // REV392: doskaga yozayotganda — doskaga qarab turadi
   if (listening) return 6;
   if (m.has("happy")) return 5;
   if (m.has("wave")) return 2;
