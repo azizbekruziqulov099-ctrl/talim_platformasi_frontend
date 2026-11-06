@@ -65,7 +65,8 @@ function yukla(full) {
 
 function keshSarlavha(full, urlPath) {
   const nom = path.basename(full);
-  if (nom === "index.html" || nom === "sw.js" || nom === "manifest.webmanifest" || nom === "version.json") return "no-cache, no-store, must-revalidate";   // REV378
+  if (nom === "version.json") return "no-cache, no-store, must-revalidate";   // REV378: yangi versiya darhol ko'rinsin
+  if (nom === "index.html" || nom === "sw.js" || nom === "manifest.webmanifest") return "no-cache";
   if (urlPath.startsWith("/assets/") && XESHLI.test(urlPath.split("?")[0])) return "public, max-age=31536000, immutable";
   return "public, max-age=86400";
 }
