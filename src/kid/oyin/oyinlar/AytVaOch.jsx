@@ -6,6 +6,8 @@ import { JR } from "../../jonli/jonliRasm.js";
 import { belgiSrc } from "../../Belgi.jsx";
 import { mikYoqDeb } from "../mik.js";
 import { Rasm, Soz, Tugma, Variantlar, gapVaqti, tugmaHolati, useTaymer } from "./umumiy.jsx";
+import { oyinRasmTop } from "../oyinRasmTop.js";
+const ESHIK = () => oyinRasmTop({ rasmId: "d_en56-u5-door" });   // REV370: haqiqiy eshik rasmi (kutubxonadan)
 
 /** Eshik: qanotida rasm, ochilganda ichidan yulduz chiqadi. */
 function Eshik({ el, rasm, ochiq }) {
@@ -30,7 +32,8 @@ export default function AytVaOch(p) {
     if (!tirik.current || joriyMik.current) return;
     const fn = typeof onTingla === "function" ? onTingla : brauzerTingla;
     let m;
-    try { m = fn(holat.til, { kutish: 6500 }); } catch { m = null; }
+    const tinglashTili = raund.savol.el?.say ? holat.til : (holat.izoh || holat.til);   // REV370
+    try { m = fn(tinglashTili, { kutish: 6500 }); } catch { m = null; }
     const promise = m?.promise || (m && typeof m.then === "function" ? m : null);
     if (!promise) { mikYoqDeb(); javob({ mikYoq: true }); return; }
     joriyMik.current = m;
@@ -40,7 +43,7 @@ export default function AytVaOch(p) {
       if (!tirik.current || res.toxtatildi) { if (tirik.current && !joriyMik.current) setTinglayapti(false); return; }
       setTinglayapti(false); setKabu?.(null);
       if (res.xato === "ruxsat" || res.xato === "yoq") { mikYoqDeb(); javob({ mikYoq: true }); return; }
-      const n = javob({ alts: res.alts || [], til: holat.til });
+      const n = javob({ alts: res.alts || [], til: raund.savol.el?.say ? holat.til : (holat.izoh || holat.til) });
       if (n?.voqea?.tur === "yana") setQayta((x) => x + 1);   // REV359: ustoz «yana bir marta» deydi — gap tugagach mikrofon qayta ochiladi
     });
   };
@@ -59,10 +62,13 @@ export default function AytVaOch(p) {
   const variantlar = joriy.bosib ? [raund.variantlar.find((v) => v.k === raund.togri), raund.variantlar.find((v) => v.k !== raund.togri)].filter(Boolean) : raund.variantlar;
   if (mik && !joriy.bosib) {
     const mikSrc = belgiSrc("🎤");
+    const eshikSrc = ESHIK();
+    // REV370: eshik ortida narsa yashiringan (eshikka chizilmagan); nomi bilan chaqirilsa — eshik ochilib, u chiqib keladi
     return (
       <div className="oy-sahna">
-        <div className={`oy-tugma oy-eshik is-bitta ${ochiq ? "is-ochiq" : ""} ${kadr && fb?.togri === false ? "is-xato" : ""}`} aria-hidden="true">
-          <Eshik el={raund.savol.el} rasm={rasm} ochiq={ochiq} />
+        <div className={`oy-eshik2 ${ochiq ? "is-ochiq" : ""} ${kadr && fb?.togri === false ? "is-xato" : ""}`} aria-hidden="true">
+          <span className="oy-eshik2-ichi"><Rasm el={raund.savol.el} rasm={rasm} /></span>
+          {eshikSrc ? <img className="oy-eshik2-qanot" src={eshikSrc} alt="" draggable="false" /> : <span className="oy-eshik2-qanot oy-eshik2-yasama" />}
         </div>
         {katta && kadr ? <Soz el={raund.savol.el} /> : null}
         <button type="button" className={`oy-tugma is-ikon oy-mik ${tinglayapti ? "is-tinglayapti" : ""}`} disabled={qulf || tinglayapti}

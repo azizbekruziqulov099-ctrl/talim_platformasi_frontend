@@ -44,7 +44,8 @@ export const OYINLAR = [
     raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 11, "6-7": 10 } },
   { id: 118, kalit: "birinchiHarf", nom: "Birinchi harf", belgi: "🔤", yosh: ["6-7"], harakat: "bosish", kerak: { min_element: 0 },
     raund: { "6-7": 6 }, soniya: { "6-7": 11 } },
-  { id: 120, kalit: "bogin", nom: "Bo‘g‘in qarsagi", belgi: "👏", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 },
+  // REV370: «Bo‘g‘in qarsagi» bog'chada o'chirilgan — bolalar hali bo'g'inlab sanamaydi (yosh: [])
+  { id: 120, kalit: "bogin", nom: "Bo‘g‘in qarsagi", belgi: "👏", yosh: [], harakat: "bosish", kerak: { min_element: 0 },
     raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 11, "6-7": 10 } },
   // REV349: tartibga qo'yish — hayotiy jarayonlar to'g'ri ketma-ketlikda
   { id: 152, kalit: "kapalak", nom: "Kapalak hayoti", belgi: "🦋", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
@@ -850,7 +851,8 @@ export function oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik = 0, urug, til
 const ARTIKL = /^(the|a|an|der|die|das|ein|eine|le|la|les|un|une|el|los|las|una|il|lo|gli)\s+/i;
 /** Bola aytgani to'g'rimi (yumshoq): 2-3 yoshda va 2-urinishda «yaqin» ham qabul. Artiklsiz shakl ham to'g'ri. */
 export function aytishBaho(alts, el, til, urinish = 0, yosh = "4-5") {
-  const maqsad = [el?.say, el?.say && String(el.say).replace(ARTIKL, ""), el?.rom].map(str).filter(Boolean)
+  // REV370: tillar darsi bo'lmasa (say yo'q) — bola nomni izoh tilida aytadi (el.uz); avval maqsad bo'sh qolib, eshik ochilmas edi
+  const maqsad = [el?.say, el?.say && String(el.say).replace(ARTIKL, ""), el?.rom, !el?.say && el?.uz, !el?.say && el?.soz?.uz].map(str).filter(Boolean)
     .filter((x, i, a) => a.indexOf(x) === i);
   let best = { score: 0, stars: 0 };
   for (const m of maqsad) { const g = gradeSpeech(alts || [], m, til); if (g.score > best.score) best = g; }
@@ -1089,7 +1091,8 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
   const xi = (holat.xil || 0) + holat.raund;   // REV347: raund gapining varianti
   let gap = "";
   switch (k) {
-    case "eshitBos": case "oxshash": case "soya": case "joylashuv": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }, xi); break;
+    case "eshitBos": case "oxshash": case "soya": gap = M(k, "raund", izoh, { t: nom(r.savol.el) }, xi); break;
+    case "joylashuv": gap = M(k, "raundJoy", izoh, { t: nom(r.savol.el), j: M(k, r.savol.joy, izoh) }, xi); break;   // REV370: «mushuk qutining ustida» — rasmini top
     case "aytOch": gap = M(k, holat.mik && !j.bosib ? "raund" : "raundBos", izoh, { t: nom(r.savol.el) }, xi); break;
     case "ketmaKet": gap = M(k, "raund", izoh, { q: r.savol.qator.map(nom).filter(Boolean).join(", ") }, xi); break;
     case "tartib": case "kapalak": case "gulOstir": case "kunTartibi": case "qolYuvish": case "suvSayohati": case "fasllar": case "tishTozalash": case "osish": {
@@ -1122,7 +1125,7 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "faslOvoz": gap = M(k, "raund", izoh, { t: r.savol.tasvir }, xi); break;
     case "birinchiHarf": gap = M(k, "raund", izoh, { h: r.savol.harf }, xi); break;
     case "bogin": gap = M(k, "raund", izoh, { t: r.savol.el.uz }, xi); break;
-    case "tarozi": gap = M(k, r.savol.yengil ? "yengil" : "raund", izoh); break;
+    case "tarozi": gap = M(k, r.savol.yengil ? "raundYengil" : "raund", izoh, {}, xi); break;   // REV370
     case "dokon": gap = M(k, "raund", izoh, { n: r.savol.pul }, xi); break;
     case "tenglash": gap = M(k, "raund", izoh, { a: r.savol.chap, b: r.savol.ong }, xi); break;
     case "masala": gap = M(k, `${r.savol.kalit}`, izoh, { a: r.savol.a, b: r.savol.b }); break;

@@ -1,17 +1,19 @@
-// REV335: 76 «Qayerda?» — quti va narsa: ustida, ostida, ichida, o'ngda, chapda.
+// REV370: 76 «Qayerda?» — ustoz «mushuk qutining ustida» deydi; bola 2–4 ta rasmdan (quti va narsa turli joyda) mosini topadi.
+// Narsa katta, har variant — kichik sahna (namuna): qutining ustida / ostida / ichida / o'ngida / chapida.
 import React from "react";
 import { Rasm, Tugma, Variantlar, tugmaHolati } from "./umumiy.jsx";
-const BELGI = { ustida: "⬆️", ostida: "⬇️", ichida: "📥", ongda: "➡️", chapda: "⬅️" };
+import { oyinRasmTop } from "../oyinRasmTop.js";
+const QUTI = () => oyinRasmTop({ emoji: "📦", uz: "karton quti" });
 export default function Joylashuv(p) {
   const { raund, joriy, javob, ishora, qulf, rasm, matn } = p;
-  const { el, joy } = raund.savol;
+  const { el } = raund.savol;
+  const qutiSrc = QUTI();
   return <div className="oy-sahna">
-    <div className={`oy-jl is-${joy}`} aria-hidden="true">
-      <span className="oy-jl-quti">📦</span>
-      <span className="oy-jl-narsa"><Rasm el={el} rasm={rasm} kichik /></span>
-    </div>
     <Variantlar n={raund.variantlar.length}>{raund.variantlar.map((v) => <Tugma key={v.k} label={matn(v.k)} holat={tugmaHolati(p, v.k)} ishora={ishora === v.k}
-      olingan={joriy.olingan.includes(v.k)} disabled={qulf} onClick={() => javob(v.k)}>
-      <span className="oy-joy-belgi" aria-hidden="true">{BELGI[v.k]}</span><small className="oy-joy-soz">{matn(v.k)}</small></Tugma>)}</Variantlar>
+      olingan={joriy.olingan.includes(v.k)} disabled={qulf} onClick={() => javob(v.k)} className="oy-jl-tugma">
+      <span className={`oy-jl2 is-${v.k}`} aria-hidden="true">
+        {qutiSrc ? <img className="oy-jl2-quti" src={qutiSrc} alt="" draggable="false" /> : <span className="oy-jl2-quti oy-jl2-yasama" />}
+        <span className="oy-jl2-narsa"><Rasm el={el} rasm={rasm} /></span>
+      </span></Tugma>)}</Variantlar>
   </div>;
 }

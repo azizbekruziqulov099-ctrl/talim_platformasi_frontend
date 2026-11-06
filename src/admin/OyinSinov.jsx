@@ -64,6 +64,14 @@ export default function OyinSinov({ apiBase = "", token = "" }) {
       </div>
       <div className="os-hisob">✅ {soni.ok} · 🛠 {soni.tuzat} · {__kbUi("jami")} {ruyxat.length}
         <button type="button" onClick={() => setImtihon(true)}>🏆 {__kbUi("Kabu imtihoni (namuna)")}</button>
+        <button type="button" onClick={() => {   // REV370: hisobotni fayl qilib yuklab olish (Excel ochadi)
+          const q = (x) => `"${String(x ?? "").replace(/"/g, '""')}"`;
+          const satr = [["№", "O‘yin", "Yosh", "Holat", "Izoh", "Vaqt"].map(q).join(";"), ...OYINLAR.filter((o) => belgilar[o.id]).map((o) => { const b = belgilar[o.id];
+            return [o.id, o.nom, o.yosh.join(", "), b.holat === "ok" ? "✅ yaxshi" : b.holat === "tuzat" ? "🛠 tuzatish kerak" : b.holat === "yopiq" ? "⛔ o‘chirilgan" : "", b.izoh || "", b.vaqt || ""].map(q).join(";"); })];
+          const blob = new Blob(["\ufeff" + satr.join("\r\n")], { type: "text/csv;charset=utf-8" });
+          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `oyinlar_hisobot_${new Date().toISOString().slice(0, 10)}.csv`;
+          document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+        }}>📥 {__kbUi("Hisobotni yuklab olish")}</button>
         <button type="button" onClick={() => { const t = hisobot(); try { navigator.clipboard.writeText(t); } catch { /* */ } alert(t || __kbUi("Hali belgi yo‘q")); }}>📋 {__kbUi("Hisobotni nusxalash")}</button></div>
     </header>
     <ul className="os-ruyxat">{ruyxat.map((o) => { const b = belgilar[o.id] || {};

@@ -144,7 +144,7 @@ export const TARTIB = {
   "id": 157,
   "q": [
    {
-    "e": "🚰",
+    "r": "d_m-jomrak", "e": "🚰",
     "s": {
      "uz": "qo‘limni ho‘llayman",
      "ru": "мочу руки",
@@ -154,7 +154,7 @@ export const TARTIB = {
     }
    },
    {
-    "e": "🧼",
+    "r": "d_bar-of-soap-with", "e": "🧼",
     "s": {
      "uz": "sovun surtaman",
      "ru": "намыливаю",
@@ -164,7 +164,7 @@ export const TARTIB = {
     }
    },
    {
-    "e": "👐",
+    "r": "d_m-sovun-pufagi", "e": "👐",
     "s": {
      "uz": "ishqalayman",
      "ru": "тру ладошки",
@@ -174,7 +174,7 @@ export const TARTIB = {
     }
    },
    {
-    "e": "💧",
+    "r": "d_am45-u4-qol-yuvish", "e": "💧",
     "s": {
      "uz": "chayaman",
      "ru": "смываю",
@@ -184,7 +184,7 @@ export const TARTIB = {
     }
    },
    {
-    "e": "🧻",
+    "r": "d_m-sochiq", "e": "🧻",
     "s": {"r": "d_m-sochiq", 
      "uz": "artaman",
      "ru": "вытираю",

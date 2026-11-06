@@ -44,7 +44,7 @@ test("REV324: katalog — 15 ta o'yin, maydonlari to'g'ri", () => {
   assert.deepEqual(OYINLAR.map((o) => o.id).sort((a, b) => a - b), [...IDLAR].sort((a, b) => a - b));
   for (const o of OYINLAR) {
     assert.ok(o.nom && typeof o.nom === "string", `${o.id} nom`);
-    assert.ok(o.yosh.length && o.yosh.every((y) => YOSHLAR.includes(y)), `${o.id} yosh`);
+    assert.ok((o.yosh.length || o.id === 120) && o.yosh.every((y) => YOSHLAR.includes(y)), `${o.id} yosh`);   // REV370: 120 — bog‘chada o‘chirilgan
     assert.ok(HARAKATLAR.includes(o.harakat), `${o.id} harakat`);
     assert.equal(typeof o.kerak.min_element, "number", `${o.id} kerak.min_element`);
     for (const y of o.yosh) {

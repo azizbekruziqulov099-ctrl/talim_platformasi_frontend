@@ -1291,6 +1291,28 @@ Object.assign(OYIN_MATN, {
  }
 });
 
+// REV370: «Ayt va och» — mazmunli hikoya: eshik ortida kimdir yashiringan, nomi bilan chaqirilsa chiqib keladi
+Object.assign(OYIN_MATN.aytOch, {
+  kirish: { uz: "Eshik ortida kimdir yashirinib oldi! Uni nomi bilan chaqirsang, eshikni ochib chiqib keladi.", ru: "За дверью кто-то спрятался! Позови его по имени — он откроет дверь и выйдет.",
+    en: "Someone is hiding behind the door! Call them by name and they will open the door and come out.", de: "Hinter der Tür hat sich jemand versteckt! Ruf ihn beim Namen, dann öffnet er die Tür und kommt heraus.",
+    es: "¡Alguien se escondió detrás de la puerta! Llámalo por su nombre y abrirá la puerta y saldrá." },
+});
+// REV370: «Qayerda?» — so'z aytiladi, bola mos rasmni (quti va narsa) topadi
+Object.assign(OYIN_MATN.joylashuv, {
+  kirish: { uz: "Qayerda? Men aytaman, sen o‘sha rasmni topasan: qutining ustida, ostida, ichida, yonida…", ru: "Где? Я скажу, а ты найди картинку: на коробке, под ней, внутри, рядом…",
+    en: "Where? I'll say it and you find the picture: on, under, in or next to the box…", de: "Wo? Ich sage es, du findest das Bild: auf, unter, in oder neben der Kiste…",
+    es: "¿Dónde? Yo lo digo y tú encuentras el dibujo: encima, debajo, dentro o al lado de la caja…" },
+  raundJoy: { uz: ["{t} qutining {j}. Qaysi rasm?", "Qaysi rasmda {t} qutining {j}?"], ru: ["{t} — {j}. Какая картинка?", "Где {t} — {j}? Найди картинку!"],
+    en: ["{t} — {j}. Which picture?", "Where is the {t} {j}? Find the picture!"], de: ["{t} — {j}. Welches Bild?", "Wo ist {t} {j}? Finde das Bild!"],
+    es: ["{t} — {j}. ¿Qué dibujo?", "¿Dónde está {t} {j}? ¡Encuentra el dibujo!"] },
+});
+// REV370: tarozi — bola tanlaydi, tarozi to'g'riligini ko'rsatadi
+if (OYIN_MATN.tarozi) Object.assign(OYIN_MATN.tarozi, {
+  raund: { uz: ["Qaysi biri og‘irroq? Bos — tarozi ko‘rsatadi!", "Taroziga qo‘yamiz. Qaysi biri og‘ir deb o‘ylaysan?"], ru: ["Что тяжелее? Нажми — весы покажут!", "Положим на весы. Как думаешь, что тяжелее?"],
+    en: ["Which one is heavier? Tap it — the scale will show!", "Let's put them on the scale. Which is heavier?"], de: ["Was ist schwerer? Tipp — die Waage zeigt es!", "Wir legen sie auf die Waage. Was ist schwerer?"],
+    es: ["¿Cuál pesa más? ¡Tócalo y la balanza lo mostrará!", "Los ponemos en la balanza. ¿Cuál crees que pesa más?"] },
+  raundYengil: { uz: ["Endi teskarisi: qaysi biri yengilroq?"], ru: ["А теперь наоборот: что легче?"], en: ["Now the opposite: which one is lighter?"], de: ["Jetzt umgekehrt: was ist leichter?"], es: ["Ahora al revés: ¿cuál pesa menos?"] },
+});
 // REV359: sirli quti
 OYIN_MATN.sirliQuti = {
   nom: { uz: "Sirli quti", ru: "Волшебная коробка", en: "Mystery box", de: "Geheimnisvolle Kiste", es: "Caja misteriosa" },
@@ -1318,11 +1340,11 @@ Object.assign(OYIN_MATN.aytOch, {
   yana: { uz: "Eshik eshitmadi. Yana bir marta, baland ovozda: {t}", ru: "Дверь не услышала. Ещё раз, погромче: {t}", en: "The door didn't hear. Once more, loudly: {t}",
     de: "Die Tür hat es nicht gehört. Noch einmal, laut: {t}", es: "La puerta no lo oyó. Otra vez, más fuerte: {t}" },
 });
-OYIN_MATN.aytOch.raund = { uz: ["Bu — {t}. Endi sen ayt: {t}!", "Eshik ortida — {t}. Ayt: {t}!", "Qara, bu {t}. Baland ovozda ayt!"],
-  ru: ["Это — {t}. Теперь скажи ты: {t}!", "За дверью — {t}. Скажи: {t}!", "Смотри, это {t}. Скажи громко!"],
-  en: ["This is {t}. Now you say it: {t}!", "Behind the door is {t}. Say: {t}!", "Look, it's {t}. Say it loudly!"],
-  de: ["Das ist {t}. Jetzt sag du: {t}!", "Hinter der Tür ist {t}. Sag: {t}!", "Schau, das ist {t}. Sag es laut!"],
-  es: ["Esto es {t}. Ahora dilo tú: {t}!", "Detrás de la puerta está {t}. Di: {t}!", "Mira, es {t}. ¡Dilo en voz alta!"] };
+OYIN_MATN.aytOch.raund = { uz: ["Eshik ortida {t} yashiringan. Uni chaqir: «{t}!»", "Tiq-tiq! Bu — {t}. Baland ovozda chaqir: {t}!", "Eshik ortida kim bor? {t}! Chaqir-chi: {t}!"],
+  ru: ["За дверью спрятался {t}. Позови: «{t}!»", "Тук-тук! Это — {t}. Позови громко: {t}!", "Кто за дверью? {t}! Позови: {t}!"],
+  en: ["{t} is hiding behind the door. Call: “{t}!”", "Knock, knock! It's {t}. Call loudly: {t}!", "Who is behind the door? {t}! Call: {t}!"],
+  de: ["Hinter der Tür versteckt sich {t}. Ruf: „{t}!“", "Klopf, klopf! Das ist {t}. Ruf laut: {t}!", "Wer ist hinter der Tür? {t}! Ruf: {t}!"],
+  es: ["{t} se esconde detrás de la puerta. Llama: «¡{t}!»", "¡Toc, toc! Es {t}. Llama fuerte: ¡{t}!", "¿Quién está detrás de la puerta? ¡{t}! Llama: ¡{t}!"] };
 
 // REV347: asosiy o'yinlarning raund gaplari — har raundda boshqa variant (3 tadan, 5 tilda)
 const RAUND_VARIANTLAR = {
