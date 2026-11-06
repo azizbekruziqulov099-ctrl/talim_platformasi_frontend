@@ -264,9 +264,18 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
   modeRef.current = mode;
   const [ozimYozaman, setOzimYozaman] = useState(false);   // REV385
   const [rasmKut, setRasmKut] = useState(null);
-  const [doskaYoz, setDoskaYoz] = useState(false);   // REV392: doskaga yozilmoqda — ustoz doskaga qaraydi   // REV386: rasm qadamida «Tushundim» kutilmoqda
+  const [doskaYoz, setDoskaYoz] = useState(false);   // REV392: doskaga yozilmoqda — ustoz doskaga qaraydi
+  const [yozVaqt, setYozVaqt] = useState(false);   // REV394: har qadam boshida ustoz doskaga burilib yozadi, keyin o'quvchilarga qaraydi   // REV386: rasm qadamida «Tushundim» kutilmoqda
   const [tanlanganVar, setTanlanganVar] = useState(null);
   useEffect(() => { setOzimYozaman(false); setTanlanganVar(null); setRasmKut((x) => (x === idx ? x : null)); }, [idx]);
+  useEffect(() => {
+    if (kid || mode !== "lesson" || !speaking) return undefined;
+    const d = String(steps?.[idx]?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim();
+    if (!d) return undefined;
+    setYozVaqt(true);
+    const t = setTimeout(() => setYozVaqt(false), Math.max(1800, Math.min(6000, d.length * 45)));
+    return () => { clearTimeout(t); setYozVaqt(false); };
+  }, [idx, speaking, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   const idxRef = useRef(idx);
   idxRef.current = idx;
   const rateRef = useRef(rate);
@@ -1776,7 +1785,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
 
     <div className="dx-room">
       {sinfXona && !kabuMuhit && <div className="dx-sinf-fon" aria-hidden="true">
-        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={!kid && doskaYoz && !ikkinchi ? "yozadi" : kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
+        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={!kid && (doskaYoz || yozVaqt) && !ikkinchi ? "yozadi" : kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
       </div>}
       {kabuMuhit && <div className={`dx-kabu-fon ${kabuJuftMuhit ? "is-juft" : ""}`} aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
         {kabuJuftMuhit ? <>
