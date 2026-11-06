@@ -232,3 +232,12 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-ok{color:#1e7d3a;font-weight:600}
 .xb-btn-xavf{color:#b3261e}
 .xb-sinf-forma .xb-tablar{flex-wrap:wrap;overflow:visible}
+/* REV374: sinf fani */
+.xb-fan-tanlov{display:flex;flex-direction:column;gap:6px}
+.xb-fan-sar{margin:0;font-weight:600}.xb-fan-sar small{font-weight:400;opacity:.75}
+.xb-fan-royxat{display:flex;flex-wrap:wrap;gap:6px}
+.xb-fan{padding:8px 12px;border-radius:12px;border:2px solid rgba(127,127,127,.3);background:transparent;font:inherit;cursor:pointer;color:inherit;text-align:left}
+.xb-fan.is-on{border-color:#1b4b7a;background:rgba(27,75,122,.1);font-weight:700}
+.xb-fan i{font-style:normal;font-size:12px;opacity:.75;margin-left:4px}
+.xb-fan-yorliq{display:inline-block;margin:2px 0;padding:2px 8px;border-radius:8px;background:rgba(27,75,122,.1);font-size:13px;font-weight:600}
+.xb-fan-xulosa{margin:0;padding:8px 10px;border-radius:10px;background:rgba(31,138,76,.08)}

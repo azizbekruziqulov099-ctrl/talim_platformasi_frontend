@@ -104,7 +104,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       </div>
     </header>
     {kat.tayyor_emas && <div className="xb-panel xb-ogoh-panel"><p>🌐 {kat.tayyor_emas}</p></div>}
-    {kuzatuv && kuzatuv.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} />}
+    {kuzatuv && kuzatuv.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
     {!kat.toplamlar?.length && <div className="xb-panel xb-ogoh-panel"><p>📦 {T("Xalqaro baholash materiallari hali yuklanmagan. Tez orada shu yerda TIMSS va PISA savollari va darslari paydo bo‘ladi.")}</p></div>}
     {["TIMSS", "PISA"].map((dastur) => <div key={dastur} className="xb-toplam-guruh">
       <h4>{dastur === "TIMSS" ? T("TIMSS — 4- va 8-sinf: matematika va tabiiy fanlar") : T("PISA — 15 yosh (9–10-sinf): bilimni hayotda qo‘llash")}</h4>
