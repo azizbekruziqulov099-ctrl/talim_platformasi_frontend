@@ -131,13 +131,13 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
   </div>;
   const sn = korinish.tur === "sinf" ? korinish.s : null;
   return <div className="xb-panel">
-    <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setKorinish(null); setXbSinf(0); }}>← {T("Sinflarim")}</button></div>
+    <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setKorinish(null); setXbSinf(0); }}>← {T("Mening sinflarim")}</button></div>
     {sn ? <div className="xb-sinf-sahifa-bosh">
       <div><h3>🏫 {sn.nom}</h3><span className="xb-fan-yorliq">{fanMatn(sn.toplam)}</span>
         <small className="xb-muted"> · {tf("{n}-sinf", { n: sn.sinf })} · 👥 {d?.jamlama?.jami ?? sn.azolar} {T("o‘quvchi")}</small></div>
       <div className="xb-sinf-kod" title={T("Taklif kodi")}>{sn.kod}</div>
     </div> : <h3>{admin ? `🌐 ${T("Maktablar va butun platforma")}` : `🏫 ${T("Maktabim o‘quvchilari")}`}</h3>}
-    {admin && kuzatuv.platforma && <div className="xb-kartalar">
+    {admin && !sn && kuzatuv.platforma && <div className="xb-kartalar">
       <div className="xb-karta"><small>{T("Platformada faol o‘quvchi")}</small><b>{kuzatuv.platforma.oquvchi}</b></div>
       <div className="xb-karta"><small>{T("Jami javoblar")}</small><b>{kuzatuv.platforma.javob}</b></div>
       <div className="xb-karta"><small>{T("Rasmiy imtihonlar")}</small><b>{kuzatuv.platforma.imtihon}</b></div>
@@ -155,24 +155,35 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
     </div>
     <p className="xb-muted xb-kichik">🌐 {T("Natijalar tanlangan tilda ko‘rsatiladi. O‘quvchi boshqa tilda ishlagan bo‘lsa, «Tillar» ustunida ko‘rinadi — u tilning natijasini ko‘rish uchun tilni almashtiring.")}</p>
     {xato && <p className="xb-xato">{T(xato)}</p>}
-    {j && <div className="xb-kartalar">
+    {sn && d && !d.oquvchilar.length && <div className="xb-bosh-sinf">
+      <h4>📋 {T("Sinf jurnali")}: {T("hali hech kim qo‘shilmagan")}</h4>
+      <p>{T("O‘quvchilar bu sinfga qo‘shilganda ro‘yxati shu yerda jurnaldagidek chiqadi: ismi, qo‘shilgan sanasi, faolligi, o‘qigan darslari, natijalari.")}</p>
+      <ol>
+        <li>{T("O‘quvchilarga shu kodni bering")}: <b className="xb-sinf-kod xb-kod-ichki">{sn.kod}</b></li>
+        <li>{T("Yoki havolani Telegram guruhiga yuboring")}: <code>{`${window.location.origin}/?xb_sinf=${sn.kod}`}</code>
+          <button type="button" className="xb-btn" onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/?xb_sinf=${sn.kod}`)}>📋 {T("Nusxalash")}</button></li>
+        <li>{T("O‘quvchi «Xalqaro baholash» → «🏫 Sinfim» → «Sinfga qo‘shilish» orqali kodni yozadi yoki sinfni ro‘yxatdan tanlab, parolni kiritadi.")}</li>
+      </ol>
+    </div>}
+    {j && (!sn || d.oquvchilar.length > 0) && <div className="xb-kartalar">
       <div className="xb-karta"><small>{T("O‘quvchilar")}</small><b>{j.jami}</b></div>
       <div className="xb-karta"><small>🟢 {T("Faol")} / 🟠 {T("Sust")} / 🔴 {T("Boshlamagan")}</small><b>{j.faol} / {j.sust} / {j.boshlamagan}</b></div>
       <div className="xb-karta"><small>{T("Bu haftalik nazoratni topshirgan")}</small><b>{j.haftalik}/{j.jami}</b></div>
       <div className="xb-karta"><small>{T("O‘rtacha rasmiy ball")}</small><b>{j.ortacha_ball ?? "—"}</b></div>
     </div>}
-    <nav className="xb-tablar">{[["oquvchilar", "👥 O‘quvchilar"], ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
-      <button key={k} type="button" className={oyna === k ? "is-on" : ""} onClick={() => setOyna(k)}>{T(n)}</button>)}</nav>
-    {oyna === "oquvchilar" && (!d ? <p className="xb-muted">⏳</p> : d.oquvchilar.length ? <div className="xb-jadval-wrap"><table className="xb-jadval">
-      <thead><tr><th>{T("O‘quvchi")}</th><th>{T("Sinf")}</th><th>{T("Holat")}</th><th>{T("Bu hafta")}</th><th>📖 {T("Darslar")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Ochiq xato")}</th><th>{T("Oxirgi ball")}</th><th>{T("Zaif mavzu")}</th><th>🌐 {T("Tillar")}</th></tr></thead>
-      <tbody>{d.oquvchilar.map((o) => <tr key={o.user_id} className={`xb-bosiladi ${o.holat !== "faol" ? "is-sust" : ""}`} onClick={() => setTanlangan(o.user_id)} tabIndex={0}
+    {(!sn || (d && d.oquvchilar.length > 0)) && <nav className="xb-tablar">{[["oquvchilar", sn ? "📋 Sinf jurnali" : "👥 O‘quvchilar"], ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
+      <button key={k} type="button" className={oyna === k ? "is-on" : ""} onClick={() => setOyna(k)}>{T(n)}</button>)}</nav>}
+    {oyna === "oquvchilar" && (!d ? <p className="xb-muted">⏳</p> : d.oquvchilar.length ? <div className="xb-jadval-wrap">
+      {sn && <h4>📋 {T("Sinf jurnali")} — {d.oquvchilar.length} {T("o‘quvchi")} <small className="xb-muted">({T("ism bo‘yicha")})</small></h4>}<table className="xb-jadval">
+      <thead><tr><th>№</th><th>{T("O‘quvchi")}</th>{sn ? <th>{T("Qo‘shilgan")}</th> : <th>{T("Sinf")}</th>}<th>{T("Holat")}</th><th>{T("Bu hafta")}</th><th>📖 {T("Darslar")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Ochiq xato")}</th><th>{T("Oxirgi ball")}</th><th>{T("Zaif mavzu")}</th><th>🌐 {T("Tillar")}</th></tr></thead>
+      <tbody>{d.oquvchilar.map((o, n) => <tr key={o.user_id} className={`xb-bosiladi ${o.holat !== "faol" ? "is-sust" : ""}`} onClick={() => setTanlangan(o.user_id)} tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter") setTanlangan(o.user_id); }}>
-        <td><b>{o.full_name}</b></td><td>{o.class}{o.harf}</td>
+        <td className="xb-muted">{n + 1}</td><td><b>{o.full_name}</b></td>{sn ? <td className="xb-kichik">{o.qoshildi ? new Date(o.qoshildi).toLocaleDateString() : "—"}</td> : <td>{o.class}{o.harf}</td>}
         <td>{HOLAT[o.holat][0]} {T(HOLAT[o.holat][1])}{o.kun_oldin !== null && o.kun_oldin > 0 ? ` · ${o.kun_oldin} ${T("kun")}` : ""}{!o.haftalik_topshirdi ? ` · ⏳ ${T("haftalik yo‘q")}` : ""}</td>
         <td>{o.hafta}</td><td title={T("tugatgan / ochgan")}>{o.darslar ?? 0}/{o.darslar_ochgan ?? 0}</td><td>{o.ozlashtirgan}/{o.urinish}</td><td>{o.xato ? <b className="xb-xato">{o.xato}</b> : 0}</td>
         <td>{o.ball ? `${o.ball} · ${o.daraja}` : "—"}</td><td>{o.zaif_mavzu || "—"}</td><td className="xb-kichik">{tillarMatn(o.tillar) || "—"}</td></tr>)}</tbody></table>
       <p className="xb-muted">{T("Qatorni bosing — o‘quvchining har bir xatosi (nima deb javob bergani), mavzulari va imtihonlari ochiladi.")}</p></div>
-      : <p className="xb-muted">{T("Bu tanlovda o‘quvchi topilmadi.")}</p>)}
+      : !sn && <p className="xb-muted">{T("Bu tanlovda o‘quvchi topilmadi.")}</p>)}
     {oyna === "xatolar" && (!x ? <p className="xb-muted">⏳</p> : x.savollar.length ? x.savollar.map((s, k) => <div key={`${s.savol_id}-${s.v ?? k}`} className="xb-tahlil is-no">
       <p><b>{s.xato}</b> {T("o‘quvchi xato qildi")} ({s.xato_foiz}% {T("urinishlardan")}) · 🌍 {T("dunyoda to‘g‘ri yechganlar")}: {s.xalqaro_foiz}%</p>
       <XbSavol savol={s} javob={s.kop_javob} holat={{ ok: false, togri: s.turi === "tanlov" ? s.togri : null }} raqam={k + 1} ovoz={ovoz} />

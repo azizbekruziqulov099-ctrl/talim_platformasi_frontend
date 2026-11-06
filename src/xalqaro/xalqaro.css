@@ -261,3 +261,9 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-sinf-sahifa-bosh{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:0 0 10px;border-radius:16px;background:rgba(27,75,122,.06)}
 .xb-sinf-sahifa-bosh h3{margin:0 0 4px}
 .xb-maktab-karta{margin-top:12px;max-width:420px}
+/* REV377: bo'sh sinf — jurnal hali bo'sh */
+.xb-bosh-sinf{padding:14px 16px;border-radius:16px;border:2px dashed rgba(27,75,122,.35);background:rgba(27,75,122,.04);margin:8px 0}
+.xb-bosh-sinf h4{margin:0 0 6px}
+.xb-bosh-sinf ol{margin:6px 0 0 20px;padding:0;display:flex;flex-direction:column;gap:8px}
+.xb-bosh-sinf code{word-break:break-all;padding:2px 6px;border-radius:6px;background:rgba(127,127,127,.12)}
+.xb-kod-ichki{display:inline-block;font-size:20px;padding:4px 10px;margin-left:4px}
