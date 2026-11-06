@@ -14845,7 +14845,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-makon-t .samtm-nuqta{position:absolute;top:2px;right:4px}
         .samtm-robot-tepa{width:42px;height:42px;border-radius:13px;border:1px solid #cfe5e5;background:#eafbfa;color:#087c82;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
         .samtm-robot-tepa.on{background:#087c82;color:#fff}
-        .samtm-top-switch .kb-interface-button{display:none !important}
+        .samtm-top-switch .samtm-ong > .samtm-belgi:not(.samtm-avatar),.samtm-top-switch .samtm-ong > .kb-interface-actions{display:none !important}
+        .samtm-top-switch .samtm-gamburger svg{display:block}
         @media (max-width:560px){.samtm-makon-t span{display:none}.samtm-makon-t{padding:0 11px}}
         @keyframes samtm-yon-kir{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
         @media (prefers-reduced-motion:reduce){.premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{animation:none}}
@@ -14896,7 +14897,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         <div className={`samtm-top-switch samtm-ixcham ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
           <div className="samtm-chap">
             {!kabutarOchiq && <button type="button" className={`samtm-gamburger ${yonMenyuOchiq ? "is-on" : ""}`} onClick={yonMenyuniAlmashtir} aria-expanded={yonMenyuOchiq}
-              aria-label={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")} title={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")}><span /><span /><span /></button>}
+              aria-label={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")} title={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">{yonMenyuOchiq ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 6h16M4 12h16M4 18h16" />}</svg></button>}
             <span className="samtm-logo"><img className="samtm-emblema" src={__kbEmblema} alt="" width="28" height="28" /></span>
           </div>
           <div className="samtm-ong">
@@ -14907,7 +14909,6 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
               <button type="button" role="tab" aria-selected={kabutarOchiq} className={`samtm-makon-t ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")}>
                 <MessageCircle size={18} /> <span>{uiT("Kabutar")}</span>{!kabutarTezKunda && kabutarOqilmagan > 0 && <b className="samtm-nuqta">{kabutarOqilmagan}</b>}</button>
             </div>
-            {!kabutarOchiq && <button type="button" className={`samtm-robot-tepa ${robotOchiq ? "on" : ""}`} onClick={() => setRobotOchiq((v) => !v)} aria-expanded={robotOchiq} aria-label={uiT("AI yordamchi")} title={uiT("AI yordamchi — savol yoki kitobdagi kod")}><Bot size={20} /></button>}
             <button type="button" hidden className={`samtm-belgi ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")} aria-label={uiT("Kabutar")}>
               <MessageCircle size={20} />{!kabutarTezKunda && kabutarOqilmagan > 0 && <b className="samtm-nuqta">{kabutarOqilmagan}</b>}</button>
             <InterfaceSettingsButton/>
