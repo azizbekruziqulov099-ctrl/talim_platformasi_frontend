@@ -4,7 +4,28 @@
 import { XONA_TOPLAM } from "./xonaData.js";
 import { oyinOl } from "../oyin/oyinRules.js";
 
-export const XONA_OYINLAR = [116, 83, 68, 89, 88, 117, 119, 76, 86, 32];
+// REV379: «Rivojlantiruvchi o'yinlar» — hamma 57 xil o'yin, yo'nalishlar bo'yicha
+export const XONA_GURUHLAR = [
+  { kalit: "xotira", belgi: "🧠", nom: { uz: "Xotira va diqqat", ru: "Память и внимание", en: "Memory and attention", de: "Gedächtnis und Aufmerksamkeit", es: "Memoria y atención" },
+    oyinlar: [89, 88, 83, 68, 86, 116, 119, 33, 55] },
+  { kalit: "mantiq", belgi: "🧩", nom: { uz: "Mantiq va fikrlash", ru: "Логика и мышление", en: "Logic and thinking", de: "Logik und Denken", es: "Lógica y pensamiento" },
+    oyinlar: [90, 91, 114, 93, 106, 76, 97, 103] },
+  { kalit: "sanash", belgi: "🔢", nom: { uz: "Sanash va matematika", ru: "Счёт и математика", en: "Counting and maths", de: "Zählen und Mathe", es: "Contar y matemáticas" },
+    oyinlar: [31, 32, 35, 38, 57, 43, 59, 49] },
+  { kalit: "rang", belgi: "🎨", nom: { uz: "Ranglar va shakllar", ru: "Цвета и формы", en: "Colours and shapes", de: "Farben und Formen", es: "Colores y formas" },
+    oyinlar: [61, 62, 63, 64] },
+  { kalit: "til", belgi: "🗣️", nom: { uz: "Nutq va eshitish", ru: "Речь и слух", en: "Speech and listening", de: "Sprechen und Hören", es: "Habla y escucha" },
+    oyinlar: [117, 121, 123, 142, 118] },
+  { kalit: "olam", belgi: "🌍", nom: { uz: "Atrof-olam", ru: "Окружающий мир", en: "The world around us", de: "Die Welt um uns", es: "El mundo que nos rodea" },
+    oyinlar: [149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165] },
+  { kalit: "hayot", belgi: "🌱", nom: { uz: "Hayot va tartib", ru: "Жизнь и порядок", en: "Life and routines", de: "Leben und Abläufe", es: "Vida y rutinas" },
+    oyinlar: [152, 146, 29, 157, 153, 15, 156, 166] },
+];
+export const XONA_OYINLAR = XONA_GURUHLAR.flatMap((g) => g.oyinlar);
+// O'z ma'lumoti bilan ishlaydigan o'yinlar (saralash, tartib, eshitish) — 10 bosqich, qiyinlik bosqich sayin oshadi
+const OZ_MALUMOTLI = new Set([...XONA_GURUHLAR.find((g) => g.kalit === "olam").oyinlar, ...XONA_GURUHLAR.find((g) => g.kalit === "hayot").oyinlar, 121, 123, 142, 118]);
+const SANASH = new Set(XONA_GURUHLAR.find((g) => g.kalit === "sanash").oyinlar);
+export const oyinGuruhi = (id) => XONA_GURUHLAR.find((g) => g.oyinlar.includes(Number(id)));
 export const BOSQICH_RAUND = 10;
 const MAX_BOSQICH = 20, MIN_QOLDIQ = 6;
 
@@ -21,15 +42,21 @@ export function bosqichlar(oyinId) {
     if (bo.length > 1 && bo[bo.length - 1].length < MIN_QOLDIQ) bo[bo.length - 2] = bo[bo.length - 2].concat(bo.pop());
     for (const items of bo) if (items.length >= MIN_QOLDIQ) out.push({ toplam: p.kalit, belgi: p.belgi, nom: p.nom, items });
   }
-  return out.slice(0, MAX_BOSQICH).map((b, i) => ({ ...b, i: i + 1 }));
+  const n = OZ_MALUMOTLI.has(Number(oyinId)) ? 10 : MAX_BOSQICH;   // REV379
+  return out.slice(0, n).map((b, i) => ({ ...b, i: i + 1 }));
 }
 
 /** Bosqich qiyinligi: yoshga qarab boshlanadi, bosqich sayin variantlar ko‘payadi (ko‘pi bilan 4). */
-export function bosqichSozlama(yosh, i) {
+export function bosqichSozlama(yosh, i, oyinId = 0) {
   const y = yoshNorm(yosh);
   const baza = { "2-3": 2, "4-5": 3, "6-7": 3 }[y];
   const qadam = { "2-3": 6, "4-5": 5, "6-7": 3 }[y];
-  return { raundSoni: BOSQICH_RAUND, variantSoniMajbur: Math.min(4, baza + Math.floor((i - 1) / qadam)) };
+  const out = { raundSoni: BOSQICH_RAUND, variantSoniMajbur: Math.min(4, baza + Math.floor((i - 1) / qadam)) };
+  if (SANASH.has(Number(oyinId))) {   // REV379: sonlar bosqich sayin kattalashadi
+    const [a, b] = { "2-3": [3, 5], "4-5": [5, 10], "6-7": [10, 20] }[y];
+    out.sonlar = { min: 1, max: Math.min(b, a + Math.floor((i - 1) / 2)) };
+  }
+  return out;
 }
 
 /** Bola yoshiga mos o‘yinlar (katalogda bor, shu yoshga ruxsat, o‘chirilmagan). */

@@ -520,6 +520,7 @@ const LazyBellashuv = _samtmLazyRetry(() => import("./battle/Bellashuv.jsx"));
 const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
 const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
 const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.jsx"));
+const LazyOyinXona = _samtmLazyRetry(() => import("./kid/oyinXona/OyinXona.jsx"));   // REV379: rivojlantiruvchi o'yinlar
 const LazyChempionat = _samtmLazyRetry(() => import("./chempionat/Chempionat.jsx"));
 const StudentScheduleWorkspace = _samtmLazyRetry(() => import("./student/StudentScheduleWorkspace.jsx"));
 // Talaba (1–11 sinfdan tashqari): qo'shilish oqimi, profil kartasi va o'z paralar jadvali
@@ -612,7 +613,7 @@ function Shashka(props) { return lazyPanel(LazyShashka, props); }
 function Shaxmat(props) { return lazyPanel(LazyShaxmat, props); }
 function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
 function Chempionat(props) { return lazyPanel(LazyChempionat, props); }
-const OYIN_TABLARI = new Set(["oyinlar", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
+const OYIN_TABLARI = new Set(["oyinlar", "mantiq", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
 const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
 const LazyXalqaroBaholash = _samtmLazyRetry(() => import("./xalqaro/XalqaroBaholash.jsx"));   // REV260: xalqaro baholash
 // REV373: ?xb_sinf=KOD — o'qituvchining sinf taklifi: kodni eslab qolamiz (kirishdan keyin ham), keyin «Xalqaro baholash» ochiladi
@@ -15094,6 +15095,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           setTab(key === "shaxmat_maktab" ? "shaxmat" : key);
         }} />
       )}
+      {korinishRoli !== "ota-ona" && tab === "mantiq" && lazyPanel(LazyOyinXona, { apiBase: API_BASE, token, izoh: String(document.documentElement.lang || "uz").slice(0, 2),
+        yosh: (() => { const g = String(foydalanuvchi?.yosh_guruhi || ""); return _kbAccountRole(foydalanuvchi) === "bogcha" && g ? (/2-3|3-4/.test(g) ? "2-3" : /6-7|5-6/.test(g) ? "6-7" : "4-5") : ""; })(),
+        onSay: (t, d) => { import("./kid/kabuOvoz.js").then((m) => m.kabuAyt(API_BASE, t, { izoh: String(document.documentElement.lang || "uz").slice(0, 2), tugadi: d })).catch(() => d?.()); },
+        onClose: () => setTab("oyinlar") })}   {/* REV379 */}
       {korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi" || tab === "til_maktab") && (
         <React.Suspense fallback={<p className="p-6 text-center text-slate-500">⏳</p>}>
           <LazyTilTanlov tur={tab === "til_mashqi" ? "mashq" : tab === "til_maktab" ? "maktab" : "xonalar"} apiBase={API_BASE} token={token}

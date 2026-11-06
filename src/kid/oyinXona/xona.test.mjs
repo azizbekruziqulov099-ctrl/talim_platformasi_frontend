@@ -39,8 +39,14 @@ test("REV371: bosqich o'yini — 10 raund, har raundda boshqa narsa, variantlar 
 test("REV371: xonadagi har o'yin har bosqichda quriladi (2-3 / 4-5 / 6-7)", () => {
   for (const y of ["2-3", "4-5", "6-7"]) for (const o of xonaOyinlari(y)) {
     for (const b of bosqichlar(o.id)) {
-      const h = oyinYasa(o.id, { elementlar: xonaElementlar(b, "uz"), yosh: y, urug: b.i, izoh: "uz", ...bosqichSozlama(y, b.i) });
+      const h = oyinYasa(o.id, { elementlar: xonaElementlar(b, "uz"), yosh: y, urug: b.i, izoh: "uz", ...bosqichSozlama(y, b.i, o.id) });
       assert.ok(h && h.raundlar.length >= 5, `${o.id} ${y} ${b.i}`);
     }
   }
+});
+
+test("REV379: hamma 57 o'yin xonada, yo'nalishlarga bo'lingan, takrorlanmaydi", () => {
+  assert.equal(new Set(XONA_OYINLAR).size, XONA_OYINLAR.length);
+  assert.equal(XONA_OYINLAR.length, 57);
+  assert.ok(xonaOyinlari("6-7").length >= 50);
 });

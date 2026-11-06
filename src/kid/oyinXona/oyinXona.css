@@ -21,3 +21,10 @@
 .ox-oyin .oy-root{position:absolute;inset:0;border-radius:0}
 @keyframes ox-tep{50%{transform:translateY(-4px)}}
 @media (prefers-reduced-motion:reduce){.ox-bosqich.is-ochiq{animation:none}}
+/* REV379: yo'nalishlar va yosh tanlovi */
+.ox-guruh{max-width:1100px;margin:0 auto 18px}
+.ox-guruh h3{margin:6px 4px 10px;font-size:clamp(17px,3.4vmin,22px)}
+.ox-guruh h3 small{font-size:13px;opacity:.6;margin-left:6px}
+.ox-yosh{display:flex;align-items:center;gap:8px;max-width:1100px;margin:0 auto 12px;font-weight:700}
+.ox-yosh button{min-width:56px;padding:8px 12px;border-radius:14px;border:2px solid #d9dfe8;background:#fff;font:inherit;font-weight:700;cursor:pointer}
+.ox-yosh button.is-on{border-color:#1B4B7A;background:#1B4B7A;color:#fff}

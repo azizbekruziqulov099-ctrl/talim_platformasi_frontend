@@ -12,7 +12,7 @@ const GAMES = [
   { key: "shashka", emoji: "⛀", title: "Shashka", text: "Bot bilan (4 daraja), onlayn raqib yoki do‘st bilan", color: "#b5541c" },
   { key: "shaxmat", emoji: "♞", title: "Shaxmat", text: "Bot bilan (4 daraja), maslahat, onlayn reyting yoki do‘st bilan", color: "#1d2733" },
   { key: "shaxmat_maktab", emoji: "🎓", title: "Shaxmat maktabi", text: "Noldan o‘rganish: figuralar, shax, mat, taktika — yulduzchalar bilan", color: "#2f7d3b" },
-  { key: "mantiq", emoji: "🧩", title: "Rivojlantiruvchi o‘yinlar", text: "Xotira, mantiq, sanash — tez orada", color: "#2f9e54", soon: true },
+  { key: "mantiq", emoji: "🧩", title: "Rivojlantiruvchi o‘yinlar", text: "57 xil o‘yin, har biri 10–20 bosqich: xotira, mantiq, sanash, ranglar, nutq, atrof-olam (2–7 yosh)", color: "#2f9e54" },
 ];
 
 /** REV83: O'yinlar markazi — bellashuv, shashka va keyingi o'yinlar bir joyda. */

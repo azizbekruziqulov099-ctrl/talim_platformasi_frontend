@@ -4,12 +4,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Oyin from "../oyin/index.js";
 import { oyinRasmTop } from "../oyin/oyinRasmTop.js";
 import { OYIN_MATN } from "../oyin/oyinMatn.js";
-import { bosqichlar, bosqichHolati, bosqichSozlama, xonaElementlar, xonaOyinlari, yulduzHisob } from "./xonaRules.js";
+import { bosqichlar, bosqichHolati, bosqichSozlama, xonaElementlar, xonaOyinlari, yulduzHisob, XONA_GURUHLAR } from "./xonaRules.js";
 import { oyinSozlamaYukla, oyinYopiqmi } from "../oyin/oyinSozlama.js";
 import "./oyinXona.css";
 
 const MATN = {
-  sarlavha: { uz: "O‘yinlar xonasi", ru: "Игровая комната", en: "Game room", de: "Spielzimmer", es: "Sala de juegos" },
+  sarlavha: { uz: "Rivojlantiruvchi o‘yinlar", ru: "Развивающие игры", en: "Learning games", de: "Lernspiele", es: "Juegos educativos" },
+  yosh: { uz: "Yosh", ru: "Возраст", en: "Age", de: "Alter", es: "Edad" },
   bosqich: { uz: "bosqich", ru: "уровень", en: "level", de: "Stufe", es: "nivel" },
   ertaga: { uz: "Ertaga ochiladi", ru: "Откроется завтра", en: "Opens tomorrow", de: "Öffnet morgen", es: "Se abre mañana" },
   qulf: { uz: "Avval oldingi bosqichni o‘ta", ru: "Сначала пройди предыдущий уровень", en: "Finish the previous level first", de: "Schaffe zuerst die vorige Stufe", es: "Primero supera el nivel anterior" },
@@ -20,7 +21,9 @@ const MATN = {
 const t = (k, iz) => MATN[k][iz] || MATN[k].uz;
 const nomi = (o, iz) => OYIN_MATN[o.kalit]?.nom?.[iz] || OYIN_MATN[o.kalit]?.nom?.uz || o.nom;
 
-export default function OyinXona({ apiBase = "", token = "", yosh = "4-5", izoh = "uz", onSay, onClose }) {
+export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan = "", izoh = "uz", onSay, onClose }) {
+  // REV379: yosh berilmasa (kattalar, o'qituvchi) — tanlanadi va eslab qolinadi
+  const [yosh, setYosh] = useState(() => yoshBerilgan || (() => { try { return localStorage.getItem("kabutar:xona:yosh") || "4-5"; } catch { return "4-5"; } })());
   const base = String(apiBase || "").replace(/\/+$/, "");
   const [h, setH] = useState(null);           // { holat, obuna, bugun }
   const [tanlangan, setTanlangan] = useState(null);   // o'yin
@@ -43,7 +46,7 @@ export default function OyinXona({ apiBase = "", token = "", yosh = "4-5", izoh 
     return <div className="ox-root ox-oyin">
       <button type="button" className="ox-orqa" onClick={() => setOynaydi(null)} aria-label="←">✕</button>
       <Oyin key={`${tanlangan.id}-${b.i}`} id={tanlangan.id} elementlar={xonaElementlar(b, izoh)} yosh={yosh} til={izoh} izoh={izoh} rasm={oyinRasmTop}
-        urug={urug.current + b.i} kirishDaraja="yoq" {...bosqichSozlama(yosh, b.i)} onSay={(s, d) => say(s, d)}
+        urug={urug.current + b.i} kirishDaraja="yoq" {...bosqichSozlama(yosh, b.i, tanlangan.id)} onSay={(s, d) => say(s, d)}
         onNatija={(togri, xatolar) => {
           const xato = Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0;
           const yulduz = yulduzHisob(togri, xato);
@@ -78,14 +81,19 @@ export default function OyinXona({ apiBase = "", token = "", yosh = "4-5", izoh 
   return <div className="ox-root">
     <div className="ox-bosh">{onClose && <button type="button" className="ox-orqa" onClick={onClose} aria-label="✕">✕</button>}
       <h2>🎮 {t("sarlavha", izoh)}</h2></div>
-    <div className="ox-oyinlar">{oyinlar.map((o) => {
-      const bs = bosqichlar(o.id); const otdi = Object.keys(prog(o.id)).length;
-      return <button key={o.id} type="button" className="ox-oyin-karta" onClick={() => { setTanlangan(o); say(nomi(o, izoh)); }}>
-        <span className="ox-belgi" aria-hidden="true">{o.belgi}</span>
-        <b>{nomi(o, izoh)}</b>
-        <span className="ox-progress"><span style={{ width: `${Math.round((otdi / bs.length) * 100)}%` }} /></span>
-        <small>{otdi}/{bs.length}</small>
-      </button>;
-    })}</div>
+    {!yoshBerilgan && <div className="ox-yosh" role="radiogroup" aria-label={t("yosh", izoh)}>{t("yosh", izoh)}:
+      {["2-3", "4-5", "6-7"].map((y) => <button key={y} type="button" role="radio" aria-checked={yosh === y} className={yosh === y ? "is-on" : ""}
+        onClick={() => { setYosh(y); try { localStorage.setItem("kabutar:xona:yosh", y); } catch { /* */ } }}>{y}</button>)}</div>}
+    {XONA_GURUHLAR.map((g) => { const ro = oyinlar.filter((o) => g.oyinlar.includes(o.id)); if (!ro.length) return null;
+      return <section key={g.kalit} className="ox-guruh"><h3><span aria-hidden="true">{g.belgi}</span> {g.nom[izoh] || g.nom.uz} <small>{ro.length}</small></h3>
+        <div className="ox-oyinlar">{ro.map((o) => {
+          const bs = bosqichlar(o.id); const otdi = Object.keys(prog(o.id)).length;
+          return <button key={o.id} type="button" className="ox-oyin-karta" onClick={() => { setTanlangan(o); say(nomi(o, izoh)); }}>
+            <span className="ox-belgi" aria-hidden="true">{o.belgi}</span>
+            <b>{nomi(o, izoh)}</b>
+            <span className="ox-progress"><span style={{ width: `${Math.round((otdi / bs.length) * 100)}%` }} /></span>
+            <small>{otdi}/{bs.length}</small>
+          </button>;
+        })}</div></section>; })}
   </div>;
 }
