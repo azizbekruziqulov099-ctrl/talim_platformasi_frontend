@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { uiText as T } from "../interface/interfaceRuntime.js";
 import AdminRig from "./AdminRig.jsx";   // REV197: skeletli personajlar
+import "./kabutarTv.css";   // REV389
 
 const API_BASE = import.meta.env.VITE_API_BASE || "https://talimplatformasi-production.up.railway.app";
 const HOLAT = {
@@ -90,7 +91,22 @@ export default function AdminKabutarTv({ token }) {
     {xato && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{T(xato)}</p>}
     {xabar && <p role="status" className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{xabar}</p>}
     {d && !d.volume && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">⚠️ {T("Videolar alohida diskda (Railway Volume) emas — har yangilashda (deploy) o‘chib ketadi. Volume ulang va KABUTAR_TV_DIR=/data/kabutar_tv yozing.")}</p>}
-    {soz && !soz.yoqilgan && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">⏸ {T("Tungi avtomatik tayyorlash o‘chirilgan — pastdagi Sozlamalarda yoqing.")}</p>}
+    {/* REV389: asosiy kalitlar — bir bosishda o'chirib-yoqiladi va darhol saqlanadi */}
+    {soz && <section className="tv-kalitlar" aria-label={T("Asosiy kalitlar")}>
+      {[["korinadi", "📺", "Kabutar TV foydalanuvchilarga ko‘rinadi", "O‘chirilsa — kanallar ro‘yxatdan yashirinadi (videolar o‘chmaydi)"],
+        ["yoqilgan", "🌙", "Har kecha yangi ko‘rsatuv tayyorlansin", "O‘chirilsa — yangi video tayyorlanmaydi, eskilari ko‘rinib turadi"],
+        ["tg_yuborish", "✈️", "Tayyor videolar Telegram botga yuborilsin", "O‘chirilsa — bot har kuni xabar yubormaydi"]].map(([k, belgi, nom, izoh]) => {
+        const on = soz[k] !== false;
+        return <button key={k} type="button" role="switch" aria-checked={on} className={`tv-kalit ${on ? "is-on" : ""}`}
+          onClick={async () => { const yangi = { ...soz, [k]: !on }; setSoz(yangi);
+            try { setSoz(await sorov("/sozlama", {}, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [k]: !on }) })); setXabar(T(!on ? "Yoqildi" : "O‘chirildi")); }
+            catch (e) { setSoz(soz); setXato(e.message); } }}>
+          <span className="tv-kalit-belgi" aria-hidden="true">{belgi}</span>
+          <span className="tv-kalit-matn"><b>{T(nom)}</b><small>{T(izoh)}</small></span>
+          <span className="tv-kalit-tugma" aria-hidden="true"><i /></span>
+        </button>; })}
+    </section>}
+    {soz && !soz.yoqilgan && <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">⏸ {T("Tungi avtomatik tayyorlash o‘chirilgan.")}</p>}
 
     {/* Ishga tushirish */}
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">

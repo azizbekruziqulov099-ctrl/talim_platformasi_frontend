@@ -99,6 +99,8 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const [meetingGroupId, setMeetingGroupId] = useState(null);
   const callRef = useRef(null); callRef.current = call;
   const uzoqRef = useRef(null);   // REV389: uzoq bosish (telefon)
+  const [tvKorinadi, setTvKorinadi] = useState(true);   // REV389: admin Kabutar TV ni o'chirib-yoqadi
+  useEffect(() => { fetch(`${String(apiBase || "").replace(/\/+$/, "")}/api/kabutar_tv/korinish`).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.korinadi === false) setTvKorinadi(false); }).catch(() => {}); }, [apiBase]);
   const [emojiOchiq, setEmojiOchiq] = useState(false);
   const requestedContactRef = useRef(null);
   const preferences = useKabutarPreferences(directory?.men?.user_id, apiBase);
@@ -670,6 +672,7 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const accent = scopeMeta ? scopeMeta.rang : palette.button;
   const visibleGroups = (chatDirectory.guruhlar || []).filter(group => {
     if (KANALLAR_REJIMI && !String(group.manba_turi || "").startsWith("kabutar_tv")) return false;
+    if (!tvKorinadi && !toliq && String(group.manba_turi || "").startsWith("kabutar_tv")) return false;
     if (!institutionGroupVisible(group, activeScope)) return false;
     if (listTab === "personal") return false;
     return !q || String(group.nomi || "").toLocaleLowerCase("uz").includes(q);

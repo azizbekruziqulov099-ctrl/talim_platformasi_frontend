@@ -1,0 +1,10 @@
+/* REV389: Kabutar TV asosiy kalitlari */
+.tv-kalitlar{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.tv-kalit{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;border:2px solid #e2e8f0;background:#fff;text-align:left;cursor:pointer;font:inherit}
+.tv-kalit.is-on{border-color:#0D7A77;background:#effaf9}
+.tv-kalit-belgi{font-size:26px}
+.tv-kalit-matn{flex:1;display:flex;flex-direction:column;gap:2px}
+.tv-kalit-matn b{font-size:15px;color:#1e293b}.tv-kalit-matn small{font-size:12px;color:#64748b}
+.tv-kalit-tugma{flex:none;width:48px;height:28px;border-radius:14px;background:#cbd5e1;position:relative;transition:background .15s}
+.tv-kalit-tugma i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s}
+.tv-kalit.is-on .tv-kalit-tugma{background:#0D7A77}.tv-kalit.is-on .tv-kalit-tugma i{left:23px}
