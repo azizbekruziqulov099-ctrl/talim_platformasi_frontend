@@ -1,0 +1,106 @@
+/* REV389: Kabutar — Telegram uslubidagi ko'rinish (faqat ko'rinish; funksiyalar va joylashuv o'z holicha).
+   Ranglar: ko'k #3390ec (asosiy), yashil #0D7A77 (Kabutar), o'z xabaring — och yashil, boshqalarniki — oq. */
+.kb-chat45{--tg-blue:#3390ec;--tg-blue-d:#2a7fd4;--tg-own:#effdde;--tg-own-t:#4fae4e;--tg-in:#ffffff;--tg-ink:#0f1419;--tg-muted:#707579;--tg-line:#e7e9ec;--tg-hover:#f4f4f5;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",system-ui,sans-serif;background:#fff !important}
+/* sarlavha — ixcham */
+.kb-chat45 .kb-panel-header{padding:8px 14px !important;min-height:56px;box-shadow:0 1px 0 var(--tg-line)}
+.kb-chat45 .kb-panel-header .text-lg{font-size:18px !important;font-weight:700 !important;color:var(--tg-ink) !important}
+.kb-chat45 .kb-panel-header .text-\[10px\]{display:none}
+/* ro'yxat */
+.kb-chat45 .kb-chat-directory{background:#fff;border-right:1px solid var(--tg-line) !important}
+.kb-chat45 .kb-chat-directory input{border-radius:22px !important;background:#f1f1f3 !important;border-color:transparent !important;height:42px}
+.kb-chat45 .kb-chat-directory input:focus{background:#fff !important;border-color:var(--tg-blue) !important;box-shadow:0 0 0 2px rgba(51,144,236,.18)}
+.kb-chat45 .kb-institution-notice{margin:6px 10px !important;padding:6px 10px !important;font-size:12px !important;border-radius:10px !important}
+.kb-chat45 .kb-blocks-link,.kb-chat45 .kb-directory-find summary{font-size:12px !important;color:var(--tg-muted) !important;padding:4px 14px !important}
+.kb-chat45 .kb-chat-directory .text-\[10px\].uppercase{font-size:12px !important;letter-spacing:.02em !important;text-transform:none !important;color:var(--tg-muted) !important;font-weight:600 !important;padding-top:10px !important}
+.kb-chat45 .kb-chat-directory button.w-full{padding:9px 12px !important;margin:0 6px;width:calc(100% - 12px) !important;border-radius:12px;gap:12px !important;transition:background .12s}
+.kb-chat45 .kb-chat-directory button.w-full:hover{background:var(--tg-hover) !important}
+.kb-chat45 .kb-list-row.is-on{background:var(--tg-blue) !important}
+.kb-chat45 .kb-list-row.is-on *{color:#fff !important}
+.kb-chat45 .kb-list-avatar{width:50px !important;height:50px !important;border-radius:50% !important;font-size:17px !important;font-weight:700 !important}
+.kb-chat45 .kb-chat-directory .text-sm.font-black{font-size:15px !important;font-weight:600 !important;color:var(--tg-ink)}
+.kb-chat45 .kb-chat-directory .text-\[11px\]{font-size:14px !important;color:var(--tg-muted) !important;margin-top:2px}
+.kb-chat45 .kb-chat-directory .min-w-\[22px\]{min-width:22px;height:22px;border-radius:11px !important;background:#c4c9cc !important;font-weight:600 !important}
+.kb-chat45 .kb-chat-directory button:not(.is-on) .min-w-\[22px\]{background:var(--tg-blue) !important}
+/* papkalar (Barchasi / Guruhlar / Shaxsiy) — Telegram tablari */
+.kb-chat45 .kb-chat-directory [role="tablist"] button,.kb-chat45 .kb-chat-directory .rounded-full.px-3{border-radius:16px !important}
+/* suhbat oynasi — fon naqshi */
+.kb-chat45 .kb-chat-conversation{background:#d9e8c8 !important;
+  background-image:radial-gradient(circle at 20% 30%,rgba(255,255,255,.35) 0 2px,transparent 3px),radial-gradient(circle at 70% 60%,rgba(255,255,255,.3) 0 2px,transparent 3px),linear-gradient(160deg,#cfe3b4,#e5eedb 45%,#c8deb0) !important;
+  background-size:46px 46px,58px 58px,100% 100% !important}
+.kb-chat45 .kb-chat-peerbar{background:#fff !important;border-bottom:1px solid var(--tg-line) !important;min-height:56px;padding:6px 12px !important}
+.kb-chat45 .kb-chat-peerbar .kb-avatar{width:42px !important;height:42px !important;border-radius:50% !important}
+.kb-chat45 .kb-chat-peerbar strong{font-size:16px !important;font-weight:600 !important}
+.kb-chat45 .kb-chat-peerbar .kb-icon-button{background:transparent !important;border:none !important;color:var(--tg-muted) !important;border-radius:50% !important;width:40px;height:40px}
+.kb-chat45 .kb-chat-peerbar .kb-icon-button:hover{background:var(--tg-hover) !important;color:var(--tg-blue) !important}
+.kb-chat45 .kb-chat-viewbar{display:none !important}
+.kb-chat45 .kb-chat-messages{background:transparent !important;padding:10px max(12px,4%) 6px !important}
+/* sana — o'rtadagi kichik yorliq */
+.kb-chat45 .kb-chat-date{margin:10px 0 !important}
+.kb-chat45 .kb-chat-date span{background:rgba(70,100,60,.38) !important;color:#fff !important;font-size:13px !important;font-weight:600 !important;padding:3px 10px !important;border-radius:12px !important;border:none !important}
+/* xabar pufakchalari, dumchasi bilan */
+.kb-chat45 .kb-message-row{margin:1px 0 !important;position:relative}
+.kb-chat45 .kb-chat-bubble{position:relative;background:var(--tg-in) !important;border:none !important;border-radius:16px 16px 16px 6px !important;padding:6px 10px 6px 11px !important;box-shadow:0 1px 1px rgba(0,0,0,.08) !important;max-width:min(560px,78%) !important;color:var(--tg-ink) !important}
+.kb-chat45 .kb-chat-bubble--own{background:var(--tg-own) !important;border-radius:16px 16px 6px 16px !important}
+.kb-chat45 .kb-chat-bubble.is-oxirgi:not(.kb-chat-bubble--own){border-bottom-left-radius:0 !important}
+.kb-chat45 .kb-chat-bubble.is-oxirgi:not(.kb-chat-bubble--own)::before{content:"";position:absolute;left:-8px;bottom:0;width:9px;height:14px;background:var(--tg-in);clip-path:path("M9 0 V14 H0 C5 13 8 9 9 0 Z")}
+.kb-chat45 .kb-chat-bubble--own.is-oxirgi{border-bottom-right-radius:0 !important}
+.kb-chat45 .kb-chat-bubble--own.is-oxirgi::before{content:"";position:absolute;right:-8px;bottom:0;width:9px;height:14px;background:var(--tg-own);clip-path:path("M0 0 V14 H9 C4 13 1 9 0 0 Z")}
+.kb-chat45 .kb-chat-bubble.is-davomi{margin-bottom:0 !important}
+.kb-chat45 .kb-message-row:has(.is-oxirgi){margin-bottom:8px !important}
+.kb-chat45 .kb-chat-bubble .whitespace-pre-wrap{font-size:15.5px !important;line-height:1.4 !important}
+.kb-chat45 .kb-chat-bubble .mt-1.text-\[10px\]{float:right;margin:6px 0 -2px 10px !important;font-size:12px !important;color:var(--tg-muted) !important;opacity:1 !important}
+.kb-chat45 .kb-chat-bubble--own .mt-1.text-\[10px\]{color:var(--tg-own-t) !important}
+.kb-chat45 .kb-tick{font-weight:700;letter-spacing:-3px;margin-left:3px}
+.kb-chat45 .kb-tick.is-korildi{color:var(--tg-own-t)}
+.kb-chat45 .kb-chat-sender{color:var(--tg-blue) !important;font-size:14px !important;font-weight:600 !important}
+.kb-chat45 .kb-reply-quote{cursor:pointer;border-left:3px solid var(--tg-blue) !important;background:rgba(51,144,236,.08);border-radius:4px;padding:3px 8px !important;opacity:1 !important;font-size:13px !important}
+.kb-chat45 .kb-chat-bubble--own .kb-reply-quote{border-left-color:var(--tg-own-t) !important;background:rgba(79,174,78,.12)}
+.kb-chat45 .kb-reply-quote b{color:var(--tg-blue)}.kb-chat45 .kb-chat-bubble--own .kb-reply-quote b{color:var(--tg-own-t)}
+.kb-chat45 .kb-message-row.is-yoritilgan .kb-chat-bubble{box-shadow:0 0 0 3px rgba(51,144,236,.45) !important;transition:box-shadow .3s}
+.kb-chat45 .kb-chat-bubble .rounded-full.text-\[10px\]{background:rgba(51,144,236,.12) !important;color:var(--tg-blue) !important;font-size:13px !important;padding:2px 8px !important;font-weight:600}
+.kb-chat45 .kb-inline-photo{border-radius:12px !important}
+/* «…» faqat sichqoncha olib borilganda (telefonda — uzoq bosish) */
+.kb-chat45 .kb-message-more{opacity:0;transition:opacity .15s}
+.kb-chat45 .kb-message-row:hover .kb-message-more,.kb-chat45 .kb-message-more[aria-expanded="true"]{opacity:1}
+@media (hover:none){.kb-chat45 .kb-message-more{display:none}}
+.kb-chat45 .kb-message-menu{border-radius:14px !important;box-shadow:0 8px 30px rgba(0,0,0,.18) !important;border:none !important;padding:6px !important;min-width:210px;background:rgba(255,255,255,.98) !important}
+.kb-chat45 .kb-message-menu > button{font-size:14px !important;font-weight:500 !important;padding:9px 10px !important;border-radius:8px !important}
+.kb-chat45 .kb-message-menu > div:first-child button{font-size:20px;width:36px !important;height:36px !important;border-radius:50% !important}
+/* yozish maydoni — bitta pufak qator: 😊 [matn] 📎 🎤 ➤ */
+.kb-chat45 .kb-composer{position:relative;display:flex !important;flex-wrap:wrap;align-items:flex-end !important;gap:6px !important;background:transparent !important;border:none !important;padding:6px max(10px,4%) 10px !important}
+.kb-chat45 .kb-composer textarea{flex:1 1 200px;min-height:46px !important;max-height:160px;border-radius:22px !important;border:none !important;background:#fff !important;padding:12px 16px !important;font-size:15.5px !important;box-shadow:0 1px 2px rgba(0,0,0,.1) !important;resize:none}
+.kb-chat45 .kb-media-buttons{order:3;display:flex;gap:4px;align-items:center}
+.kb-chat45 .kb-media-buttons button{width:46px !important;height:46px !important;border-radius:50% !important;background:#fff !important;border:none !important;color:var(--tg-muted) !important;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.kb-chat45 .kb-media-buttons button:hover{color:var(--tg-blue) !important}
+.kb-chat45 .kb-media-hint{display:none !important}
+.kb-chat45 .kb-send-button{order:4;width:46px !important;height:46px !important;border-radius:50% !important;background:var(--tg-blue) !important;color:#fff !important;border:none !important;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.kb-chat45 .kb-send-button:disabled{background:#a9cdf3 !important}
+.kb-chat45 .kb-composer-context{flex:1 0 100%;order:-1}
+.kb-emoji-btn{order:0;width:46px;height:46px;border-radius:50%;border:none;background:#fff;font-size:22px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.1);flex:none}
+.kb-emoji-btn.is-on{background:#e8f1fd}
+.kb-emoji-panel{position:absolute;left:max(10px,4%);bottom:62px;z-index:20;width:min(340px,calc(100% - 20px));display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:8px;background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.kb-emoji-panel button{height:38px;border:none;background:transparent;font-size:22px;border-radius:8px;cursor:pointer}
+.kb-emoji-panel button:hover{background:var(--tg-hover)}
+.kb-chat45 .kb-chat-new button{background:#fff !important;color:var(--tg-blue) !important;border-radius:20px !important;box-shadow:0 2px 8px rgba(0,0,0,.15) !important}
+@media (prefers-color-scheme:dark){
+  .kb-chat45{--tg-own:#2b5278;--tg-in:#182533;--tg-ink:#e9eef3;--tg-muted:#8b9aa7;--tg-line:#0f1621;--tg-hover:#202b36;--tg-own-t:#7bb8f0;background:#17212b !important}
+  .kb-chat45 .kb-chat-directory,.kb-chat45 .kb-chat-peerbar,.kb-chat45 .kb-panel-header{background:#17212b !important}
+  .kb-chat45 .kb-chat-conversation{background:#0e1621 !important;background-image:none !important}
+  .kb-chat45 .kb-composer textarea,.kb-chat45 .kb-media-buttons button,.kb-emoji-btn,.kb-emoji-panel{background:#17212b !important;color:var(--tg-ink) !important}
+}
+/* REV389 tuzatish: tanlangan suhbat — ko'k (sichqoncha ustida ham); badge oq raqam; tartib: 😊 matn 📎🎤🎥 ➤ */
+.kb-chat45 .kb-chat-directory button.kb-list-row.is-on,.kb-chat45 .kb-chat-directory button.kb-list-row.is-on:hover{background:var(--tg-blue) !important}
+.kb-chat45 .kb-chat-directory .min-w-\[22px\]{color:#fff !important}
+.kb-chat45 .kb-list-row.is-on .min-w-\[22px\]{background:#fff !important;color:var(--tg-blue) !important}
+.kb-chat45 .kb-media-tools{order:3;display:flex;flex-direction:column;align-items:flex-end;background:transparent !important;border:none !important;padding:0 !important}
+.kb-chat45 .kb-media-buttons{background:transparent !important;border:none !important;padding:0 !important;box-shadow:none !important}
+.kb-chat45 .kb-composer textarea{order:1}
+.kb-chat45 .kb-emoji-btn{order:0}
+@media (max-width:560px){.kb-chat45 .kb-media-buttons button{width:42px !important;height:42px !important}.kb-emoji-btn,.kb-chat45 .kb-send-button{width:42px !important;height:42px !important}
+  .kb-chat45 .kb-composer textarea{flex-basis:100%;order:5}}
+/* papkalar — Telegram'dagidek yorliqlar, tanlangani ko'k chiziq bilan */
+.kb-chat45 .kb-chat-directory .kb-papka{background:transparent !important;color:var(--tg-muted) !important;font-size:14px !important;font-weight:600 !important;border-radius:0 !important;padding:8px 12px !important;border-bottom:3px solid transparent !important}
+.kb-chat45 .kb-chat-directory .kb-papka.is-on{color:var(--tg-blue) !important;border-bottom-color:var(--tg-blue) !important}
+.kb-chat45 .kb-chat-peerbar .kb-avatar{color:#fff !important}
+.kb-chat45 .kb-chat-directory .kb-list-row.is-on *{color:#fff !important}

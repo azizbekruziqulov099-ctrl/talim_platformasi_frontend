@@ -14961,6 +14961,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         {!kabutarHolati.yoqilgan && <div className="kb-app-notice" role="status"><span>{__kbUi("🔒 Kabutar boshqa foydalanuvchilar uchun o‘chirilgan — ular «Tez kunda» ko‘radi. Siz admin sifatida ko‘rmoqdasiz.")}</span></div>}
         <React.Suspense fallback={<div className="py-10 text-center"><Loader2 size={26} className="animate-spin mx-auto" style={{ color: "var(--ui-legacy-color-1b4b7a, #1B4B7A)" }} /></div>}>
           <KabutarPanel
+            toliq={Boolean(foydalanuvchi?.is_admin)}
             token={token}
             apiBase={API_BASE}
             title={uiT("Suhbatlar")}
