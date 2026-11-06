@@ -128,3 +128,17 @@
 @media (prefers-color-scheme:dark){.kb-qator-menyu{background:#17212b}.kb-qator-menyu button{color:#e9eef3}.kb-qator-menyu button:hover:not(:disabled){background:#202b36}}
 .kb-chat45 .kb-chat-directory button .min-w-\[22px\].is-ovozsiz,.kb-chat45 .kb-chat-directory button:not(.is-on) .min-w-\[22px\].is-ovozsiz{background:#b9bec3 !important}
 .kb-chat45 .kb-qator-belgi{margin:0 4px 0 0}
+/* REV395: qadalgan xabar paneli va suhbat ichida qidirish */
+.kb-chat45 .kb-qadalgan-bar{display:flex;align-items:center;gap:6px;padding:6px 12px;background:#fff;border-bottom:1px solid var(--tg-line)}
+.kb-chat45 .kb-qadalgan-matn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;border:none;background:transparent;border-left:3px solid var(--tg-blue);padding:2px 10px;cursor:pointer;text-align:left}
+.kb-chat45 .kb-qadalgan-matn b{font-size:13px;color:var(--tg-blue);font-weight:600}
+.kb-chat45 .kb-qadalgan-matn span{font-size:14px;color:var(--tg-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.kb-chat45 .kb-qadalgan-yop{width:36px;height:36px;border:none;border-radius:50%;background:transparent;color:var(--tg-muted);cursor:pointer}
+.kb-chat45 .kb-qadalgan-yop:hover{background:var(--tg-hover)}
+.kb-chat45 .kb-qidiruv-bar{display:flex;align-items:center;gap:6px;padding:6px 12px;background:#fff;border-bottom:1px solid var(--tg-line);color:var(--tg-muted)}
+.kb-chat45 .kb-qidiruv-bar input{flex:1;min-width:0;height:38px;border:none;border-radius:19px;background:#f1f1f3;padding:0 14px;font-size:15px;outline:none}
+.kb-chat45 .kb-qidiruv-bar small{min-width:54px;text-align:center;font-size:13px}
+.kb-chat45 .kb-qidiruv-bar button{width:36px;height:36px;border:none;border-radius:50%;background:transparent;color:var(--tg-muted);cursor:pointer;font-size:14px}
+.kb-chat45 .kb-qidiruv-bar button:hover:not(:disabled){background:var(--tg-hover);color:var(--tg-blue)}
+.kb-chat45 .kb-qidiruv-bar button:disabled{opacity:.4}
+@media (prefers-color-scheme:dark){.kb-chat45 .kb-qadalgan-bar,.kb-chat45 .kb-qidiruv-bar{background:#17212b}.kb-chat45 .kb-qidiruv-bar input{background:#242f3d;color:#e9eef3}}

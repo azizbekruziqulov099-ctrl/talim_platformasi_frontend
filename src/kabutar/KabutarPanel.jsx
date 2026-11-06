@@ -103,6 +103,8 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   useEffect(() => { fetch(`${String(apiBase || "").replace(/\/+$/, "")}/api/kabutar_tv/korinish`).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.korinadi === false) setTvKorinadi(false); }).catch(() => {}); }, [apiBase]);
   const [emojiOchiq, setEmojiOchiq] = useState(false);
   const [qatorMenyu, setQatorMenyu] = useState(null);
+  const [qadalganXabar, setQadalgan] = useState(null);   // REV395: suhbatda qadalgan xabar
+  const [qidiruv, setQidiruv] = useState(null);      // REV395: suhbat ichida qidirish {matn, i}
   const qoralamaT = useRef(null);
   const qoralamaYoz = (v) => { const k = suhbatKaliti(peerRef.current); if (!k || editing) return; clearTimeout(qoralamaT.current);
     qoralamaT.current = setTimeout(() => { const d = { ...(preferences.settings.drafts || {}) }; if (v.trim()) d[k] = v; else delete d[k]; preferences.updateSettings({ drafts: d }); }, 600); };   // REV393: {kalit, x, y} — suhbat qatori menyusi
@@ -361,6 +363,7 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
           if (controller.signal.aborted || !foregroundRef.current || !isCurrent()) return false;
           const rows = Array.isArray(d.xabarlar) ? d.xabarlar : [];
           seenId = d.boshqa_tomon_korgan_id || d.qarshi_tomon_korgan_id || seenId;
+          if (page === 0) setQadalgan(d.qadalgan || null);   // REV395
           if (page === 0) setPeerHolat({ matn: d.boshqa_holat || "", yozmoqda: Boolean(d.yozmoqda), kimlar: Array.isArray(d.yozmoqdalar) ? d.yozmoqdalar : [] });   // REV391
           if (!incremental && page === 0) setHasOlder(Boolean(d.yana_bormi));
           collected.push(...rows);
@@ -706,6 +709,13 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const posts = useMemo(() => peer?.guruh_id && groupThreads ? kabutarConversationPosts(messages) : messages, [messages, peer?.guruh_id, groupThreads]);
   const selectedDirect = messages.find(message => Number(message.id) === Number(selectedMessage?.id)) || selectedMessage;
   const visibleMessages = threadTargetId ? (threadRoot ? [threadRoot, ...threadMessages] : []) : canvasMode ? (selectedDirect ? [selectedDirect] : []) : posts;
+  const xabargaOt = (id) => { const el = bodyRef.current?.querySelector(`[data-kb-message-id="${id}"]`); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("is-yoritilgan"); setTimeout(() => el.classList.remove("is-yoritilgan"), 1400); return true; } return false; };
+  const qadash = async (m, olib = false) => {
+    const fd = new FormData(); fd.append("token", token); fd.append("xabar_id", String(m.id)); if (olib) fd.append("olib_tashlash", "true");
+    try { const r = await fetch(`${String(apiBase || "").replace(/\/+$/, "")}/api/chat/xabar_qadash`, { method: "POST", body: fd }); const j = await r.json().catch(() => ({}));
+      if (!r.ok) setSendError(j.detail || "Qadab bo‘lmadi"); else setQadalgan(j.qadalgan || null); } catch { setSendError("Qadab bo‘lmadi. Internetni tekshiring."); }
+    setMenuMessage(null);
+  };
   const onReply = message => {
     if (peer?.guruh_id && groupThreads && !threadTargetId) { selectMessage(message); return; }
     setReplyTo(message); setMenuMessage(null); textareaRef.current?.focus();
@@ -785,8 +795,21 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
               : <small className={peerHolat.matn === "onlayn" ? "kb-onlayn" : ""}>{peerHolat.matn ? t(peerHolat.matn) : t(peer.guruh_id ? "Guruh ma’lumotini ko‘rish" : "Profilini ko‘rish")}{peer.izoh ? __kbUi(` · ${peer.izoh}`) : __kbUi("")}</small>}</span></button>
             {!peer.guruh_id && directory?.policy?.eligible === true && <div className="kb-chat-calls"><button type="button" className="kb-icon-button" disabled={!canWrite || Boolean(call) || mediaBusy || Boolean(meetingGroupId)} onClick={() => setCall({ peer: { id: peer.user_id, name: peer.full_name }, mode: "audio" })} aria-label={t("Ovozli qo‘ng‘iroq")} title={t("Ovozli qo‘ng‘iroq")}><Phone size={19}/></button><button type="button" className="kb-icon-button" disabled={!canWrite || Boolean(call) || mediaBusy || Boolean(meetingGroupId)} onClick={() => setCall({ peer: { id: peer.user_id, name: peer.full_name }, mode: "video" })} aria-label={t("Videoqo‘ng‘iroq")} title={t("Videoqo‘ng‘iroq")}><Video size={20}/></button></div>}
             {peer.guruh_id && directory?.policy?.eligible === true && <button type="button" className="kb-icon-button" title={t("Guruh video yig‘ilishi")} aria-label={t("Guruh video yig‘ilishiga kirish")} disabled={!canWrite || Boolean(call) || mediaBusy || Boolean(meetingGroupId)} onClick={() => setMeetingGroupId(peer.guruh_id)}><Video size={20}/></button>}
+            <button type="button" className="kb-icon-button" title={t("Suhbatdan qidirish")} aria-label={t("Suhbatdan qidirish")} onClick={() => setQidiruv((x) => (x ? null : { matn: "", i: 0 }))}><Search size={18}/></button>
             {!peer.guruh_id && <button type="button" className="kb-icon-button kb-chat-safety-button" title={t("Shikoyat yoki bloklash")} aria-label={t("Shikoyat yuborish yoki bloklash")} onClick={() => setSafetyView({ mode: "report", person: peer })}><ShieldCheck size={18}/></button>}
           </div>
+          {qidiruv && (() => { const q2 = qidiruv.matn.trim().toLocaleLowerCase("uz"); const topil = q2 ? messages.filter((x) => !x.ochirilgan && String(x.matn || "").toLocaleLowerCase("uz").includes(q2)).map((x) => x.id) : [];
+            const ot = (i) => { const n = (i + topil.length) % topil.length; setQidiruv({ ...qidiruv, i: n }); xabargaOt(topil[topil.length - 1 - n]); };
+            return <div className="kb-qidiruv-bar"><Search size={16}/><input autoFocus value={qidiruv.matn} placeholder={t("Suhbatdan qidirish")} onChange={(e) => setQidiruv({ matn: e.target.value, i: 0 })}
+              onKeyDown={(e) => { if (e.key === "Enter" && topil.length) ot(qidiruv.i + (e.shiftKey ? -1 : 1)); if (e.key === "Escape") setQidiruv(null); }} />
+              <small>{q2 ? (topil.length ? `${Math.min(qidiruv.i + 1, topil.length)} / ${topil.length}` : t("topilmadi")) : ""}</small>
+              <button type="button" disabled={!topil.length} onClick={() => ot(qidiruv.i - 1)} aria-label={t("Oldingi")}>▲</button>
+              <button type="button" disabled={!topil.length} onClick={() => ot(qidiruv.i + 1)} aria-label={t("Keyingi")}>▼</button>
+              <button type="button" onClick={() => setQidiruv(null)} aria-label={t("Yopish")}>✕</button></div>; })()}
+          {qadalganXabar && !threadTargetId && <div className="kb-qadalgan-bar">
+            <button type="button" className="kb-qadalgan-matn" onClick={() => { if (!xabargaOt(qadalganXabar.id)) setSendError("Qadalgan xabar eski xabarlar orasida — «Oldingi xabarlar» ni oching."); }}>
+              <b>📌 {t("Qadalgan xabar")}</b><span>{qadalganXabar.matn || t("Media xabar")}</span></button>
+            <button type="button" className="kb-qadalgan-yop" onClick={() => qadash({ id: qadalganXabar.id }, true)} aria-label={t("Qadashni olib tashlash")}>✕</button></div>}
           <div className="kb-chat-viewbar" aria-label={t("Suhbat ko‘rinishi")}>
             <div className="kb-chat-view-switch"><button type="button" aria-pressed={!canvasMode} disabled={sending || mediaBusy} onClick={() => setDisplayMode("classic")}>{t("Klassik")}</button><button type="button" aria-pressed={canvasMode} disabled={sending || mediaBusy} onClick={() => setDisplayMode("canvas")}>{t("Xabarlar maydoni")}</button></div>
             {peer.guruh_id && <button type="button" className="kb-chat-thread-toggle" aria-pressed={groupThreads} disabled={sending || mediaBusy} onClick={() => { if (threadTargetId) closeDiscussion(); preferences.updateSettings({ groupThreads: !groupThreads }); }}>{t("Izohlarni yig‘ish")}</button>}
@@ -826,6 +849,7 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
               {menuMessage?.id === m.id && <div className="kb-message-menu" role="group" aria-label={t("Xabar amallari")} style={{ borderColor: palette.line, color: palette.ink }}>
                 <div className="flex gap-1 pb-2 mb-1 border-b" style={{ borderColor: palette.line }}>{["❤️","👍","🔥","👏","😁","🤔"].map(emoji => <button key={emoji} onClick={() => reactTo(m, emoji)} className="w-7 h-7 rounded-lg hover:bg-slate-100">{__kbUi(emoji)}</button>)}</div>
                 <button onClick={() => onReply(m)} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-bold hover:bg-slate-50"><Reply size={14}/>{t("Javob berish")}</button>
+                {!peer.kanal && <button onClick={() => qadash(m, qadalganXabar?.id === m.id)} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-bold hover:bg-slate-50">📌 {qadalganXabar?.id === m.id ? t("Qadashni olib tashlash") : t("Qadash")}</button>}
                 <button disabled={!m.matn} onClick={async () => { const ok = await copyKabutarText(m.matn); if (!ok) setSendError("Nusxalanmadi. Matnni belgilab nusxalang."); setMenuMessage(null); }} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-bold hover:bg-slate-50"><Copy size={14}/>{t("Nusxalash")}</button>
                 <button onClick={() => { setForwarding(m); leaveConversation(); }} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-bold hover:bg-slate-50"><Forward size={14}/>{t("Boshqaga uzatish")}</button>
                 {m.meniki && m.matn && !m.fayl_turi && <button onClick={() => { setEditing(m); setText(m.matn); setMenuMessage(null); }} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-bold hover:bg-slate-50"><Pencil size={14}/>{t("O‘zgartirish")}</button>}
