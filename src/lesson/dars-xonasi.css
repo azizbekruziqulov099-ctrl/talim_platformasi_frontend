@@ -1110,3 +1110,13 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-burish{font-weight:700}
 .dx-root.dx-yotiq .dx-burish-fokus{display:inline-flex}
 .dx-burish-fab{flex:none;display:grid;place-items:center;width:40px;height:40px;margin-right:6px;border:1px solid var(--dx-line);border-radius:12px;background:var(--dx-paper);color:var(--dx-ink);font-size:18px;cursor:pointer}
+/* REV424: aralash matn (so'z + formula) doskada bir qatorda oqadi — so'zlar ustunlarga bo'linib ketmasin */
+.dx-root .dx-q{display:block;overflow-wrap:break-word}
+.dx-root .dx-q .dx-math{display:inline;white-space:nowrap}
+.dx-root .dx-q:has(> .dx-listen){display:flex}
+/* doska burchagidagi qoralama tugmasi */
+.dx-board{position:relative}
+.dx-burchak-daftar{position:absolute;top:8px;right:8px;z-index:6;width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:20px;cursor:pointer;display:grid;place-items:center;backdrop-filter:blur(4px)}
+.dx-burchak-daftar:hover{background:rgba(255,255,255,.28)}
+.dx-yordam-tug{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.dx-klav-och.is-on{background:#1B4B7A;color:#fff}

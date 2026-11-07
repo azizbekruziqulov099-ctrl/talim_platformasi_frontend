@@ -147,7 +147,10 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       <button type="button" className="dx-btn dx-primary" disabled={!answer} onClick={submit}>{__kbUi("Tekshirish")}</button>
       {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}
     </div>}
-    {!kid && <button type="button" className="dx-btn dx-daftar-och" onClick={() => { setKlav(false); setDaftar(true); }}>📝 {__kbUi("Qoralama daftarda yechish")}</button>}
+    {!kid && <div className="dx-yordam-tug">
+      <button type="button" className="dx-btn dx-daftar-och" onClick={() => { setKlav(false); setDaftar(true); }}>📝 {__kbUi("Qoralama daftar")}</button>
+      {!options.length && kutilgan && <button type="button" className={`dx-btn dx-klav-och ${klav ? "is-on" : ""}`} onClick={() => setKlav((x) => !x)}>⌨️ {__kbUi("Klaviatura: harflar va belgilar")}</button>}
+    </div>}
     {daftar && <QoralamaDaftar kalit={`dars:${item.kod || ""}`} savol={<>{lines.map((line, i) => <p key={i}><BoardText text={line} /></p>)}</>}
       chizma={item.rasm ? <img className="qd-rasm" src={mediaUrl(item.rasm)} alt="" /> : null}
       onJavob={!options.length && kutilgan ? () => { setDaftar(false); setKlav(true); } : null} onYop={() => setDaftar(false)} />}

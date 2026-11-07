@@ -10,11 +10,11 @@ import "./kidStage.css";
  * REV98: bog'cha darsi sahnasi — yozuvsiz. Robot Kabu gapiradi, rasmlar jonlanadi, harakat belgilari ko'rsatadi.
  * pictures: [{ src, key, svg }] — bosilsa onTap(i) (so'zni aytadi, robot quvonadi).
  */
-export default function KidStage({ mood = "", celebrate = 0, pictures = [], actions = [], onTap, speaking = false, compact = false, bayroq = "", tur }) {
+export default function KidStage({ mood = "", celebrate = 0, pictures = [], actions = [], onTap, speaking = false, compact = false, bayroq = "", tur, aylan = 0 }) {
   const pointing = actions.includes("point") && pictures.length > 0;
   return <div className={`ks-stage ${pictures.length ? "has-pics" : "no-pics"} ${compact ? "is-compact" : ""}`}>
     <div className={`ks-robot ${speaking ? "is-speaking" : ""}`}>
-      <RobotKabu tur={tur} mood={actions.includes("clap") && !speaking ? `${mood} clap` : pointing && !speaking ? `${mood} point` : mood} celebrate={celebrate} />
+      <RobotKabu tur={tur} aylan={aylan} mood={actions.includes("clap") && !speaking ? `${mood} clap` : pointing && !speaking ? `${mood} point` : mood} celebrate={celebrate} />
       {/* REV181: ikki Kabu — til bayrog'i ko'krakdagi nishon */}
       {bayroq && <img className="ks-bayroq" src={bayroq} alt="" draggable="false" />}
     </div>

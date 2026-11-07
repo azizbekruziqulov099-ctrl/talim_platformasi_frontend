@@ -7,6 +7,7 @@ import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
 import ChalkText from "./ChalkText.jsx";   // REV260: doskaga harfma-harf, ovoz bilan bir xil
 import { lineProgress } from "./chalkRules.js";
 import DarsIzoh from "./DarsIzoh.jsx";   // REV412: admin izohi
+const QoralamaDaftarLazy = React.lazy(() => import("./QoralamaDaftar.jsx"));   // REV424
 import "./darsIzoh.css";
 import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, variantlarYasa, visibleLines } from "./darsXonasiRules.js";
 import { stripSpeechTags } from "../speech/language.js";
@@ -1422,6 +1423,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   // doska, ustoz va tugmalar eniga sig'adi. Qurilma ruxsat bersa — haqiqiy gorizontal holat (to'liq ekran) yoqiladi.
   const tikTelefon = () => { try { return Boolean(globalThis.matchMedia?.("(orientation: portrait) and (max-width: 600px) and (pointer: coarse)").matches); } catch { return false; } };
   const korinadiRef = useRef(true);
+  const [burchakDaftar, setBurchakDaftar] = useState(false);   // REV424: doska burchagidagi qoralama
   const [tikHolat, setYotiq] = useState(tikTelefon);
   // REV413: o'quvchi o'zi tanlaydi — yotiq (buriladi) yoki tik (burilmaydi); tanlov eslab qolinadi
   const [yotiqTanlov, setYotiqTanlov] = useState(() => { try { const v = localStorage.getItem("kb_dars_yotiq"); return v === null ? true : v === "1"; } catch { return true; } });
@@ -1800,6 +1802,9 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
         <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? <B e="🎤" /> : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
     </header>
+    {burchakDaftar && <React.Suspense fallback={null}><QoralamaDaftarLazy kalit={`dars:${topicCode}:${mode === "test" ? `t${testIndex}` : idx}`}
+      savol={mode === "test" ? <BoardText text={stripSpeechTags(savollar?.[testIndex]?.savol || "")} /> : <BoardText text={String(step?.doska || "").split("\n")[0]} />}
+      onYop={() => setBurchakDaftar(false)} /></React.Suspense>}
     {adminmi && korinadi && <DarsIzoh apiBase={apiBase} token={token} topicCode={topicCode} darsNomi={lesson.topic?.mavzu || ""} fan={lesson.topic?.fan || ""}
       qadam={mode === "test" ? -1 : idx} qadamTuri={mode === "test" ? `test ${testIndex + 1}` : step?.turi || ""} qadamMatn={mode === "test" ? (savollar?.[testIndex]?.savol || "") : step?.doska || ""}
       soniya={boshlanganRef.current ? Math.round((Date.now() - boshlanganRef.current) / 1000) : null} onQadam={(k) => { if (k >= 0 && k < steps.length) { hush(); go(k, false); } }} />}
@@ -1820,9 +1825,11 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
                         <KidStage compact tur={izohL(izoh)} bayroq={flagSrc(TIL_BAYROQ[izohL(izoh)])} mood={speaking && (kabuKim || "iz") === "iz" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "iz"} /></div>
           <div className={`dx-kabu-robot is-til til-${darsTil} ${speaking && (kabuKim || "iz") === "til" ? "is-faol" : speaking ? "is-jim" : ""}`}>
                         <KidStage compact tur={darsTil} bayroq={flagSrc(TIL_BAYROQ[darsTil] || "")} mood={speaking && (kabuKim || "iz") === "til" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "til"} /></div>
-        </> : <div className="dx-kabu-robot"><KidStage compact tur={String(uiLocale || "uz").slice(0, 2)} mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} speaking={speaking} /></div>}</div>}
+        </> : <div className="dx-kabu-robot"><KidStage compact tur={String(uiLocale || "uz").slice(0, 2)} mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} aylan={celebrate} speaking={speaking} /></div>}</div>}
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
         <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
+        {!kid && ["lesson", "test", "ovoz"].includes(mode) && <button type="button" className="dx-burchak-daftar" onClick={() => { hush(); setBurchakDaftar(true); }}
+          title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}>📝</button>}
           {sinfXona && !kid && <div className="dx-panel-chip" aria-hidden="true">{lesson.topic?.mavzu}</div>}
           {/* REV340: 1–4-sinf — o'yin doska ustida */}
           {!kid && oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam is-maktab">
