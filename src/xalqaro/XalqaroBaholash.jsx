@@ -50,6 +50,8 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     if (rejim === "oquvchi") { setKuzatuv({ rol: "oquvchi" }); return undefined; }
     let tirik = true;
     xbFetch(apiBase, "/api/xalqaro/kuzatuv", token).then((r) => { if (!tirik) return; setKuzatuv(r);
+      try { const tk = localStorage.getItem("kabutar:xb:topshiriq"); if (tk) { localStorage.removeItem("kabutar:xb:topshiriq");
+        if (r.rol === "oquvchi") setEkran({ tur: "mashq", manba: { tur: "topshiriq", kod: tk }, sarlavha: `📝 ${T("Topshiriq")}` }); } } catch { /* */ }   // REV401
       try { if (localStorage.getItem("kabutar:xb:taklif")) { if (r.rol === "oquvchi") setTab("sinfim"); else localStorage.removeItem("kabutar:xb:taklif"); } } catch { /* */ } }).catch(() => tirik && setKuzatuv({ rol: "oquvchi" }));
     return () => { tirik = false; };
   }, [rejim]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -155,7 +157,8 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         <span className="xb-menyu-belgi" aria-hidden="true">{belgi}</span><b>{nom}</b><small>{izoh}</small>
         {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
-    {tab === "sinfim" && kuzatuv?.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
+    {tab === "sinfim" && kuzatuv?.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} ism={user?.full_name || ""}
+      onTopshiriq={(t) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { tur: "topshiriq", kod: t.kod }, sarlavha: `📝 ${t.nom}` }); }} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
     {tab === "natija" && <XbNatijalarim apiBase={apiBase} token={token} kat={kat} toplam={toplam} til={til} onMashq={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} onDars={(m) => ochDars(m)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
     {tab === "kurs" && tp && <Kurs tp={tp} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq} />}
@@ -168,7 +171,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     {tab === "reyting" && <Reyting apiBase={apiBase} token={token} toplam={toplam} />}
     {tab === "dunyo" && <Dunyo apiBase={apiBase} token={token} uz={kat.ozbekiston} />}
     {tab === "metod" && panel && <XbQollanma rol={kuzatuv?.rol} ovoz={ovoz} faqatMetod onTab={setTab} />}
-    {tab === "panel" && panel && <XbOqituvchi apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} kuzatuv={kuzatuv}
+    {tab === "panel" && panel && <XbOqituvchi apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} kuzatuv={kuzatuv} kat={kat}
       onDars={(m) => ochDars({ dars_kodi: m.dars_kodi, kalit: m.kalit, fan: kat.toplamlar.find((t) => t.kalit === m.toplam)?.ustoz_fan, sinf: kat.toplamlar.find((t) => t.kalit === m.toplam)?.sinf })} />}
     {tab === "xato" && <Xatolarim apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} toplam={toplam}
       onMashq={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Xatolar ustida ishlash") })} />}

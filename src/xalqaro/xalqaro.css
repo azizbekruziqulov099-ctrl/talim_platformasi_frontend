@@ -300,3 +300,20 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-ikon.is-on{background:#1B4B7A;color:#fff}
 .xb-ikon:disabled{opacity:.35}
 .xb-savol .cd-root{margin-top:12px}
+/* REV401: kasr, manfiy son va boshqa belgilar uchun tugmalar */
+.xb-belgi-tugmalar{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.xb-belgi-tugmalar button{min-width:46px;height:42px;padding:0 10px;border-radius:12px;border:1px solid rgba(127,127,127,.35);background:rgba(27,75,122,.06);font:700 17px system-ui,sans-serif;cursor:pointer;color:inherit}
+.xb-belgi-tugmalar button:active{background:rgba(27,75,122,.18)}
+.xb-jonli{display:flex;align-items:center;gap:6px;margin:0 0 8px;font-size:13px;opacity:.8}
+.xb-jonli-nuqta{width:9px;height:9px;border-radius:50%;background:#1f8a4c;box-shadow:0 0 0 0 rgba(31,138,76,.6);animation:xb-jonli 2s infinite}
+@keyframes xb-jonli{70%{box-shadow:0 0 0 8px rgba(31,138,76,0)}100%{box-shadow:0 0 0 0 rgba(31,138,76,0)}}
+@media (prefers-reduced-motion:reduce){.xb-jonli-nuqta{animation:none}}
+/* REV401: topshiriqlar */
+.xb-topshiriqlar{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.xb-tp-tug{display:flex;gap:6px;flex-wrap:wrap}
+.xb-tp-natijalar{grid-column:1/-1;overflow-x:auto}
+.xb-aud{display:flex;flex-wrap:wrap;gap:6px}
+.xb-aud button{padding:8px 12px;border-radius:12px;border:2px solid rgba(127,127,127,.3);background:transparent;font:600 14px system-ui;cursor:pointer;color:inherit}
+.xb-aud button.is-on{border-color:#1b4b7a;background:rgba(27,75,122,.1)}
+.xb-fish{display:flex;flex-direction:column;gap:4px;font-weight:600}
+.xb-fish input{padding:10px 12px;border-radius:10px;border:1px solid rgba(127,127,127,.4);font:inherit}

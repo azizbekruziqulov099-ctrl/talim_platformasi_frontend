@@ -624,7 +624,14 @@ try {
     const _u = new URL(window.location.href); _u.searchParams.delete("xb_sinf"); window.history.replaceState(null, "", _u.toString());
   }
 } catch { /* */ }
-const _xbTaklifBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:xb:taklif")); } catch { return false; } };
+try {   // REV401: ?xb_topshiriq=KOD — o'qituvchi bergan topshiriq havolasi
+  const _xbt = new URLSearchParams(window.location.search).get("xb_topshiriq");
+  if (_xbt && /^[A-Za-z0-9]{4,12}$/.test(_xbt)) {
+    window.localStorage.setItem("kabutar:xb:topshiriq", _xbt.toUpperCase());
+    const _u2 = new URL(window.location.href); _u2.searchParams.delete("xb_topshiriq"); window.history.replaceState(null, "", _u2.toString());
+  }
+} catch { /* */ }
+const _xbTaklifBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:xb:taklif") || window.localStorage.getItem("kabutar:xb:topshiriq")); } catch { return false; } };
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
   const { fetch: scopedFetch, scope } = useCurriculum();

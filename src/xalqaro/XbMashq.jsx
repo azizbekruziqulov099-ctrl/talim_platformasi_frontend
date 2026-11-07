@@ -26,8 +26,9 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
 
   useEffect(() => {
     let tirik = true;
-    const path = takror ? "/api/xalqaro/takror" : "/api/xalqaro/mashq";
-    const params = takror ? { soni: 15 } : { mavzu: manba?.mavzu || "", toplam: manba?.toplam || "", soni: manba?.soni || 8, fikrlash: manba?.fikrlash || "", ...(manba?.toplam_i ? { toplam_i: manba.toplam_i } : {}) };
+    const topshiriq = manba?.tur === "topshiriq";   // REV401: sinf topshirig'i — hammaga bir xil savollar
+    const path = takror ? "/api/xalqaro/takror" : topshiriq ? `/api/xalqaro/topshiriq/${encodeURIComponent(manba.kod)}` : "/api/xalqaro/mashq";
+    const params = takror ? { soni: 15 } : topshiriq ? {} : { mavzu: manba?.mavzu || "", toplam: manba?.toplam || "", soni: manba?.soni || 8, fikrlash: manba?.fikrlash || "", ...(manba?.toplam_i ? { toplam_i: manba.toplam_i } : {}) };
     xbFetch(apiBase, path, token, { params }).then((d) => { if (tirik) setSavollar(d.savollar || []); }).catch((e) => tirik && setXato(e.message));
     return () => { tirik = false; ovoz.hush(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -57,7 +58,9 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
 
   const keyingi = () => {
     ovoz.hush();
-    if (i + 1 >= (savollar?.length || 0)) { onTugadi?.(hisob); setI(savollar.length); return; }
+    if (i + 1 >= (savollar?.length || 0)) {
+      if (manba?.tur === "topshiriq") xbFetch(apiBase, `/api/xalqaro/topshiriq/${encodeURIComponent(manba.kod)}/natija`, token, { method: "POST", body: { togri: hisob.togri, jami: savollar.length } }).catch(() => {});
+      onTugadi?.(hisob); setI(savollar.length); return; }
     setI(i + 1);
   };
   const tasdiqOk = useMemo(() => {

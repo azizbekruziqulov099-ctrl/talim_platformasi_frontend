@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import { OqituvchiSinflar, fanMatn } from "./XbSinflar.jsx";   // REV373
+import XbTopshiriqlar from "./XbTopshiriqlar.jsx";   // REV401
 import XbSavol from "./XbSavol.jsx";
 import XbDoska from "./XbDoska.jsx";
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
@@ -92,7 +93,7 @@ function OquvchiTafsilot({ apiBase, token, id, jins, ustoz, til, onYopish }) {
  * eng ko'p xato qilingan savollar (eng ko'p tanlangan noto'g'ri javob va uning sababi) va mavzular, har bir o'quvchining xatolari.
  * Admin istalgan maktabni (yoki butun platformani) tanlaydi; o'qituvchi faqat o'z maktabini ko'radi.
  */
-export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDars }) {
+export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDars, kat = null }) {
   const ovoz = useUstozOvoz(apiBase, jins);
   const [maktab, setMaktab] = useState(0);
   const [sinf, setSinf] = useState("");
@@ -118,6 +119,17 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
     xbFetch(apiBase, "/api/xalqaro/sinf_xatolar", token, { params }).then((r) => t && setX(r)).catch(() => t && setX({ savollar: [], mavzular: [] }));
     return () => { t = false; ovoz.hush(); };
   }, [maktab, sinf, harf, til, xbSinf, xbFan, korinish]); // eslint-disable-line react-hooks/exhaustive-deps
+  // REV401: jonli kuzatuv — sahifa ochiq turganda har 20 soniyada jimgina yangilanadi (o'quvchi yechgani, ismi, holati)
+  const [yangilandi, setYangilandi] = useState(null);
+  useEffect(() => {
+    if (!korinish || tanlangan) return undefined;
+    const yangila = () => { if (document.visibilityState !== "visible") return;
+      xbFetch(apiBase, "/api/xalqaro/sinf_natija", token, { params }).then((r) => { setD(r); setYangilandi(new Date()); }).catch(() => {});
+      xbFetch(apiBase, "/api/xalqaro/sinf_xatolar", token, { params }).then(setX).catch(() => {}); };
+    setYangilandi(new Date());
+    const tm = setInterval(yangila, 20000);
+    return () => clearInterval(tm);
+  }, [maktab, sinf, harf, til, xbSinf, xbFan, korinish, tanlangan]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (tanlangan) return <OquvchiTafsilot apiBase={apiBase} token={token} id={tanlangan} jins={jins} ustoz={ustoz} til={til} onYopish={() => setTanlangan(null)} />;
   const j = d?.jamlama;
@@ -132,6 +144,7 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
   const sn = korinish.tur === "sinf" ? korinish.s : null;
   return <div className="xb-panel">
     <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setKorinish(null); setXbSinf(0); }}>← {T("Mening sinflarim")}</button></div>
+    <p className="xb-jonli" aria-live="polite"><span className="xb-jonli-nuqta" aria-hidden="true" /> {T("Jonli: har 20 soniyada yangilanadi")}{yangilandi ? ` · ${yangilandi.toLocaleTimeString().slice(0, 5)}` : ""}</p>
     {sn ? <div className="xb-sinf-sahifa-bosh">
       <div><h3>🏫 {sn.nom}</h3><span className="xb-fan-yorliq">{fanMatn(sn.toplam)}</span>
         <small className="xb-muted"> · {tf("{n}-sinf", { n: sn.sinf })} · 👥 {d?.jamlama?.jami ?? sn.azolar} {T("o‘quvchi")}</small></div>
@@ -171,8 +184,9 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
       <div className="xb-karta"><small>{T("Bu haftalik nazoratni topshirgan")}</small><b>{j.haftalik}/{j.jami}</b></div>
       <div className="xb-karta"><small>{T("O‘rtacha rasmiy ball")}</small><b>{j.ortacha_ball ?? "—"}</b></div>
     </div>}
-    {(!sn || (d && d.oquvchilar.length > 0)) && <nav className="xb-tablar">{[["oquvchilar", sn ? "📋 Sinf jurnali" : "👥 O‘quvchilar"], ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
+    {(!sn || (d && d.oquvchilar.length > 0)) && <nav className="xb-tablar">{[["oquvchilar", sn ? "📋 Sinf jurnali" : "👥 O‘quvchilar"], ...(sn ? [["topshiriq", "📝 Topshiriqlar"]] : []), ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
       <button key={k} type="button" className={oyna === k ? "is-on" : ""} onClick={() => setOyna(k)}>{T(n)}</button>)}</nav>}
+    {oyna === "topshiriq" && sn && <XbTopshiriqlar apiBase={apiBase} token={token} sinf={sn} til={til} mavzular={(kat?.toplamlar?.find((tp) => tp.kalit === sn.toplam)?.mavzular || x?.mavzular || []).map((m) => ({ kalit: m.kalit, nom: m.nom }))} />}
     {oyna === "oquvchilar" && (!d ? <p className="xb-muted">⏳</p> : d.oquvchilar.length ? <div className="xb-jadval-wrap">
       {sn && <h4>📋 {T("Sinf jurnali")} — {d.oquvchilar.length} {T("o‘quvchi")} <small className="xb-muted">({T("ism bo‘yicha")})</small></h4>}<table className="xb-jadval">
       <thead><tr><th>№</th><th>{T("O‘quvchi")}</th>{sn ? <th>{T("Qo‘shilgan")}</th> : <th>{T("Sinf")}</th>}<th>{T("Holat")}</th><th>{T("Bu hafta")}</th><th>📖 {T("Darslar")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Ochiq xato")}</th><th>{T("Oxirgi ball")}</th><th>{T("Zaif mavzu")}</th><th>🌐 {T("Tillar")}</th></tr></thead>

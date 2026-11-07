@@ -86,10 +86,16 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
       })}
     </div> : <div className="xb-ochiq">
       <label>{T("Javobingiz")}:
-        <input type="text" inputMode={savol.javob_turi === "soz" ? "text" : "decimal"} value={berilgan} disabled={holat !== null || !onJavob}
+        <input type="text" inputMode={savol.javob_turi === "soz" || savol.javob_turi === "kasr" ? "text" : "decimal"} value={berilgan} disabled={holat !== null || !onJavob}
           maxLength={60} onChange={(e) => onJavob?.(e.target.value, "yozib")} placeholder={savol.javob_turi === "kasr" ? "3/4" : savol.javob_turi === "son" ? "0" : ""}
           className={holat === null ? "" : holat.ok ? "is-togri" : "is-xato"} />
       </label>
+      {/* REV401: telefon raqam klaviaturasida «/» va «−» yo'q — shu tugmalar bilan yoziladi */}
+      {savol.javob_turi !== "soz" && holat === null && onJavob && <div className="xb-belgi-tugmalar" aria-label={T("Belgilar")}>
+        {["/", ",", "−", "(", ")", "%", "°"].map((b) => <button key={b} type="button" onPointerDown={(e) => e.preventDefault()}
+          onClick={() => onJavob?.(berilgan + (b === "−" ? "-" : b), "yozib")}>{b === "/" ? "a/b" : b}</button>)}
+        <button type="button" onPointerDown={(e) => e.preventDefault()} onClick={() => onJavob?.(berilgan.slice(0, -1), "yozib")} aria-label={T("O‘chirish")}>⌫</button>
+      </div>}
       {savol.javob_turi === "kasr" && <small className="xb-muted">{T("Kasrni 3/4 ko‘rinishida yoki o‘nli kasr bilan yozing.")}</small>}
     </div>}
     {daftar && <React.Suspense fallback={<p className="xb-muted">…</p>}><ChizmaDaftar kalit={`${savol.savol_id || savol.n || "s"}:${savol.v ?? 0}`} balandlik={toliq ? 420 : 340}
