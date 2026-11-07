@@ -10,7 +10,7 @@ const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
 const MarkazPanel = lazyQayta(() => import("../markaz/MarkazPanel.jsx"));
 const XalqaroBaholash = lazyQayta(() => import("../xalqaro/XalqaroBaholash.jsx"));
 
-export const sinfYozuv = (s) => (/^\d+$/.test(String(s)) ? `${s}-sinf` : String(s));
+export const sinfYozuv = (s) => (/^\d+$/.test(String(s)) ? `${s}-sinf` : /^\d+-\d+$/.test(String(s)) ? `${String(s).replace("-", "–")}-sinf` : String(s));   // REV419: «5–7-sinf»
 // Bolalar kurslari yoshga bo'linmaydi; faqat matematikada dastur yoshi yoziladi
 export const kursNomi = (k) => (k.kategoriya === "bolalar" && /matem/i.test(k.nomi) ? `${k.nomi} (2–7 yosh dasturi)` : k.nomi);
 
@@ -76,6 +76,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {!kurs.yuklanmoqda && <KursGuruh apiBase={apiBase} token={token} user={user} kurs={kurs}
       onDars={(tc, g) => { const x = (kurs.darslar || []).find((y) => y.topic_code === tc); if (x?.ochiq) setDars({ ...x, guruh: g }); else if (x) setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }); }} />}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code}>
+      {kurs.kategoriya === "repetitor" && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
       <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"}`} onClick={() => (d.ochiq ? setDars(d) : setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }))}>
         <span className="kk-raqam">{i + 1}</span><span className="kk-dars-nom">{d.nomi || d.topic_code}{kurs.kategoriya === "bolalar" && (kurs.sinflar || []).length > 1 ? <small> · {__kbUi(`${(kurs.sinflar || []).indexOf(d.sinf) + 1}-qism`)}</small> : null}</span>
         <span className="kk-belgi" aria-label={d.ochiq ? (d.bepul ? __kbUi("bepul") : __kbUi("ochiq")) : __kbUi("yopiq")}>{d.ochiq ? (d.bepul && Number(kurs.narx) > 0 ? "🎁" : "▶") : "🔒"}</span></button></li>)}</ol>
