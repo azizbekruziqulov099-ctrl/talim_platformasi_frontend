@@ -1908,7 +1908,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               if (v) return <div className="dx-answer dx-answer-var">
                 <div className={`dx-var-tugmalar dx-n${v.length}`}>{v.map((o, k) => <button key={k} type="button"
                   className={`dx-var ${tanlanganVar === k ? (o.togri ? "is-ok" : "is-no") : ""}`} disabled={feedback?.ok}
-                  onClick={() => { setTanlanganVar(k); submitAnswer(null, o); }}>{v.length > 2 ? `${"ABCD"[k]}) ` : ""}<BoardText text={o.matn} /></button>)}</div>
+                  onClick={() => { setTanlanganVar(k); submitAnswer(null, o); }}>{v.length > 2 ? `${"ABCDEF"[k]}) ` : ""}<BoardText text={o.matn} /></button>)}</div>
                 <button type="button" className="dx-link" onClick={() => setOzimYozaman(true)}>✏️ {__kbUi("O‘zim yozaman")}</button>
                 {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
               </div>;
@@ -1943,7 +1943,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
               className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : kidOptionQator(o.picture) ? <span className={`kb-qator ${qatorNaqshmi(kidOptionQator(o.picture)) ? "is-satr" : ""}`} aria-hidden="true">{kidOptionQator(o.picture).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span> : (keycapNumber(o.picture) ? <span className="dx-kid-pic kb-num">{keycapNumber(o.picture)}</span> : <span className={`dx-kid-pic sz-${cardSize(o.picture || "x")} ${!o.picture && (o.oqiladi || !o.listen) && o.word ? "is-soz" : ""}`}>{o.picture || (o.oqiladi ? <>🔊 {o.word}</> : o.listen ? k + 1 : (o.word || o.letter))}</span>)}</button>
 </div>)}</div>
             : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
-              className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCD"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}
+              className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCDEF"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}
             {picked !== null && !kid && picked !== q.togri && <div className="dx-why">{q.xatolar?.[String(picked)] && <p className="mdx-xato">⚠ <BoardText text={stripSpeechTags(q.xatolar[String(picked)])} /></p>}{!kid && <p><BoardText text={stripSpeechTags(q.izoh || "")} /></p>}<button type="button" className="dx-btn dx-primary" onClick={nextQuestion}>{__kbUi(testIndex + 1 >= questions.length ? (kid ? "Yulduzlarni ko‘rish ⭐" : "Natija") : (kid ? "Keyingisi ➜" : "Keyingi savol"))}</button></div>}
           </div>}
           {mode === "end" && <div className="dx-test">

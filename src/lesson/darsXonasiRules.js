@@ -54,6 +54,11 @@ export function variantlarYasa(step, steps = []) {
   const rnd = tasodif(step?.id || togri);
   const aralash = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i -= 1) { const j = Math.floor(rnd() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
   const bosh = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  // REV405: Miya'da ustoz o'zi yozgan variantlar («to'g'ri | xato | xato», 2–6 ta) — shular aynan chiqadi
+  if (Array.isArray(step?.variantlar) && step.variantlar.length >= 2) {
+    const v = step.variantlar.slice(0, 6).map(String);
+    return aralash(v).map((t) => ({ matn: t, togri: t === v[0] }));
+  }
   if (HA_YOQ.test(togri)) { const ha = /^(ha|да|yes|ja|sí|si)$/i.test(togri); return aralash([togri, ha ? "Yo‘q" : "Ha"]).map((t) => ({ matn: bosh(t), togri: t === togri })); }
   const n = sonQiymat(togri);
   let boshqa = [];

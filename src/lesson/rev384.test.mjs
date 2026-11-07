@@ -37,3 +37,8 @@ test("REV385: nazariy savolga variantlar — to'g'risi bitta, ha/yo'q — 2 ta, 
   assert.equal(d.length, 4);
   assert.equal(variantlarYasa({ id: "s5", javob: "fotosintez" }, []), null);   // variant yo'q — yozib javob beradi
 });
+test("REV405: ustoz yozgan 2–6 ta variant aynan chiqadi, to'g'risi bitta", () => {
+  const v = variantlarYasa({ id: "x1", javob: "5", variantlar: ["5", "4", "6", "3", "7", "8"] }, []);
+  assert.equal(v.length, 6); assert.equal(v.filter((o) => o.togri).length, 1); assert.ok(v.find((o) => o.togri).matn === "5");
+  assert.equal(variantlarYasa({ id: "x2", javob: "ha", variantlar: ["Ha", "Yo‘q"] }, []).length, 2);
+});
