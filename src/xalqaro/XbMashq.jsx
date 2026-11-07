@@ -48,7 +48,7 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
   useEffect(() => {
     if (manba?.tur !== "topshiriq" || !savollar?.length) return undefined;
     jonliYubor();
-    const t = setInterval(() => { if (document.visibilityState === "visible") jonliYubor(); }, 4000);
+    const t = setInterval(() => { if (document.visibilityState === "visible") jonliYubor(); }, 8000);   // REV414: bazaga yengilroq
     const v = () => jonliYubor(document.visibilityState === "visible" ? "faol" : "chiqdi");
     document.addEventListener("visibilitychange", v); window.addEventListener("pagehide", v);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", v); window.removeEventListener("pagehide", v); jonliYubor("chiqdi"); };

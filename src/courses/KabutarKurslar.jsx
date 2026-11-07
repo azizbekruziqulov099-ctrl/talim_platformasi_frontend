@@ -108,7 +108,7 @@ function GuruhJonli({ apiBase, token, tc }) {
   useEffect(() => {
     const yubor = (holat) => kgFetch(apiBase, "/api/kurs_dars/jonli", token, { method: "POST", body: { topic_code: tc, holat } }).catch(() => {});
     yubor("faol");
-    const t = setInterval(() => { if (document.visibilityState === "visible") yubor("faol"); }, 4000);
+    const t = setInterval(() => { if (document.visibilityState === "visible") yubor("faol"); }, 10000);   // REV414: 10 s (javob va ilovadan chiqish — darhol)
     const v = () => yubor(document.visibilityState === "visible" ? "faol" : "chiqdi");
     document.addEventListener("visibilitychange", v); window.addEventListener("pagehide", v);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", v); window.removeEventListener("pagehide", v); yubor("chiqdi"); };
