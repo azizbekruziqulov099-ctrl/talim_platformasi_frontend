@@ -35,6 +35,16 @@ try {
   window.setTimeout(() => { try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ } }, 20000);
 } catch { /* eski brauzer */ }
 
+// REV415: zaxira himoya — dars ko'rinmay qolganda «butun ekran» belgilari tozalanadi (sayt menyusi yo'qolib, chiqib bo'lmay qolmasin)
+try {
+  window.setInterval(() => {
+    const b = document.body; if (!b) return;
+    if (!b.classList.contains("kb-focus-dars") && !b.classList.contains("kb-dars-yotiq")) return;
+    const korinadi = [...document.querySelectorAll(".dx-root")].some((el) => el.getClientRects().length > 0);
+    if (!korinadi) { b.classList.remove("kb-focus-dars"); b.classList.remove("kb-dars-yotiq"); }
+  }, 1500);
+} catch { /* eski brauzer */ }
+
 // Keep the root error screen in the entry module (REV34).
 class AppErrorBoundary extends React.Component {
   static contextType=InterfaceContext;

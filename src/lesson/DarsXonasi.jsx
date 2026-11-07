@@ -1421,6 +1421,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   // REV175: tik ushlangan telefonda (avtoburish o'chiq bo'lsa ham) dars o'zi yotiq ko'rinishga buriladi —
   // doska, ustoz va tugmalar eniga sig'adi. Qurilma ruxsat bersa — haqiqiy gorizontal holat (to'liq ekran) yoqiladi.
   const tikTelefon = () => { try { return Boolean(globalThis.matchMedia?.("(orientation: portrait) and (max-width: 600px) and (pointer: coarse)").matches); } catch { return false; } };
+  const korinadiRef = useRef(true);
   const [tikHolat, setYotiq] = useState(tikTelefon);
   // REV413: o'quvchi o'zi tanlaydi — yotiq (buriladi) yoki tik (burilmaydi); tanlov eslab qolinadi
   const [yotiqTanlov, setYotiqTanlov] = useState(() => { try { const v = localStorage.getItem("kb_dars_yotiq"); return v === null ? true : v === "1"; } catch { return true; } });
@@ -1432,7 +1433,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
     globalThis.addEventListener?.("orientationchange", yangila);
     return () => { globalThis.removeEventListener?.("resize", yangila); globalThis.removeEventListener?.("orientationchange", yangila); };
   }, []);
-  useEffect(() => { document.body.classList.toggle("kb-dars-yotiq", yotiq); return () => document.body.classList.remove("kb-dars-yotiq"); }, [yotiq]);
+  useEffect(() => { document.body.classList.toggle("kb-dars-yotiq", yotiq && korinadiRef.current); return () => document.body.classList.remove("kb-dars-yotiq"); }, [yotiq]);
   // REV177: ekran burilganda — qisqa animatsiya (telefon belgisi aylanadi, dars sekin paydo bo'ladi)
   const [burish, setBurish] = useState(false);
   useEffect(() => {
@@ -1484,10 +1485,20 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
     el.querySelectorAll("img").forEach((im) => { if (!im.complete) im.addEventListener("load", sigdir, { once: true }); });
     return () => { clearTimeout(t); ro?.disconnect(); mo?.disconnect(); cancelAnimationFrame(kut); };
   }, [sinfXona, idx, mode, testIndex, picked, variant, yotiq, tanlov]); // eslint-disable-line react-hooks/exhaustive-deps
+  // REV415: dars sahifasi ko'rinmay qolsa (boshqa bo'limga o'tilgan, lekin dars yopilmagan) — saytning menyu va tugmalari
+  // yashirin qolib ketmasin: «butun ekran» belgisi faqat dars haqiqatan ko'rinib turganda qo'yiladi.
+  const rootRef = useRef(null);
+  const [korinadi, setKorinadi] = useState(true);
   useEffect(() => {
-    document.body.classList.toggle("kb-focus-dars", focus);
+    const t = setInterval(() => { const el = rootRef.current; setKorinadi(Boolean(el && el.isConnected && (el.offsetParent !== null || getComputedStyle(el).position === "fixed") && el.getClientRects().length)); }, 1000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    korinadiRef.current = korinadi;
+    document.body.classList.toggle("kb-focus-dars", focus && korinadi);
+    document.body.classList.toggle("kb-dars-yotiq", yotiq && korinadi);
     return () => document.body.classList.remove("kb-focus-dars");
-  }, [focus]);
+  }, [focus, korinadi]);
   useEffect(() => {
     if (!focus) return undefined;
     const key = (e) => { if (e.key === "Escape" && !kidRef.current && !document.querySelector(".dx-repetitor-oyna")) exitRef.current?.(); };
@@ -1769,7 +1780,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       <div key={x.key} className={`dx-line mdx-line ${x.qoida ? "dx-rule" : ""} ${x.p < 1 ? "is-yozilmoqda" : ""}`}
         style={lattaP > 0 && k < och ? { opacity: 1 - lattaP } : undefined}><MatQator qator={x.q} progress={x.p} /></div>)];
   };
-  return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
+  return <section ref={rootRef} className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className={`dx-head ${boshYigiq ? "is-yigiq" : ""}`}>
       {tikHolat && focus && <button type="button" className="dx-burish-fab" onClick={yotiqAlmashtir} aria-label={yotiq ? __kbUi("Tik ko‘rinish") : __kbUi("Yotiq ko‘rinish")} title={yotiq ? __kbUi("Ekranni burmasdan (tik) ko‘rish") : __kbUi("Ekranni yotiq qilib ko‘rish")}>{yotiq ? "📱" : "↻"}</button>}
@@ -1789,7 +1800,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
         <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? <B e="🎤" /> : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
     </header>
-    {adminmi && <DarsIzoh apiBase={apiBase} token={token} topicCode={topicCode} darsNomi={lesson.topic?.mavzu || ""} fan={lesson.topic?.fan || ""}
+    {adminmi && korinadi && <DarsIzoh apiBase={apiBase} token={token} topicCode={topicCode} darsNomi={lesson.topic?.mavzu || ""} fan={lesson.topic?.fan || ""}
       qadam={mode === "test" ? -1 : idx} qadamTuri={mode === "test" ? `test ${testIndex + 1}` : step?.turi || ""} qadamMatn={mode === "test" ? (savollar?.[testIndex]?.savol || "") : step?.doska || ""}
       soniya={boshlanganRef.current ? Math.round((Date.now() - boshlanganRef.current) / 1000) : null} onQadam={(k) => { if (k >= 0 && k < steps.length) { hush(); go(k, false); } }} />}
     {kid && focus && <button type="button" className="dx-rotate" onClick={kengaytir}><i aria-hidden="true">📱</i>{__kbUi("Telefonni yotqizing — dars kattaroq ko‘rinadi")}</button>}
