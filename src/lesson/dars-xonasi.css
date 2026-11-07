@@ -1100,3 +1100,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 /* REV392: doskaga yozuvchi poza — o'ng tomondagi ustoz chapga (doskaga) qaraydi */
 .dx-root.dx-sinf.dx-ustoz-ong .dx-sinf-fon .us-teacher.poza-7 .us-ich{transform:scaleX(-1)}
 .dx-root.dx-sinf .dx-sinf-fon .us-teacher.poza-7{height:80%}
+/* REV400: qoralama daftar ichida to'liq chizma daftari */
+.qd-varaq>.cd-root{flex:1;height:auto !important;min-height:0}
+.qd-varaq>.cd-root .cd-tutqich{display:none}

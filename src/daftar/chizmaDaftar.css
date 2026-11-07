@@ -1,0 +1,28 @@
+/* REV400: Chizma daftari */
+.cd-root{position:relative;display:flex;flex-direction:column;min-height:180px;border:1px solid #d9d3c7;border-radius:16px;background:#f5f2ea;overflow:hidden;outline:none;color:#1d2b3a;font-family:system-ui,sans-serif}
+.cd-root.is-toliq{position:fixed;inset:0;z-index:2147483098;border-radius:0;border:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.cd-tutqich{height:16px;display:flex;align-items:center;justify-content:center;cursor:ns-resize;touch-action:none;background:#ece7dc}
+.cd-tutqich i{width:44px;height:5px;border-radius:3px;background:#b9b2a4}
+.cd-asboblar{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:6px 8px;background:#fff;border-bottom:1px solid #e2ddd1}
+.cd-g{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.cd-t{min-width:38px;height:38px;padding:0 8px;border-radius:10px;border:1px solid #d9d3c7;background:#fff;font:600 16px system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:2px;color:#1d2b3a}
+.cd-t.is-on{background:#1B4B7A;border-color:#1B4B7A;color:#fff}
+.cd-t:disabled{opacity:.4}
+.cd-qalin i{display:block;width:22px;border-radius:9px}
+.cd-rang{width:30px;height:30px;border-radius:50%;border:3px solid #fff;background:var(--r);box-shadow:0 0 0 1px #c9c2b4;cursor:pointer}
+.cd-rang.is-on{box-shadow:0 0 0 3px #1B4B7A}
+.cd-fon{height:38px;border-radius:10px;border:1px solid #d9d3c7;background:#fff;font:500 14px system-ui;padding:0 6px}
+.cd-shakllar{position:absolute;left:8px;top:110px;z-index:5;width:min(420px,calc(100% - 16px));max-height:calc(100% - 120px);overflow:auto;background:#fff;border-radius:14px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:10px}
+.cd-root:not(.is-toliq) .cd-shakllar{top:64px}
+.cd-shakllar small{display:block;margin:4px 2px 6px;font-weight:700;color:#5b6573}
+.cd-shakllar>div{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:8px}
+.cd-shakllar button{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;border:1px solid #e2ddd1;background:#fff;font:500 13px system-ui;text-align:left;cursor:pointer;color:#1d2b3a}
+.cd-shakllar button span{font-size:20px;width:24px;text-align:center}
+.cd-shakllar button.is-on{border-color:#1B4B7A;background:#e8eef6}
+.cd-shakllar p{margin:4px 2px 0;font-size:12px;color:#5b6573}
+.cd-sarlavha{padding:8px 14px;background:#fff;border-bottom:1px solid #e2ddd1;max-height:22vh;overflow:auto;font-size:16px}
+.cd-varaq{flex:1;min-height:0;width:100%;touch-action:none;background-color:#fff;cursor:crosshair}
+.cd-varaq.is-katak{background-image:linear-gradient(#dbe6f3 1px,transparent 1px),linear-gradient(90deg,#dbe6f3 1px,transparent 1px);background-size:24px 24px}
+.cd-varaq.is-chiziq{background-image:linear-gradient(#dbe6f3 1px,transparent 1px);background-size:100% 30px}
+.cd-varaq.is-asbob-tanla{cursor:default}.cd-varaq.is-asbob-ochir{cursor:cell}.cd-varaq.is-asbob-matn{cursor:text}
+@media (max-width:560px){.cd-t{min-width:34px;height:34px;font-size:15px}.cd-rang{width:26px;height:26px}.cd-asboblar{gap:4px 6px}}

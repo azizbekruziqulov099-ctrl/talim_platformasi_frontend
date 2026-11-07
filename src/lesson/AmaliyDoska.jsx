@@ -147,7 +147,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}
     </div>}
     {!kid && <button type="button" className="dx-btn dx-daftar-och" onClick={() => { setKlav(false); setDaftar(true); }}>📝 {__kbUi("Qoralama daftarda yechish")}</button>}
-    {daftar && <QoralamaDaftar savol={<>{lines.map((line, i) => <p key={i}><BoardText text={line} /></p>)}</>}
+    {daftar && <QoralamaDaftar kalit={`dars:${item.kod || ""}`} savol={<>{lines.map((line, i) => <p key={i}><BoardText text={line} /></p>)}</>}
       chizma={item.rasm ? <img className="qd-rasm" src={mediaUrl(item.rasm)} alt="" /> : null}
       onJavob={!options.length && kutilgan ? () => { setDaftar(false); setKlav(true); } : null} onYop={() => setDaftar(false)} />}
     {klav && <MatKlaviatura kutilgan={kutilgan} qiymat={answer} onChange={(v) => { setAnswer(v); setFeedback(null); }} onTekshir={submit} onYop={() => setKlav(false)} />}

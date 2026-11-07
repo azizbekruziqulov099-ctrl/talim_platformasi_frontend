@@ -293,3 +293,10 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 @media (max-width:560px){.xb-tp{grid-template-columns:auto minmax(0,1fr)}.xb-tp>.xb-btn{grid-column:1/-1}}
 .xb-mashq-toplam{font-size:13px;font-weight:700;opacity:.8}
 .xb-tp-matn .xb-chiziq{flex:none;width:100%;height:8px}
+/* REV400: savol matnini kattalashtirish, butun ekran */
+.xb-savol .xb-savol-matn,.xb-savol .xb-variant,.xb-savol .xb-stimul-matn{font-size:calc(1em * var(--xb-shrift,1))}
+.xb-savol.is-toliq{position:fixed;inset:0;z-index:2147483090;overflow:auto;background:var(--xb-fon,#fff);padding:max(16px,env(safe-area-inset-top)) max(16px,4vw) 24px;border-radius:0;margin:0}
+.xb-savol.is-toliq .xb-savol-rasm{max-height:52vh}
+.xb-ikon.is-on{background:#1B4B7A;color:#fff}
+.xb-ikon:disabled{opacity:.35}
+.xb-savol .cd-root{margin-top:12px}

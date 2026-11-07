@@ -5,6 +5,9 @@ import { BoardText } from "../lesson/AmaliyDoska.jsx";
 import { FIKRLASH, ovozdanJavob, ovozdanVariant, svgUrl } from "./xbRules.js";
 import { useMikrofon } from "./xbOvoz.js";
 import { MIK_TIL } from "./xbTil.js";
+const ChizmaDaftar = React.lazy(() => import("../daftar/ChizmaDaftar.jsx"));   // REV400: yechish uchun daftar
+const SHRIFT = [1, 1.15, 1.3, 1.5, 1.75];
+const shriftOl = () => { try { const n = Number(localStorage.getItem("kabutar:xb:shrift")); return SHRIFT.includes(n) ? n : 1; } catch { return 1; } };
 
 /** PISA birligining umumiy matni / jadvali / grafigi: savol yonida doim ochiq, uzun bo'lsa o'ralib turadi. */
 function Stimul({ stimul, imtihon }) {
@@ -26,6 +29,11 @@ function Stimul({ stimul, imtihon }) {
 export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raqam = null, imtihon = false, korsatkich = true }) {
   const til = xbTil();
   const mik = useMikrofon(MIK_TIL[til]);   // REV270: mikrofon o'quvchi tilida tinglaydi
+  const [shrift, setShrift] = React.useState(shriftOl);   // REV400: matnni kattalashtirish
+  const [toliq, setToliq] = React.useState(false);        // REV400: savolni butun ekranga
+  const [daftar, setDaftar] = React.useState(false);      // REV400: yozuv daftari
+  const shriftQoy = (d) => { const i = Math.max(0, Math.min(SHRIFT.length - 1, SHRIFT.indexOf(shrift) + d)); setShrift(SHRIFT[i]); try { localStorage.setItem("kabutar:xb:shrift", String(SHRIFT[i])); } catch { /* */ } };
+  React.useEffect(() => { if (!toliq) return undefined; const k = (e) => { if (e.key === "Escape") setToliq(false); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [toliq]);
   if (!savol) return null;
   const tanlov = savol.turi === "tanlov";
   const oqib = () => {
@@ -44,7 +52,7 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
     }
   });
   const berilgan = String(javob ?? "");
-  return <div className={`xb-savol ${imtihon ? "is-imtihon" : ""}`}>
+  return <div className={`xb-savol ${imtihon ? "is-imtihon" : ""} ${toliq ? "is-toliq" : ""}`} style={{ "--xb-shrift": shrift }}>
     <div className="xb-savol-bosh">
       {raqam !== null && <span className="xb-savol-raqam">{raqam}</span>}
       {korsatkich && !imtihon && <span className="xb-chip">{T(FIKRLASH[savol.fikrlash] || "")}</span>}
@@ -52,6 +60,10 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
       {korsatkich && !imtihon && savol.xalqaro_foiz !== null && savol.xalqaro_foiz !== undefined &&
         <span className="xb-chip xb-chip-dunyo" title={T("Shunga o‘xshash TIMSS savolini dunyo bo‘yicha to‘g‘ri yechganlar ulushi")}>🌍 {savol.xalqaro_foiz}%</span>}
       <span className="xb-savol-tug">
+        <button type="button" className="xb-ikon" onClick={() => shriftQoy(-1)} disabled={shrift === SHRIFT[0]} aria-label={T("Matnni kichraytirish")} title={T("Matnni kichraytirish")}>A−</button>
+        <button type="button" className="xb-ikon" onClick={() => shriftQoy(1)} disabled={shrift === SHRIFT[SHRIFT.length - 1]} aria-label={T("Matnni kattalashtirish")} title={T("Matnni kattalashtirish")}>A+</button>
+        <button type="button" className={`xb-ikon ${toliq ? "is-on" : ""}`} onClick={() => setToliq((x) => !x)} aria-label={toliq ? T("Kichraytirish") : T("Butun ekranga")} title={toliq ? T("Kichraytirish (Esc)") : T("Butun ekranga")}>{toliq ? "🗗" : "⛶"}</button>
+        <button type="button" className={`xb-ikon ${daftar ? "is-on" : ""}`} onClick={() => setDaftar((x) => !x)} aria-label={T("Yozuv daftari")} title={T("Yozuv daftari — yechimni chizib, yozib ishlang")}>✏️</button>
         {ovoz && <button type="button" className="xb-ikon" onClick={oqib} aria-label={T("Savolni o‘qib ber")} title={T("Savolni o‘qib ber")}>🔊</button>}
         {mik.mavjud && onJavob && holat === null && <button type="button" className={`xb-ikon ${mik.tinglash ? "is-on" : ""}`} onClick={mik.tinglash ? mik.toxta : ayt}
           aria-label={T("Javobni ayting")} title={T("Javobni ovoz bilan ayting")}>🎤</button>}
@@ -80,5 +92,7 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
       </label>
       {savol.javob_turi === "kasr" && <small className="xb-muted">{T("Kasrni 3/4 ko‘rinishida yoki o‘nli kasr bilan yozing.")}</small>}
     </div>}
+    {daftar && <React.Suspense fallback={<p className="xb-muted">…</p>}><ChizmaDaftar kalit={`${savol.savol_id || savol.n || "s"}:${savol.v ?? 0}`} balandlik={toliq ? 420 : 340}
+      sarlavha={savol.savol} onYop={() => setDaftar(false)} /></React.Suspense>}
   </div>;
 }
