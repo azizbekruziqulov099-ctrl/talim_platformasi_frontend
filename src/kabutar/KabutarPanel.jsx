@@ -16,6 +16,7 @@ import KabutarMeetingDialog from "./KabutarMeetingDialog.jsx";
 import KabutarTerms from "./KabutarTerms.jsx";
 import "./kabutar-chat.css";
 import "./kabutar-tg.css";   // REV389: Telegram uslubi
+import { SorovnomaForma, SorovnomaKarta } from "./KabutarSorovnoma.jsx";   // REV416
 
 // Ranglar — maktab ish maydoni palitrasi bilan bir xil
 const palette = {
@@ -102,6 +103,7 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const [tvKorinadi, setTvKorinadi] = useState(true);   // REV389: admin Kabutar TV ni o'chirib-yoqadi
   useEffect(() => { fetch(`${String(apiBase || "").replace(/\/+$/, "")}/api/kabutar_tv/korinish`).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.korinadi === false) setTvKorinadi(false); }).catch(() => {}); }, [apiBase]);
   const [emojiOchiq, setEmojiOchiq] = useState(false);
+  const [pollOchiq, setPollOchiq] = useState(false);   // REV416: so'rovnoma formasi
   const [qatorMenyu, setQatorMenyu] = useState(null);
   const [qadalganXabar, setQadalgan] = useState(null);   // REV395: suhbatda qadalgan xabar
   const [qidiruv, setQidiruv] = useState(null);      // REV395: suhbat ichida qidirish {matn, i}
@@ -859,7 +861,9 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
                 {m.ochirilgan && <span className="kb-deleted-message">{t("Xabar o‘chirilgan")}</span>}
                 {m.javob_xabar_id && !threadTargetId && <div className="kb-reply-quote mb-1.5 pl-2 border-l-2 text-[11px] opacity-75" role="button" tabIndex={0}
                   onClick={() => { const el = bodyRef.current?.querySelector(`[data-kb-message-id="${m.javob_xabar_id}"]`); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("is-yoritilgan"); setTimeout(() => el.classList.remove("is-yoritilgan"), 1400); } }}><b>{m.javob_yuboruvchi_ismi || t("Xabar")}</b><div className="truncate">{m.javob_matn_qisqa || t("Media")}</div></div>}
-                {!m.ochirilgan && m.matn && !isPhotoMessage(m) && <div className="whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}
+                {!m.ochirilgan && m.sorovnoma && <SorovnomaKarta s={m.sorovnoma} apiBase={apiBase} token={token}
+                  onYangi={(yangi) => setMessages((old) => old.map((x) => (x.id === m.id ? { ...x, sorovnoma: yangi } : x)))} />}
+                {!m.ochirilgan && m.matn && !m.sorovnoma && !isPhotoMessage(m) && <div className="whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}
                 {!m.ochirilgan && m.fayl_turi === "audio" && <div className="kb-ovozli"><audio controls preload="none" className="mt-1 w-56 max-w-full" ref={(el) => { if (el) el.playbackRate = ovozTezlik; }} src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>
                   <button type="button" className="kb-ovoz-tezlik" onClick={(e) => { e.stopPropagation(); const n = ovozTezlik === 1 ? 1.5 : ovozTezlik === 1.5 ? 2 : 1; setOvozTezlik(n); bodyRef.current?.querySelectorAll(".kb-ovozli audio").forEach((a) => { a.playbackRate = n; }); }} title={t("Tinglash tezligi")}>{String(ovozTezlik).replace(".", ",")}×</button></div>} 
                 {!m.ochirilgan && m.fayl_turi === "video" && <video controls playsInline preload="none" className={`mt-1 ${peer?.kanal ? "w-[560px]" : "w-64"} max-w-full rounded-lg`} src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
@@ -893,6 +897,8 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
           : <div className={`kb-composer ${threadTargetId ? "kb-composer--comment" : ""}`} style={{ borderColor: palette.line }}>
             {peer.guruh_id && <div className="kb-composer-context"><strong>{threadTargetId ? t("Shu xabarga izoh") : t("Guruhga yangi xabar")}</strong><small>{threadTargetId ? t("Izoh shu muhokama ichida saqlanadi.") : t("Yangi xabar alohida muhokama boshlaydi.")}</small></div>}
             {active && !peer.kanal && <KabutarMediaComposer key={`${apiBase}:${token}:${composerKey}`} conversationKey={composerKey} conversationLabel={peer.full_name} disabled={!canWrite || Boolean(threadTargetId && !threadRoot) || sending || Boolean(editing) || Boolean(call) || Boolean(meetingGroupId) || directory?.policy?.eligible === false} onSend={send} onBusyChange={setMediaBusy}/>}
+            {!peer.kanal && <button type="button" className={`kb-emoji-btn kb-poll-btn ${pollOchiq ? "is-on" : ""}`} onClick={() => setPollOchiq((x) => !x)} title={t("So‘rovnoma")} aria-label={t("So‘rovnoma")}>📊</button>}
+            {pollOchiq && <SorovnomaForma apiBase={apiBase} token={token} peer={peer} onYopish={() => setPollOchiq(false)} onYaratildi={() => loadMessages(peer.user_id || 0)} />}
             <button type="button" className={`kb-emoji-btn ${emojiOchiq ? "is-on" : ""}`} onClick={() => setEmojiOchiq((x) => !x)} aria-label={t("Emoji")} aria-expanded={emojiOchiq}>😊</button>
             {emojiOchiq && <div className="kb-emoji-panel" role="dialog" aria-label={t("Emoji")}>{EMOJILAR.map((e) => <button key={e} type="button" onClick={() => { const el = textareaRef.current; const a = el?.selectionStart ?? text.length, b = el?.selectionEnd ?? text.length; setText(text.slice(0, a) + e + text.slice(b)); setTimeout(() => { el?.focus(); el?.setSelectionRange?.(a + e.length, a + e.length); }, 0); }}>{e}</button>)}</div>}
             <textarea ref={textareaRef} maxLength={peer.kanal ? 500 : 4000} disabled={!canWrite || Boolean(threadTargetId && !threadRoot) || directory?.policy?.eligible === false} value={text} onChange={e => { setText(e.target.value); qoralamaYoz(e.target.value);
