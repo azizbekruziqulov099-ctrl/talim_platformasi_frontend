@@ -99,6 +99,6 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
       {savol.javob_turi === "kasr" && <small className="xb-muted">{T("Kasrni 3/4 ko‘rinishida yoki o‘nli kasr bilan yozing.")}</small>}
     </div>}
     {daftar && <React.Suspense fallback={<p className="xb-muted">…</p>}><ChizmaDaftar kalit={`${savol.savol_id || savol.n || "s"}:${savol.v ?? 0}`} balandlik={toliq ? 420 : 340}
-      sarlavha={savol.savol} onYop={() => setDaftar(false)} /></React.Suspense>}
+      sarlavha={<CourseText text={savol.savol} />} onYop={() => setDaftar(false)} /></React.Suspense>}
   </div>;
 }

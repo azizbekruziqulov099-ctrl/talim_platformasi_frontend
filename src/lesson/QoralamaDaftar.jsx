@@ -13,7 +13,7 @@ export default function QoralamaDaftar({ savol = null, chizma = null, onJavob, o
       {chizma}
       <button type="button" className="qd-yop" onClick={onYop} aria-label={__kbUi("Yopish")}>✕</button>
     </div>
-    <div className="qd-varaq"><ChizmaDaftar kalit={kalit} balandlik={9999} /></div>
+    <div className="qd-varaq"><ChizmaDaftar kalit={kalit} balandlik={9999} sarlavha={savol} savolQatori={false} /></div>
     {onJavob && <div className="qd-asboblar"><button type="button" className="qd-javob" onClick={onJavob}>✏️ {__kbUi("Javobni yozish")}</button></div>}
   </div>;
   return joy ? createPortal(oyna, joy) : oyna;

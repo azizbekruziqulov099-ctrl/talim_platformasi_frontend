@@ -1421,7 +1421,11 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   // REV175: tik ushlangan telefonda (avtoburish o'chiq bo'lsa ham) dars o'zi yotiq ko'rinishga buriladi —
   // doska, ustoz va tugmalar eniga sig'adi. Qurilma ruxsat bersa — haqiqiy gorizontal holat (to'liq ekran) yoqiladi.
   const tikTelefon = () => { try { return Boolean(globalThis.matchMedia?.("(orientation: portrait) and (max-width: 600px) and (pointer: coarse)").matches); } catch { return false; } };
-  const [yotiq, setYotiq] = useState(tikTelefon);
+  const [tikHolat, setYotiq] = useState(tikTelefon);
+  // REV413: o'quvchi o'zi tanlaydi — yotiq (buriladi) yoki tik (burilmaydi); tanlov eslab qolinadi
+  const [yotiqTanlov, setYotiqTanlov] = useState(() => { try { const v = localStorage.getItem("kb_dars_yotiq"); return v === null ? true : v === "1"; } catch { return true; } });
+  const yotiq = tikHolat && yotiqTanlov;
+  const yotiqAlmashtir = () => { const n = !yotiqTanlov; setYotiqTanlov(n); try { localStorage.setItem("kb_dars_yotiq", n ? "1" : "0"); } catch { /* */ } };
   useEffect(() => {
     const yangila = () => setYotiq(tikTelefon());
     globalThis.addEventListener?.("resize", yangila);
@@ -1768,6 +1772,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   return <section className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className={`dx-head ${boshYigiq ? "is-yigiq" : ""}`}>
+      {tikHolat && focus && <button type="button" className="dx-burish-fab" onClick={yotiqAlmashtir} aria-label={yotiq ? __kbUi("Tik ko‘rinish") : __kbUi("Yotiq ko‘rinish")} title={yotiq ? __kbUi("Ekranni burmasdan (tik) ko‘rish") : __kbUi("Ekranni yotiq qilib ko‘rish")}>{yotiq ? "📱" : "↻"}</button>}
       {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={onClose ? () => { exitLesson(); hush(); onClose(); } : exitLesson} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>
@@ -1776,6 +1781,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       <div className="dx-head-actions">
         {/* REV383: darsdan har doim chiqish mumkin — oldingi sahifaga qaytadi */}
         {onClose && !focus && <button type="button" className="dx-btn dx-orqa" onClick={() => { hush(); onClose(); }}>← {__kbUi("Ortga")}</button>}
+        {tikHolat && <button type="button" className="dx-btn dx-burish" onClick={yotiqAlmashtir} title={yotiq ? __kbUi("Ekranni burmasdan (tik) ko‘rish") : __kbUi("Ekranni yotiq qilib ko‘rish")}>{yotiq ? "📱" : "↻"} {yotiq ? __kbUi("Tik") : __kbUi("Yotiq")}</button>}
         {adminmi && <span className="dx-chip dx-kod" title={__kbUi("Dars kodi — izohda shu kod yoziladi")}>🔖 {topicCode}</span>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}

@@ -1,6 +1,7 @@
 import {InterfaceContext} from '../interface/InterfacePreferences.jsx';
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
 import React from 'react';
+import { chunkXatosimi, yangiVersiyagaOt } from '../pwa/tiklash.js';   // REV413
 
 export default class AppErrorBoundary extends React.Component {
   static contextType=InterfaceContext;
@@ -16,9 +17,7 @@ export default class AppErrorBoundary extends React.Component {
       this.setState({ joy: joy.slice(0, 200) }); console.error("[Kabutar bo‘lim xatosi]", error, info?.componentStack); } catch { /* */ }
     // REV305: yangi versiya chiqqanda eski sahifa bo'lak (chunk) topa olmasa — sahifa bir marta o'zi yangilanadi
     const m = String(error?.message || error || "");
-    if (/dynamically imported module|Importing a module script failed|Loading chunk|preload CSS|Failed to fetch/i.test(m)) {
-      try { if (!sessionStorage.getItem("kb_bolim_qayta")) { sessionStorage.setItem("kb_bolim_qayta", "1"); setTimeout(() => location.reload(), 300); } } catch { /* */ }
-    }
+    if (chunkXatosimi(m)) yangiVersiyagaOt();   // REV413: keshni tozalab, yangi versiyaga o'zi o'tadi
   }
   render() {
     if (!this.state.failed) return this.props.children;
@@ -28,7 +27,7 @@ export default class AppErrorBoundary extends React.Component {
         <h1 style={{ fontSize: 26 }}>{__kbUi("Bu bo‘limni ochib bo‘lmadi")}</h1>
         <p style={{ lineHeight: 1.6 }}>{__kbUi("Bu bo‘limni qayta oching yoki menyudan boshqa bo‘limni tanlang.")}</p>
         {this.state.xato && <p style={{ fontSize: 12, color: '#7a8a8e', wordBreak: 'break-word' }}>{this.state.xato}{this.state.joy ? ` — ${this.state.joy}` : ""}</p>}
-        <button type="button" onClick={() => { try { sessionStorage.removeItem("kb_bolim_qayta"); } catch { /* */ } this.setState({failed:false}); }} style={{ border: 0, borderRadius: 12, background: '#087f79', color: 'white', padding: '14px 20px', fontWeight: 700, cursor: 'pointer' }}>{__kbUi("Bo‘limni qayta ochish")}</button>
+        <button type="button" onClick={() => { if (chunkXatosimi(this.state.xato)) { yangiVersiyagaOt({ majburiy: true }); return; } this.setState({failed:false}); }} style={{ border: 0, borderRadius: 12, background: '#087f79', color: 'white', padding: '14px 20px', fontWeight: 700, cursor: 'pointer' }}>{__kbUi("Bo‘limni qayta ochish")}</button>
       </section>
     </div>;
   }

@@ -7,6 +7,7 @@ import "katex/dist/katex.min.css";
 import "./index.css";
 import { rasmTiklashniYoq } from "./pwa/rasmTiklash.js";
 import { versiyaTekshirishniBoshla } from "./pwa/versiyaTekshir.js";   // REV378
+import { yangiVersiyagaOt } from "./pwa/tiklash.js";   // REV413
 import { startYangiAlifbo } from "./interface/yangiAlifbo.js";
 import { startIzohBayroq } from "./interface/izohBayroq.js";
 import App from "./App.jsx";
@@ -26,7 +27,9 @@ try {
     // REV307: faqat CSS yuklanmasa jim davom etamiz (JS ishlayveradi). JS bo'lagi yuklanmasa — xato yashirilmaydi
     // (aks holda Vite bo'sh modul qaytarib, «reading 'default'» xatosi chiqardi): qayta urinish va kerak bo'lsa
     // sahifani bir marta yangilashni lazy yuklovchilar (_samtmLazyRetry, lazyQayta) va bo'lim xato oynasi qiladi.
-    if (/preload CSS/i.test(String(event?.payload?.message || ""))) event.preventDefault?.();
+    if (/preload CSS/i.test(String(event?.payload?.message || ""))) { event.preventDefault?.(); return; }
+    // REV413: JS bo'lagi topilmadi — eski versiya: keshni tozalab yangi versiyaga o'tamiz
+    event.preventDefault?.(); yangiVersiyagaOt();
   });
   // sahifa yaxshi ochilgach belgi tozalanadi — keyingi deployda ham bir marta yangilansin
   window.setTimeout(() => { try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ } }, 20000);
@@ -49,7 +52,7 @@ class AppErrorBoundary extends React.Component {
           <small style={{ color: "#087f79", fontWeight: 800, letterSpacing: 2 }}>{__kbUi("KABUTAR")}</small>
           <h1 style={{ fontSize: 26 }}>{__kbUi("Bu bo‘limni ochib bo‘lmadi")}</h1>
           <p style={{ lineHeight: 1.6 }}>{__kbUi("Sahifani yangilab, qayta urinib ko‘ring. Saqlanmagan matn qayta kiritilishi mumkin.")}</p>
-          <button type="button" onClick={() => window.location.reload()} style={{ border: 0, borderRadius: 12, background: "#087f79", color: "white", padding: "14px 20px", fontWeight: 700, cursor: "pointer" }}>{__kbUi("Sahifani yangilash")}</button>
+          <button type="button" onClick={() => yangiVersiyagaOt({ majburiy: true })} style={{ border: 0, borderRadius: 12, background: "#087f79", color: "white", padding: "14px 20px", fontWeight: 700, cursor: "pointer" }}>{__kbUi("Sahifani yangilash")}</button>
         </section>
       </main>
     );

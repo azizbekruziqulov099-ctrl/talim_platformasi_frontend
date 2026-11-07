@@ -489,18 +489,11 @@ const AdminSertifikat = React.lazy(() => import("./admin/AdminSertifikat.jsx"));
 // Deploydan keyin brauzer eski chunk nomini eslab qolsa oq ekran bermaydi:
 // bir marta yangilanadi, qayta xato bo'lsa haqiqiy xato ko'rsatiladi.
 // REV307: avval tarmoq uzilishi uchun 3 marta qayta urinish (1, 2, 4 s), keyin — sahifani bir marta yangilash
+import * as _kbTiklash from "./pwa/tiklash.js";   // REV413: eski bo'lak — keshni tozalab yangi versiyaga o'tish
 const _samtmLazyRetry = (loader) => React.lazy(() => _kbYuklaQayta(loader).then((mod) => {
   try { window.sessionStorage.removeItem("samtm_chunk_reload"); } catch { /* jim */ }
   return mod;
-}).catch((err) => {
-  let already = false;
-  try {
-    already = window.sessionStorage.getItem("samtm_chunk_reload") === "1";
-    if (!already) window.sessionStorage.setItem("samtm_chunk_reload", "1");
-  } catch { /* jim */ }
-  if (!already) { window.location.reload(); return new Promise(() => {}); }
-  throw err;
-}));
+}).catch((err) => _kbTiklash.yangiVersiyagaOt().then((ok) => { if (ok) return new Promise(() => {}); throw err; })));   // REV413
 
 const lazyAnalytics = (exportName) =>
   _samtmLazyRetry(() =>
@@ -11536,6 +11529,12 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
             </button>
           </div>
 
+          {/* REV413: uch yo'l — Kabutar kursidan (fan va guruh o'zi to'ladi), ro'yxatdagi fandan yoki o'zi nom yozib */}
+          <KursdanTanlash token={token} onTanla={(k) => {
+            setYangiMaxsusSinf(true); setYangiSinfTuri(yangiSinfTuri || "togarak"); setYangiSinf("");
+            setYangiSinfMatni((k.sinflar || [])[0] || k.nomi || ""); setYangiFan(k.fan || ""); setYangiFanOzicha(true);
+            if (!yangiNomi.trim()) setYangiNomi(k.nomi || k.fan || "");
+          }} />
           <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("To'garak nomi")}</label>
           <input type="text" value={yangiNomi} onChange={(e) => setYangiNomi(e.target.value)}
             placeholder={__kbUi("masalan: Matematik to'garak")}
@@ -15532,4 +15531,25 @@ export default function App() {
   if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} onProfiles={profillarniOch} />{familyOpen && readFamily() && <React.Suspense fallback={null}><FamilyProfiles apiBase={API_BASE} ownerToken={readFamily().ownerToken} closable={familyFromProfile || readFamily().ownerToken === token} onEnter={profilgaKir} onOwner={egagaQayt} onLogout={egaChiqsin} onClose={() => setFamilyOpen(false)} /></React.Suspense>}</>;
   if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
   return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} onCourses={() => setPublicCourses(true)} />;
+}
+
+
+/** REV413: to'garak/repetitor guruhini Kabutar kursidan ochish — kurs tanlansa fan va guruh nomi o'zi to'ladi. */
+function KursdanTanlash({ token, onTanla }) {
+  const [kurslar, setKurslar] = useState(null);
+  const [ochiq, setOchiq] = useState(false);
+  const [tanlangan, setTanlangan] = useState("");
+  useEffect(() => {
+    if (!ochiq || kurslar) return;
+    fetch(`${API_BASE}/api/kurslar/katalog?${new URLSearchParams({ token, til: "uz" })}`).then((r) => r.json()).then((d) => setKurslar(d.kurslar || [])).catch(() => setKurslar([]));
+  }, [ochiq]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="mb-3 rounded-xl border p-3" style={{ borderColor: "#D7E3EF", background: "#F4F8FC" }}>
+    <button type="button" className="text-sm font-semibold" style={{ color: "#1B4B7A" }} onClick={() => setOchiq((x) => !x)}>
+      📚 {__kbUi("Kabutar kursi asosida ochish")} {ochiq ? "▲" : "▼"} <small style={{ fontWeight: 400, color: "#5A5648" }}>{__kbUi("(ixtiyoriy — yoki pastda fanni tanlang yoki o‘zingiz nom yozing)")}</small></button>
+    {ochiq && (!kurslar ? <p className="text-xs mt-2">⏳</p> : <select className="w-full mt-2 px-3 py-2 rounded-xl border text-sm" value={tanlangan}
+      onChange={(e) => { setTanlangan(e.target.value); const k = kurslar.find((x) => x.kalit === e.target.value); if (k) onTanla(k); }}>
+      <option value="">— {__kbUi("kursni tanlang")} —</option>
+      {kurslar.map((k) => <option key={k.kalit} value={k.kalit}>{k.nomi} · {k.darslar} {__kbUi("ta dars")}</option>)}</select>)}
+    {tanlangan && <p className="text-xs mt-2" style={{ color: "#28735A" }}>✅ {__kbUi("Fan va guruh kursdan olindi. Kerak bo‘lsa pastda o‘zgartiring.")}</p>}
+  </div>;
 }

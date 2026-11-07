@@ -1103,3 +1103,10 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 /* REV400: qoralama daftar ichida to'liq chizma daftari */
 .qd-varaq>.cd-root{flex:1;height:auto !important;min-height:0}
 .qd-varaq>.cd-root .cd-tutqich{display:none}
+/* REV413: yotiq (burilgan) telefonda hammasi sig'sin: doska ichida surish, test variantlari ikki ustunda, kichikroq */
+.dx-root.dx-yotiq .dx-board{overflow-y:auto;overscroll-behavior:contain}
+.dx-root.dx-yotiq .dx-opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.dx-root.dx-yotiq .dx-opts .dx-opt,.dx-root.dx-yotiq .dx-opts button{padding:6px 10px;font-size:.9em;min-height:0}
+.dx-burish{font-weight:700}
+.dx-root.dx-yotiq .dx-burish-fokus{display:inline-flex}
+.dx-burish-fab{flex:none;display:grid;place-items:center;width:40px;height:40px;margin-right:6px;border:1px solid var(--dx-line);border-radius:12px;background:var(--dx-paper);color:var(--dx-ink);font-size:18px;cursor:pointer}

@@ -32,3 +32,27 @@
 .cd-varaq{overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .cd-varaq.is-pan{touch-action:pan-y;cursor:grab}
 .cd-root.is-toliq{overscroll-behavior:contain}
+/* REV413: ixcham asboblar, menyular, masala qatori va oyna rejimi */
+.cd-ixcham{flex-wrap:wrap;overflow:visible;gap:6px;position:relative;z-index:5}
+.cd-bosh-joy{flex:1}
+.cd-menyu{position:relative}
+.cd-menyu-t{gap:2px}
+.cd-menyu-t small{font-size:10px;opacity:.6}
+.cd-rang-belgi{display:block;width:20px;height:20px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3px #c9c2b4}
+.cd-menyu-ich{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:210px;background:#fff;border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.22);padding:10px;display:flex;flex-direction:column;gap:6px}
+.cd-menyu-ich.is-keng{width:min(430px,86vw)}
+.cd-menyu-ich.is-ong{left:auto;right:0}
+.cd-menyu-ich>b{font-size:13px;color:#5b6573}
+.cd-menyu-ich>button,.cd-panjara>button{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid #e2ddd1;background:#fff;font:500 14px system-ui;text-align:left;cursor:pointer;color:#1d2b3a}
+.cd-menyu-ich>button span,.cd-panjara>button span{width:22px;text-align:center;font-size:18px}
+.cd-menyu-ich>button.is-on,.cd-panjara>button.is-on{border-color:#1B4B7A;background:#e8eef6}
+.cd-menyu-ich>button:disabled{opacity:.45}
+.cd-menyu-ich small{color:#5b6573;font-weight:700}
+.cd-qator{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cd-panjara{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.cd-root .cd-shakllar{display:none}
+.cd-sarlavha{padding:8px 14px;background:#fff;border-bottom:1px solid #e2ddd1;max-height:22vh;overflow:auto;font-size:16px;cursor:pointer}
+.cd-sarlavha.is-yigiq{max-height:2.6em;overflow:hidden;opacity:.75;mask-image:linear-gradient(#000 60%,transparent)}
+.cd-varaq-quti{position:relative;flex:1;min-height:0;display:flex}
+.cd-oyna-matn{position:absolute;inset:0;padding:18px 22px;font-size:clamp(18px,3.2vw,30px);line-height:1.5;color:#1d2b3a;opacity:.22;pointer-events:none;overflow:hidden;z-index:0}
+.cd-varaq.is-oyna{background-color:transparent;position:relative;z-index:1}

@@ -13,7 +13,15 @@ const RANGLAR = ["#1d2b3a", "#1f4fd1", "#c62828", "#1f7a45", "#e67e00", "#7b3fb8
 const QALIN = [2, 4, 8];
 const XOTIRA = new Map();   // savol bo'yicha chizmalar (sahifa yangilanmaguncha saqlanadi)
 
-export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop, sarlavha = "" }) {
+function Menyu({ nom, ochiq, setOchiq, belgi, sarlavha, children, keng = false, ong = false }) {
+  const on = ochiq === nom;
+  return <div className={`cd-menyu ${on ? "is-on" : ""}`}>
+    <button type="button" className={`cd-t cd-menyu-t ${on ? "is-on" : ""}`} onClick={() => setOchiq(on ? null : nom)} aria-expanded={on} title={sarlavha}>{belgi}<small>▾</small></button>
+    {on && <div className={`cd-menyu-ich ${keng ? "is-keng" : ""} ${ong ? "is-ong" : ""}`} role="menu"><b>{sarlavha}</b>{children}</div>}
+  </div>;
+}
+
+export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop, sarlavha = "", savolQatori = true }) {
   const canvasRef = useRef(null), quti = useRef(null);
   const [items, setItems] = useState(() => XOTIRA.get(kalit)?.items || []);
   const [qaytar, setQaytar] = useState([]);
@@ -27,6 +35,9 @@ export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop,
   const [baland, setBaland] = useState(balandlik);
   const [toliq, setToliq] = useState(() => typeof window !== "undefined" && window.matchMedia?.("(max-width: 720px), (pointer: coarse) and (max-height: 820px)").matches);   // REV402: telefonda — butun ekran
   const [pan, setPan] = useState(false);   // REV402: ✋ — yozish to'xtaydi, sahifa suriladi
+  const [menyu, setMenyu] = useState(null);       // REV413: ochiq menyu (asbob / rang / shakl / yana)
+  const [oyna, setOyna] = useState(false);        // REV413: oyna rejimi — masala varaq ostida xira
+  const [savolYigiq, setSavolYigiq] = useState(false);
   const panRef = useRef(false); panRef.current = pan;
   const joriy = useRef(null);
   const itemsRef = useRef(items); itemsRef.current = items;
@@ -134,38 +145,44 @@ export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop,
   const shaklTanlangan = [...SHAKLLAR_2D, ...SHAKLLAR_3D].find(([k]) => k === asbob);
   return <div ref={quti} className={`cd-root ${toliq ? "is-toliq" : ""}`} style={toliq ? undefined : { height: baland }} tabIndex={-1}>
     {!toliq && <div className="cd-tutqich" onPointerDown={tutqich} title={__kbUi("Tortib kattalashtiring")} aria-label={__kbUi("Daftar balandligi")} role="separator"><i /></div>}
-    <div className="cd-asboblar" role="toolbar" aria-label={__kbUi("Chizma asboblari")}>
-      <div className="cd-g">
-        <AsbobT k="qalam" belgi="✏️" nom="Qalam" /><AsbobT k="marker" belgi="🖍️" nom="Marker" /><AsbobT k="ochir" belgi="🧽" nom="O‘chirg‘ich" />
-        <AsbobT k="tanla" belgi="👆" nom="Tanlash, surish, kattalashtirish" /><AsbobT k="matn" belgi="T" nom="Yozuv qo‘yish" />
-        <button type="button" className={`cd-t ${shaklTanlangan ? "is-on" : ""}`} onClick={() => setShakllar((x) => !x)} aria-expanded={shakllar} title={__kbUi("Shakllar")}>{shaklTanlangan ? shaklTanlangan[1] : "△"} ▾</button>
-      </div>
-      <div className="cd-g">{RANGLAR.map((r) => <button key={r} type="button" className={`cd-rang ${rang === r ? "is-on" : ""}`} style={{ "--r": r }} onClick={() => setRang(r)} aria-label={r} aria-pressed={rang === r} />)}</div>
-      <div className="cd-g">{QALIN.map((q) => <button key={q} type="button" className={`cd-t cd-qalin ${qalin === q ? "is-on" : ""}`} onClick={() => setQalin(q)} aria-label={`${q}px`}><i style={{ height: q, background: rang }} /></button>)}
-        <button type="button" className={`cd-t ${uzuq ? "is-on" : ""}`} onClick={() => setUzuq((x) => !x)} title={__kbUi("Uzuq chiziq")} aria-pressed={uzuq}>┄</button></div>
-      <div className="cd-g">
-        <button type="button" className="cd-t" onClick={bekor} disabled={!items.length} title={__kbUi("Bekor qilish (Ctrl+Z)")}>↶</button>
-        <button type="button" className="cd-t" onClick={qayta} disabled={!qaytar.length} title={__kbUi("Qaytarish")}>↷</button>
-        {asbob === "tanla" && tanlangan >= 0 && <button type="button" className="cd-t" onClick={tanlanganniOchir} title={__kbUi("Tanlanganni o‘chirish")}>🗑</button>}
-        <button type="button" className="cd-t" onClick={() => { if (items.length && window.confirm(__kbUi("Daftar tozalansinmi?"))) { setQaytar([]); setItems([]); setTanlangan(-1); } }} title={__kbUi("Tozalash")}>⌫</button>
-        <select className="cd-fon" value={fon} onChange={(e) => setFon(e.target.value)} aria-label={__kbUi("Varaq")}>
-          <option value="katak">{__kbUi("Katak")}</option><option value="chiziq">{__kbUi("Chiziqli")}</option><option value="oq">{__kbUi("Oq")}</option></select>
-        {!toliq && <button type="button" className={`cd-t ${pan ? "is-on" : ""}`} onClick={() => setPan((x) => !x)} title={__kbUi("Sahifani surish (yozish to‘xtaydi)")} aria-pressed={pan}>✋</button>}
-        <button type="button" className="cd-t" onClick={() => setToliq((x) => !x)} title={toliq ? __kbUi("Kichraytirish") : __kbUi("Butun ekran")}>{toliq ? "🗗" : "⛶"}</button>
-        {onYop && <button type="button" className="cd-t" onClick={onYop} title={__kbUi("Yopish")}>✕</button>}
-      </div>
+    {/* REV413: ixcham asboblar — har guruh o'z menyusida; doim ko'rinadiganlar: asbob, rang, shakl, bekor, qaytar, ⋯ */}
+    <div className="cd-asboblar cd-ixcham" role="toolbar" aria-label={__kbUi("Chizma asboblari")}>
+      <Menyu nom="asbob" ochiq={menyu} setOchiq={setMenyu} belgi={{ qalam: "✏️", marker: "🖍️", ochir: "🧽", tanla: "👆", matn: "T" }[asbob] || "✏️"} sarlavha={__kbUi("Asbob")}>
+        {[["qalam", "✏️", "Qalam"], ["marker", "🖍️", "Marker"], ["ochir", "🧽", "O‘chirg‘ich"], ["tanla", "👆", "Tanlash va surish"], ["matn", "T", "Yozuv qo‘yish"]].map(([k, b2, n]) =>
+          <button key={k} type="button" className={asbob === k ? "is-on" : ""} onClick={() => { setAsbob(k); setMenyu(null); if (k !== "tanla") setTanlangan(-1); }}><span>{b2}</span>{__kbUi(n)}</button>)}
+      </Menyu>
+      <Menyu nom="rang" ochiq={menyu} setOchiq={setMenyu} belgi={<i className="cd-rang-belgi" style={{ background: rang }} />} sarlavha={__kbUi("Rang va qalinlik")}>
+        <div className="cd-qator">{RANGLAR.map((r) => <button key={r} type="button" className={`cd-rang ${rang === r ? "is-on" : ""}`} style={{ "--r": r }} onClick={() => setRang(r)} aria-label={r} />)}</div>
+        <div className="cd-qator">{QALIN.map((q) => <button key={q} type="button" className={`cd-t cd-qalin ${qalin === q ? "is-on" : ""}`} onClick={() => setQalin(q)} aria-label={`${q}px`}><i style={{ height: q, background: rang }} /></button>)}
+          <button type="button" className={`cd-t ${uzuq ? "is-on" : ""}`} onClick={() => setUzuq((x) => !x)} title={__kbUi("Uzuq chiziq")}>┄</button></div>
+      </Menyu>
+      <Menyu nom="shakl" ochiq={menyu} setOchiq={setMenyu} belgi={shaklTanlangan ? shaklTanlangan[1] : "△"} sarlavha={__kbUi("Shakllar")} keng>
+        <small>{__kbUi("Tekis shakllar")}</small>
+        <div className="cd-panjara">{SHAKLLAR_2D.map(([k, b2, n]) => <button key={k} type="button" className={asbob === k ? "is-on" : ""} onClick={() => { setAsbob(k); setMenyu(null); setTanlangan(-1); }}><span>{b2}</span>{__kbUi(n)}</button>)}</div>
+        <small>{__kbUi("Fazoviy (3D) shakllar")}</small>
+        <div className="cd-panjara">{SHAKLLAR_3D.map(([k, b2, n]) => <button key={k} type="button" className={asbob === k ? "is-on" : ""} onClick={() => { setAsbob(k); setMenyu(null); setTanlangan(-1); }}><span>{b2}</span>{__kbUi(n)}</button>)}</div>
+      </Menyu>
+      <button type="button" className="cd-t" onClick={bekor} disabled={!items.length} title={__kbUi("Bekor qilish (Ctrl+Z)")}>↶</button>
+      <button type="button" className="cd-t" onClick={qayta} disabled={!qaytar.length} title={__kbUi("Qaytarish")}>↷</button>
+      {asbob === "tanla" && tanlangan >= 0 && <button type="button" className="cd-t" onClick={tanlanganniOchir} title={__kbUi("Tanlanganni o‘chirish")}>🗑</button>}
+      <span className="cd-bosh-joy" />
+      {sarlavha && <button type="button" className={`cd-t ${oyna ? "is-on" : ""}`} onClick={() => setOyna((x) => !x)} title={__kbUi("Oyna rejimi — masala varaq ostida xira ko‘rinadi, ustidan yozasiz")}>🪟</button>}
+      <Menyu nom="yana" ochiq={menyu} setOchiq={setMenyu} belgi="⋯" sarlavha={__kbUi("Yana")} ong>
+        <label className="cd-qator">{__kbUi("Varaq")}: <select className="cd-fon" value={fon} onChange={(e) => setFon(e.target.value)}>
+          <option value="katak">{__kbUi("Katak")}</option><option value="chiziq">{__kbUi("Chiziqli")}</option><option value="oq">{__kbUi("Oq")}</option></select></label>
+        {!toliq && <button type="button" className={pan ? "is-on" : ""} onClick={() => { setPan((x) => !x); setMenyu(null); }}><span>✋</span>{__kbUi("Sahifani surish (yozish to‘xtaydi)")}</button>}
+        <button type="button" onClick={() => { setToliq((x) => !x); setMenyu(null); }}><span>{toliq ? "🗗" : "⛶"}</span>{toliq ? __kbUi("Kichraytirish") : __kbUi("Butun ekran")}</button>
+        <button type="button" disabled={!items.length} onClick={() => { if (window.confirm(__kbUi("Daftar tozalansinmi?"))) { setQaytar([]); setItems([]); setTanlangan(-1); } setMenyu(null); }}><span>⌫</span>{__kbUi("Hammasini tozalash")}</button>
+      </Menyu>
+      {onYop && <button type="button" className="cd-t" onClick={onYop} title={__kbUi("Yopish")}>✕</button>}
     </div>
-    {shakllar && <div className="cd-shakllar" role="menu">
-      <small>{__kbUi("Tekis shakllar")}</small>
-      <div>{SHAKLLAR_2D.map(([k, b, n]) => <button key={k} type="button" role="menuitem" className={asbob === k ? "is-on" : ""} onClick={() => { setAsbob(k); setShakllar(false); setTanlangan(-1); }}><span>{b}</span>{__kbUi(n)}</button>)}</div>
-      <small>{__kbUi("Fazoviy (3D) shakllar")}</small>
-      <div>{SHAKLLAR_3D.map(([k, b, n]) => <button key={k} type="button" role="menuitem" className={asbob === k ? "is-on" : ""} onClick={() => { setAsbob(k); setShakllar(false); setTanlangan(-1); }}><span>{b}</span>{__kbUi(n)}</button>)}</div>
-      <p>{__kbUi("Varaqda tortib chizing (yoki bir marta bosing). Keyin 👆 bilan surish va burchagidan kattalashtirish mumkin.")}</p>
-    </div>}
-    {sarlavha && toliq && <div className="cd-sarlavha">{sarlavha}</div>}
-    <div className={`cd-holat ${pan ? "is-pan" : ""}`} aria-live="polite">{pan ? __kbUi("✋ Surish rejimi — sahifani barmoq bilan suring. Yozish uchun ✋ ni qayta bosing.")
+    {sarlavha && !oyna && savolQatori && <div className={`cd-sarlavha ${savolYigiq ? "is-yigiq" : ""}`} onClick={() => setSavolYigiq((x) => !x)} title={__kbUi("Bosib yig‘ish / ochish")}>{sarlavha}</div>}
+    <div className={`cd-holat ${pan ? "is-pan" : ""}`} aria-live="polite">{pan ? __kbUi("✋ Surish rejimi — sahifani barmoq bilan suring. Yozish uchun ⋯ → ✋ ni qayta bosing.")
       : asbob === "ochir" ? __kbUi("🧽 O‘chirg‘ich — o‘chirmoqchi bo‘lgan chiziq ustidan yuring") : asbob === "tanla" ? __kbUi("👆 Tanlash — shaklni bosib suring, burchagidagi ◻ dan tortib kattalashtiring")
-      : shaklTanlangan ? __kbUi(`${shaklTanlangan[1]} Varaqda tortib chizing`) : __kbUi("✏️ Yozish rejimi — varaqqa barmoq yoki qalam bilan yozing (sahifa qimirlamaydi)")}</div>
-    <canvas ref={canvasRef} className={`cd-varaq is-${fon} is-asbob-${asbob} ${pan ? "is-pan" : ""}`} onPointerDown={bos} onPointerMove={harakat} onPointerUp={qoy} onPointerCancel={qoy} />
+      : shaklTanlangan ? __kbUi(`${shaklTanlangan[1]} Varaqda tortib chizing`) : oyna ? __kbUi("🪟 Oyna rejimi — masala varaq ostida, ustidan yozing") : __kbUi("✏️ Yozish rejimi — sahifa qimirlamaydi")}</div>
+    <div className="cd-varaq-quti">
+      {oyna && sarlavha && <div className="cd-oyna-matn" aria-hidden="true">{sarlavha}</div>}
+    <canvas ref={canvasRef} className={`cd-varaq is-${fon} is-asbob-${asbob} ${pan ? "is-pan" : ""} ${oyna ? "is-oyna" : ""}`} onPointerDown={bos} onPointerMove={harakat} onPointerUp={qoy} onPointerCancel={qoy} />
+    </div>
   </div>;
 }
