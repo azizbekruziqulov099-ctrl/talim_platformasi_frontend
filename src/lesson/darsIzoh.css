@@ -1,0 +1,33 @@
+/* REV412: dars izohlari */
+.di-fab{position:fixed;left:max(14px,env(safe-area-inset-left));bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:2147483150;width:54px;height:54px;border-radius:50%;border:none;background:#7b3fb8;color:#fff;font-size:24px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.di-fab span{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:10px;background:#c62828;font:700 11px/20px system-ui;padding:0 4px}
+.di-fab span:empty{display:none}
+.di-fab.is-on{background:#4a2380}
+.di-panel{position:fixed;left:max(14px,env(safe-area-inset-left));bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:2147483151;width:min(380px,calc(100vw - 28px));max-height:70vh;overflow:auto;background:#fff;color:#1d2b3a;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.3);padding:12px;display:flex;flex-direction:column;gap:8px;font:14px/1.4 system-ui,sans-serif}
+.di-bosh{display:flex;align-items:center;gap:8px}
+.di-bosh b{flex:1}
+.di-bosh code,.di-guruh code{background:#f1eef8;color:#5b2d91;padding:2px 6px;border-radius:6px;font-size:12px}
+.di-bosh button{border:none;background:transparent;font-size:16px;cursor:pointer}
+.di-joy{margin:0;font-weight:600;color:#5b2d91}
+.di-doska{margin:0;font-size:12px;color:#5b6573}
+.di-panel textarea,.di-umumiy-forma textarea{width:100%;box-sizing:border-box;border:1px solid #d9d3c7;border-radius:12px;padding:8px 10px;font:inherit;resize:vertical}
+.di-umumiy{display:flex;gap:6px;align-items:center;font-size:13px}
+.di-tug{display:flex;gap:10px;align-items:center}
+.di-saqla{padding:9px 14px;border-radius:12px;border:none;background:#7b3fb8;color:#fff;font:700 14px system-ui;cursor:pointer;text-decoration:none;display:inline-block}
+.di-saqla:disabled{opacity:.45}
+.di-royxat{display:flex;flex-direction:column;gap:6px;border-top:1px solid #eee;padding-top:8px}
+.di-qator{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px;align-items:start;padding:6px 8px;border-radius:10px;background:#faf8fd}
+.di-royxat .di-qator{grid-template-columns:auto minmax(0,1fr) auto}
+.di-qator.is-bajarildi{opacity:.55;text-decoration:line-through}
+.di-qator button{border:none;background:transparent;cursor:pointer;font-size:14px}
+.di-joyga{font:600 12px system-ui;color:#5b2d91;white-space:nowrap;background:transparent;border:none}
+.di-sahifa{max-width:980px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.di-izoh{color:#5b6573;margin:0}
+.di-tepa{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.di-filtr{display:flex;gap:6px}
+.di-filtr button{padding:8px 12px;border-radius:12px;border:1px solid #d9d3c7;background:#fff;font:600 13px system-ui;cursor:pointer}
+.di-filtr button.is-on{background:#5b2d91;color:#fff;border-color:#5b2d91}
+.di-umumiy-forma{display:flex;gap:8px;align-items:flex-start}
+.di-guruh{background:#fff;border:1px solid #e7e1f0;border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.di-guruh h3{margin:0;font-size:15px}
+.di-xato{color:#b3261e}

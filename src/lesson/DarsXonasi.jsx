@@ -6,6 +6,8 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import AmaliyDoska, { BoardText } from "./AmaliyDoska.jsx";
 import ChalkText from "./ChalkText.jsx";   // REV260: doskaga harfma-harf, ovoz bilan bir xil
 import { lineProgress } from "./chalkRules.js";
+import DarsIzoh from "./DarsIzoh.jsx";   // REV412: admin izohi
+import "./darsIzoh.css";
 import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, variantlarYasa, visibleLines } from "./darsXonasiRules.js";
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, dropPraiseAny, kidCorrectSpeech, kidOptions, kidPraise } from "../test/kidQuizRules.js";
@@ -264,7 +266,9 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   modeRef.current = mode;
   const [ozimYozaman, setOzimYozaman] = useState(false);   // REV385
   const [rasmKut, setRasmKut] = useState(null);
-  const [doskaYoz, setDoskaYoz] = useState(false);   // REV392: doskaga yozilmoqda — ustoz doskaga qaraydi
+  const [doskaYoz, setDoskaYoz] = useState(false);
+  const boshlanganRef = useRef(0);   // REV412: dars boshlangan payt — izohda «02:14» kabi ko'rinadi
+  useEffect(() => { if (mode === "lesson" && !boshlanganRef.current) boshlanganRef.current = Date.now(); if (mode === "idle") boshlanganRef.current = 0; }, [mode]);   // REV392: doskaga yozilmoqda — ustoz doskaga qaraydi
   const [yozVaqt, setYozVaqt] = useState(false);   // REV394: har qadam boshida ustoz doskaga burilib yozadi, keyin o'quvchilarga qaraydi   // REV386: rasm qadamida «Tushundim» kutilmoqda
   const [tanlanganVar, setTanlanganVar] = useState(null);
   useEffect(() => { setOzimYozaman(false); setTanlanganVar(null); setRasmKut((x) => (x === idx ? x : null)); }, [idx]);
@@ -1772,12 +1776,16 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       <div className="dx-head-actions">
         {/* REV383: darsdan har doim chiqish mumkin — oldingi sahifaga qaytadi */}
         {onClose && !focus && <button type="button" className="dx-btn dx-orqa" onClick={() => { hush(); onClose(); }}>← {__kbUi("Ortga")}</button>}
+        {adminmi && <span className="dx-chip dx-kod" title={__kbUi("Dars kodi — izohda shu kod yoziladi")}>🔖 {topicCode}</span>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}
         {kid && (questions.length > 0 || gameTotal > 0) && <span className="dx-chip dx-stars" aria-label={`${score + gameScore} ⭐`}>⭐ {score + gameScore}</span>}
         <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? <B e="🎤" /> : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
     </header>
+    {adminmi && <DarsIzoh apiBase={apiBase} token={token} topicCode={topicCode} darsNomi={lesson.topic?.mavzu || ""} fan={lesson.topic?.fan || ""}
+      qadam={mode === "test" ? -1 : idx} qadamTuri={mode === "test" ? `test ${testIndex + 1}` : step?.turi || ""} qadamMatn={mode === "test" ? (savollar?.[testIndex]?.savol || "") : step?.doska || ""}
+      soniya={boshlanganRef.current ? Math.round((Date.now() - boshlanganRef.current) / 1000) : null} onQadam={(k) => { if (k >= 0 && k < steps.length) { hush(); go(k, false); } }} />}
     {kid && focus && <button type="button" className="dx-rotate" onClick={kengaytir}><i aria-hidden="true">📱</i>{__kbUi("Telefonni yotqizing — dars kattaroq ko‘rinadi")}</button>}
     <div className="dx-steps" role="group" aria-label={__kbUi("Dars qadamlari")}>
       {steps.map((s, i) => <button key={s.id} type="button" aria-label={`${i + 1}`} onClick={() => { hush(); setPauza(false); setPlaying(true); go(i, true); }}   /* REV247: qadamga o'tilsa — o'sha joydan DARS DAVOM ETADI (pauza holatiga tushmaydi) */

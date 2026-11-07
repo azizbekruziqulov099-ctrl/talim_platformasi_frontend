@@ -516,6 +516,7 @@ const LazyTestTab = _samtmLazyRetry(() => import("./TestTab.jsx"));
 const LazyOquvchiKorinishi = _samtmLazyRetry(() => import("./admin/OquvchiKorinishi.jsx"));
 const LazyOyinSinov = _samtmLazyRetry(() => import("./admin/OyinSinov.jsx"));   // REV358: bog'cha o'yinlari sinov xonasi
 const LazyDarsMuharrir = _samtmLazyRetry(() => import("./admin/DarsMuharrir.jsx"));   // REV364: bog'cha darslari muharriri
+const LazyDarsIzohlari = _samtmLazyRetry(() => import("./admin/DarsIzohlari.jsx"));   // REV412: dars izohlari
 const LazyBellashuv = _samtmLazyRetry(() => import("./battle/Bellashuv.jsx"));
 const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
 const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
@@ -13176,9 +13177,8 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "admin_muassasalar", nom: "Muassasalar", ikon: Building2 },
       { kalit: "admin_testlar", nom: "Testlar", ikon: PencilLine },
       { kalit: "admin_mavzular", nom: "Mavzular", ikon: BookOpen },
-      { kalit: "admin_korinish", nom: "O‘quvchi ko‘zi bilan", ikon: Eye },
+      { kalit: "admin_izohlar", nom: "Dars izohlari", ikon: MessageCircle },   // REV412
       { kalit: "admin_oyinlar", nom: "Bog‘cha o‘yinlari — sinov", ikon: Eye },
-      { kalit: "admin_darsmuharrir", nom: "Bog‘cha darslari — muharrir", ikon: Eye },
       { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV274: admin ham to'g'ridan-to'g'ri ko'radi
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },   // REV129: admin ham barcha o'yinlarni ko'radi (cheklovsiz)
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
@@ -14688,6 +14688,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     admin_testlar: ["Testlar", "Savollar va natijalarni boshqarish"],
     admin_mavzular: ["Mavzular", "DTS va ta’lim mazmuni"],
     admin_korinish: ["O‘quvchi ko‘zi bilan", "Bog‘cha, maktab, markaz yoki institut o‘quvchisi ko‘rinishi"],
+    admin_izohlar: ["Dars izohlari", "Darslarga qoldirilgan izohlar — bitta faylga yuklab olib, darslarni tuzatish uchun"],
     admin_oyinlar: ["Bog‘cha o‘yinlari — sinov", "Hamma o‘yinni yosh va til bo‘yicha o‘ynab ko‘rish va belgilash"],
     admin_darsmuharrir: ["Bog‘cha darslari — muharrir", "Har darsning qadamlari, o‘yinlari va gaplarini ko‘rib tuzatish, Excel'ga eksport"],
     admin_ovoz: ["Ovozli matn", "O‘zbekcha o‘qish va gapirib yozish"],
@@ -15046,6 +15047,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_moderatsiya" && <ModeratsiyaTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_oyinlar" && lazyPanel(LazyOyinSinov, { apiBase: API_BASE, token })}
       {korinishRoli === "admin" && tab === "admin_darsmuharrir" && lazyPanel(LazyDarsMuharrir, { apiBase: API_BASE, token })}
+      {korinishRoli === "admin" && tab === "admin_izohlar" && lazyPanel(LazyDarsIzohlari, { apiBase: API_BASE, token })}
       {korinishRoli === "admin" && tab === "admin_korinish" && lazyPanel(LazyOquvchiKorinishi, { apiBase: API_BASE, token, admin: foydalanuvchi, Tests: TestTab,
         jins: _ovozJinsiniTuzat(foydalanuvchi?.ovoz_jinsi || foydalanuvchi?.jins || "qiz") })}
       {korinishRoli === "oqituvchi" && tab === "oqituvchi" && (
@@ -15191,7 +15193,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {tab === "profil" && (
         <ProfilTab token={token} foydalanuvchi={foydalanuvchi} onYangilandi={setFoydalanuvchi} onInstitutionJoined={institutionJoined}
           adminKorinish={adminKorinish} onKorinishOzgar={korinishOzgardi} rang={joriyRang} onRolAlmashtir={rolniAlmashtir}
-          onOquvchiKorinishi={foydalanuvchi?.is_admin ? () => { setAdminKorinish("admin"); setTab("admin_korinish"); } : undefined} />
+          onOquvchiKorinishi={undefined} />
       )}
       </SectionErrorBoundary>
           </div>
