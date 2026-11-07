@@ -193,3 +193,17 @@
 .kb-poll-forma-v{display:flex;gap:6px}
 .kb-poll-qosh{align-self:flex-start;border:none;background:transparent;color:#3390ec;font:600 14px system-ui;cursor:pointer}
 .kb-poll-forma label{display:flex;gap:6px;align-items:center;font-size:13px}
+/* REV417: guruh boshqaruvi */
+.kb-chat45 .kb-gb{background:#fff;border-bottom:1px solid var(--tg-line);padding:10px 14px;display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto}
+.kb-chat45 .kb-gb-bosh{display:flex;justify-content:space-between;align-items:center}
+.kb-chat45 .kb-gb-bosh button{border:none;background:transparent;font-size:16px;cursor:pointer}
+.kb-chat45 .kb-gb-kalit{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:12px;background:#f4f8fd;cursor:pointer}
+.kb-chat45 .kb-gb-kalit span{display:flex;flex-direction:column}
+.kb-chat45 .kb-gb-kalit small,.kb-chat45 .kb-gb-izoh{color:var(--tg-muted);font-size:13px;margin:0}
+.kb-chat45 .kb-gb-q{padding:8px 12px;border-radius:18px;border:none;background:#f1f1f3}
+.kb-chat45 .kb-gb-royxat{display:flex;flex-direction:column}
+.kb-chat45 .kb-gb-qator{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--tg-line);font-size:14px}
+.kb-chat45 .kb-gb-qator button{border:none;background:transparent;color:var(--tg-blue);font:600 13px system-ui;cursor:pointer}
+.kb-chat45 .kb-gb-belgi{font-style:normal;font-size:11px;color:#fff;background:var(--tg-blue);border-radius:8px;padding:1px 6px;margin-left:4px}
+.kb-chat45 .kb-gb-xato{color:#c62828;margin:0}
+@media (prefers-color-scheme:dark){.kb-chat45 .kb-gb{background:#17212b}.kb-chat45 .kb-gb-kalit{background:#202b36}}
