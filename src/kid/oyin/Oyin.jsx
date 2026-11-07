@@ -32,6 +32,7 @@ function Yakun({ xatolar }) {
   );
 }
 
+import { sozRasmBelgila } from "./oyinRasmTop.js";   // REV420
 /** Tashqi qobiq: o'yin ma'lumoti (id, elementlar, yosh…) o'zgarsa — ichki o'yin butunlay yangidan boshlanadi. */
 export default function Oyin(props) {
   const { id, elementlar, yosh, til = "en", sonlar, qiyinlik = 0, urug } = props;
@@ -47,7 +48,9 @@ const yoshKalit = (y) => String(y ?? "");
 function OyinIchki({
   id, elementlar, yosh, onNatija, onSay, til, izoh = "uz", sonlar, qiyinlik, urug, rasm, onTingla, onChiq, mavzu = "", tanish = false, fasl = "", kirishDaraja = "", raundSoni = 0, variantSoniMajbur = 0,
 }) {
-  const [boshlangich] = useState(() => oyinYasa(id, { elementlar, yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish, izoh, fasl, kirishDaraja, raundSoni, variantSoniMajbur }));
+  // REV420: har elementga — so'zining o'z rasmi bormi (emojidan taxmin qilingan rasm emas). Nomi aytiladigan o'yinlarda
+  // faqat shunday narsalar beriladi: «bo'sh» so'ziga boshini ushlagan bola, «nimadir»ga sutli kosa chiqmasin.
+  const [boshlangich] = useState(() => oyinYasa(id, { elementlar: sozRasmBelgila(elementlar), yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish, izoh, fasl, kirishDaraja, raundSoni, variantSoniMajbur }));
   const [holat, setHolat] = useState(boshlangich);
   const holatRef = useRef(boshlangich);
   const [fb, setFb] = useState(null);            // oxirgi javob: { j, togri, n }

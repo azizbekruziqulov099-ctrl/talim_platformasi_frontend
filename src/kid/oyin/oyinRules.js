@@ -296,6 +296,12 @@ export function oyinTanla({ elementlar, yosh, tarix = [], sonlar, hozir = Date.n
 /* ───────────────────────── raund yasovchilar ───────────────────────── */
 
 /** count ta nishon: elementlar aralashtirilib navbat bilan, yonma-yon bir xili kelmaydi (elementlar >1 bo'lsa). */
+/** REV420: nomi aytiladigan o'yinlarda — nomi bor va so'zning o'z rasmi bor narsalar (2 tadan kam bo'lsa — hammasi). */
+export function aniqNarsalar(els) {
+  const yaxshi = (els || []).filter((e) => nomOvoz(e, "uz").trim() && e.sozRasm !== false);
+  return yaxshi.length >= 2 ? yaxshi : els;
+}
+
 function navbat(els, count, rnd) {
   const out = [];
   while (out.length < count && els.length) {
@@ -593,12 +599,12 @@ const YASOVCHI = {
     return { tur: "tanlov", savol: { minora: namuna }, variantlar: minoraVariantlar(namuna, n, rnd), togri: "t0" };
   }),
   // 116 — so'z aytiladi, bola rasmini bosadi
-  eshitBos: ({ els, n, rnd, R }) => navbat(els, R, rnd).map((el) => ({
+  eshitBos: ({ els: els0, n, rnd, R }) => { const els = aniqNarsalar(els0); return navbat(els, R, rnd).map((el) => ({
     tur: "tanlov", savol: { el }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k,
-  })),
+  })); },
   // 117 — bola so'zni aytadi (mikrofon); mikrofon yo'q bo'lsa — variantlardan bosadi
   // REV418: nomi yo'q narsa (faqat emoji) aytishga berilmaydi — bola nima deyishni bilmay qoladi
-  aytOch: ({ els, n, rnd, R }) => navbat(els.filter((e) => nomOvoz(e, "uz").trim()).length >= 2 ? els.filter((e) => nomOvoz(e, "uz").trim()) : els, R, rnd).map((el) => ({
+  aytOch: ({ els, n, rnd, R }) => navbat(aniqNarsalar(els), R, rnd).map((el) => ({
     tur: "aytish", savol: { el }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k,
   })),
   // 83 — namunaning xuddi o'zini topish (6-7 yoshda: namuna emoji, variantlar — rasm)
