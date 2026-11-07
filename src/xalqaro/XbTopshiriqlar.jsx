@@ -4,6 +4,34 @@ import React, { useEffect, useState } from "react";
 import { xbFetch } from "./xbOvoz.js";
 import { T, tf } from "./xbTil.js";
 
+const HOLAT = { yechmoqda: ["🟢", "Yechmoqda"], chiqdi: ["🟠", "Ilovadan chiqdi"], tugatdi: ["✅", "Tugatdi"], boshlamagan: ["⚪", "Boshlamagan"] };
+const oldinMatn = (s) => (s == null ? "—" : s < 60 ? `${s} s oldin` : s < 3600 ? `${Math.round(s / 60)} daq oldin` : `${Math.round(s / 3600)} soat oldin`);
+
+/** REV404: topshiriqni jonli kuzatish — har 3 soniyada: kim yechmoqda, qaysi savolda, nechtasini belgiladi, ilovadan chiqdimi. */
+function JonliKuzatuv({ apiBase, token, sinfId, t, til }) {
+  const [d, setD] = useState(null);
+  const [xato, setXato] = useState("");
+  useEffect(() => {
+    let tirik = true;
+    const ol = () => xbFetch(apiBase, `/api/xalqaro/sinflar/${sinfId}/topshiriq/${t.id}/jonli`, token, { params: { til } }).then((r) => tirik && setD(r)).catch((e) => tirik && setXato(e.message));
+    ol(); const tm = setInterval(() => { if (document.visibilityState === "visible") ol(); }, 3000);
+    return () => { tirik = false; clearInterval(tm); };
+  }, [t.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (xato) return <p className="xb-xato">{T(xato)}</p>;
+  if (!d) return <p className="xb-muted">⏳</p>;
+  return <div className="xb-jonli-kuz">
+    <p className="xb-jonli"><span className="xb-jonli-nuqta" aria-hidden="true" /> {T("Jonli: har 3 soniyada yangilanadi")} ·
+      {" "}🟢 {d.soni.yechmoqda} · 🟠 {d.soni.chiqdi} · ✅ {d.soni.tugatdi} · ⚪ {d.soni.boshlamagan}</p>
+    <div className="xb-jadval-wrap"><table className="xb-jadval"><thead><tr><th>{T("O‘quvchi")}</th><th>{T("Holat")}</th><th>{T("Qaysi savolda")}</th><th>{T("Belgiladi")}</th><th>{T("To‘g‘ri")}</th><th>{T("Oxirgi faollik")}</th><th>{T("Natija")}</th></tr></thead>
+      <tbody>{d.oquvchilar.map((o) => { const [b, n] = HOLAT[o.holat] || HOLAT.boshlamagan;
+        return <tr key={o.user_id} className={`is-${o.holat}`}><td><b>{o.ism}</b></td><td>{b} {T(n)}</td>
+          <td>{o.holat === "boshlamagan" ? "—" : <span className="xb-jonli-q">{o.joriy}/{o.jami}<span className="xb-chiziq"><i style={{ width: `${Math.round((100 * o.joriy) / Math.max(1, o.jami))}%`, background: o.holat === "chiqdi" ? "#c77d00" : "#1b6fd8" }} /></span></span>}</td>
+          <td>{o.javob || "—"}</td><td>{o.holat === "boshlamagan" ? "—" : o.togri}</td>
+          <td className="xb-kichik">{o.holat === "boshlamagan" ? "—" : T(oldinMatn(o.oldin))}</td>
+          <td>{o.natija != null ? <b>{o.natija}/{o.jami} · {Math.round((100 * o.natija) / Math.max(1, o.jami))}%</b> : "—"}</td></tr>; })}</tbody></table></div>
+  </div>;
+}
+
 const havola = (kod) => `${window.location.origin}/?xb_topshiriq=${encodeURIComponent(kod)}`;
 
 export default function XbTopshiriqlar({ apiBase, token, sinf, mavzular = [], til }) {
@@ -13,6 +41,7 @@ export default function XbTopshiriqlar({ apiBase, token, sinf, mavzular = [], ti
   const [xabar, setXabar] = useState("");
   const [xato, setXato] = useState("");
   const [korish, setKorish] = useState(null);
+  const [jonli, setJonli] = useState(null);   // REV404
   const yukla = () => xbFetch(apiBase, `/api/xalqaro/sinflar/${sinf.id}/topshiriqlar`, token, { params: { til } }).then(setD).catch((e) => setXato(e.message));
   useEffect(() => { yukla(); const t = setInterval(() => { if (document.visibilityState === "visible") yukla(); }, 20000); return () => clearInterval(t); }, [sinf.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const yarat = () => { setXato("");
@@ -41,9 +70,11 @@ export default function XbTopshiriqlar({ apiBase, token, sinf, mavzular = [], ti
           <small>{tf("{n} ta savol", { n: t.soni })}{t.muddat ? ` · ⏰ ${t.muddat}` : ""} · {tf("{a}/{b} o‘quvchi topshirdi", { a: t.topshirdi, b: t.azolar })}{t.ortacha != null ? ` · ${tf("o‘rtacha {f}%", { f: t.ortacha })}` : ""}</small>
           <span className="xb-chiziq"><i style={{ width: `${Math.round((100 * t.topshirdi) / Math.max(1, t.azolar))}%`, background: "#1f8a4c" }} /></span></div>
         <div className="xb-tp-tug">
+          <button type="button" className={`xb-btn ${jonli === t.id ? "xb-btn-asosiy" : ""}`} onClick={() => setJonli(jonli === t.id ? null : t.id)}>🔴 {T("Jonli kuzatish")}</button>
           <button type="button" className="xb-btn" onClick={() => nusxa(t.kod)}>🔗 {T("Havola")}</button>
           <button type="button" className="xb-btn xb-btn-yengil" onClick={() => setKorish(korish === t.id ? null : t.id)}>{korish === t.id ? "▲" : `📊 ${T("Natijalar")}`}</button>
         </div>
+        {jonli === t.id && <div className="xb-tp-natijalar"><JonliKuzatuv apiBase={apiBase} token={token} sinfId={sinf.id} t={t} til={til} /></div>}
         {korish === t.id && <div className="xb-tp-natijalar">{t.natijalar.length ? <table className="xb-jadval"><thead><tr><th>{T("O‘quvchi")}</th><th>{T("Eng yaxshi")}</th><th>%</th><th>{T("Urinish")}</th><th>{T("Oxirgi")}</th></tr></thead>
           <tbody>{t.natijalar.map((n) => <tr key={n.user_id}><td>{n.ism}</td><td>{n.eng_yaxshi}/{n.jami}</td><td><b style={{ color: n.foiz >= 70 ? "#1f8a4c" : n.foiz >= 40 ? "#1b6fd8" : "#c77d00" }}>{n.foiz}%</b></td><td>{n.urinish}</td><td>{new Date(n.vaqt).toLocaleString().slice(0, 17)}</td></tr>)}</tbody></table>
           : <p className="xb-muted">{T("Hali hech kim topshirmagan.")}</p>}</div>}

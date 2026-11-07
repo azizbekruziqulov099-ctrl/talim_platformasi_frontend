@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import XbSavol from "./XbSavol.jsx";
 import XbDoska, { XbUstoz } from "./XbDoska.jsx";
@@ -34,6 +34,26 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const s = savollar?.[i];
+  // REV404: topshiriqda — o'qituvchiga jonli holat: har 4 soniyada, javob berilganda va ilovadan chiqqanda/qaytganda
+  const holatRef = useRef({ i: 0, jami: 0, togri: 0, tugadi: false }); holatRef.current = { i, jami: hisob.jami, togri: hisob.togri, tugadi: Boolean(savollar && i >= savollar.length) };
+  const jonliYubor = React.useCallback((majbur) => {
+    if (manba?.tur !== "topshiriq") return;
+    const h = holatRef.current;
+    const holat = h.tugadi ? "tugatdi" : majbur || (document.visibilityState === "visible" ? "faol" : "chiqdi");
+    const body = JSON.stringify({ token, joriy: Math.min(h.i + 1, savollar?.length || 0), javob: h.jami, togri: h.togri, holat });
+    const url = `${String(apiBase || "").replace(/\/+$/, "")}/api/xalqaro/topshiriq/${encodeURIComponent(manba.kod)}/jonli`;
+    if (holat === "chiqdi" && navigator.sendBeacon) { try { if (navigator.sendBeacon(url, new Blob([body], { type: "application/json" }))) return; } catch { /* */ } }
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+  }, [apiBase, token, manba?.tur, manba?.kod, savollar?.length]);
+  useEffect(() => {
+    if (manba?.tur !== "topshiriq" || !savollar?.length) return undefined;
+    jonliYubor();
+    const t = setInterval(() => { if (document.visibilityState === "visible") jonliYubor(); }, 4000);
+    const v = () => jonliYubor(document.visibilityState === "visible" ? "faol" : "chiqdi");
+    document.addEventListener("visibilitychange", v); window.addEventListener("pagehide", v);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", v); window.removeEventListener("pagehide", v); jonliYubor("chiqdi"); };
+  }, [savollar?.length, manba?.tur]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { jonliYubor(); }, [i, hisob.jami]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setJavob(""); setHolat(null); setYechim(false); setTasdiq(""); setUsul("yozib"); }, [i]);
 
   const tekshir = async (j = javob, u = usul) => {
