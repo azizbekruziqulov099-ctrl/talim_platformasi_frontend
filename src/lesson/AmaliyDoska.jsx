@@ -59,7 +59,7 @@ export function useBoardVoice(apiBase, jins = "qiz") {
 
 /** Amaliy topshiriq doskasi: sharti ko'rinadi, yechimi «Yechimni ko'rsatish» bosilganda
  *  o'qituvchi ovozi bilan qadamma-qadam yoziladi. Dars xonasi va kitob kodi oynasi bir xil ishlatadi. */
-export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false, jonli = false, soz = -1, sozSoni = 0 }) {
+export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false, jonli = false, soz = -1, sozSoni = 0, onNatija = null }) {
   useKbInterfaceLocale();
   const steps = item?.yechim || [];
   const options = item?.variantlar || [];
@@ -112,6 +112,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
     if (picked !== null) return;
     setPicked(k);
     if (item.togri === null || item.togri === undefined) return;
+    onNatija?.(k === item.togri);   // REV411: guruh mashg'ulotida — javob o'qituvchiga
     if (k === item.togri) say(__kbUi("To‘g‘ri! Barakalla."));
     else if (item.xatolar?.[String(k)]) say(item.xatolar[String(k)], () => reveal(0));   // REV269: aynan shu xatoning izohi
     else say(__kbUi("Javob noto‘g‘ri. Yechimni ko‘rib chiqamiz."), () => reveal(0));
@@ -119,8 +120,8 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const submit = (event) => {
     event?.preventDefault?.();
     if (!answer.trim()) return;
-    if (checkAnswer(answer, kutilgan)) { setFeedback({ ok: true, text: __kbUi("✅ To‘g‘ri!") }); setKlav(false); say(__kbUi("Barakalla, to‘g‘ri!")); }
-    else { setFeedback({ ok: false, text: __kbUi("Yana bir bor urinib ko‘ring yoki yechimni oching.") }); say(__kbUi("Deyarli! Yana bir bor o‘ylab ko‘ring.")); }
+    if (checkAnswer(answer, kutilgan)) { setFeedback({ ok: true, text: __kbUi("✅ To‘g‘ri!") }); setKlav(false); say(__kbUi("Barakalla, to‘g‘ri!")); onNatija?.(true); }
+    else { setFeedback({ ok: false, text: __kbUi("Yana bir bor urinib ko‘ring yoki yechimni oching.") }); say(__kbUi("Deyarli! Yana bir bor o‘ylab ko‘ring.")); onNatija?.(false); }
   };
 
   if (!item) return null;

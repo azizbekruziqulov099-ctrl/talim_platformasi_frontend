@@ -171,7 +171,7 @@ export function teglarniAjrat(d) {
 }
 
 import KursTolov from "../courses/KursTolov.jsx";
-export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, boshqaTillar = [], cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
+export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, boshqaTillar = [], cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
   const uiT = (m) => (m && ["ru", "en"].includes(uiLocale) && !/\[[a-z]{2}\]/.test(m) ? `[${uiLocale}]${m}[/${uiLocale}]` : m);
@@ -1253,6 +1253,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     }
     const q = savollar[testIndex];
     setPicked(k);
+    onNatija?.({ item: q.kod || q.id || `T${testIndex + 1}`, turi: "test", togri: k === q.togri });   // REV411
     if (k !== q.togri) { const asl = xatoTartib ? xatoTartib[testIndex] : testIndex; if (!xatolar.current.includes(asl)) xatolar.current.push(asl); }
     if (sinfXona) flashPhase(k === q.togri ? "happy" : "enc");   // REV177: Kabu quvonadi / dalda beradi
     const izL = izohL(izoh);
@@ -1850,7 +1851,8 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
           {!kid && mode === "lesson" && step && step.turi === "amaliy" && <>
             {step.sarlavha && <h3 className="dx-title"><BoardText text={step.sarlavha} /></h3>}
             <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} kid={kid}
-              jonli={matem} soz={word} sozSoni={sayWords.current.length} />
+              jonli={matem} soz={word} sozSoni={sayWords.current.length}
+              onNatija={onNatija ? (togri) => onNatija({ item: step.kitob_kodi || step.kod || step.id, turi: step.amaliy_turi || "masala", togri }) : null} />
           </>}
           {!kid && mode === "lesson" && step && step.turi !== "amaliy" && <>
             {steps[range[0]]?.sarlavha && <h3 className="dx-title"><BoardText text={steps[range[0]].sarlavha} /></h3>}

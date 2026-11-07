@@ -631,6 +631,14 @@ try {   // REV401: ?xb_topshiriq=KOD — o'qituvchi bergan topshiriq havolasi
     const _u2 = new URL(window.location.href); _u2.searchParams.delete("xb_topshiriq"); window.history.replaceState(null, "", _u2.toString());
   }
 } catch { /* */ }
+try {   // REV411: ?kurs_guruh=KOD — o'qituvchi yuborgan kurs guruhi havolasi
+  const _kg = new URLSearchParams(window.location.search).get("kurs_guruh");
+  if (_kg && /^[A-Za-z0-9]{4,12}$/.test(_kg)) {
+    window.localStorage.setItem("kabutar:kurs_guruh", _kg.toUpperCase());
+    const _u3 = new URL(window.location.href); _u3.searchParams.delete("kurs_guruh"); window.history.replaceState(null, "", _u3.toString());
+  }
+} catch { /* */ }
+const _kursGuruhBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:kurs_guruh")); } catch { return false; } };
 const _xbTaklifBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:xb:taklif") || window.localStorage.getItem("kabutar:xb:topshiriq")); } catch { return false; } };
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
@@ -14545,7 +14553,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         if (controller.signal.aborted) return;
         if (!readOnly) { rememberAccount(u, token, takeLoginMethod()); if (loginAccountRole(u)) saveLoginRole(loginAccountRole(u)); }
         setFoydalanuvchi(u);
-        setTab(current => current || (_xbTaklifBor() ? "xalqaro" : "") || ((initialCourses || initialCourseId) ? "kurslar" : botStartTab() || (!readOnly && bellashuv.kod ? "bellashuv" : !readOnly && shashka.kod ? "shashka" : !readOnly && shaxmat.kod ? "shaxmat" : "") || initialEducationTab(u)));
+        setTab(current => current || (_xbTaklifBor() ? "xalqaro" : "") || ((initialCourses || initialCourseId || _kursGuruhBor()) ? "kurslar" : botStartTab() || (!readOnly && bellashuv.kod ? "bellashuv" : !readOnly && shashka.kod ? "shashka" : !readOnly && shaxmat.kod ? "shaxmat" : "") || initialEducationTab(u)));
         setHolat("tayyor");
       }).catch((error) => {
         if (controller.signal.aborted) return;

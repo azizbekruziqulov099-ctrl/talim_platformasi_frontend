@@ -3,6 +3,7 @@ import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import KursTolov, { somFmt } from "./KursTolov.jsx";
+import KursGuruh, { GURUH_KALIT, kgFetch } from "./KursGuruh.jsx";   // REV411
 import "./kabutarKurslar.css";
 
 const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
@@ -33,21 +34,35 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     }).catch((e) => setXato(e.message));
   };
   useEffect(yukla, [base, token, til]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {   // REV411: ?kurs_guruh=KOD havolasi
+    if (!data) return;
+    let kod = ""; try { kod = localStorage.getItem(GURUH_KALIT) || ""; } catch { /* */ }
+    if (!kod) return;
+    try { localStorage.removeItem(GURUH_KALIT); } catch { /* */ }
+    kgFetch(apiBase, "/api/kurs_guruh/qoshil", token, { method: "POST", body: { kod } }).then((r) => {
+      const g = r.guruh; const k = (data.kurslar || []).find((x) => x.fan === g.fan && (x.sinflar || []).includes(g.grade)) || (data.kurslar || []).find((x) => x.fan === g.fan);
+      if (k) kursniOch(k, g.bugungi ? { tc: g.bugungi, g } : null);
+    }).catch((e) => setXato(e.message));
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kurslar = useMemo(() => (data?.kurslar || []).filter((k) => (!kat || k.kategoriya === kat)
     && (!qidir.trim() || kursNomi(k).toLowerCase().includes(qidir.trim().toLowerCase()))), [data, kat, qidir]);
   const soni = (c) => (data?.kurslar || []).filter((k) => k.kategoriya === c).length;
 
-  const kursniOch = (k) => {
+  const kursniOch = (k, ochilsin = null) => {
     setKurs({ ...k, darslarSoni: k.darslar, darslar: [], yuklanmoqda: true });
     fetch(`${base}/api/kurslar/kurs?${new URLSearchParams({ token, fan: k.fan, grade: k.sinflar[0] || "" })}`).then(async (r) => {
       const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${r.status}`);
       setKurs({ ...k, ...d, darslar: Array.isArray(d.darslar) ? d.darslar : [], nomi: k.nomi, yuklanmoqda: false });
+      if (ochilsin) { const x = (d.darslar || []).find((y) => y.topic_code === ochilsin.tc); if (x && x.ochiq) setDars({ ...x, guruh: ochilsin.g }); }
     }).catch((e) => setKurs({ ...k, darslar: [], yuklanmoqda: false, xato: e.message }));
   };
 
-  if (dars) return <div className="kk-toliq"><React.Suspense fallback={<p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}>
-    <DarsXonasi apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")}
+  if (dars) return <div className="kk-toliq">{dars.guruh && <GuruhJonli apiBase={apiBase} token={token} tc={dars.topic_code} />}
+    {dars.guruh && <p className="kg-darsda">👥 {dars.guruh.nom} · {__kbUi("javoblaringiz o‘qituvchiga ko‘rinadi")}</p>}
+    <React.Suspense fallback={<p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}>
+    <DarsXonasi onNatija={dars.guruh ? (n) => kgFetch(apiBase, "/api/kurs_dars/javob", token, { method: "POST", body: { topic_code: dars.topic_code, ...n } }).catch(() => {}) : null}
+      apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")}
       jins={user?.jins} learnerRole={user?.role || ""} onClose={() => { setDars(null); if (kurs) kursniOch((data?.kurslar || []).find((x) => x.kalit === kurs.kalit) || kurs); }} /></React.Suspense></div>;
   if (kat === "sertifikat") return <Bolim nom="🎓 Sertifikat" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MarkazPanel apiBase={apiBase} token={token} user={user} /></React.Suspense></Bolim>;
   if (kat === "xalqaro") return <Bolim nom="🌍 Xalqaro baholash" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={user?.jins} /></React.Suspense></Bolim>;
@@ -58,6 +73,8 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       <p>{kurs.yuklanmoqda ? (kurs.darslarSoni ?? "…") : kurs.darslar.length} {__kbUi("ta dars")} · {Number(kurs.narx) > 0 ? (kurs.obuna_tugaydi ? __kbUi(`✓ Ochiq · ${kurs.obuna_tugaydi} gacha`) : __kbUi(`Birinchi ${kurs.bepul} ta dars bepul · ${somFmt(kurs.narx)} / 30 kun`)) : __kbUi("Bepul kurs")}</p></header>
     {kurs.yuklanmoqda && <p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}
     {kurs.xato && <p className="kk-xato" role="alert">{kurs.xato}</p>}
+    {!kurs.yuklanmoqda && <KursGuruh apiBase={apiBase} token={token} user={user} kurs={kurs}
+      onDars={(tc, g) => { const x = (kurs.darslar || []).find((y) => y.topic_code === tc); if (x?.ochiq) setDars({ ...x, guruh: g }); else if (x) setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }); }} />}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code}>
       <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"}`} onClick={() => (d.ochiq ? setDars(d) : setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }))}>
         <span className="kk-raqam">{i + 1}</span><span className="kk-dars-nom">{d.nomi || d.topic_code}{kurs.kategoriya === "bolalar" && (kurs.sinflar || []).length > 1 ? <small> · {__kbUi(`${(kurs.sinflar || []).indexOf(d.sinf) + 1}-qism`)}</small> : null}</span>
@@ -84,6 +101,19 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     </button>)}</div>
     {data && !kurslar.length && <p className="kk-p">{__kbUi("Bu yo‘nalishda hali kurs yo‘q")}</p>}
   </section>;
+}
+
+/** REV411: guruh mashg'ulotida — har 4 soniyada «shu darsdaman», ilovadan chiqsa darhol «chiqdi». */
+function GuruhJonli({ apiBase, token, tc }) {
+  useEffect(() => {
+    const yubor = (holat) => kgFetch(apiBase, "/api/kurs_dars/jonli", token, { method: "POST", body: { topic_code: tc, holat } }).catch(() => {});
+    yubor("faol");
+    const t = setInterval(() => { if (document.visibilityState === "visible") yubor("faol"); }, 4000);
+    const v = () => yubor(document.visibilityState === "visible" ? "faol" : "chiqdi");
+    document.addEventListener("visibilitychange", v); window.addEventListener("pagehide", v);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", v); window.removeEventListener("pagehide", v); yubor("chiqdi"); };
+  }, [tc]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }
 
 function Bolim({ nom, onOrtga, children }) {

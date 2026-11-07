@@ -28,3 +28,35 @@
 .kk-dars-nom small{color:#2d8b8b;font-weight:700}
 .kk-belgi{font-size:18px}
 .kk-toliq{position:fixed;inset:0;z-index:60;background:#fff;overflow:auto}
+/* REV411: kurs guruhi */
+.kg{display:flex;flex-direction:column;gap:10px;margin:10px 0 14px}
+.kg-karta{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:12px 14px;border-radius:16px;border:1px solid rgba(127,127,127,.25);background:var(--kk-fon,#fff)}
+.kg-karta.is-talaba{border:2px solid #1b4b7a;background:rgba(27,75,122,.05)}
+.kg-karta>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.kg-karta small{opacity:.8}
+.kg-tug{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.kg-bugungi{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-weight:600}
+.kg-bugungi select{flex:1;min-width:200px;padding:8px 10px;border-radius:10px;border:1px solid rgba(127,127,127,.4);font:inherit}
+.kg-sar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.kg-oqituvchi{display:flex;flex-direction:column;gap:8px}
+.kg-forma{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.kg-forma label{display:flex;flex-direction:column;gap:4px;flex:1;min-width:200px}
+.kg-forma input{padding:9px 11px;border-radius:10px;border:1px solid rgba(127,127,127,.4);font:inherit}
+.kg-btn{padding:9px 14px;border-radius:12px;border:1px solid rgba(127,127,127,.35);background:#fff;font:600 14px system-ui,sans-serif;cursor:pointer;color:#1d2b3a}
+.kg-btn.is-asosiy{background:#1b4b7a;border-color:#1b4b7a;color:#fff}
+.kg-btn:disabled{opacity:.45}
+.kg-ok{padding:8px 12px;border-radius:10px;background:rgba(31,138,76,.1);color:#1f6f43;font-weight:600}
+.kg-jonli{grid-column:1/-1}
+.kg-jonli-bosh{display:flex;align-items:center;gap:6px;font-size:13px;margin:4px 0}
+.kg-nuqta{width:9px;height:9px;border-radius:50%;background:#1f8a4c;animation:kg-n 2s infinite}
+@keyframes kg-n{50%{opacity:.35}}
+.kg-jadval-o{overflow-x:auto}
+.kg-jadval{width:100%;border-collapse:collapse;font-size:14px}
+.kg-jadval th,.kg-jadval td{padding:7px 8px;border-bottom:1px solid rgba(127,127,127,.2);text-align:left;white-space:nowrap}
+.kg-jadval tr.is-chiqdi{background:rgba(199,125,0,.08)}
+.kg-jadval tr.is-tugatdi{background:rgba(31,138,76,.07)}
+.kg-q{display:flex;align-items:center;gap:6px;min-width:110px}
+.kg-chiziq{flex:1;height:7px;border-radius:4px;background:rgba(127,127,127,.2);overflow:hidden}
+.kg-chiziq i{display:block;height:100%;background:#1b6fd8}
+.kg-kichik{font-size:12px;opacity:.8}
+.kg-darsda{margin:0;padding:6px 12px;background:#1b4b7a;color:#fff;font:600 13px system-ui,sans-serif;text-align:center}
