@@ -142,3 +142,17 @@
 .kb-chat45 .kb-qidiruv-bar button:hover:not(:disabled){background:var(--tg-hover);color:var(--tg-blue)}
 .kb-chat45 .kb-qidiruv-bar button:disabled{opacity:.4}
 @media (prefers-color-scheme:dark){.kb-chat45 .kb-qadalgan-bar,.kb-chat45 .kb-qidiruv-bar{background:#17212b}.kb-chat45 .kb-qidiruv-bar input{background:#242f3d;color:#e9eef3}}
+/* REV396: o'ngga surib javob berish va bir nechta xabarni tanlash */
+.kb-chat45 .kb-chat-bubble{transition:transform .18s ease-out}
+.kb-chat45 .kb-chat-bubble.is-surildi::after{content:"↩";position:absolute;left:-44px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px}
+.kb-chat45 .kb-message-row.is-tanlov{cursor:pointer;padding-left:38px !important;position:relative}
+.kb-chat45 .kb-message-row.is-tanlov::before{content:"";position:absolute;left:8px;top:50%;width:22px;height:22px;margin-top:-11px;border-radius:50%;border:2px solid rgba(255,255,255,.9);background:rgba(0,0,0,.12)}
+.kb-chat45 .kb-message-row.is-tanlangan::before{content:"✓";background:#4fae4e;border-color:#4fae4e;color:#fff;font:700 13px/18px system-ui;text-align:center}
+.kb-chat45 .kb-message-row.is-tanlangan{background:rgba(79,174,78,.14);border-radius:10px}
+.kb-chat45 .kb-message-row.is-tanlov .kb-message-more{display:none}
+.kb-chat45 .kb-tanlov-bar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#fff;border-bottom:1px solid var(--tg-line);flex-wrap:wrap}
+.kb-chat45 .kb-tanlov-bar b{flex:1;font-size:15px;color:var(--tg-ink)}
+.kb-chat45 .kb-tanlov-bar button{display:inline-flex;align-items:center;gap:5px;height:36px;padding:0 12px;border:none;border-radius:18px;background:#f1f1f3;color:var(--tg-blue);font:600 14px system-ui,sans-serif;cursor:pointer}
+.kb-chat45 .kb-tanlov-bar button:first-child{width:36px;padding:0;justify-content:center;background:transparent;color:var(--tg-muted)}
+.kb-chat45 .kb-tanlov-bar button:disabled{opacity:.4}
+@media (prefers-color-scheme:dark){.kb-chat45 .kb-tanlov-bar{background:#17212b}.kb-chat45 .kb-tanlov-bar button{background:#242f3d}}
