@@ -55,7 +55,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
     </div>
     {!oldi && (d.dars_kodi || onMashq) && <div className="xb-tez-tugmalar">   {/* REV307: asosiy ishlar tepada */}
       {d.dars_kodi && onDars && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDars(d); }}>🧑‍🏫 {T("Xalqaro darajadagi dars")}</button>}
-      {onMashq && <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); onMashq(d); }}>✍️ {T("Mashq (8 savol)")}</button>}
+      {onMashq && <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); onMashq(d); }}>✍️ {T("Test to‘plamlari")}</button>}
       {d.maktab_darslari?.length > 0 && <a className="xb-btn xb-btn-yengil" href="#xb-maktab">📚 {T("Maktab darslari")} ({d.maktab_darslari.length})</a>}
     </div>}
     <div className="xb-kartalar">
@@ -101,7 +101,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
     <div className="xb-tug-qator">
       {oldi && onDavom && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDavom(); }}>▶ {T("Maktab darsini boshlash")}</button>}
       {d.dars_kodi && onDars && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDars(d); }}>🧑‍🏫 {T("Xalqaro darajadagi dars")}</button>}
-      {onMashq && <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); onMashq(d); }}>✍️ {T("Mashq (8 savol)")}</button>}
+      {onMashq && <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); onMashq(d); }}>✍️ {T("Test to‘plamlari")}</button>}
     </div>
   </div>;
 }
