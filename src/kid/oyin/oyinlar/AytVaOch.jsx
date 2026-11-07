@@ -62,17 +62,12 @@ export default function AytVaOch(p) {
   const variantlar = joriy.bosib ? [raund.variantlar.find((v) => v.k === raund.togri), raund.variantlar.find((v) => v.k !== raund.togri)].filter(Boolean) : raund.variantlar;
   if (mik && !joriy.bosib) {
     const mikSrc = belgiSrc("🎤");
-    const eshikSrc = ESHIK();
-    // REV370: eshik ortida narsa yashiringan (eshikka chizilmagan); nomi bilan chaqirilsa — eshik ochilib, u chiqib keladi
+    // REV418: eshik olib tashlandi — narsa katta ko'rinadi, ustoz nomini aytadi, bola takrorlaydi; to'g'ri aytsa — yulduz
     return (
       <div className="oy-sahna">
-        <div className={`oy-eshik2 ${ochiq ? "is-ochiq" : ""} ${kadr && fb?.togri === false ? "is-xato" : ""}`} aria-hidden="true">
-          <span className="oy-eshik2-ichi"><Rasm el={raund.savol.el} rasm={rasm} /></span>
-          <span className="oy-eshik2-qanot">
-            {eshikSrc ? <img src={eshikSrc} alt="" draggable="false" /> : <span className="oy-eshik2-yasama" />}
-            {/* REV371: eshik oynasi — ortidagi kim ekani ko'rinib turadi, bola nomini aytadi */}
-            <span className="oy-eshik2-oyna"><Rasm el={raund.savol.el} rasm={rasm} /></span>
-          </span>
+        <div className={`oy-ayt-karta ${ochiq ? "is-togri" : ""} ${kadr && fb?.togri === false ? "is-xato" : ""}`} aria-hidden="true">
+          <Rasm el={raund.savol.el} rasm={rasm} />
+          {ochiq && <img className="oy-ayt-yulduz" src={JR.yulduz} alt="" draggable="false" />}
         </div>
         {katta && kadr ? <Soz el={raund.savol.el} /> : null}
         <button type="button" className={`oy-tugma is-ikon oy-mik ${tinglayapti ? "is-tinglayapti" : ""}`} disabled={qulf || tinglayapti}
@@ -88,9 +83,9 @@ export default function AytVaOch(p) {
         {variantlar.map((v) => {
           const h = tugmaHolati(p, v.k);
           return (
-            <Tugma key={v.k} label={v.el.say || v.el.uz} holat={h} ishora={ishora === v.k} className={`oy-eshik ${h === "togri" ? "is-ochiq" : ""}`}
+            <Tugma key={v.k} label={v.el.say || v.el.uz} holat={h} ishora={ishora === v.k}
               olingan={joriy.olingan.includes(v.k)} disabled={qulf} onClick={() => javob(v.k)}>
-              <Eshik el={v.el} rasm={rasm} ochiq={h === "togri"} />
+              <Rasm el={v.el} rasm={rasm} />
             </Tugma>
           );
         })}

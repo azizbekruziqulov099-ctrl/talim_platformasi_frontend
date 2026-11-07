@@ -1340,11 +1340,11 @@ Object.assign(OYIN_MATN.aytOch, {
   yana: { uz: "Eshik eshitmadi. Yana bir marta, baland ovozda: {t}", ru: "Дверь не услышала. Ещё раз, погромче: {t}", en: "The door didn't hear. Once more, loudly: {t}",
     de: "Die Tür hat es nicht gehört. Noch einmal, laut: {t}", es: "La puerta no lo oyó. Otra vez, más fuerte: {t}" },
 });
-OYIN_MATN.aytOch.raund = { uz: ["Eshik ortida {t} yashiringan. Uni chaqir: «{t}!»", "Tiq-tiq! Bu — {t}. Baland ovozda chaqir: {t}!", "Eshik ortida kim bor? {t}! Chaqir-chi: {t}!"],
-  ru: ["За дверью спрятался {t}. Позови: «{t}!»", "Тук-тук! Это — {t}. Позови громко: {t}!", "Кто за дверью? {t}! Позови: {t}!"],
-  en: ["{t} is hiding behind the door. Call: “{t}!”", "Knock, knock! It's {t}. Call loudly: {t}!", "Who is behind the door? {t}! Call: {t}!"],
-  de: ["Hinter der Tür versteckt sich {t}. Ruf: „{t}!“", "Klopf, klopf! Das ist {t}. Ruf laut: {t}!", "Wer ist hinter der Tür? {t}! Ruf: {t}!"],
-  es: ["{t} se esconde detrás de la puerta. Llama: «¡{t}!»", "¡Toc, toc! Es {t}. Llama fuerte: ¡{t}!", "¿Quién está detrás de la puerta? ¡{t}! Llama: ¡{t}!"] };
+OYIN_MATN.aytOch.raund = { uz: ["Bu — {t}. Qani, sen ham ayt: «{t}!»", "Qara, bu {t}! Baland ovozda takrorla: {t}!", "Bu nima? {t}! Endi sen ayt: {t}!"],   // REV418: eshiksiz
+  ru: ["Это — {t}. Скажи и ты: «{t}!»", "Смотри, это {t}! Повтори громко: {t}!", "Что это? {t}! Теперь скажи ты: {t}!"],
+  en: ["This is {t}. Now you say it: “{t}!”", "Look, it's {t}! Say it loudly: {t}!", "What is it? {t}! Now you say: {t}!"],
+  de: ["Das ist {t}. Sag du auch: „{t}!“", "Schau, das ist {t}! Sag es laut: {t}!", "Was ist das? {t}! Jetzt sag du: {t}!"],
+  es: ["Esto es {t}. Dilo tú también: «¡{t}!»", "¡Mira, es {t}! Dilo en voz alta: ¡{t}!", "¿Qué es? ¡{t}! Ahora dilo tú: ¡{t}!"] };
 
 // REV347: asosiy o'yinlarning raund gaplari — har raundda boshqa variant (3 tadan, 5 tilda)
 const RAUND_VARIANTLAR = {

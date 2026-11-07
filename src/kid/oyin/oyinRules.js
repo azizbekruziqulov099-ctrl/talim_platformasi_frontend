@@ -123,7 +123,7 @@ export const OYINLAR = [
     raund: { "2-3": 4, "4-5": 5, "6-7": 5 }, soniya: { "2-3": 12, "4-5": 12, "6-7": 13 } },
   { id: 116, kalit: "eshitBos", nom: "Eshit va bos", belgi: "👂", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
     raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 11, "4-5": 10, "6-7": 10 } },
-  { id: 117, kalit: "aytOch", nom: "Ayt va och", belgi: "🚪", yosh: HAMMA, harakat: "aytish", kerak: { min_element: 2 },
+  { id: 117, kalit: "aytOch", nom: "Ayt-chi!", belgi: "🗣️", yosh: HAMMA, harakat: "aytish", kerak: { min_element: 2 },
     raund: { "2-3": 4, "4-5": 4, "6-7": 5 }, soniya: { "2-3": 14, "4-5": 14, "6-7": 14 } },
   { id: 83, kalit: "oxshash", nom: "O‘xshashini top", belgi: "🔍", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
     raund: { "2-3": 5, "4-5": 6, "6-7": 7 }, soniya: { "2-3": 9, "4-5": 9, "6-7": 9 } },
@@ -597,7 +597,8 @@ const YASOVCHI = {
     tur: "tanlov", savol: { el }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k,
   })),
   // 117 — bola so'zni aytadi (mikrofon); mikrofon yo'q bo'lsa — variantlardan bosadi
-  aytOch: ({ els, n, rnd, R }) => navbat(els, R, rnd).map((el) => ({
+  // REV418: nomi yo'q narsa (faqat emoji) aytishga berilmaydi — bola nima deyishni bilmay qoladi
+  aytOch: ({ els, n, rnd, R }) => navbat(els.filter((e) => nomOvoz(e, "uz").trim()).length >= 2 ? els.filter((e) => nomOvoz(e, "uz").trim()) : els, R, rnd).map((el) => ({
     tur: "aytish", savol: { el }, variantlar: elementVariantlar(el, els, n, rnd), togri: el.k,
   })),
   // 83 — namunaning xuddi o'zini topish (6-7 yoshda: namuna emoji, variantlar — rasm)
