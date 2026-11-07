@@ -11,7 +11,7 @@ const MAQTOV = ["Barakalla! To‘g‘ri.", "Zo‘r! Aynan shunday.", "To‘g‘r
  * Noto‘g‘ri bo‘lsa: nega xato (tanlangan variant bo‘yicha), ishora, keyin doskada yechim harfma-harf.
  * Ovoz bilan javob berilsa — ustoz uni yozdirib tasdiqlatadi (aytib + yozib).
  */
-export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor", manba, sarlavha = T("Mashq"), onYopish, onTugadi }) {
+export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor", manba, sarlavha = T("Mashq"), onYopish, onTugadi, toplamInfo = null, onKeyingi = null }) {
   const ovoz = useUstozOvoz(apiBase, jins);
   const [savollar, setSavollar] = useState(null);
   const [xato, setXato] = useState("");
@@ -27,7 +27,7 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
   useEffect(() => {
     let tirik = true;
     const path = takror ? "/api/xalqaro/takror" : "/api/xalqaro/mashq";
-    const params = takror ? { soni: 15 } : { mavzu: manba?.mavzu || "", toplam: manba?.toplam || "", soni: manba?.soni || 8, fikrlash: manba?.fikrlash || "" };
+    const params = takror ? { soni: 15 } : { mavzu: manba?.mavzu || "", toplam: manba?.toplam || "", soni: manba?.soni || 8, fikrlash: manba?.fikrlash || "", ...(manba?.toplam_i ? { toplam_i: manba.toplam_i } : {}) };
     xbFetch(apiBase, path, token, { params }).then((d) => { if (tirik) setSavollar(d.savollar || []); }).catch((e) => tirik && setXato(e.message));
     return () => { tirik = false; ovoz.hush(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -78,7 +78,11 @@ export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor"
       <XbUstoz ustoz={ustoz} mood={f >= 70 ? "happy" : ""} />
       <h3>{f >= 80 ? "🌟" : f >= 50 ? "👍" : "💪"} {hisob.togri} / {hisob.jami} · {f}%</h3>
       <p>{f >= 80 ? T("A’lo! Bu mavzuda xalqaro darajaga yaqinsiz.") : f >= 50 ? T("Yaxshi, lekin xatolaringiz takrorlash navbatiga qo‘shildi — ertaga yana so‘rayman.") : T("Bu mavzuni yana bir bor darsdan ko‘rib chiqing. Xatolar takrorlash navbatida.")}</p>
-      <button type="button" className="xb-btn" onClick={onYopish}>{T("Tayyor")}</button>
+      {toplamInfo && <p className="xb-muted">{tf("{i}-to‘plam yakunlandi ({i} / {j}).", { i: toplamInfo.i, j: toplamInfo.jami })}</p>}
+      <div className="xb-yakun-tugmalar">
+        {onKeyingi && <button type="button" className="xb-btn xb-btn-asosiy" onClick={onKeyingi}>▶ {tf("{i}-to‘plamga o‘tish", { i: toplamInfo.i + 1 })}</button>}
+        <button type="button" className="xb-btn" onClick={onYopish}>{toplamInfo ? `← ${T("To‘plamlar")}` : T("Tayyor")}</button>
+      </div>
     </div>;
   }
   return <div className="xb-panel xb-mashq">

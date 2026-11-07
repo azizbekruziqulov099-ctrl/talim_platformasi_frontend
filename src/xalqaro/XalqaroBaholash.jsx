@@ -10,6 +10,7 @@ import { XbUstoz } from "./XbDoska.jsx";
 import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
 import { OquvchiSinf } from "./XbSinflar.jsx";   // REV373
 import XbNatijalarim from "./XbNatijalarim.jsx";   // REV381
+import XbToplamlar, { DARAJA } from "./XbToplamlar.jsx";   // REV399
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
 import { GAP_TUR, IMTIHON_BELGI, darajaNomi, mavzuBelgi, sinfRaqami, solishtirishQatorlari } from "./xbRules.js";
 import XbQollanma from "./XbQollanma.jsx";   // REV262
@@ -99,7 +100,15 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   if (ekran?.tur === "mavzu") return <div className="xb-root"><XbMavzu apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} kalit={ekran.kalit}
     onYopish={orqaga} onDars={(d) => ochDars({ dars_kodi: d.dars_kodi, kalit: d.kalit })} onMashq={(d) => ochMashq({ kalit: d.kalit, nom: d.nom })}
     onMaktabDarsi={(m) => setEkran({ tur: "maktab", kod: m.topic_code, fan: m.fan, sinf: m.sinf, qayt: ekran })} /></div>;
-  if (ekran?.tur === "mashq") return <div className="xb-root"><XbMashq apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} manba={ekran.manba} sarlavha={ekran.sarlavha} onYopish={orqaga} /></div>;
+  if (ekran?.tur === "toplamlar") return <div className="xb-root"><XbToplamlar apiBase={apiBase} token={token} mavzu={ekran.m} til={til} onYopish={orqaga}
+    onDars={ekran.m.dars_kodi ? () => ochDars(ekran.m) : null}
+    onBoshla={(t, jami) => { ovoz.hush(); setEkran({ tur: "mashq", qaytish: ekran, manba: { mavzu: ekran.m.kalit, toplam, toplam_i: t.i, soni: t.soni },
+      toplamInfo: { i: t.i, jami, daraja: t.daraja }, sarlavha: `${ekran.m.nom} · ${tf("{i}-to‘plam", { i: t.i })} · ${T((DARAJA[t.daraja] || DARAJA.orta)[1])}` }); }} /></div>;
+  if (ekran?.tur === "mashq") return <div className="xb-root"><XbMashq apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} manba={ekran.manba} sarlavha={ekran.sarlavha}
+    toplamInfo={ekran.toplamInfo} onKeyingi={ekran.toplamInfo && ekran.toplamInfo.i < ekran.toplamInfo.jami ? () => { const q = ekran.qaytish; const i2 = ekran.toplamInfo.i + 1;
+      setEkran({ ...ekran, manba: { ...ekran.manba, toplam_i: i2 }, toplamInfo: { ...ekran.toplamInfo, i: i2, daraja: ekran.toplamInfo.i + 1 === ekran.toplamInfo.jami ? "imtihon" : "orta" },
+        sarlavha: `${q.m.nom} · ${tf("{i}-to‘plam", { i: i2 })}`, kalit: Date.now() }); } : null}
+    key={ekran.kalit || "m"} onYopish={() => (ekran.qaytish ? setEkran(ekran.qaytish) : orqaga())} /></div>;
   if (ekran?.tur === "imtihon") return <div className="xb-root"><XbImtihon apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} tur={ekran.info.tur} toplam={toplam} info={ekran.info} onYopish={orqaga} /></div>;
   if (ekran?.tur === "natija") return <div className="xb-root"><XbNatija apiBase={apiBase} token={token} id={ekran.id} jins={jins} ustoz={ustoz} onYopish={orqaga} /></div>;
 
@@ -147,7 +156,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
     {tab === "sinfim" && kuzatuv?.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
-    {tab === "natija" && <XbNatijalarim apiBase={apiBase} token={token} kat={kat} toplam={toplam} til={til} onMashq={(m) => ochMashq(m)} onDars={(m) => ochDars(m)} />}
+    {tab === "natija" && <XbNatijalarim apiBase={apiBase} token={token} kat={kat} toplam={toplam} til={til} onMashq={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} onDars={(m) => ochDars(m)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
     {tab === "kurs" && tp && <Kurs tp={tp} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq} />}
     {tab === "imtihon" && <Imtihonlar apiBase={apiBase} token={token} toplam={toplam} onBoshla={(info) => setEkran({ tur: "imtihon", info })} onNatija={(id) => setEkran({ tur: "natija", id })} />}
@@ -187,11 +196,11 @@ function Kurs({ tp, onMavzu, onDars, onMashq }) {
           <button type="button" className="xb-mavzu-nom" onClick={() => onMavzu(m)}>
             <span className="xb-belgi" title={T(b.nom)}>{b.belgi}</span>
             <span><b>{m.nom}</b><small>🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}% · {tf("{a}/{b} o‘zlashtirildi", { a: m.holat?.ozlashtirgan ?? 0, b: m.savollar })}</small></span>
-            <span className="xb-test-soni" title={T("Shu mavzudagi testlar soni")}>📝 {m.savollar}</span>
+            <span className="xb-test-soni" title={T("Savollar soni")}>📝 {tf("{n} savol", { n: m.savollar })}</span>
           </button>
           <span className="xb-mavzu-tug">
             {m.dars_kodi && <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onDars(m)}>🧑‍🏫 {T("Dars")}</button>}
-            <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onMashq(m)}>✍️ {tf("{n} ta test", { n: m.savollar })}</button>
+            <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }}>✍️ {tf("{n} ta savol · {t} to‘plam", { n: m.savollar, t: Math.max(1, Math.round(m.savollar / 8)) })}</button>
           </span>
         </li>;
       })}</ul></section>)}
