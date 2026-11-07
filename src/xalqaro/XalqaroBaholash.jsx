@@ -78,6 +78,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
 
   const tp = useMemo(() => kat?.toplamlar?.find((t) => t.kalit === toplam), [kat, toplam]);
   const ustoz = ustozFor(tp?.ustoz_fan || "Matematika");
+  ovoz.ustozQoy(ustoz);   // REV402: ovoz ustozning jinsiga mos
   const orqaga = useCallback(() => { setEkran(null); setYangila((n) => n + 1); }, []);
   const darsYoz = (mavzu, tugadi = false) => { if (mavzu) xbFetch(apiBase, "/api/xalqaro/dars_kordi", token, { method: "POST", body: { mavzu, tugadi } }).catch(() => {}); };   // REV376
   const ochDars = (m) => { ovoz.hush(); darsYoz(m.kalit); setEkran({ tur: "dars", kod: m.dars_kodi, fan: m.fan || tp?.ustoz_fan, mavzu: m.kalit, sinf: m.sinf || tp?.sinf }); };

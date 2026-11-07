@@ -1,3 +1,4 @@
+import { UstozFigura } from "../kid/UstozSahna.jsx";   // REV402
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { T } from "./xbTil.js";   // REV270: uch til
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
@@ -8,8 +9,10 @@ import { USTOZLAR } from "../kid/ustozlar.js";
 
 /** Kichik ustoz rasmi (gapirayotganda qimirlaydi). */
 export function XbUstoz({ ustoz = "sardor", speaking = false, mood = "" }) {
-  const src = USTOZLAR?.[ustoz]?.[speaking ? 2 : mood === "happy" ? 5 : 1]?.src || USTOZLAR?.[ustoz]?.[1]?.src;
-  return <div className={`xb-ustoz ${speaking ? "is-gap" : ""}`} aria-hidden="true">{src ? <img src={src} alt="" /> : <span>🧑‍🏫</span>}</div>;
+  // REV402: jonli ustoz — gapirganda og'zi ochilib-yopiladi (lab kadrlari), ko'zini pirpiratadi
+  if (!USTOZLAR?.[ustoz]) return <div className="xb-ustoz" aria-hidden="true"><span>🧑‍🏫</span></div>;
+  return <div className={`xb-ustoz xb-ustoz-jonli ${speaking ? "is-gap" : ""}`} aria-hidden="true">
+    <UstozFigura ustoz={ustoz} speaking={speaking} mood={mood === "happy" ? "happy" : speaking ? "" : ""} /></div>;
 }
 
 /**

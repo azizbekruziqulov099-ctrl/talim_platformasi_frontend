@@ -34,7 +34,7 @@ export function XatoKarta({ s, ovoz, ustoz, raqam }) {
 
 /** O'quvchining o'z xatolari (o'quvchi «Xalqaro baholash → Xatolarim» bo'limidan topadi). */
 export function Xatolarim({ apiBase, token, jins, ustoz, toplam, onMashq }) {
-  const ovoz = useUstozOvoz(apiBase, jins);
+  const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [d, setD] = useState(null);
   const [hammasi, setHammasi] = useState(false);
   useEffect(() => { let t = true; xbFetch(apiBase, "/api/xalqaro/xatolarim", token, { params: { toplam: hammasi ? "" : toplam } }).then((r) => t && setD(r)).catch(() => t && setD({ xatolar: [] })); return () => { t = false; ovoz.hush(); }; }, [toplam, hammasi]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -53,7 +53,7 @@ export function Xatolarim({ apiBase, token, jins, ustoz, toplam, onMashq }) {
 }
 
 function OquvchiTafsilot({ apiBase, token, id, jins, ustoz, til, onYopish }) {
-  const ovoz = useUstozOvoz(apiBase, jins);
+  const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [d, setD] = useState(null);
   const [xato, setXato] = useState("");
   useEffect(() => { let t = true; xbFetch(apiBase, `/api/xalqaro/oquvchi/${id}`, token, { params: { til } }).then((r) => t && setD(r)).catch((e) => t && setXato(e.message)); return () => { t = false; ovoz.hush(); }; }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -94,7 +94,7 @@ function OquvchiTafsilot({ apiBase, token, id, jins, ustoz, til, onYopish }) {
  * Admin istalgan maktabni (yoki butun platformani) tanlaydi; o'qituvchi faqat o'z maktabini ko'radi.
  */
 export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDars, kat = null }) {
-  const ovoz = useUstozOvoz(apiBase, jins);
+  const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [maktab, setMaktab] = useState(0);
   const [sinf, setSinf] = useState("");
   const [harf, setHarf] = useState("");

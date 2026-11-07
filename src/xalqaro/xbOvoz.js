@@ -6,7 +6,14 @@ import { MIK_TIL, ovozMatni, xbTil } from "./xbTil.js";
  * REV260: ustoz ovozi (/api/ovoz) — ovoz qancha aytilganini (0–1) ham beradi: doskadagi yozuv shunga qarab harfma-harf yuradi.
  * Ovoz ishlamasa (tarmoq, brauzer) — matn uzunligiga qarab taxminiy vaqt bilan davom etadi.
  */
-export function useUstozOvoz(apiBase, jins = "qiz") {
+import { USTOZLAR } from "../kid/ustozlar.js";
+const USTOZLAR_JINS = Object.fromEntries(Object.entries(USTOZLAR).map(([k, v]) => [k, v.lab]));
+
+export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
+  // REV402: ovoz ustozga mos — erkak ustoz erkak ovozida (ustoz keyinroq aniqlansa, ovoz.ustozQoy(u) bilan beriladi)
+  const ustozRef = useRef(ustoz); if (ustoz) ustozRef.current = ustoz;
+  const lab = USTOZLAR_JINS[ustozRef.current];
+  const jins = lab ? (lab === "erkak" ? "ogil" : "qiz") : jins0;
   const audioRef = useRef(null);
   const runRef = useRef(0);
   const timerRef = useRef(0);
@@ -52,7 +59,9 @@ export function useUstozOvoz(apiBase, jins = "qiz") {
   }, [apiBase, hush, jins]);
 
   useEffect(() => hush, [hush]);
-  return useMemo(() => ({ say, hush, speaking, progress }), [say, hush, speaking, progress]);
+  const [, majbur] = useState(0);
+  const ustozQoy = useCallback((u) => { if (u && ustozRef.current !== u) { ustozRef.current = u; majbur((x) => x + 1); } }, []);
+  return useMemo(() => ({ say, hush, speaking, progress, ustozQoy }), [say, hush, speaking, progress, ustozQoy]);
 }
 
 /** Mikrofon: bir marta tinglab, eng ishonchli variantlarni qaytaradi. Brauzer qo'llamasa — mavjud=false. */

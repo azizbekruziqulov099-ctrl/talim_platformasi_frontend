@@ -25,7 +25,9 @@ export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop,
   const [shakllar, setShakllar] = useState(false);
   const [tanlangan, setTanlangan] = useState(-1);
   const [baland, setBaland] = useState(balandlik);
-  const [toliq, setToliq] = useState(false);
+  const [toliq, setToliq] = useState(() => typeof window !== "undefined" && window.matchMedia?.("(max-width: 720px), (pointer: coarse) and (max-height: 820px)").matches);   // REV402: telefonda — butun ekran
+  const [pan, setPan] = useState(false);   // REV402: ✋ — yozish to'xtaydi, sahifa suriladi
+  const panRef = useRef(false); panRef.current = pan;
   const joriy = useRef(null);
   const itemsRef = useRef(items); itemsRef.current = items;
 
@@ -64,13 +66,21 @@ export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop,
 
   useEffect(() => {
     const c = canvasRef.current; if (!c) return undefined;
-    const o = () => { const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); chiz(); };
-    o(); const ro = new ResizeObserver(o); ro.observe(c); return () => ro.disconnect();
+    // REV402: o'lcham transformsiz (clientWidth) — aylantirilgan (yotiq) darsda ham varaq va barmoq bir joyda
+    const o = () => { const dpr = window.devicePixelRatio || 1; c.width = Math.round(c.clientWidth * dpr); c.height = Math.round(c.clientHeight * dpr); chiz(); };
+    o(); const ro = new ResizeObserver(o); ro.observe(c);
+    // telefon: barmoq varaqda yurganda sahifa qimirlamasin (passiv bo'lmagan tinglovchi)
+    const toxta = (e) => { if (!panRef.current) e.preventDefault(); };
+    c.addEventListener("touchmove", toxta, { passive: false }); c.addEventListener("touchstart", toxta, { passive: false });
+    return () => { ro.disconnect(); c.removeEventListener("touchmove", toxta); c.removeEventListener("touchstart", toxta); };
   }, [chiz]);
   useEffect(() => { chiz(); }, [items, chiz]);
 
-  const nuqta = (e) => { const r = canvasRef.current.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  // REV402: element ichidagi koordinata (offsetX) — sahifa aylantirilgan yoki surilgan bo'lsa ham to'g'ri
+  const nuqta = (e) => (Number.isFinite(e.nativeEvent?.offsetX) ? [e.nativeEvent.offsetX, e.nativeEvent.offsetY]
+    : (() => { const r = canvasRef.current.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; })());
   const bos = (e) => {
+    if (pan) return;
     e.preventDefault(); canvasRef.current.setPointerCapture?.(e.pointerId);
     const p = nuqta(e);
     if (asbob === "ochir") { joriy.current = { ochir: true }; yangila((old) => { const n = old.filter((it) => !tegadimi(it, p, 10)); return n.length === old.length ? old : n; }); return; }
@@ -140,6 +150,7 @@ export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop,
         <button type="button" className="cd-t" onClick={() => { if (items.length && window.confirm(__kbUi("Daftar tozalansinmi?"))) { setQaytar([]); setItems([]); setTanlangan(-1); } }} title={__kbUi("Tozalash")}>⌫</button>
         <select className="cd-fon" value={fon} onChange={(e) => setFon(e.target.value)} aria-label={__kbUi("Varaq")}>
           <option value="katak">{__kbUi("Katak")}</option><option value="chiziq">{__kbUi("Chiziqli")}</option><option value="oq">{__kbUi("Oq")}</option></select>
+        {!toliq && <button type="button" className={`cd-t ${pan ? "is-on" : ""}`} onClick={() => setPan((x) => !x)} title={__kbUi("Sahifani surish (yozish to‘xtaydi)")} aria-pressed={pan}>✋</button>}
         <button type="button" className="cd-t" onClick={() => setToliq((x) => !x)} title={toliq ? __kbUi("Kichraytirish") : __kbUi("Butun ekran")}>{toliq ? "🗗" : "⛶"}</button>
         {onYop && <button type="button" className="cd-t" onClick={onYop} title={__kbUi("Yopish")}>✕</button>}
       </div>
@@ -152,6 +163,9 @@ export default function ChizmaDaftar({ kalit = "umumiy", balandlik = 320, onYop,
       <p>{__kbUi("Varaqda tortib chizing (yoki bir marta bosing). Keyin 👆 bilan surish va burchagidan kattalashtirish mumkin.")}</p>
     </div>}
     {sarlavha && toliq && <div className="cd-sarlavha">{sarlavha}</div>}
-    <canvas ref={canvasRef} className={`cd-varaq is-${fon} is-asbob-${asbob}`} onPointerDown={bos} onPointerMove={harakat} onPointerUp={qoy} onPointerCancel={qoy} />
+    <div className={`cd-holat ${pan ? "is-pan" : ""}`} aria-live="polite">{pan ? __kbUi("✋ Surish rejimi — sahifani barmoq bilan suring. Yozish uchun ✋ ni qayta bosing.")
+      : asbob === "ochir" ? __kbUi("🧽 O‘chirg‘ich — o‘chirmoqchi bo‘lgan chiziq ustidan yuring") : asbob === "tanla" ? __kbUi("👆 Tanlash — shaklni bosib suring, burchagidagi ◻ dan tortib kattalashtiring")
+      : shaklTanlangan ? __kbUi(`${shaklTanlangan[1]} Varaqda tortib chizing`) : __kbUi("✏️ Yozish rejimi — varaqqa barmoq yoki qalam bilan yozing (sahifa qimirlamaydi)")}</div>
+    <canvas ref={canvasRef} className={`cd-varaq is-${fon} is-asbob-${asbob} ${pan ? "is-pan" : ""}`} onPointerDown={bos} onPointerMove={harakat} onPointerUp={qoy} onPointerCancel={qoy} />
   </div>;
 }

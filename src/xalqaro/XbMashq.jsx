@@ -12,7 +12,7 @@ const MAQTOV = ["Barakalla! To‘g‘ri.", "Zo‘r! Aynan shunday.", "To‘g‘r
  * Ovoz bilan javob berilsa — ustoz uni yozdirib tasdiqlatadi (aytib + yozib).
  */
 export default function XbMashq({ apiBase, token, jins = "qiz", ustoz = "sardor", manba, sarlavha = T("Mashq"), onYopish, onTugadi, toplamInfo = null, onKeyingi = null }) {
-  const ovoz = useUstozOvoz(apiBase, jins);
+  const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [savollar, setSavollar] = useState(null);
   const [xato, setXato] = useState("");
   const [i, setI] = useState(0);

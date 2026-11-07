@@ -32,7 +32,7 @@ function Ustunlar({ data }) {
 
 /** Topshirilgan imtihon natijasi va tahlili. */
 export function XbNatija({ apiBase, token, id, jins, ustoz, onYopish }) {
-  const ovoz = useUstozOvoz(apiBase, jins);
+  const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [d, setD] = useState(null);
   const [xato, setXato] = useState("");
   const [ochiq, setOchiq] = useState(null);
@@ -106,7 +106,7 @@ export function XbNatija({ apiBase, token, id, jins, ustoz, onYopish }) {
  * Yillik imtihon 2 qismli (matematika, tanaffus, tabiiy fanlar). Vaqt tugasa avtomatik topshiriladi.
  */
 export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardor", tur, toplam, info, onYopish }) {
-  const ovoz = useUstozOvoz(apiBase, jins);
+  const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [bosqich, setBosqich] = useState("qoida");   // qoida | ish | tanaffus | natija
   const [ses, setSes] = useState(null);
   const [javoblar, setJavoblar] = useState({});

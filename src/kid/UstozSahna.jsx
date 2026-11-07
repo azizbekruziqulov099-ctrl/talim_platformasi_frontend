@@ -50,7 +50,7 @@ export function havoJoyi(dz, doska) {
  * gapirayotganining og'zi ovozga mos qimirlaydi (avvalgidek), ikkinchisi jim turadi — boshqa qo'shimcha harakat yo'q.
  * rol — "til" (o'rganilayotgan til ustozi) | "iz" (izoh tili ustozi); jim — boshqasi gapiryapti.
  */
-function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", onOchiq }) {
+export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", onOchiq }) {
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
   const poza0 = pozaFor(mood, { hasPics, listening });
   const poza = t[poza0] ? poza0 : 3;   // REV392: 7-poza bo'lmasa — ko'rsatish pozasi

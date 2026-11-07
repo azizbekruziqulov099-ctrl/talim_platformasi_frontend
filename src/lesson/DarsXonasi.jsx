@@ -273,7 +273,7 @@ export default function DarsXonasi({ apiBase, token, topicCode, fan = "", grade 
     const d = String(steps?.[idx]?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim();
     if (!d) return undefined;
     setYozVaqt(true);
-    const t = setTimeout(() => setYozVaqt(false), Math.max(1800, Math.min(6000, d.length * 45)));
+    const t = setTimeout(() => setYozVaqt(false), Math.max(1400, Math.min(3200, d.length * 30)));   // REV402: qisqa — keyin o'quvchilarga qarab gapiradi
     return () => { clearTimeout(t); setYozVaqt(false); };
   }, [idx, speaking, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   const idxRef = useRef(idx);

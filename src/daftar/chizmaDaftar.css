@@ -26,3 +26,9 @@
 .cd-varaq.is-chiziq{background-image:linear-gradient(#dbe6f3 1px,transparent 1px);background-size:100% 30px}
 .cd-varaq.is-asbob-tanla{cursor:default}.cd-varaq.is-asbob-ochir{cursor:cell}.cd-varaq.is-asbob-matn{cursor:text}
 @media (max-width:560px){.cd-t{min-width:34px;height:34px;font-size:15px}.cd-rang{width:26px;height:26px}.cd-asboblar{gap:4px 6px}}
+/* REV402: rejim yozuvi — hozir yozadimi yoki suradimi, aniq ko'rinadi */
+.cd-holat{padding:5px 12px;font:600 13px/1.35 system-ui,sans-serif;background:#eaf4ea;color:#1f5f3a;border-bottom:1px solid #d6e6d6}
+.cd-holat.is-pan{background:#fff4e0;color:#8a5a00;border-bottom-color:#f0dfb8}
+.cd-varaq{overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.cd-varaq.is-pan{touch-action:pan-y;cursor:grab}
+.cd-root.is-toliq{overscroll-behavior:contain}

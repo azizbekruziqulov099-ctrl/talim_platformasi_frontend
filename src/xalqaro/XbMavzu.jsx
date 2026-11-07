@@ -11,7 +11,7 @@ import { FIKRLASH, GAP_TUR } from "./xbRules.js";
  * `oldi` — maktab darsidan oldingi qisqa ko'rinish (mavzu oldi bloki).
  */
 export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit, malumot = null, oldi = false, onDars, onMashq, onMaktabDarsi, onYopish, onDavom }) {
-  const ovoz = useUstozOvoz(apiBase, jins);
+  const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [d, setD] = useState(malumot);
   const [xato, setXato] = useState("");
   const [namuna, setNamuna] = useState(null);

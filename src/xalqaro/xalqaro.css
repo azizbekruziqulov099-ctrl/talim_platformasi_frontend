@@ -317,3 +317,7 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-aud button.is-on{border-color:#1b4b7a;background:rgba(27,75,122,.1)}
 .xb-fish{display:flex;flex-direction:column;gap:4px;font-weight:600}
 .xb-fish input{padding:10px 12px;border-radius:10px;border:1px solid rgba(127,127,127,.4);font:inherit}
+/* REV402: jonli ustoz (og'zi qimirlaydi) — rasm o'lchamida turadi */
+.xb-ustoz.xb-ustoz-jonli{position:relative;width:110px;height:170px;flex:none;overflow:visible}
+.xb-ustoz.xb-ustoz-jonli .us-teacher{position:absolute !important;left:50% !important;right:auto !important;bottom:0 !important;top:auto !important;height:100% !important;transform:translateX(-50%);z-index:1}
+@media (max-width:560px){.xb-ustoz.xb-ustoz-jonli{width:84px;height:130px}}
