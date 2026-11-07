@@ -106,6 +106,8 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const [qadalganXabar, setQadalgan] = useState(null);   // REV395: suhbatda qadalgan xabar
   const [qidiruv, setQidiruv] = useState(null);      // REV395: suhbat ichida qidirish {matn, i}
   const [tanlov, setTanlov] = useState(null);        // REV396: bir nechta xabarni belgilash — Set(id) yoki null
+  const [galereya, setGalereya] = useState(null);    // REV397: ochiq rasm (xabar id)
+  const [ovozTezlik, setOvozTezlik] = useState(1);   // REV397: ovozli xabar tezligi
   const surish = useRef(null);                        // REV396: o'ngga surib javob berish {id, x0, y0, dx}
   const qoralamaT = useRef(null);
   const qoralamaYoz = (v) => { const k = suhbatKaliti(peerRef.current); if (!k || editing) return; clearTimeout(qoralamaT.current);
@@ -554,7 +556,7 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
     if (peerKey(peerRef.current) !== peerKey(item)) outgoingRef.current?.controller.abort();
     readingSubsetRef.current = canvasMode || Boolean(item.guruh_id && groupThreads);
     historyModeRef.current = false; setHistoryMode(false); setHistoryBusy(false); setHasOlder(false); setNewMessages(0); setMenuMessage(null);
-    setTanlov(null); setQidiruv(null); setQadalgan(null);   // REV396
+    setTanlov(null); setQidiruv(null); setQadalgan(null); setGalereya(null);   // REV396
     peerRef.current = item; lastIdRef.current = 0; setPeer(item); setMessages([]); setPeerSeenId(null); setMessageError(""); restoreDraft(`${peerKey(item)}:main`); setSendError(""); loadMessages(item.user_id || 0);
   };
   useEffect(() => {
@@ -858,10 +860,11 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
                 {m.javob_xabar_id && !threadTargetId && <div className="kb-reply-quote mb-1.5 pl-2 border-l-2 text-[11px] opacity-75" role="button" tabIndex={0}
                   onClick={() => { const el = bodyRef.current?.querySelector(`[data-kb-message-id="${m.javob_xabar_id}"]`); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("is-yoritilgan"); setTimeout(() => el.classList.remove("is-yoritilgan"), 1400); } }}><b>{m.javob_yuboruvchi_ismi || t("Xabar")}</b><div className="truncate">{m.javob_matn_qisqa || t("Media")}</div></div>}
                 {!m.ochirilgan && m.matn && !isPhotoMessage(m) && <div className="whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}
-                {!m.ochirilgan && m.fayl_turi === "audio" && <audio controls preload="none" className="mt-1 w-56 max-w-full" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
+                {!m.ochirilgan && m.fayl_turi === "audio" && <div className="kb-ovozli"><audio controls preload="none" className="mt-1 w-56 max-w-full" ref={(el) => { if (el) el.playbackRate = ovozTezlik; }} src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>
+                  <button type="button" className="kb-ovoz-tezlik" onClick={(e) => { e.stopPropagation(); const n = ovozTezlik === 1 ? 1.5 : ovozTezlik === 1.5 ? 2 : 1; setOvozTezlik(n); bodyRef.current?.querySelectorAll(".kb-ovozli audio").forEach((a) => { a.playbackRate = n; }); }} title={t("Tinglash tezligi")}>{String(ovozTezlik).replace(".", ",")}×</button></div>} 
                 {!m.ochirilgan && m.fayl_turi === "video" && <video controls playsInline preload="none" className={`mt-1 ${peer?.kanal ? "w-[560px]" : "w-64"} max-w-full rounded-lg`} src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
                 {!m.ochirilgan && m.fayl_turi === "video_doira" && <video controls playsInline preload="none" className="mt-1 w-48 h-48 max-w-full rounded-full object-cover border-4 border-white/40" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
-                {!m.ochirilgan && isPhotoMessage(m) && <div className="mt-1"><a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer"><img loading="lazy" decoding="async" alt={m.fayl_nomi || t("Yuborilgan rasm")} className="kb-inline-photo" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/></a>{m.matn && <div className="mt-2 whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}</div>}
+                {!m.ochirilgan && isPhotoMessage(m) && <div className="mt-1"><a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer" onClick={(e) => { if (tanlov) return; e.preventDefault(); setGalereya(m.id); }}><img loading="lazy" decoding="async" alt={m.fayl_nomi || t("Yuborilgan rasm")} className="kb-inline-photo" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/></a>{m.matn && <div className="mt-2 whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}</div>}
                 {!m.ochirilgan && m.fayl_turi === "hujjat" && !isPhotoMessage(m) && <a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-xs font-black underline"><Download size={14}/> {m.fayl_nomi || t("Hujjat")}{m.fayl_hajmi_kb ? __kbUi(` · ${m.fayl_hajmi_kb} KB`) : __kbUi("")}</a>}
                 {!m.ochirilgan && (m.reaksiyalar || []).length > 0 && <div className="flex flex-wrap gap-1 mt-1">{m.reaksiyalar.map(item => <span key={item.emoji} className="px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: palette.sky }}>{item.emoji} {item.soni}</span>)}</div>}
                 {peer.guruh_id && !threadTargetId && (groupThreads || peer.kanal) && <button type="button" className="kb-discussion-open" disabled={sending || mediaBusy} onClick={() => selectMessage(m)}><MessageCircle size={15}/>{m.earlierThread ? t("Oldingi muhokamani ochish") : __kbUi(`${Number(m.reply_count || 0)} ${t("ta izoh")}`)}<span>{t("Ochish")} ›</span></button>}
@@ -901,6 +904,23 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
         </>}
       </section>
     </div>
+    {galereya && (() => { const rasmlar = messages.filter((x) => !x.ochirilgan && isPhotoMessage(x)); const i = rasmlar.findIndex((x) => x.id === galereya); const r = rasmlar[i];
+      if (!r) return null; const url = `${apiBase}/api/chat/fayl/${r.id}?token=${encodeURIComponent(token)}`;
+      const ot = (d) => { const n = rasmlar[(i + d + rasmlar.length) % rasmlar.length]; if (n) setGalereya(n.id); };
+      return <div className="kb-galereya" role="dialog" aria-modal="true" aria-label={t("Rasm")} tabIndex={-1} ref={(el) => el?.focus()}
+        onKeyDown={(e) => { if (e.key === "Escape") setGalereya(null); if (e.key === "ArrowRight") ot(1); if (e.key === "ArrowLeft") ot(-1); }}
+        onClick={(e) => { if (e.target === e.currentTarget) setGalereya(null); }}
+        onTouchStart={(e) => { e.currentTarget.dataset.x = String(e.touches[0].clientX); }}
+        onTouchEnd={(e) => { const x0 = Number(e.currentTarget.dataset.x || 0), dx = (e.changedTouches[0]?.clientX || x0) - x0; if (Math.abs(dx) > 60) ot(dx < 0 ? 1 : -1); }}>
+        <div className="kb-galereya-tepa"><span>{r.meniki ? t("Siz") : (r.yuboruvchi_ismi || peer?.full_name || "")} · {__kbUi(kabutarTime(r.yaratilgan_at, locale))}</span>
+          <span>{__kbUi(`${i + 1} / ${rasmlar.length}`)}</span>
+          <a href={url} download={r.fayl_nomi || "rasm"} aria-label={t("Yuklab olish")} onClick={(e) => e.stopPropagation()}><Download size={20}/></a>
+          <button type="button" onClick={() => setGalereya(null)} aria-label={t("Yopish")}>✕</button></div>
+        {rasmlar.length > 1 && <button type="button" className="kb-galereya-o is-chap" onClick={() => ot(-1)} aria-label={t("Oldingi")}>‹</button>}
+        <img src={url} alt={r.fayl_nomi || t("Rasm")} className="kb-galereya-rasm" />
+        {rasmlar.length > 1 && <button type="button" className="kb-galereya-o is-ong" onClick={() => ot(1)} aria-label={t("Keyingi")}>›</button>}
+        {r.matn && <div className="kb-galereya-izoh">{r.matn}</div>}
+      </div>; })()}
     {qatorMenyu && <><div className="kb-qm-fon" onClick={() => setQatorMenyu(null)} onContextMenu={(e) => { e.preventDefault(); setQatorMenyu(null); }} />
       <div className="kb-qator-menyu" role="menu" style={{ left: Math.min(qatorMenyu.x, (typeof window !== "undefined" ? window.innerWidth : 400) - 230), top: Math.min(qatorMenyu.y, (typeof window !== "undefined" ? window.innerHeight : 600) - 200) }}>
         <button type="button" role="menuitem" disabled={!qadalgan.has(qatorMenyu.kalit) && qadalgan.size >= 10} onClick={() => { almashtir("pinned", qatorMenyu.kalit); setQatorMenyu(null); }}>📌 {qadalgan.has(qatorMenyu.kalit) ? t("Qadashni olib tashlash") : t("Tepaga qadash")}</button>
