@@ -51,8 +51,8 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     let tirik = true;
     xbFetch(apiBase, "/api/xalqaro/kuzatuv", token).then((r) => { if (!tirik) return; setKuzatuv(r);
       try { const tk = localStorage.getItem("kabutar:xb:topshiriq"); if (tk) { localStorage.removeItem("kabutar:xb:topshiriq");
-        if (r.rol === "oquvchi") setEkran({ tur: "mashq", manba: { tur: "topshiriq", kod: tk }, sarlavha: `📝 ${T("Topshiriq")}` }); } } catch { /* */ }   // REV401
-      try { if (localStorage.getItem("kabutar:xb:taklif")) { if (r.rol === "oquvchi") setTab("sinfim"); else localStorage.removeItem("kabutar:xb:taklif"); } } catch { /* */ } }).catch(() => tirik && setKuzatuv({ rol: "oquvchi" }));
+        setEkran({ tur: "mashq", manba: { tur: "topshiriq", kod: tk }, sarlavha: `📝 ${T("Topshiriq")}` }); } } catch { /* */ }   // REV401/REV408: rolga qaramay
+      try { if (localStorage.getItem("kabutar:xb:taklif")) { setTab("sinfim"); } } catch { /* */ } }).catch(() => tirik && setKuzatuv({ rol: "oquvchi" }));
     return () => { tirik = false; };
   }, [rejim]); // eslint-disable-line react-hooks/exhaustive-deps
   const panel = kuzatuv && kuzatuv.rol !== "oquvchi";
@@ -145,7 +145,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     {!tab ? <div className="xb-menyu">{[
         ...(panel ? [["panel", "👩‍🏫", kuzatuv.rol === "admin" ? T("Admin nazorati") : T("Mening sinflarim va natijalar"), T("Sinf ochish, kod va havola, o‘quvchilar natijasi va xatolari")],
           ["metod", "🎓", T("O‘qitish metodlari"), T("TIMSS va PISA bo‘yicha dars berish usullari")]] : []),
-        ...(kuzatuv?.rol === "oquvchi" ? [["sinfim", "🏫", T("Sinfim"), T("O‘qituvchingiz sinfiga kod yoki parol bilan qo‘shilish")]] : []),
+        ...(kuzatuv ? [["sinfim", "🏫", kuzatuv.rol === "oquvchi" ? T("Sinfim") : T("Men a’zo bo‘lgan sinflar"), T("Sinfingiz, topshiriqlar; kod yoki parol bilan qo‘shilish")]] : []),
         ["natija", "📊", T("Natijalarim"), T("Har mavzu bo‘yicha foizlar, imtihonlar va ballar")],
         ["kurs", "📚", T("Kurs: mavzular va testlar"), tf("{m} mavzu · {s} ta test · har mavzuda dars", { m: tp?.mavzular?.length || 0, s: (tp?.mavzular || []).reduce((a, x) => a + (x.savollar || 0), 0) })],
         ["imtihon", "📝", T("Imtihonlar"), T("Haftalik, oylik, choraklik va yillik sinov")],
@@ -158,7 +158,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         <span className="xb-menyu-belgi" aria-hidden="true">{belgi}</span><b>{nom}</b><small>{izoh}</small>
         {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
-    {tab === "sinfim" && kuzatuv?.rol === "oquvchi" && <OquvchiSinf apiBase={apiBase} token={token} ism={user?.full_name || ""}
+    {tab === "sinfim" && kuzatuv && <OquvchiSinf apiBase={apiBase} token={token} ism={user?.full_name || ""}
       onTopshiriq={(t) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { tur: "topshiriq", kod: t.kod }, sarlavha: `📝 ${t.nom}` }); }} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
     {tab === "natija" && <XbNatijalarim apiBase={apiBase} token={token} kat={kat} toplam={toplam} til={til} onMashq={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} onDars={(m) => ochDars(m)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}

@@ -182,20 +182,20 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
       <div className="xb-karta"><small>{T("O‘quvchilar")}</small><b>{j.jami}</b></div>
       <div className="xb-karta"><small>🟢 {T("Faol")} / 🟠 {T("Sust")} / 🔴 {T("Boshlamagan")}</small><b>{j.faol} / {j.sust} / {j.boshlamagan}</b></div>
       <div className="xb-karta"><small>{T("Bu haftalik nazoratni topshirgan")}</small><b>{j.haftalik}/{j.jami}</b></div>
-      <div className="xb-karta"><small>{T("O‘rtacha rasmiy ball")}</small><b>{j.ortacha_ball ?? "—"}</b></div>
+      <div className="xb-karta">{j.ortacha_ball ? <><small>{T("O‘rtacha rasmiy ball")}</small><b>{j.ortacha_ball}</b></> : <><small>{T("O‘rtacha natija (to‘g‘ri javoblar)")}</small><b>{j.ortacha_foiz != null ? `${j.ortacha_foiz}%` : "—"}</b></>}</div>
     </div>}
     {(!sn || (d && d.oquvchilar.length > 0)) && <nav className="xb-tablar">{[["oquvchilar", sn ? "📋 Sinf jurnali" : "👥 O‘quvchilar"], ...(sn ? [["topshiriq", "📝 Topshiriqlar"]] : []), ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
       <button key={k} type="button" className={oyna === k ? "is-on" : ""} onClick={() => setOyna(k)}>{T(n)}</button>)}</nav>}
     {oyna === "topshiriq" && sn && <XbTopshiriqlar apiBase={apiBase} token={token} sinf={sn} til={til} mavzular={(kat?.toplamlar?.find((tp) => tp.kalit === sn.toplam)?.mavzular || x?.mavzular || []).map((m) => ({ kalit: m.kalit, nom: m.nom }))} />}
     {oyna === "oquvchilar" && (!d ? <p className="xb-muted">⏳</p> : d.oquvchilar.length ? <div className="xb-jadval-wrap">
       {sn && <h4>📋 {T("Sinf jurnali")} — {d.oquvchilar.length} {T("o‘quvchi")} <small className="xb-muted">({T("ism bo‘yicha")})</small></h4>}<table className="xb-jadval">
-      <thead><tr><th>№</th><th>{T("O‘quvchi")}</th>{sn ? <th>{T("Qo‘shilgan")}</th> : <th>{T("Sinf")}</th>}<th>{T("Holat")}</th><th>{T("Bu hafta")}</th><th>📖 {T("Darslar")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Ochiq xato")}</th><th>{T("Oxirgi ball")}</th><th>{T("Zaif mavzu")}</th><th>🌐 {T("Tillar")}</th></tr></thead>
+      <thead><tr><th>№</th><th>{T("O‘quvchi")}</th>{sn ? <th>{T("Qo‘shilgan")}</th> : <th>{T("Sinf")}</th>}<th>{T("Holat")}</th><th>{T("Bu hafta")}</th><th>📖 {T("Darslar")}</th><th>{T("O‘zlashtirgan")}</th><th>{T("Ochiq xato")}</th><th title={T("Imtihon balli; imtihon topshirmagan bo‘lsa — to‘g‘ri javoblar foizi")}>{T("Natija")}</th><th>{T("Zaif mavzu")}</th><th>🌐 {T("Tillar")}</th></tr></thead>
       <tbody>{d.oquvchilar.map((o, n) => <tr key={o.user_id} className={`xb-bosiladi ${o.holat !== "faol" ? "is-sust" : ""}`} onClick={() => setTanlangan(o.user_id)} tabIndex={0}
         onKeyDown={(e) => { if (e.key === "Enter") setTanlangan(o.user_id); }}>
         <td className="xb-muted">{n + 1}</td><td><b>{o.full_name}</b></td>{sn ? <td className="xb-kichik">{o.qoshildi ? new Date(o.qoshildi).toLocaleDateString() : "—"}</td> : <td>{o.class}{o.harf}</td>}
         <td>{HOLAT[o.holat][0]} {T(HOLAT[o.holat][1])}{o.kun_oldin !== null && o.kun_oldin > 0 ? ` · ${o.kun_oldin} ${T("kun")}` : ""}{!o.haftalik_topshirdi ? ` · ⏳ ${T("haftalik yo‘q")}` : ""}</td>
         <td>{o.hafta}</td><td title={T("tugatgan / ochgan")}>{o.darslar ?? 0}/{o.darslar_ochgan ?? 0}</td><td>{o.ozlashtirgan}/{o.urinish}</td><td>{o.xato ? <b className="xb-xato">{o.xato}</b> : 0}</td>
-        <td>{o.ball ? `${o.ball} · ${o.daraja}` : "—"}</td><td>{o.zaif_mavzu || "—"}</td><td className="xb-kichik">{tillarMatn(o.tillar) || "—"}</td></tr>)}</tbody></table>
+        <td>{o.ball ? `${o.ball} · ${o.daraja}` : o.foiz != null ? <b style={{ color: o.foiz >= 70 ? "#1f8a4c" : o.foiz >= 40 ? "#1b6fd8" : "#c77d00" }}>{o.foiz}%</b> : "—"}</td><td>{o.zaif_mavzu || "—"}</td><td className="xb-kichik">{tillarMatn(o.tillar) || "—"}</td></tr>)}</tbody></table>
       <p className="xb-muted">{T("Qatorni bosing — o‘quvchining har bir xatosi (nima deb javob bergani), mavzulari va imtihonlari ochiladi.")}</p></div>
       : !sn && <p className="xb-muted">{T("Bu tanlovda o‘quvchi topilmadi.")}</p>)}
     {oyna === "xatolar" && (!x ? <p className="xb-muted">⏳</p> : x.savollar.length ? x.savollar.map((s, k) => <div key={`${s.savol_id}-${s.v ?? k}`} className="xb-tahlil is-no">

@@ -13,13 +13,14 @@ const FAN_BELGI = { T11_G4_M: "🔢", T11_G4_S: "🔬", T11_G8_M: "📐", T11_G8
 export const AUDITORIYA = { bogcha: ["🧸", "Bog‘cha bolalari", "guruh"], maktab: ["🎒", "Maktab o‘quvchilari", "sinf"], talaba: ["🎓", "Talabalar", "guruh"], oqituvchi: ["👩‍🏫", "O‘qituvchilar", "to‘garak"] };
 export const fanMatn = (k) => `${FAN_BELGI[k] || "📘"} ${T(FAN_NOMI[k] || k || "")}`;
 const tavsiya = (n) => (n <= 5 ? ["T11_G4_M", "T11_G4_S"] : n <= 8 ? ["T11_G8_M", "T11_G8_S"] : ["P_M", "P_R", "P_S", "P_F"]);
-function FanTanlov({ sinf, qiymat, onChange }) {
-  const mos = tavsiya(Number(sinf)); const boshqa = Object.keys(FAN_NOMI).filter((k) => !mos.includes(k));
+const KURSLAR = ["1 kurs", "2 kurs", "3 kurs", "4 kurs", "1 kurs magistr", "2 kurs magistr"];   // REV408
+function FanTanlov({ sinf, qiymat, onChange, sinfsiz = false }) {
+  const mos = sinfsiz ? Object.keys(FAN_NOMI) : tavsiya(Number(sinf)); const boshqa = Object.keys(FAN_NOMI).filter((k) => !mos.includes(k));
   const [hammasi, setHammasi] = useState(!mos.includes(qiymat) && Boolean(qiymat));
   return <div className="xb-fan-tanlov" role="radiogroup" aria-label={T("Dastur va fan")}>
-    <p className="xb-fan-sar">{T("Dastur va fan")}: <small>{tf("{n}-sinf o‘quvchilariga mos:", { n: sinf })}</small></p>
+    <p className="xb-fan-sar">{T("Dastur va fan")}: <small>{sinfsiz ? T("talabalar hamma dasturni o‘rganadi (bo‘lajak o‘qituvchilar uchun):") : tf("{n}-sinf o‘quvchilariga mos:", { n: sinf })}</small></p>
     <div className="xb-fan-royxat">{mos.map((k) => <button key={k} type="button" role="radio" aria-checked={qiymat === k} className={`xb-fan ${qiymat === k ? "is-on" : ""}`} onClick={() => onChange(k)}>
-      {fanMatn(k)} <i>⭐ {T("mos")}</i></button>)}</div>
+      {fanMatn(k)} {!sinfsiz && <i>⭐ {T("mos")}</i>}</button>)}</div>
     {!hammasi ? <button type="button" className="xb-btn xb-btn-yengil xb-kichik" onClick={() => setHammasi(true)}>{T("Boshqa dastur tanlash")}…</button>
       : <div className="xb-fan-royxat">{boshqa.map((k) => <button key={k} type="button" role="radio" aria-checked={qiymat === k} className={`xb-fan ${qiymat === k ? "is-on" : ""}`} onClick={() => onChange(k)}>{fanMatn(k)}</button>)}</div>}
   </div>;
@@ -30,7 +31,7 @@ const nusxala = async (s) => { try { await navigator.clipboard.writeText(s); ret
 /* ───────────── o'qituvchi ───────────── */
 export function OqituvchiSinflar({ apiBase, token, tanlangan, onTanla }) {
   const [d, setD] = useState(null);
-  const [yangi, setYangi] = useState({ nom: "", sinf: "7", parol: "", toplam: "T11_G8_M", auditoriya: "maktab" });
+  const [yangi, setYangi] = useState({ nom: "", sinf: "7", parol: "", toplam: "T11_G8_M", auditoriya: "maktab", kurs: "2 kurs" });
   const [ochiq, setOchiq] = useState(false);
   const [xato, setXato] = useState("");
   const [xabar, setXabar] = useState("");
@@ -40,8 +41,8 @@ export function OqituvchiSinflar({ apiBase, token, tanlangan, onTanla }) {
   if (!d) return null;
   if (!d.ochishi_mumkin && !d.meniki.length) return null;
   const yarat = () => { setXato("");
-    xbFetch(apiBase, "/api/xalqaro/sinflar", token, { method: "POST", body: { nom: yangi.nom, sinf: Number(yangi.sinf), parol: yangi.parol, toplam: yangi.toplam, auditoriya: yangi.auditoriya } })
-      .then((r) => { setYangi({ nom: "", sinf: yangi.sinf, parol: "", toplam: yangi.toplam, auditoriya: yangi.auditoriya }); setOchiq(false); setXabar(tf("«{n}» sinfi ochildi. Kodni o‘quvchilarga bering.", { n: r.sinf.nom })); yukla(); onTanla?.(r.sinf.id); })
+    xbFetch(apiBase, "/api/xalqaro/sinflar", token, { method: "POST", body: { nom: yangi.nom, sinf: yangi.auditoriya === "maktab" ? Number(yangi.sinf) : yangi.auditoriya === "bogcha" ? 0 : 0, parol: yangi.parol, toplam: yangi.toplam, auditoriya: yangi.auditoriya, kurs: yangi.auditoriya === "talaba" ? yangi.kurs : "" } })
+      .then((r) => { setYangi({ ...yangi, nom: "", parol: "" }); setOchiq(false); setXabar(tf("«{n}» sinfi ochildi. Kodni o‘quvchilarga bering.", { n: r.sinf.nom })); yukla(); onTanla?.(r.sinf.id); })
       .catch((e) => setXato(e.message)); };
   const ozgar = (id, body, ok) => xbFetch(apiBase, `/api/xalqaro/sinflar/${id}`, token, { method: "POST", body })
     .then((r) => { if (r.ochirildi) { setBoshqar(null); if (tanlangan === id) onTanla?.(0); } else setBoshqar(r); ok && setXabar(ok); yukla(); }).catch((e) => setXato(e.message));
@@ -53,19 +54,22 @@ export function OqituvchiSinflar({ apiBase, token, tanlangan, onTanla }) {
     {ochiq && <div className="xb-sinf-forma">
       <div><b>{T("Kimlar uchun")}:</b><div className="xb-aud" role="radiogroup">{Object.entries(AUDITORIYA).map(([k, [b, n]]) => <button key={k} type="button" role="radio" aria-checked={yangi.auditoriya === k}
         className={yangi.auditoriya === k ? "is-on" : ""} onClick={() => setYangi({ ...yangi, auditoriya: k })}>{b} {T(n)}</button>)}</div></div>
-      <label>{T("Sinf")}: <select value={yangi.sinf} onChange={(e) => setYangi({ ...yangi, sinf: e.target.value, toplam: tavsiya(Number(e.target.value))[0] })}>
-        {Array.from({ length: 11 }, (_, k) => <option key={k} value={String(k + 1)}>{tf("{n}-sinf", { n: k + 1 })}</option>)}</select></label>
-      <FanTanlov key={yangi.sinf} sinf={yangi.sinf} qiymat={yangi.toplam} onChange={(t) => setYangi({ ...yangi, toplam: t })} />
-      <label>{T("Sinf nomi")}: <input value={yangi.nom} maxLength={60} placeholder={T("masalan: 7-«A» yoki Matematika to‘garagi")} onChange={(e) => setYangi({ ...yangi, nom: e.target.value })} /></label>
+      {yangi.auditoriya === "maktab" && <label>{T("Sinf")}: <select value={yangi.sinf} onChange={(e) => setYangi({ ...yangi, sinf: e.target.value, toplam: tavsiya(Number(e.target.value))[0] })}>
+        {Array.from({ length: 11 }, (_, k) => <option key={k} value={String(k + 1)}>{tf("{n}-sinf", { n: k + 1 })}</option>)}</select></label>}
+      {yangi.auditoriya === "talaba" && <label>{T("Kurs")}: <select value={yangi.kurs} onChange={(e) => setYangi({ ...yangi, kurs: e.target.value })}>
+        {KURSLAR.map((k) => <option key={k} value={k}>{T(k)}</option>)}</select></label>}
+      <FanTanlov key={yangi.sinf + yangi.auditoriya} sinf={yangi.sinf} sinfsiz={yangi.auditoriya !== "maktab"} qiymat={yangi.toplam} onChange={(t) => setYangi({ ...yangi, toplam: t })} />
+      <label>{yangi.auditoriya === "maktab" ? T("Sinf nomi") : T("Guruh nomi")}: <input value={yangi.nom} maxLength={60} placeholder={yangi.auditoriya === "talaba" ? T("masalan: 201-guruh, Boshlang‘ich ta’lim") : T("masalan: 7-«A» yoki Matematika to‘garagi")} onChange={(e) => setYangi({ ...yangi, nom: e.target.value })} /></label>
       <label>{T("Parol (ixtiyoriy)")}: <input value={yangi.parol} maxLength={32} placeholder={T("o‘quvchilar ro‘yxatdan tanlaganda so‘raladi")} onChange={(e) => setYangi({ ...yangi, parol: e.target.value })} /></label>
       <p className="xb-muted xb-kichik">{T("Taklif kodi yoki havola bilan kelgan o‘quvchi parolsiz qo‘shiladi. Sinfni ro‘yxatdan topgan o‘quvchidan parol so‘raladi (parol qo‘ysangiz).")}</p>
-      <p className="xb-fan-xulosa">✅ {tf("{s}-sinf uchun «{n}» sinfi ochiladi —", { s: yangi.sinf, n: yangi.nom.trim() || "…" })} <b>{fanMatn(yangi.toplam)}</b></p>
+      <p className="xb-fan-xulosa">✅ {yangi.auditoriya === "maktab" ? tf("{s}-sinf uchun «{n}» sinfi ochiladi —", { s: yangi.sinf, n: yangi.nom.trim() || "…" })
+        : tf("{a}: «{n}» guruhi ochiladi —", { a: T((AUDITORIYA[yangi.auditoriya] || AUDITORIYA.maktab)[1]) + (yangi.auditoriya === "talaba" ? `, ${T(yangi.kurs)}` : ""), n: yangi.nom.trim() || "…" })} <b>{fanMatn(yangi.toplam)}</b></p>
       <button type="button" className="xb-btn xb-btn-asosiy" disabled={!yangi.nom.trim() || !yangi.toplam} onClick={yarat}>✅ {T("Ochish")}</button>
     </div>}
     {!d.meniki.length && !ochiq && <p className="xb-muted">{T("Hali sinf ochmagansiz. «Yangi sinf ochish»ni bosing — o‘quvchilaringiz kod yoki havola bilan qo‘shiladi va natijalarini shu yerda ko‘rasiz.")}</p>}
     <div className="xb-sinf-royxat">{d.meniki.map((s) => <div key={s.id} className={`xb-sinf-karta ${tanlangan === s.id ? "is-on" : ""}`}>
       <button type="button" className="xb-sinf-tanla" onClick={() => onTanla?.(tanlangan === s.id ? 0 : s.id, s)}>
-        <b>{s.nom}</b><span className="xb-fan-yorliq">{fanMatn(s.toplam)}</span><small>{(AUDITORIYA[s.auditoriya] || AUDITORIYA.maktab)[0]} {T((AUDITORIYA[s.auditoriya] || AUDITORIYA.maktab)[1])} · {tf("{n}-sinf", { n: s.sinf })} · 👥 {s.azolar} {s.parolli ? "· 🔒" : ""}</small></button>
+        <b>{s.nom}</b><span className="xb-fan-yorliq">{fanMatn(s.toplam)}</span><small>{(AUDITORIYA[s.auditoriya] || AUDITORIYA.maktab)[0]} {T((AUDITORIYA[s.auditoriya] || AUDITORIYA.maktab)[1])} · {s.sinf ? tf("{n}-sinf", { n: s.sinf }) : (s.kurs ? T(s.kurs) : T("guruh"))} · 👥 {s.azolar} {s.parolli ? "· 🔒" : ""}</small></button>
       <div className="xb-sinf-kod" aria-label={T("Taklif kodi")}>{s.kod}</div>
       <div className="xb-sinf-tugmalar">
         <button type="button" className="xb-btn" onClick={async () => setXabar((await nusxala(havola(s.kod))) ? T("Havola nusxalandi — o‘quvchilarga yuboring.") : havola(s.kod))}>🔗 {T("Havola")}</button>
