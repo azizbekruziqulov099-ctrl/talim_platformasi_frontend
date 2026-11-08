@@ -258,93 +258,108 @@ function Belgila({ arg, progress }) {
   </span>;
 }
 
-// ───────────── REV425: formulaning kelib chiqishi — harakatli chizmalar ─────────────
+// ───────────── REV425/REV426: formulaning kelib chiqishi — harakatli chizmalar ─────────────
+// Eski narsalar — o'z rangida, yangi kirgan narsa — yorqin sariq, oq halqa va ▼ belgisi bilan tepadan tushib keladi.
 const RANG = { A: "#F4A6A6", B: "#A8E6A1", C: "#9CC9FF", D: "#FFD37A", E: "#D7B4F3", F: "#FFB38A", G: "#8EE0D6", H: "#E8E8E8" };
-function Shar({ x, y, h, r = 13, yangi = false, korinish = 1, xira = false }) {
-  return <g style={{ opacity: korinish, transform: korinish < 1 && yangi ? "translateY(-18px)" : "none", transition: "opacity .35s, transform .45s cubic-bezier(.2,1.4,.4,1)", transformBox: "fill-box" }}>
-    <circle cx={x} cy={y} r={r} fill={RANG[h] || "#ddd"} stroke={yangi ? "var(--dx-yellow)" : "rgba(0,0,0,.25)"} strokeWidth={yangi ? 3 : 1.2} opacity={xira ? 0.35 : 1} />
-    <text x={x} y={y + 5} textAnchor="middle" fontSize={r * 1.05} fontWeight="800" fill="#1d2b3a" opacity={xira ? 0.5 : 1}>{h}</text></g>;
+const YANGI_RANG = "#FFD54A";
+const OTISH = "transform .75s cubic-bezier(.2,1.25,.35,1), opacity .4s";
+function Shar({ x, y, h, r = 22, yangi = false, korinish = 1, xira = false, dx = 0, dy = 0 }) {
+  const bor = korinish >= 1;
+  const tr = bor ? "translate(0px,0px)" : `translate(${dx}px,${yangi && !dy ? -52 : dy}px)`;
+  return <g style={{ opacity: bor ? 1 : 0, transform: tr, transition: OTISH }}>
+    {yangi && <path d={`M${x - 7} ${y - r - 16} L${x + 7} ${y - r - 16} L${x} ${y - r - 6} Z`} fill={YANGI_RANG} />}
+    <circle cx={x} cy={y} r={r} fill={yangi ? YANGI_RANG : RANG[h] || "#ddd"} stroke={yangi ? "#fff" : "rgba(0,0,0,.28)"} strokeWidth={yangi ? 4 : 1.4} opacity={xira ? 0.28 : 1} />
+    <text x={x} y={y + r * 0.38} textAnchor="middle" fontSize={r * 1.1} fontWeight="800" fill="#13202e" opacity={xira ? 0.45 : 1} style={{ fontFamily: "system-ui, sans-serif" }}>{h}</text></g>;
 }
 const faktorial = (n) => (n <= 1 ? 1 : n * faktorial(n - 1));
+const SARL = 24, XUL = 27;
 
 /** ORIN_ALMASH: n — (n−1)! ta tartibning har biriga yangi narsa n xil joyga qo'yiladi: n! = n·(n−1)!
- *  n ≤ 3 — hamma guruh to'liq; n = 4 — birinchi guruh to'liq, qolgan asoslar «→ ×4» bilan (doskaga yirik sig'adi). */
+ *  n ≤ 3 — hamma guruh to'liq; n = 4 — birinchi asos to'liq yoyiladi, qolganlari «→ ×4» (doskaga yirik sig'adi). */
 function OrinAlmash({ arg, progress }) {
   const q = orinAlmashQurish(arg);
-  const n = q.n, r = 16, d = r * 2 + 6;
+  const n = q.n, r = n >= 4 ? 19 : 22, d = r * 2 + 8;
   const sarlavha = n === 1 ? "1 ta narsa — 1 xil tartib" : `${n - 1}! = ${faktorial(n - 1)} ta tartibning har biriga ${HARFLAR[n - 1]} ni ${n} xil joyga qo‘yamiz`;
   const xulosa = n === 1 ? "1! = 1" : `${n}! = ${n} · ${n - 1}! = ${n} · ${faktorial(n - 1)} = ${q.jami}`;
   if (n <= 3) {
-    const qatorEni = n * d + 28, gEni = n * qatorEni + 24, gH = 40 + d + 14, W = Math.max(560, 32 + gEni), H = 54 + q.guruhlar.length * (gH + 12) + 40;
+    const qatorEni = n * d + 30, gEni = n * qatorEni + 30, gH = 56 + d + 16, W = Math.max(560, 32 + gEni), H = 64 + q.guruhlar.length * (gH + 14) + 46;
     let raqam = 0;
     return <svg className="mdx-svg mdx-kombin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={xulosa}>
-      <text x="16" y="30" fill={CHALK} fontSize="20" fontWeight="700">{sarlavha}</text>
-      {q.guruhlar.map((g, gi) => { const gx = 16, gy = 48 + gi * (gH + 12);
+      <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{sarlavha}</text>
+      {q.guruhlar.map((g, gi) => { const gx = 16, gy = 54 + gi * (gH + 14);
         return <g key={gi}>
-          <rect x={gx} y={gy} width={gEni} height={gH} rx="14" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.2)" />
-          {g.asos.length > 0 && <text x={gx + 14} y={gy + 24} fill={CHALK} fontSize="15" opacity=".85">{`${g.asos.join("")} dan:`}</text>}
-          {g.tartiblar.map((t, ti) => { raqam += 1; const at = 0.08 + (0.75 * (raqam - 1)) / Math.max(1, q.jami); const cx = gx + 14 + ti * qatorEni, cy = gy + 36 + r;
-            return <g key={ti}>{t.map((h, hi) => <Shar key={hi} x={cx + hi * d + r} y={cy} h={h} r={r} yangi={h === g.yangi && n > 1} korinish={progress >= at ? 1 : 0} />)}</g>; })}
+          <rect x={gx} y={gy} width={gEni} height={gH} rx="16" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" />
+          {g.asos.length > 0 && <text x={gx + 16} y={gy + 28} fill={CHALK} fontSize="19" opacity=".9">{`${g.asos.join("")} dan:`}</text>}
+          {g.tartiblar.map((t, ti) => { raqam += 1; const at = 0.08 + (0.75 * (raqam - 1)) / Math.max(1, q.jami); const cx = gx + 16 + ti * qatorEni, cy = gy + 48 + r;
+            const k = progress >= at ? 1 : 0;
+            return <g key={ti}>{t.map((h, hi) => <Shar key={hi} x={cx + hi * d + r} y={cy} h={h} r={r} yangi={h === g.yangi && n > 1} korinish={h === g.yangi ? k : (progress >= at - 0.04 ? 1 : 0)} />)}</g>; })}
         </g>; })}
-      <text x="16" y={H - 12} fill={SARIQ} fontSize="22" fontWeight="800" style={kor(progress, 0.88)}>{xulosa}</text>
+      <text x="16" y={H - 14} fill={SARIQ} fontSize={XUL} fontWeight="800" style={kor(progress, 0.88)}>{xulosa}</text>
     </svg>;
   }
-  // n = 4: chapda 3! = 6 ta asos ustunda; birinchisi o'ngda 4 ta yangi tartibga yoyiladi, qolganlarida «→ ×4»
-  const qatorEni = n * d + 26, W = 40 + 3 * d + 70 + n * qatorEni, H = 60 + 6 * (d + 10) + 50;
+  const qatorEni = n * d + 26, x0 = 40 + 3 * d + 78, W = x0 + 2 * qatorEni + 10, H = 70 + 6 * (d + 12) + 56;   // birinchi asosning 4 tartibi 2×2
   const birinchi = q.guruhlar[0];
   return <svg className="mdx-svg mdx-kombin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={xulosa}>
-    <text x="16" y="30" fill={CHALK} fontSize="20" fontWeight="700">{sarlavha}</text>
-    {q.guruhlar.map((g, gi) => { const y = 64 + gi * (d + 10) + r, at = 0.06 + gi * 0.05;
+    <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{sarlavha}</text>
+    {q.guruhlar.map((g, gi) => { const y = 74 + gi * (d + 12) + r, at = 0.06 + gi * 0.05;
       return <g key={gi} style={kor(progress, at)}>
         {g.asos.map((h, hi) => <Shar key={hi} x={24 + hi * d + r} y={y} h={h} r={r} />)}
-        <text x={24 + 3 * d + 14} y={y + 6} fill={gi === 0 ? SARIQ : CHALK} fontSize="18" fontWeight="800" style={gi === 0 ? undefined : kor(progress, 0.62 + gi * 0.04)}>{gi === 0 ? "→" : `→ ×${n}`}</text>
+        <text x={24 + 3 * d + 14} y={y + 8} fill={gi === 0 ? SARIQ : CHALK} fontSize="24" fontWeight="800" style={gi === 0 ? undefined : kor(progress, 0.62 + gi * 0.04)}>{gi === 0 ? "→" : `→ ×${n}`}</text>
       </g>; })}
-    {birinchi.tartiblar.map((t, ti) => { const x0 = 40 + 3 * d + 60 + ti * qatorEni, y = 64 + r, at = 0.3 + ti * 0.07;
-      return <g key={ti}>{t.map((h, hi) => <Shar key={hi} x={x0 + hi * d + r} y={y} h={h} r={r} yangi={h === birinchi.yangi} korinish={progress >= at ? 1 : 0} />)}</g>; })}
-    <text x={40 + 3 * d + 60} y={64 + 2 * r + 30} fill={CHALK} fontSize="15" opacity=".85" style={kor(progress, 0.58)}>{`har bir asosdan ${n} ta yangi tartib: ${HARFLAR[n - 1]} ni ${n} ta joyga qo‘yamiz`}</text>
-    <text x="16" y={H - 14} fill={SARIQ} fontSize="22" fontWeight="800" style={kor(progress, 0.88)}>{xulosa}</text>
+    {birinchi.tartiblar.map((t, ti) => { const xs = x0 + (ti % 2) * qatorEni, y = 74 + r + Math.floor(ti / 2) * (d + 22), at = 0.3 + ti * 0.08;
+      return <g key={ti}>{t.map((h, hi) => <Shar key={hi} x={xs + hi * d + r} y={y} h={h} r={r} yangi={h === birinchi.yangi} korinish={h === birinchi.yangi ? (progress >= at ? 1 : 0) : (progress >= at - 0.04 ? 1 : 0)} />)}</g>; })}
+    <text x={x0} y={74 + 2 * (d + 22) + 26} fill={CHALK} fontSize="19" opacity=".9" style={kor(progress, 0.6)}>{`har bir asosdan ${n} ta yangi tartib`}</text>
+    <text x="16" y={H - 16} fill={SARIQ} fontSize={XUL} fontWeight="800" style={kor(progress, 0.88)}>{xulosa}</text>
   </svg>;
 }
 
-/** ORINLASHTIR: n k — k ta joy; 1-joyga n xil, 2-joyga (n−1) xil… ⇒ A = n·(n−1)·…·(n−k+1) = n!/(n−k)! */
+/** ORINLASHTIR: n k — narsa yuqori qatordan uchib katakka tushadi; ostida «n xil, n−1 xil…»; chetdagilar xiralashadi. */
 function Orinlashtir({ arg, progress }) {
   const t = orinlashtirTahlil(arg);
   if (!t) return <JonliMatn text={arg} progress={progress} />;
-  const { n, k } = t, r = 15, W = Math.max(560, 40 + Math.max(n * 38, k * 120)), H = 236;
+  const { n, k } = t, r = 21, qd = 54, W = Math.max(640, 40 + Math.max(n * qd, k * 140)), H = 300;
   const tanlov = Array.from({ length: k }, (_, i) => n - i), A = tanlov.reduce((a, b) => a * b, 1);
-  const qadam = (i) => 0.15 + (0.6 * i) / k;
+  const qadam = (i) => 0.14 + (0.6 * i) / k;
+  const ox = (i) => 34 + i * qd, oy = 84, sx = (i) => 44 + i * 140 + 55, sy = 166;
   return <svg className="mdx-svg mdx-kombin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`A ${n} ${k} = ${A}`}>
-    <text x="16" y="22" fill={CHALK} fontSize="16" fontWeight="700">{`${n} ta narsa, lekin joy faqat ${k} ta`}</text>
-    {HARFLAR.slice(0, n).map((h, i) => { const tushdi = i < k && progress >= qadam(i) + 0.08;
-      return <Shar key={h} x={30 + i * 36} y={56} h={h} r={r} xira={tushdi || (progress >= 0.85 && i >= k)} />; })}
-    {tanlov.map((v, i) => { const x = 40 + i * 110;
-      return <g key={i}>
-        <rect x={x} y={92} width={90} height={46} rx="10" fill="none" stroke={CHALK} strokeWidth="2" strokeDasharray="6 4" style={kor(progress, 0.05)} />
-        <g style={kor(progress, qadam(i) + 0.08)}><Shar x={x + 45} y={115} h={HARFLAR[i]} r={r} yangi /></g>
-        <text x={x + 45} y={160} textAnchor="middle" fill={SARIQ} fontSize="17" fontWeight="800" style={kor(progress, qadam(i))}>{`${v} xil`}</text>
-        {i < k - 1 && <text x={x + 100} y={120} textAnchor="middle" fill={CHALK} fontSize="20" style={kor(progress, qadam(i + 1))}>·</text>}
+    <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{`${n} ta narsa, joy esa faqat ${k} ta`}</text>
+    {HARFLAR.slice(0, n).map((h, i) => { const ketdi = i < k && progress >= qadam(i);
+      return <g key={h}>
+        {ketdi && <circle cx={ox(i)} cy={oy} r={r} fill="none" stroke="rgba(255,255,255,.35)" strokeDasharray="5 4" />}
+        {i >= k && <Shar x={ox(i)} y={oy} h={h} r={r} xira={progress >= 0.86} />}
+        {i < k && !ketdi && <Shar x={ox(i)} y={oy} h={h} r={r} />}
       </g>; })}
-    <text x="16" y={196} fill={SARIQ} fontSize="18" fontWeight="800" style={kor(progress, 0.85)}>{`A = ${tanlov.join(" · ")} = ${A} = ${n}! / ${n - k}!`}</text>
-    {n > k && <text x="16" y={224} fill={CHALK} fontSize="15" opacity=".9" style={kor(progress, 0.9)}>{`chetda qolgan ${n - k} tasining tartibi muhim emas — shuning uchun ${n}! ni (${n - k})! ga bo‘lamiz`}</text>}
+    {tanlov.map((v, i) => { const x = sx(i) - 55;
+      return <g key={i}>
+        <rect x={x} y={sy - 32} width={110} height={64} rx="12" fill="none" stroke={CHALK} strokeWidth="2.5" strokeDasharray="7 5" style={kor(progress, 0.04)} />
+        <Shar x={sx(i)} y={sy} h={HARFLAR[i]} r={r} yangi korinish={progress >= qadam(i) ? 1 : 0} dx={ox(i) - sx(i)} dy={oy - sy} />
+        <text x={sx(i)} y={sy + 62} textAnchor="middle" fill={SARIQ} fontSize="24" fontWeight="800" style={kor(progress, qadam(i))}>{`${v} xil`}</text>
+        {i < k - 1 && <text x={x + 125} y={sy + 8} textAnchor="middle" fill={CHALK} fontSize="28" style={kor(progress, qadam(i + 1))}>·</text>}
+      </g>; })}
+    <text x="16" y={268} fill={SARIQ} fontSize={XUL} fontWeight="800" style={kor(progress, 0.84)}>{`A = ${tanlov.join(" · ")} = ${A} = ${n}! / ${n - k}!`}</text>
+    {n > k && <text x="16" y={294} fill={CHALK} fontSize="19" opacity=".95" style={kor(progress, 0.9)}>{`chetda qolgan ${n - k} tasining tartibi muhim emas — shuning uchun (${n - k})! ga bo‘lamiz`}</text>}
   </svg>;
 }
 
-/** GURUHLASH: n k — tanlangan k ta narsaning k! xil tartibi bitta guruh ⇒ C = A / k! */
+/** GURUHLASH: n k — tanlangan k ta narsaning k! xil tartibi bir joyga yig'ilib, bitta guruh bo'ladi ⇒ C = A / k! */
 function Guruhlash({ arg, progress }) {
   const t = guruhlashTahlil(arg);
   if (!t) return <JonliMatn text={arg} progress={progress} />;
   const { n, k } = t, harf = HARFLAR.slice(0, k);
   const tartiblar = []; const yasa = (q, qolgan) => { if (!qolgan.length) { tartiblar.push(q); return; } qolgan.forEach((h, i) => yasa([...q, h], [...qolgan.slice(0, i), ...qolgan.slice(i + 1)])); }; yasa([], harf);
   let A = 1; for (let i = 0; i < k; i += 1) A *= n - i;
-  const r = 12, d = 2 * r + 3, W = Math.max(560, 40 + tartiblar.length * (k * d + 16)), H = 200;
+  const r = 18, d = 2 * r + 6, qe = k * d + 24, W = Math.max(640, 40 + tartiblar.length * qe), H = 290, gx = W / 2 - ((k - 1) * d) / 2, gy = 196;
+  const yigildi = progress >= 0.62;
   return <svg className="mdx-svg mdx-kombin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`C ${n} ${k}`}>
-    <text x="16" y="22" fill={CHALK} fontSize="16" fontWeight="700">{`Tartib muhim emas: ${harf.join(", ")} ning hamma tartibi — bitta guruh`}</text>
-    {tartiblar.map((tt, i) => { const x = 20 + i * (k * d + 16), at = 0.1 + (0.5 * i) / tartiblar.length;
-      return <g key={i} style={kor(progress, at)}>{tt.map((h, j) => <Shar key={j} x={x + j * d + r} y={64} h={h} r={r} />)}</g>; })}
-    <path d={`M20 92 Q ${W / 2} 140 ${W - 20} 92`} stroke={SARIQ} strokeWidth="2.4" fill="none" pathLength="1" style={chiz(progress, 0.62, 0.75)} />
-    <g style={kor(progress, 0.75)}>{harf.map((h, j) => <Shar key={j} x={W / 2 - ((k - 1) * d) / 2 + j * d} y={140} h={h} r={r} yangi />)}
-      <text x={W / 2 + (k * d) / 2 + 14} y={146} fill={SARIQ} fontSize="15" fontWeight="700">{`${tartiblar.length} = ${k}! tartib → 1 guruh`}</text></g>
-    <text x="16" y={188} fill={SARIQ} fontSize="18" fontWeight="800" style={kor(progress, 0.88)}>{`C = A / ${k}! = ${A} / ${tartiblar.length} = ${A / tartiblar.length}`}</text>
+    <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{`Tartib muhim emas: ${harf.join(", ")} ning hamma tartibi — bitta guruh`}</text>
+    {tartiblar.map((tt, i) => { const x = 24 + i * qe, at = 0.08 + (0.45 * i) / tartiblar.length;
+      return <g key={i} style={{ opacity: progress < at ? 0 : yigildi ? 0.25 : 1, transform: yigildi ? `translate(${gx - x}px, ${gy - 84}px) scale(.96)` : "translate(0,0)", transition: "transform .9s cubic-bezier(.3,.9,.3,1), opacity .9s" }}>
+        {tt.map((h, j) => <Shar key={j} x={x + j * d + r} y={84} h={h} r={r} />)}</g>; })}
+    <g style={kor(progress, 0.72)}>
+      <rect x={gx - r - 14} y={gy - r - 14} width={(k - 1) * d + 2 * r + 28} height={2 * r + 28} rx="16" fill="rgba(255,213,74,.12)" stroke={YANGI_RANG} strokeWidth="3" />
+      {harf.map((h, j) => <Shar key={j} x={gx + j * d} y={gy} h={h} r={r} yangi />)}
+      <text x={gx + (k - 1) * d + r + 28} y={gy + 8} fill={SARIQ} fontSize="22" fontWeight="800">{`${tartiblar.length} = ${k}! tartib → 1 guruh`}</text></g>
+    <text x="16" y={H - 12} fill={SARIQ} fontSize={XUL} fontWeight="800" style={kor(progress, 0.88)}>{`C = A / ${k}! = ${A} / ${tartiblar.length} = ${A / tartiblar.length}`}</text>
   </svg>;
 }
 

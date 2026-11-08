@@ -44,11 +44,16 @@ export function kabuAylan(kbot, { gradus = 360, ms = 1500 } = {}) {
     const k = Math.min(1, (t - t0) / ms);
     const g = qaytadi ? gradus * Math.sin(Math.PI * silliq(k)) : gradus * silliq(k);
     const h = aylanishHolati(g);
-    kbot.style.transform = `scaleX(${h.sx}) translateY(${-6 * Math.sin(Math.PI * k)}%)`;
+    // REV426: haqiqiy 3D aylanish — perspektiva bilan (yaqin cheti kattaroq, uzoq cheti kichikroq), yonga burilganda
+    // biroz qorayadi va qalinlik soyasi tushadi: tekis rasm siqilgandek emas, hajmli robot aylangandek ko'rinadi.
+    const c = Math.cos((g * Math.PI) / 180), sn = Math.sin((g * Math.PI) / 180);
+    kbot.style.transformOrigin = "50% 55%";
+    kbot.style.transform = `perspective(900px) rotateY(${g}deg) translateY(${-6 * Math.sin(Math.PI * k)}%)`;
+    kbot.style.filter = `brightness(${(0.78 + 0.22 * Math.abs(c)).toFixed(3)}) drop-shadow(${(-sn * 7).toFixed(1)}px 6px 0 rgba(20,40,70,${(0.18 * Math.abs(sn)).toFixed(3)}))`;
     kbot.classList.toggle("is-orqa", h.orqa);
     if (k < 1) id = requestAnimationFrame(qadam);
-    else { kbot.style.transform = ""; kbot.classList.remove("is-orqa"); }
+    else { kbot.style.transform = ""; kbot.style.filter = ""; kbot.classList.remove("is-orqa"); }
   };
   id = requestAnimationFrame(qadam);
-  return () => { cancelAnimationFrame(id); kbot.style.transform = ""; kbot.classList.remove("is-orqa"); };
+  return () => { cancelAnimationFrame(id); kbot.style.transform = ""; kbot.style.filter = ""; kbot.classList.remove("is-orqa"); };
 }

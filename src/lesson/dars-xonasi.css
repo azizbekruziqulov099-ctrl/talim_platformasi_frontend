@@ -1120,3 +1120,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-burchak-daftar:hover{background:rgba(255,255,255,.28)}
 .dx-yordam-tug{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .dx-klav-och.is-on{background:#1B4B7A;color:#fff}
+/* REV426: kombinatorika chizmalari doskada yirikroq (kenglik bo'yicha to'liq) */
+.mdx-svg.mdx-kombin{max-width:100%;min-height:200px}
+.mdx-svg.mdx-kombin g{transform-box:view-box}
