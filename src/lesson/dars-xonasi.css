@@ -1123,3 +1123,26 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 /* REV426: kombinatorika chizmalari doskada yirikroq (kenglik bo'yicha to'liq) */
 .mdx-svg.mdx-kombin{max-width:100%;min-height:200px}
 .mdx-svg.mdx-kombin g{transform-box:view-box}
+/* REV429: qoralama tugmasi — doskaning o'ng PASTKI burchagida (yuqorida soat bor), ixcham va toza */
+.dx-root .dx-burchak-daftar{top:auto;bottom:10px;right:12px;width:auto;height:auto;padding:6px 12px 6px 10px;border-radius:999px;border:0;
+  background:rgba(255,255,255,.94);color:#1B4B7A;font:700 13px/1 system-ui,sans-serif;display:inline-flex;align-items:center;gap:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);backdrop-filter:none}
+.dx-root .dx-burchak-daftar:hover{background:#fff;transform:translateY(-1px)}
+.dx-root .dx-burchak-daftar span{font-size:14px}
+/* REV429: doskadagi o'yinlar */
+.bo-oyin{display:flex;flex-direction:column;gap:10px;padding:12px 14px;margin:6px 0;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:#F4F1E8;font:500 16px/1.35 system-ui,sans-serif}
+.bo-sarl{font-weight:800;font-size:17px}
+.bo-qator{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bo-shar{width:48px;height:48px;border-radius:50%;border:0;font:800 20px system-ui;color:#13202e;cursor:pointer;transition:transform .15s,opacity .2s}
+.bo-shar:not(:disabled):hover{transform:scale(1.08)}
+.bo-strelka{font-size:22px;opacity:.7;margin:0 4px}
+.bo-katak{width:52px;height:52px;border-radius:12px;border:2px dashed rgba(255,255,255,.45);display:grid;place-items:center}
+.bo-katak b{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:#13202e;font:800 18px system-ui;animation:bo-tush .3s ease-out}
+@keyframes bo-tush{from{transform:translateY(-20px);opacity:0}}
+.bo-topildi{display:flex;flex-wrap:wrap;gap:6px;min-height:30px}
+.bo-chip{display:inline-flex;gap:2px;padding:3px 6px;border-radius:10px;background:rgba(255,255,255,.1);animation:bo-tush .3s}
+.bo-chip i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:800 12px system-ui;color:#13202e;font-style:normal}
+.bo-hisob{font-size:16px}
+.bo-hisob b{color:#FFD54A}
+.bo-grafik{width:100%;max-width:560px;height:auto;background:rgba(0,0,0,.18);border-radius:12px}
+.bo-xulosa{padding:8px 12px;border-radius:12px;background:rgba(255,213,74,.14);border:1px solid #FFD54A;color:#FFE9A8;font-weight:600}

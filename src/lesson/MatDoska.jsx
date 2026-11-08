@@ -1,6 +1,7 @@
 // REV269: MATEMATIKA JONLI DOSKASI — qator ustoz gapirayotgan payt qo'lda yozilayotgandek ochiladi, bo'r ushlagan qo'l
 // yozuv bilan yuradi; buyruqli qatorlar (USTUN, BOLISH, QISQART, SON_OQI, GRAFIK, CHIZ, KASR_MODEL, DOIRA_KASR, BELGILA)
 // chizmaga aylanadi va chiziqlari ham ovoz bilan birga chiziladi. progress — 0..1 (qancha yozilgan).
+import BoardOyin from "./BoardOyin.jsx";   // REV429
 import React, { useMemo } from "react";
 import katex from "katex";
 import { orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, HARFLAR } from "./matDoska.js";   // REV425
@@ -416,6 +417,7 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
     case "kasr_model": return <KasrModel arg={b.arg} progress={p} />;
     case "doira_kasr": return <DoiraKasr arg={b.arg} progress={p} />;
     case "belgila": return <Belgila arg={b.arg} progress={p} />;
+    case "oyin": return <BoardOyin arg={b.arg} />;   // REV429: talaba o'zi o'ynaydigan tajriba
     case "orin_almash": return <OrinAlmash arg={b.arg} progress={p} />;   // REV425
     case "orinlashtir": return <Orinlashtir arg={b.arg} progress={p} />;
     case "guruhlash": return <Guruhlash arg={b.arg} progress={p} />;

@@ -1830,7 +1830,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
         <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
         {!kid && ["lesson", "test", "ovoz"].includes(mode) && <button type="button" className="dx-burchak-daftar" onClick={() => { hush(); setBurchakDaftar(true); }}
-          title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}>📝</button>}
+          title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}><span aria-hidden="true">✏️</span>{__kbUi("Qoralama")}</button>}
           {sinfXona && !kid && <div className="dx-panel-chip" aria-hidden="true">{lesson.topic?.mavzu}</div>}
           {/* REV340: 1–4-sinf — o'yin doska ustida */}
           {!kid && oyinQ && oyinQ.stepIdx === idx && mode === "lesson" && <div className="dx-oyin-qatlam is-maktab">

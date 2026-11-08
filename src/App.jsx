@@ -14914,7 +14914,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
             {!kabutarOchiq && <button type="button" className={`samtm-gamburger ${yonMenyuOchiq ? "is-on" : ""}`} onClick={yonMenyuniAlmashtir} aria-expanded={yonMenyuOchiq}
               aria-label={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")} title={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">{yonMenyuOchiq ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 6h16M4 12h16M4 18h16" />}</svg></button>}
-            <span className="samtm-logo"><img className="samtm-emblema" src={__kbEmblema} alt="" width="28" height="28" /></span>
+            {/* REV429: ☰ yonidagi kabutar rasmi olib tashlandi — tepada faqat kerakli tugmalar */}
           </div>
           <div className="samtm-ong">
             {/* REV387: o'ng tepada ikkita qalin tugma — Ta'lim va Kabutar; robot ham shu yerda (ekranga xalaqit bermaydi) */}

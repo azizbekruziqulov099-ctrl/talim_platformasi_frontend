@@ -8,7 +8,7 @@ export const MATEM_RE = /matem|algebr|geometr|математ|алгебр|гео
 export const matRejim = (fan) => MATEM_RE.test(String(fan || ""));
 
 const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
-  "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT"];   // REV425: formulaning kelib chiqishi — harakatli chizmalar
+  "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
 const BUYRUQ_RE = new RegExp(`^\\s*(${BUYRUQLAR.join("|")})\\s*(?::|$)\\s*([\\s\\S]*)$`, "i");
 
 const MATN_BUYRUQ = new Set(["yoz", "davom", "qoida", "belgila"]);
