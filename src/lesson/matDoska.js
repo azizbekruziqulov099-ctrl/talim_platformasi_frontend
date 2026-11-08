@@ -7,7 +7,8 @@ import { eskiAlifbo } from "../interface/yangiAlifbo.js";
 export const MATEM_RE = /matem|algebr|geometr|математ|алгебр|геометр|\bmath|stereometr|стереометр/i;
 export const matRejim = (fan) => MATEM_RE.test(String(fan || ""));
 
-const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR"];
+const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
+  "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT"];   // REV425: formulaning kelib chiqishi — harakatli chizmalar
 const BUYRUQ_RE = new RegExp(`^\\s*(${BUYRUQLAR.join("|")})\\s*(?::|$)\\s*([\\s\\S]*)$`, "i");
 
 const MATN_BUYRUQ = new Set(["yoz", "davom", "qoida", "belgila"]);
@@ -294,4 +295,46 @@ export function esdaTut(steps, idx) {
     }
   }
   return out.slice(-4);
+}
+
+
+// ───────────── REV425: kombinatorika va ehtimol chizmalari (sof qoidalar) ─────────────
+export const HARFLAR = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+/** n! ni qo'yish yo'li bilan qurish: (n−1)! ta tartibning har biriga yangi narsa n xil joyga qo'yiladi.
+ *  → [{asos: ["A","B"], yangi: "C", tartiblar: [["C","A","B"], ["A","C","B"], ["A","B","C"]]}] */
+export function orinAlmashQurish(n) {
+  n = Math.max(1, Math.min(4, Math.trunc(Number(n) || 1)));
+  let tartib = [[HARFLAR[0]]];
+  if (n === 1) return { n, guruhlar: [{ asos: [], yangi: "A", tartiblar: tartib }], jami: 1 };
+  for (let m = 2; m < n; m += 1) {
+    const yangi = HARFLAR[m - 1], keyingi = [];
+    for (const t of tartib) for (let j = t.length; j >= 0; j -= 1) keyingi.push([...t.slice(0, j), yangi, ...t.slice(j)]);   // AB, BA … tabiiy tartib
+    tartib = keyingi;
+  }
+  const yangi = HARFLAR[n - 1];
+  const guruhlar = tartib.map((t) => ({ asos: t, yangi, tartiblar: Array.from({ length: t.length + 1 }, (_, j) => [...t.slice(0, j), yangi, ...t.slice(j)]) }));
+  return { n, guruhlar, jami: guruhlar.reduce((a, g) => a + g.tartiblar.length, 0) };
+}
+
+const ikkiSon = (arg, maxN, maxK) => {
+  const m = String(arg || "").match(/(\d+)\D+(\d+)/);
+  if (!m) return null;
+  const n = Math.min(maxN, Math.max(1, +m[1])), k = Math.min(maxK, Math.max(1, Math.min(n, +m[2])));
+  return { n, k };
+};
+export const orinlashtirTahlil = (arg) => ikkiSon(arg, 8, 4);
+export const guruhlashTahlil = (arg) => ikkiSon(arg, 8, 3);   // k ≤ 3: k! ≤ 6 tartib doskaga sig'adi
+
+/** VENN: «A=12; B=9; AB=4; jami=30» → sonlar (ixtiyoriy yorliqlar) */
+export function vennTahlil(arg) {
+  const o = {};
+  for (const q of String(arg || "").split(/[;,]/)) { const m = q.match(/^\s*([A-Za-z]+)\s*=\s*([\d.,/]+)\s*$/); if (m) o[m[1].toUpperCase()] = m[2]; }
+  return o.A || o.B ? o : null;
+}
+
+/** DARAXT: «0,6 | 0,4» yoki «0,6 | 0,4 / 0,7 | 0,3» — ikki bosqichli ehtimollar daraxti */
+export function daraxtTahlil(arg) {
+  const bosqich = String(arg || "").split("/").map((b) => b.split("|").map((x) => x.trim()).filter(Boolean));
+  return bosqich[0]?.length >= 2 ? bosqich.slice(0, 2) : null;
 }
