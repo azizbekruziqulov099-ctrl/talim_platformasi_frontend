@@ -1,8 +1,0 @@
-# REV431: Dockerfile bilan qurish (railpack o'rniga) — GitHub'dan build vositalarini yuklab bo'lmay qolganda ham ishlaydi
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
-
-[deploy]
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
