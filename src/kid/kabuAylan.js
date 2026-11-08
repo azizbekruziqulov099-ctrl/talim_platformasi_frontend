@@ -33,27 +33,53 @@ export function aylanishHolati(gradus) {
 
 const silliq = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
 
+/** REV431: hajm — Kabuning qatlamlari orqaga qarab bir necha marta takrorlanadi (har biri biroz chuqurroqda va to'qroq),
+ *  eng orqadagisi — orqa tomon (yuzi yo'q, orqa paneli bilan). Burilganda tekis qog'oz emas, qalin tanali robot ko'rinadi. */
+function hajmQosh(kbot) {
+  const asl = [...kbot.children].filter((c) => !c.classList.contains("kbot-qatlam"));
+  const eni = kbot.getBoundingClientRect().width || 120;
+  const chuqur = Math.max(12, eni * 0.17), N = 12;   // 12 qatlam — yon tomoni silliq ko'rinadi
+  const html = asl.map((c) => c.outerHTML).join("");
+  const qatlamlar = [];
+  for (let i = 1; i <= N; i += 1) {
+    const q = document.createElement("div");
+    const orqa = i === N;
+    q.className = `kbot-qatlam${orqa ? " kbot is-orqa" : ""}`;
+    q.setAttribute("aria-hidden", "true");
+    Object.assign(q.style, { position: "absolute", inset: "0", width: "100%", height: "100%", padding: "0", margin: "0", pointerEvents: "none",
+      transform: `translateZ(${(-chuqur * i) / N}px)${orqa ? " rotateY(180deg)" : ""}`, backfaceVisibility: orqa ? "hidden" : "visible",
+      filter: orqa ? "brightness(.97)" : `brightness(${(0.48 + 0.025 * i).toFixed(2)}) saturate(.7)` });
+    q.innerHTML = html;
+    kbot.insertBefore(q, kbot.firstChild);
+    qatlamlar.push(q);
+  }
+  asl.forEach((c) => { c.dataset.kbBf = c.style.backfaceVisibility || ""; c.style.backfaceVisibility = "hidden"; });
+  kbot.style.transformStyle = "preserve-3d";
+  return () => {
+    qatlamlar.forEach((q) => q.remove());
+    asl.forEach((c) => { c.style.backfaceVisibility = c.dataset.kbBf || ""; delete c.dataset.kbBf; });
+    kbot.style.transformStyle = "";
+  };
+}
+
 /** Aylantiradi. gradus: 360 — to'liq; 180 — yarim aylanib qaytadi; 90 — yonga burilib qaytadi. Qaytaradi: to'xtatish funksiyasi. */
-export function kabuAylan(kbot, { gradus = 360, ms = 1500 } = {}) {
+export function kabuAylan(kbot, { gradus = 360, ms = 1600 } = {}) {
   if (!kbot || typeof window === "undefined") return () => {};
   if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return () => {};
   orqaQism(kbot);
   const qaytadi = gradus < 360;   // yarim/yon burilish — borib, qaytib keladi
+  let tozala = () => {};
+  try { tozala = hajmQosh(kbot); } catch { /* eski brauzer — hajmsiz aylanadi */ }
   let id = 0; const t0 = performance.now();
+  const tugat = () => { kbot.style.transform = ""; kbot.style.filter = ""; kbot.classList.remove("is-orqa"); tozala(); tozala = () => {}; };
   const qadam = (t) => {
     const k = Math.min(1, (t - t0) / ms);
     const g = qaytadi ? gradus * Math.sin(Math.PI * silliq(k)) : gradus * silliq(k);
-    const h = aylanishHolati(g);
-    // REV426: haqiqiy 3D aylanish — perspektiva bilan (yaqin cheti kattaroq, uzoq cheti kichikroq), yonga burilganda
-    // biroz qorayadi va qalinlik soyasi tushadi: tekis rasm siqilgandek emas, hajmli robot aylangandek ko'rinadi.
-    const c = Math.cos((g * Math.PI) / 180), sn = Math.sin((g * Math.PI) / 180);
+    // REV426/REV431: haqiqiy 3D — perspektiva, qatlamlar chuqurlikda turadi (filter bu yerda emas: u 3D ni tekislab qo'yadi)
     kbot.style.transformOrigin = "50% 55%";
-    kbot.style.transform = `perspective(900px) rotateY(${g}deg) translateY(${-6 * Math.sin(Math.PI * k)}%)`;
-    kbot.style.filter = `brightness(${(0.78 + 0.22 * Math.abs(c)).toFixed(3)}) drop-shadow(${(-sn * 7).toFixed(1)}px 6px 0 rgba(20,40,70,${(0.18 * Math.abs(sn)).toFixed(3)}))`;
-    kbot.classList.toggle("is-orqa", h.orqa);
-    if (k < 1) id = requestAnimationFrame(qadam);
-    else { kbot.style.transform = ""; kbot.style.filter = ""; kbot.classList.remove("is-orqa"); }
+    kbot.style.transform = `perspective(700px) rotateY(${g}deg) translateY(${-6 * Math.sin(Math.PI * k)}%)`;
+    if (k < 1) id = requestAnimationFrame(qadam); else tugat();
   };
   id = requestAnimationFrame(qadam);
-  return () => { cancelAnimationFrame(id); kbot.style.transform = ""; kbot.style.filter = ""; kbot.classList.remove("is-orqa"); };
+  return () => { cancelAnimationFrame(id); tugat(); };
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { kabuMarkup, kabuTuri } from "./kabuMillat.js";   // KABU_MARKUP — har til uchun rangi almashtirilgan nusxa
 import "./robotKabu.css";
 import { kabuAylan } from "./kabuAylan.js";   // REV331: aylanish
@@ -9,7 +9,26 @@ const MOODS = ["is-talk", "is-wave", "is-think", "is-happy", "is-enc"];
  *  REV98: Robot ustoz Kabu. mood: "talk", "wave talk", "think", "happy", "enc" …; celebrate — har oshganda sakraydi va yulduzlar sochiladi. */
 // REV245: til berilmasa — interfeys tili (ruscha — Голу, inglizcha — Pidgi). Test, takrorlash, vaqt nazorati — hammasida.
 const interfeysTili = () => { try { return String(document.documentElement.lang || "uz").slice(0, 2); } catch { return "uz"; } };
-export default function RobotKabu({ mood = "", celebrate = 0, className = "", tur, aylan = 0, aylanGradus = 360 }) {
+// REV431: o'zbekcha Kabu — haqiqiy 3D (three.js, alohida bo'lak bo'lib yuklanadi); WebGL bo'lmasa yoki boshqa til liboslari — SVG
+const Kabu3DLazy = React.lazy(() => import("./Kabu3D.jsx"));
+const webgl = () => { try { const c = document.createElement("canvas"); return Boolean(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl"))); } catch { return false; } };
+let WEBGL_KESH = null;
+export default function RobotKabu(props) {
+  const turK = kabuTuri(props.tur || interfeysTili());
+  const [uch] = useState(() => {
+    try { if (localStorage.getItem("kb_kabu_2d") === "1") return false; } catch { /* */ }
+    if (WEBGL_KESH === null) WEBGL_KESH = typeof window !== "undefined" && webgl();
+    return turK === "uz" && WEBGL_KESH;
+  });
+  if (!uch) return <RobotKabuSvg {...props} />;
+  return <div className={`kabu-box kabu-uz kabu-3d-qobiq ${props.className || ""}`} aria-hidden="true">
+    <Suspense fallback={<RobotKabuSvg {...props} />}>
+      <Kabu3DLazy mood={props.mood || ""} celebrate={props.celebrate || 0} aylan={props.aylan || 0} gapiryapti={/talk/.test(props.mood || "")} />
+    </Suspense>
+  </div>;
+}
+
+function RobotKabuSvg({ mood = "", celebrate = 0, className = "", tur, aylan = 0, aylanGradus = 360 }) {
   tur = tur || interfeysTili();
   const box = useRef(null);
   useEffect(() => {
