@@ -27,12 +27,12 @@ test("REV155: tanishuv matnlari ru va en tillarida bor", async () => {
   for (const t of matnlar) { const k = normalizeInterfaceKey(t); assert.ok(ru[k], "ru: " + t); assert.ok(en[k], "en: " + t); }
 });
 
-test("REV155: emblema — kirish, ro'yxatdan o'tish, yuqori panel va favicon", () => {
+test("REV155: emblema — kirish, ro'yxatdan o'tish va favicon (REV429: yuqori panelda yo'q)", () => {
   assert.ok(fs.existsSync(new URL("./brand/emblema.webp", import.meta.url)));
   assert.match(src("./auth/KabutarLogin.jsx"), /kb-login-emblem/);
   assert.match(src("./auth/KabutarLogin.jsx"), /<KirishImkoniyatlar/);
   assert.match(src("./auth/KabutarRegistration.jsx"), /kb-login-emblem/);
-  assert.match(src("./App.jsx"), /className="samtm-emblema"/);
+  assert.doesNotMatch(src("./App.jsx"), /className="samtm-emblema"/);   // REV429: yuqori paneldagi kabutar rasmi olib tashlangan (kirish sahifasida qoladi)
   const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
   assert.match(html, /rel="icon"[^>]+favicon\.png/);
   assert.match(html, /apple-touch-icon\.png/);
