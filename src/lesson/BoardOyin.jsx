@@ -424,6 +424,67 @@ function QopOyin({ oq = 5, qora = 3 }) {
   </div>;
 }
 
+// ───────────── REV437: maktab matematikasi o'yinlari ─────────────
+/** OYIN: pitsa — pitsani teng bo'laklarga bo'lib, bo'laklarni yeysiz: kasr qanday hosil bo'ladi, qaysi kasr katta. */
+function PitsaOyin() {
+  const [n, setN] = useState(4);
+  const [olindi, setOlindi] = useState([]);
+  const k = olindi.length;
+  const R = 90, C = 110;
+  const bolak = (i) => { const a0 = (i / n) * Math.PI * 2 - Math.PI / 2, a1 = ((i + 1) / n) * Math.PI * 2 - Math.PI / 2;
+    return `M${C} ${C} L${C + R * Math.cos(a0)} ${C + R * Math.sin(a0)} A${R} ${R} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${C + R * Math.cos(a1)} ${C + R * Math.sin(a1)} Z`; };
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🍕 {__kbUi("Pitsani teng bo‘laklarga bo‘ling va bo‘laklarni bosib oling. Qancha qismini oldingiz?")}</div>
+    <div className="bo-qator">{[2, 3, 4, 6, 8].map((v) => <button key={v} type="button" style={v === n ? tugma : tugma2} onClick={() => { setN(v); setOlindi([]); }}>{v} {__kbUi("bo‘lak")}</button>)}</div>
+    <div className="bo-qator" style={{ alignItems: "center", gap: 24 }}>
+      <svg viewBox="0 0 220 220" style={{ width: 220, height: 220 }} role="img" aria-label="pitsa">
+        <circle cx={C} cy={C} r={R + 8} fill="#d49a4c" />
+        {Array.from({ length: n }, (_, i) => <path key={i} d={bolak(i)} fill={olindi.includes(i) ? "rgba(255,255,255,.08)" : "#f2c14e"} stroke="#b5762a" strokeWidth="3"
+          style={{ cursor: "pointer", transition: "fill .25s" }} onClick={() => setOlindi((o) => (o.includes(i) ? o.filter((x) => x !== i) : [...o, i]))} />)}
+        {Array.from({ length: n }, (_, i) => { if (olindi.includes(i)) return null; const a = ((i + 0.5) / n) * Math.PI * 2 - Math.PI / 2;
+          return <circle key={`p${i}`} cx={C + R * 0.55 * Math.cos(a)} cy={C + R * 0.55 * Math.sin(a)} r="7" fill="#c0392b" pointerEvents="none" />; })}
+      </svg>
+      <div className="bo-kasr"><b>{k}</b><i /><b>{n}</b></div>
+    </div>
+    <div className="bo-hisob">{__kbUi("Oldingiz")}: <b>{k}</b> {__kbUi("ta bo‘lak")} {__kbUi("— pitsaning")} <b>{k}/{n}</b> {__kbUi("qismi")}{k && n % k === 0 && k !== n ? <> = <b>1/{n / k}</b></> : null}{k === n ? <> = <b>1</b> ({__kbUi("butun pitsa")})</> : null}</div>
+    {k > 0 && <div className="bo-xulosa">{__kbUi(`Maxraj (${n}) — pitsa nechta teng bo‘lakka bo‘lingani, surat (${k}) — nechta bo‘lak olingani. Bo‘laklar ko‘paysa, har bo‘lak kichrayadi: 1/8 < 1/4.`)}</div>}
+  </div>;
+}
+
+/** OYIN: tarozi 3 2 11 — tarozida 3x + 2 = 11: ikki pallaga bir xil amal qilib x ni topish. */
+function TaroziOyin({ a = 3, b = 2, c = 11 }) {
+  const [h, setH] = useState({ a, b, c, qadam: [] });
+  const x = (c - b) / a;
+  const ayir = () => { if (h.b > 0) setH((o) => ({ ...o, b: o.b - 1, c: o.c - 1, qadam: [...o.qadam, __kbUi("Ikkala pallasidan 1 ta toshni oldik")] })); };
+  const bol = () => { if (h.b === 0 && h.a > 1 && h.c % h.a === 0) setH((o) => ({ a: 1, b: 0, c: o.c / o.a, qadam: [...o.qadam, __kbUi(`Ikkala pallani ${o.a} ga bo‘ldik`)] })); };
+  const Quti = () => <span className="bo-quti">x</span>;
+  const Tosh = () => <span className="bo-tosh">1</span>;
+  return <div className="bo-oyin">
+    <div className="bo-sarl">⚖️ {__kbUi(`Tarozi muvozanatda: ${a}x + ${b} = ${c}. Har ikki pallaga bir xil amal qilib, bitta qutida (x) nechta tosh borligini toping.`)}</div>
+    <div className="bo-tarozi">
+      <div className="bo-palla">{Array.from({ length: h.a }, (_, i) => <Quti key={`q${i}`} />)}{Array.from({ length: h.b }, (_, i) => <Tosh key={`t${i}`} />)}</div>
+      <div className="bo-tarozi-ust">⚖️</div>
+      <div className="bo-palla">{Array.from({ length: Math.min(h.c, 24) }, (_, i) => <Tosh key={i} />)}</div>
+    </div>
+    <div className="bo-hisob">{__kbUi("Tenglama")}: <b>{h.a > 1 ? h.a : ""}x{h.b ? ` + ${h.b}` : ""} = {h.c}</b></div>
+    <div className="bo-qator">
+      <button type="button" style={tugma} disabled={h.b === 0} onClick={ayir}>➖ {__kbUi("Ikkala pallasidan 1 tosh ol")}</button>
+      <button type="button" style={tugma} disabled={!(h.b === 0 && h.a > 1)} onClick={bol}>➗ {__kbUi(`Ikkala pallani ${h.a} ga bo‘l`)}</button>
+      <button type="button" style={tugma2} onClick={() => setH({ a, b, c, qadam: [] })}>↺</button>
+    </div>
+    {h.qadam.length > 0 && <div className="bo-hisob" style={{ fontSize: 14, opacity: 0.85 }}>{h.qadam.slice(-3).join(" → ")}</div>}
+    {h.a === 1 && h.b === 0 && <div className="bo-xulosa">{__kbUi(`x = ${x}. Tarozi muvozanatini buzmaslik uchun ikkala pallaga doim bir xil amal qilinadi — tenglama ham shunday yechiladi.`)}</div>}
+  </div>;
+}
+
+/** REV437: «Fan o'yinlari» bo'limi uchun ro'yxat — fan va daraja bo'yicha */
+export const FAN_OYINLARI = [
+  { fan: "Matematika · boshlang‘ich va 5–6-sinf", oyinlar: [["pitsa", "🍕", "Pitsa va kasrlar", "Pitsani bo‘lib, kasr nima ekanini ko‘ring"], ["tarozi 3 2 11", "⚖️", "Tarozida tenglama", "Ikkala pallaga bir xil amal — x ni toping"], ["ikkikub", "🎲🎲", "Ikki zar yig‘indisi", "Qaysi yig‘indi ko‘p tushadi?"]] },
+  { fan: "Matematika · kombinatorika", oyinlar: [["joylashtir 3", "🎯", "Tartib tuz", "3 ta narsa necha xil tartiblanadi?"], ["joylashtir 4", "🎯", "Tartib tuz (4 ta)", "4 ta narsa — 24 tartibni toping"]] },
+  { fan: "Ehtimollar nazariyasi", oyinlar: [["tanga", "🪙", "Tanga otish", "Nisbiy chastota 0,5 ga yaqinlashadimi?"], ["kub 6", "🎲", "Zar tashlash", "Har yuz ehtimoli 1/6"], ["karta 36", "🃏", "Dastadan karta", "Tuz chiqish ehtimoli"], ["qop 5 3", "👜", "Qopdan shar", "Shartli ehtimol"], ["venn 30 20 8", "⭕", "Venn diagrammasi", "Kesishma ikki marta sanalmasin"], ["daraxt 0,6 0,05 0,1", "🌳", "Ehtimollar daraxti", "To‘la ehtimol va Bayes"], ["nuqta", "🎯", "Kvadratga nuqtalar", "Geometrik ehtimol, π/4"], ["galton 10", "⚪", "Galton taxtasi", "Normal taqsimot qo‘ng‘irog‘i"]] },
+  { fan: "Matematik statistika", oyinlar: [["tanlanma 25", "📏", "20 ta tanlanma", "95% ishonch oralig‘i nima degani"], ["chiziq", "📈", "Eng yaxshi chiziq", "Regressiya — eng kichik kvadratlar"]] },
+];
+
 export default function BoardOyin({ arg }) {
   const [tur, ...qolgan] = String(arg || "").trim().split(/\s+/);
   const n = parseInt(qolgan[0], 10);
@@ -437,6 +498,8 @@ export default function BoardOyin({ arg }) {
   if (t === "daraxt") return <DaraxtOyin p1={nums[0] || 0.6} q1={nums[1] || 0.05} q2={nums[2] || 0.1} />;
   if (t === "ikkikub") return <IkkiKub />;
   if (t === "karta") return <KartaOyin soni={n === 52 ? 52 : 36} />;
+  if (t === "pitsa") return <PitsaOyin />;
+  if (t === "tarozi") return <TaroziOyin a={nums[0] || 3} b={nums[1] || 2} c={nums[2] || 11} />;
   if (t === "qop") return <QopOyin oq={nums[0] || 5} qora={nums[1] || 3} />;
   if (t === "nuqta") return <NuqtaOyin />;
   if (t === "tanlanma") return <TanlanmaOyin n={nums[0] || 25} />;
