@@ -1798,6 +1798,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
         {adminmi && <span className="dx-chip dx-kod" title={__kbUi("Dars kodi — izohda shu kod yoziladi")}>🔖 {topicCode}</span>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}
+        {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("pptx")} download title={__kbUi("Ochiq dars taqdimoti — doska yozuvlari va chizmalar bosilganda chiqadi")}>{__kbUi("⬇ PPT")}</a>}
         {kid && (questions.length > 0 || gameTotal > 0) && <span className="dx-chip dx-stars" aria-label={`${score + gameScore} ⭐`}>⭐ {score + gameScore}</span>}
         <span className="dx-chip">{mode === "test" ? __kbUi("Test") : mode === "ovoz" ? <B e="🎤" /> : `${Math.max(1, idx + 1)} / ${steps.length}`}</span>
       </div>
