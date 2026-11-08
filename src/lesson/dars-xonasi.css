@@ -1146,3 +1146,49 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .bo-hisob b{color:#FFD54A}
 .bo-grafik{width:100%;max-width:560px;height:auto;background:rgba(0,0,0,.18);border-radius:12px}
 .bo-xulosa{padding:8px 12px;border-radius:12px;background:rgba(255,213,74,.14);border:1px solid #FFD54A;color:#FFE9A8;font-weight:600}
+/* REV432: tanga, zar, karta, qop */
+.bo-tanga-sahna{position:relative;height:170px;display:grid;place-items:center;perspective:700px}
+.bo-tanga{position:relative;width:96px;height:96px;transform-style:preserve-3d;transition:transform 1.1s cubic-bezier(.2,.75,.3,1)}
+.bo-tanga.is-uch{animation:bo-uch 1.1s cubic-bezier(.25,.8,.35,1)}
+@keyframes bo-uch{0%{translate:0 0}45%{translate:0 -70px}100%{translate:0 0}}
+.bo-tanga-yuz{position:absolute;inset:0;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;backface-visibility:hidden;
+  background:radial-gradient(circle at 35% 30%,#fff3b0,#e9b949 45%,#b98516 80%);box-shadow:inset 0 0 0 6px #d29e2c,inset 0 0 0 8px #f7d77a;color:#6a4a08;font:900 15px system-ui}
+.bo-tanga-yuz span{font-size:40px;line-height:1}
+.bo-tanga-yuz b{font-size:44px;line-height:1}
+.bo-tanga-yuz.is-son{transform:rotateX(180deg)}
+.bo-tanga-soya{position:absolute;bottom:8px;width:80px;height:12px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(3px)}
+.bo-zar-sahna{height:150px;display:grid;place-items:center;perspective:600px}
+.bo-zar{position:relative;width:84px;height:84px;transform-style:preserve-3d;transition:transform 1.2s cubic-bezier(.2,.8,.3,1)}
+.bo-zar.is-dumala{animation:bo-dumala 1.2s ease-out}
+@keyframes bo-dumala{0%{translate:-90px -50px}60%{translate:20px 0}80%{translate:-6px -8px}100%{translate:0 0}}
+.bo-zar-yuz{position:absolute;inset:0;border-radius:14px;background:linear-gradient(145deg,#ffffff,#e9e9ee);box-shadow:inset 0 0 0 2px #ccd;backface-visibility:hidden}
+.bo-zar-yuz i{position:absolute;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;border-radius:50%;background:#1d2b3a}
+.bo-zar-yuz.f1{transform:translateZ(42px)}.bo-zar-yuz.f6{transform:rotateY(180deg) translateZ(42px)}
+.bo-zar-yuz.f2{transform:rotateY(90deg) translateZ(42px)}.bo-zar-yuz.f5{transform:rotateY(-90deg) translateZ(42px)}
+.bo-zar-yuz.f3{transform:rotateX(90deg) translateZ(42px)}.bo-zar-yuz.f4{transform:rotateX(-90deg) translateZ(42px)}
+.bo-zar-yuz.f1 i{background:#d23a3a;width:20px;height:20px;margin:-10px 0 0 -10px}
+.bo-ustunlar{display:flex;gap:10px;align-items:flex-end;height:110px}
+.bo-ustunlar>div{display:flex;flex-direction:column;align-items:center;gap:2px;width:38px}
+.bo-ustunlar span{width:28px;border-radius:6px 6px 0 0;background:#9CC9FF;transition:height .3s}
+.bo-ustunlar .is-on span{background:#FFD54A}
+.bo-ustunlar small{opacity:.8;font-size:12px}
+.bo-karta-sahna{position:relative;height:170px;display:flex;align-items:center;gap:40px;padding-left:20px;perspective:800px}
+.bo-dasta{position:relative;width:90px;height:128px}
+.bo-dasta i{position:absolute;inset:0;border-radius:10px;background:repeating-linear-gradient(45deg,#1b4b7a 0 8px,#2a6aa8 8px 16px);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.bo-karta{position:relative;width:90px;height:128px;transform-style:preserve-3d;transform:rotateY(0deg)}
+.bo-karta.is-uch{animation:bo-karta-ol .8s ease-out}
+@keyframes bo-karta-ol{0%{transform:translateX(-130px) rotateY(180deg)}60%{transform:translateX(0) rotateY(180deg)}100%{transform:rotateY(0deg)}}
+.bo-karta-orqa,.bo-karta-old{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.45)}
+.bo-karta-orqa{background:repeating-linear-gradient(45deg,#1b4b7a 0 8px,#2a6aa8 8px 16px);transform:rotateY(180deg)}
+.bo-karta-old{background:#fff;color:#1d2b3a;display:flex;flex-direction:column;align-items:center;justify-content:center;font:900 22px system-ui}
+.bo-karta-old.is-qizil{color:#c62828}
+.bo-karta-old span{font-size:48px;line-height:1}
+.bo-karta-old b{position:absolute;top:6px;left:8px;font-size:18px}
+.bo-karta-old b.past{top:auto;left:auto;bottom:6px;right:8px;transform:rotate(180deg)}
+.bo-qop-sahna{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.bo-qop{width:200px;height:170px}
+.bo-qop-chiq{animation:bo-chiq .9s ease-out}
+@keyframes bo-chiq{0%{transform:translateY(90px);opacity:0}100%{transform:translateY(0);opacity:1}}
+.bo-olinganlar div{display:flex;flex-wrap:wrap;gap:4px;max-width:220px;margin-top:4px}
+.bo-olinganlar i{width:20px;height:20px;border-radius:50%;border:1px solid #666;animation:bo-tush .3s}
+.bo-olinganlar i.is-oq{background:#f6f6f6}.bo-olinganlar i.is-qora{background:#2a2f38}

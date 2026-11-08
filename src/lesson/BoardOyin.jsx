@@ -258,18 +258,186 @@ function ChiziqOyin() {
   </div>;
 }
 
+// ───────────── REV432: haqiqiyga o'xshash o'yinlar — tanga havoga otiladi, zar dumalaydi, karta olinadi, qopdan shar chiqadi ─────────────
+const PIPS = { 1: [[50, 50]], 2: [[28, 28], [72, 72]], 3: [[25, 25], [50, 50], [75, 75]], 4: [[28, 28], [72, 28], [28, 72], [72, 72]],
+  5: [[26, 26], [74, 26], [50, 50], [26, 74], [74, 74]], 6: [[28, 24], [72, 24], [28, 50], [72, 50], [28, 76], [72, 76]] };
+const ZAR_BURCHAK = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] };
+function ZarYuzi({ n, cls }) {
+  return <div className={`bo-zar-yuz ${cls}`}>{PIPS[n].map(([x, y], i) => <i key={i} style={{ left: `${x}%`, top: `${y}%` }} />)}</div>;
+}
+
+/** OYIN: tanga — tanga havoga otilib, aylanib tushadi; ko'p tashlashda nisbiy chastota grafigi. */
+function TangaJonli() {
+  const [s, setS] = useState({ n: 0, m: 0, iz: [], oxirgi: null, aylan: 0 });
+  const [uchmoqda, setUch] = useState(false);
+  const tashla = (soni) => {
+    if (soni === 1) {
+      const gerb = Math.random() < 0.5;
+      setUch(true);
+      setS((o) => ({ ...o, aylan: o.aylan + 1, oxirgi: gerb }));
+      setTimeout(() => { setUch(false); setS((o) => { const n = o.n + 1, m = o.m + (gerb ? 1 : 0); return { ...o, n, m, iz: [...o.iz, [n, m / n]].slice(-200) }; }); }, 1150);
+      return;
+    }
+    setS((o) => { let { n, m } = o; const iz = [...o.iz]; let ox = o.oxirgi;
+      for (let i = 0; i < soni; i += 1) { n += 1; ox = Math.random() < 0.5; if (ox) m += 1; if (n <= 60 || n % Math.ceil(n / 60) === 0) iz.push([n, m / n]); }
+      return { ...o, n, m, iz: iz.slice(-200), oxirgi: ox }; });
+  };
+  const W = 520, H = 130, maxN = Math.max(10, s.n);
+  const yol = s.iz.map(([x, y], i) => `${i ? "L" : "M"}${20 + (x / maxN) * (W - 30)} ${H - 14 - y * (H - 28)}`).join(" ");
+  const burchak = s.aylan * 1800 + (s.oxirgi === false ? 180 : 0);
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🪙 {__kbUi("Tangani havoga oting. Gerb tushadimi yoki son?")}</div>
+    <div className="bo-tanga-sahna">
+      <div className={`bo-tanga ${uchmoqda ? "is-uch" : ""}`} style={{ transform: `rotateX(${burchak}deg)` }}>
+        <div className="bo-tanga-yuz is-gerb"><span>🦅</span><small>{__kbUi("GERB")}</small></div>
+        <div className="bo-tanga-yuz is-son"><b>1</b><small>{__kbUi("SO‘M")}</small></div>
+      </div>
+      <div className="bo-tanga-soya" />
+    </div>
+    <div className="bo-qator">
+      <button type="button" style={tugma} disabled={uchmoqda} onClick={() => tashla(1)}>🪙 {__kbUi("Ot")}</button>
+      <button type="button" style={tugma} disabled={uchmoqda} onClick={() => tashla(10)}>×10</button>
+      <button type="button" style={tugma} disabled={uchmoqda} onClick={() => tashla(100)}>×100</button>
+      <button type="button" style={tugma} disabled={uchmoqda} onClick={() => tashla(1000)}>×1000</button>
+      <button type="button" style={tugma2} onClick={() => setS({ n: 0, m: 0, iz: [], oxirgi: null, aylan: 0 })}>↺</button>
+    </div>
+    <div className="bo-hisob">{!uchmoqda && s.oxirgi !== null && <><b>{s.oxirgi ? __kbUi("Gerb!") : __kbUi("Son!")}</b> · </>}{__kbUi("Tashlashlar")}: <b>{s.n}</b> · {__kbUi("gerb")}: <b>{s.m}</b> · W = <b>{s.n ? (s.m / s.n).toFixed(3).replace(".", ",") : "—"}</b></div>
+    {s.n > 1 && <svg viewBox={`0 0 ${W} ${H}`} className="bo-grafik" role="img" aria-label="W">
+      <line x1="20" y1={H - 14 - 0.5 * (H - 28)} x2={W - 10} y2={H - 14 - 0.5 * (H - 28)} stroke="#FFD54A" strokeDasharray="6 5" />
+      <text x={W - 12} y={H - 20 - 0.5 * (H - 28)} textAnchor="end" fill="#FFD54A" fontSize="14">P = 0,5</text>
+      <path d={yol} fill="none" stroke="#9CC9FF" strokeWidth="2.5" /></svg>}
+    {s.n >= 500 && <div className="bo-xulosa">{__kbUi("Tashlashlar ko‘paygan sari gerb ulushi 0,5 ga yaqinlashyapti — bu ehtimolning statistik ta’rifi.")}</div>}
+  </div>;
+}
+
+/** OYIN: kub 6 — zar dumalab tushadi; har yuz necha marta tushgani ustunlarda. */
+function ZarJonli({ izlangan = 6 }) {
+  const [s, setS] = useState({ sanoq: [0, 0, 0, 0, 0, 0, 0], oxirgi: 1, aylan: 0 });
+  const [dumalaydi, setD] = useState(false);
+  const tashla = (soni) => {
+    if (soni === 1) {
+      const n = 1 + Math.floor(Math.random() * 6);
+      setD(true); setS((o) => ({ ...o, aylan: o.aylan + 1, oxirgi: n }));
+      setTimeout(() => { setD(false); setS((o) => { const y = [...o.sanoq]; y[n] += 1; return { ...o, sanoq: y }; }); }, 1250);
+      return;
+    }
+    setS((o) => { const y = [...o.sanoq]; let ox = o.oxirgi; for (let i = 0; i < soni; i += 1) { ox = 1 + Math.floor(Math.random() * 6); y[ox] += 1; } return { ...o, sanoq: y, oxirgi: ox }; });
+  };
+  const n = s.sanoq.reduce((a, b) => a + b, 0), max = Math.max(1, ...s.sanoq);
+  const [bx, by] = ZAR_BURCHAK[s.oxirgi];
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🎲 {__kbUi(`Zarni tashlang. «${izlangan}» necha marta tushadi?`)}</div>
+    <div className="bo-zar-sahna">
+      <div className={`bo-zar ${dumalaydi ? "is-dumala" : ""}`} style={{ transform: `rotateX(${bx + s.aylan * 720}deg) rotateY(${by + s.aylan * 720}deg)` }}>
+        <ZarYuzi n={1} cls="f1" /><ZarYuzi n={2} cls="f2" /><ZarYuzi n={3} cls="f3" /><ZarYuzi n={4} cls="f4" /><ZarYuzi n={5} cls="f5" /><ZarYuzi n={6} cls="f6" />
+      </div>
+    </div>
+    <div className="bo-qator">
+      <button type="button" style={tugma} disabled={dumalaydi} onClick={() => tashla(1)}>🎲 {__kbUi("Tashla")}</button>
+      <button type="button" style={tugma} disabled={dumalaydi} onClick={() => tashla(60)}>×60</button>
+      <button type="button" style={tugma} disabled={dumalaydi} onClick={() => tashla(600)}>×600</button>
+      <button type="button" style={tugma2} onClick={() => setS({ sanoq: [0, 0, 0, 0, 0, 0, 0], oxirgi: 1, aylan: 0 })}>↺</button>
+    </div>
+    {n > 0 && <div className="bo-ustunlar">{[1, 2, 3, 4, 5, 6].map((k) => <div key={k} className={k === izlangan ? "is-on" : ""}>
+      <span style={{ height: `${(s.sanoq[k] / max) * 70}px` }} /><b>{k}</b><small>{s.sanoq[k]}</small></div>)}</div>}
+    <div className="bo-hisob">{__kbUi("Tashlashlar")}: <b>{n}</b> · «{izlangan}»: <b>{s.sanoq[izlangan]}</b> · W = <b>{n ? (s.sanoq[izlangan] / n).toFixed(3).replace(".", ",") : "—"}</b> ({__kbUi("ehtimol")} 1/6 ≈ 0,167)</div>
+    {n >= 300 && <div className="bo-xulosa">{__kbUi("Har yuz taxminan teng tushyapti — har birining ehtimoli 1/6. Klassik ta’rif (sanash) va tajriba bir xil javob beradi.")}</div>}
+  </div>;
+}
+
+/** OYIN: karta 36 — 36 talik dastadan karta olinadi; «tuz» (yoki «chillak») chiqish ulushi. */
+function KartaOyin({ soni = 36 }) {
+  const RANG = ["♠", "♥", "♦", "♣"], QIYMAT = soni === 52 ? ["2", "3", "4", "5", "6", "7", "8", "9", "10", "V", "D", "K", "T"] : ["6", "7", "8", "9", "10", "V", "D", "K", "T"];
+  const [s, setS] = useState({ n: 0, tuz: 0, chillak: 0, oxirgi: null, k: 0 });
+  const [ochilmoqda, setO] = useState(false);
+  const ol = (k) => {
+    const birta = () => ({ q: QIYMAT[Math.floor(Math.random() * QIYMAT.length)], r: RANG[Math.floor(Math.random() * 4)] });
+    if (k === 1) {
+      const c = birta(); setO(true); setS((o) => ({ ...o, oxirgi: c, k: o.k + 1 }));
+      setTimeout(() => { setO(false); setS((o) => ({ ...o, n: o.n + 1, tuz: o.tuz + (c.q === "T" ? 1 : 0), chillak: o.chillak + (c.r === "♥" ? 1 : 0) })); }, 800);
+      return;
+    }
+    setS((o) => { let { n, tuz, chillak } = o; let c = o.oxirgi; for (let i = 0; i < k; i += 1) { c = birta(); n += 1; if (c.q === "T") tuz += 1; if (c.r === "♥") chillak += 1; } return { ...o, n, tuz, chillak, oxirgi: c }; });
+  };
+  const qizil = s.oxirgi && (s.oxirgi.r === "♥" || s.oxirgi.r === "♦");
+  const f = (a, b) => (b ? (a / b).toFixed(3).replace(".", ",") : "—");
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🃏 {__kbUi(`${soni} talik dastadan tavakkaliga karta oling (har safar dastaga qaytariladi). «Tuz» chiqish ehtimoli qancha?`)}</div>
+    <div className="bo-karta-sahna">
+      <div className="bo-dasta">{[0, 1, 2, 3].map((i) => <i key={i} style={{ transform: `translate(${i * 2}px, ${-i * 2}px)` }} />)}</div>
+      {s.oxirgi && <div key={s.k} className={`bo-karta ${ochilmoqda ? "is-uch" : ""}`}>
+        <div className="bo-karta-orqa" />
+        <div className={`bo-karta-old ${qizil ? "is-qizil" : ""}`}><b>{s.oxirgi.q}</b><span>{s.oxirgi.r}</span><b className="past">{s.oxirgi.q}</b></div>
+      </div>}
+    </div>
+    <div className="bo-qator">
+      <button type="button" style={tugma} disabled={ochilmoqda} onClick={() => ol(1)}>🃏 {__kbUi("Karta ol")}</button>
+      <button type="button" style={tugma} disabled={ochilmoqda} onClick={() => ol(36)}>×36</button>
+      <button type="button" style={tugma} disabled={ochilmoqda} onClick={() => ol(360)}>×360</button>
+      <button type="button" style={tugma2} onClick={() => setS({ n: 0, tuz: 0, chillak: 0, oxirgi: null, k: 0 })}>↺</button>
+    </div>
+    <div className="bo-hisob">{__kbUi("Olindi")}: <b>{s.n}</b> · {__kbUi("tuz")}: <b>{s.tuz}</b> ({f(s.tuz, s.n)}) · {__kbUi("chillak")} ♥: <b>{s.chillak}</b> ({f(s.chillak, s.n)})</div>
+    {s.n >= 300 && <div className="bo-xulosa">{__kbUi(`Dastada ${soni} karta, ulardan 4 tasi tuz: P = 4/${soni} ≈ ${(4 / soni).toFixed(3).replace(".", ",")}. Chillak ${soni / 4} ta: P = 1/4. Tajriba shunga yaqin.`)}</div>}
+  </div>;
+}
+
+/** OYIN: qop 5 3 — qopda 5 oq va 3 qora shar; qo'l bilan shar olinadi; qaytarib solish yoki solmaslik (shartli ehtimol). */
+function QopOyin({ oq = 5, qora = 3 }) {
+  const [qop, setQop] = useState({ oq, qora });
+  const [olingan, setOlingan] = useState([]);
+  const [qaytar, setQaytar] = useState(false);
+  const [chiqmoqda, setChiq] = useState(null);
+  const jami = qop.oq + qop.qora;
+  const ol = () => {
+    if (!jami || chiqmoqda) return;
+    const rang = Math.random() < qop.oq / jami ? "oq" : "qora";
+    setChiq(rang);
+    setTimeout(() => {
+      setChiq(null); setOlingan((o) => [...o, rang].slice(-12));
+      if (!qaytar) setQop((q) => ({ ...q, [rang]: q[rang] - 1 }));
+    }, 900);
+  };
+  const qaytadan = () => { setQop({ oq, qora }); setOlingan([]); };
+  const ehtimol = jami ? `${qop.oq}/${jami}` : "—";
+  const sharlar = [...Array(qop.oq).fill("oq"), ...Array(qop.qora).fill("qora")];
+  return <div className="bo-oyin">
+    <div className="bo-sarl">👜 {__kbUi(`Qopda ${oq} ta oq va ${qora} ta qora shar. Ko‘rmasdan shar oling. Keyingi shar oq bo‘lish ehtimoli qanday o‘zgaradi?`)}</div>
+    <div className="bo-qop-sahna">
+      <svg viewBox="0 0 200 170" className="bo-qop" role="img" aria-label="qop">
+        <path d="M40 60 Q30 160 100 162 Q170 160 160 60 Z" fill="#a8743f" stroke="#7a5228" strokeWidth="3" />
+        <path d="M52 60 Q100 44 148 60" fill="none" stroke="#7a5228" strokeWidth="6" />
+        <path d="M60 52 Q100 30 140 52" fill="none" stroke="#e6c48a" strokeWidth="3" strokeDasharray="5 4" />
+        {sharlar.map((r, i) => { const x = 62 + (i % 6) * 15 + (Math.floor(i / 6) % 2) * 7, y = 140 - Math.floor(i / 6) * 15;
+          return <circle key={i} cx={x} cy={y} r="7" fill={r === "oq" ? "#f6f6f6" : "#2a2f38"} stroke="#555" strokeWidth="1" />; })}
+        {chiqmoqda && <g className="bo-qop-chiq"><circle cx="100" cy="40" r="11" fill={chiqmoqda === "oq" ? "#fff" : "#2a2f38"} stroke="#555" strokeWidth="1.5" /><text x="100" y="20" textAnchor="middle" fontSize="22">✋</text></g>}
+      </svg>
+      <div className="bo-olinganlar"><small>{__kbUi("Olingan sharlar")}:</small><div>{olingan.map((r, i) => <i key={i} className={r === "oq" ? "is-oq" : "is-qora"} />)}</div></div>
+    </div>
+    <div className="bo-qator">
+      <button type="button" style={tugma} disabled={!jami || !!chiqmoqda} onClick={ol}>✋ {__kbUi("Shar ol")}</button>
+      <label style={{ display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={qaytar} onChange={(e) => setQaytar(e.target.checked)} /> {__kbUi("Olingan sharni qopga qaytarish")}</label>
+      <button type="button" style={tugma2} onClick={qaytadan}>↺</button>
+    </div>
+    <div className="bo-hisob">{__kbUi("Qopda qoldi")}: <b>{qop.oq}</b> {__kbUi("oq")}, <b>{qop.qora}</b> {__kbUi("qora")} · {__kbUi("keyingisi oq bo‘lish ehtimoli")}: <b>{ehtimol}</b></div>
+    {olingan.length >= 2 && !qaytar && <div className="bo-xulosa">{__kbUi("Shar qaytarilmasa, qopdagi sharlar o‘zgaradi — keyingi ehtimol oldingi natijaga bog‘liq. Bu — shartli ehtimol: P(B|A) = P(AB) / P(A).")}</div>}
+    {olingan.length >= 2 && qaytar && <div className="bo-xulosa">{__kbUi("Shar qaytarilsa, qop o‘zgarmaydi — har safar ehtimol bir xil. Bunday hodisalar bog‘liqsiz.")}</div>}
+  </div>;
+}
+
 export default function BoardOyin({ arg }) {
   const [tur, ...qolgan] = String(arg || "").trim().split(/\s+/);
   const n = parseInt(qolgan[0], 10);
   const t = (tur || "").toLowerCase();
   if (t === "joylashtir") return <Joylashtir n={n} />;
-  if (t === "tanga") return <Tajriba />;
-  if (t === "kub") return <Tajriba kub tomon={n} />;
+  if (t === "tanga") return <TangaJonli />;   // REV432: tanga havoga otiladi
+  if (t === "kub") return <ZarJonli izlangan={n || 6} />;   // REV432: zar dumalaydi
   if (t === "galton") return <Galton qator={n} />;
   const nums = qolgan.map((x) => parseFloat(String(x).replace(",", ".")));
   if (t === "venn") return <VennOyin a={nums[0] || 30} b={nums[1] || 20} ab={nums[2] || 8} />;
   if (t === "daraxt") return <DaraxtOyin p1={nums[0] || 0.6} q1={nums[1] || 0.05} q2={nums[2] || 0.1} />;
   if (t === "ikkikub") return <IkkiKub />;
+  if (t === "karta") return <KartaOyin soni={n === 52 ? 52 : 36} />;
+  if (t === "qop") return <QopOyin oq={nums[0] || 5} qora={nums[1] || 3} />;
   if (t === "nuqta") return <NuqtaOyin />;
   if (t === "tanlanma") return <TanlanmaOyin n={nums[0] || 25} />;
   if (t === "chiziq") return <ChiziqOyin />;
