@@ -56,7 +56,7 @@ export default function PaketYuklash({ token, onDone }) {
     stop.current = false;
     for (const item of list) {
       if (stop.current) break;
-      if (!["kutmoqda", "xato"].includes(item.holat)) continue;
+      if (!["kutmoqda", "xato", "ishlanmoqda"].includes(item.holat)) continue;   // REV428: fonda boshlangan — holatini kutamiz
       yangila(item.key, { holat: "ishlanmoqda", xabar: "" });
       for (let urinish = 1; urinish <= 3; urinish += 1) {
         try {
@@ -68,7 +68,21 @@ export default function PaketYuklash({ token, onDone }) {
           } else {
             natija = (await yuklaFayl(item.file)).fayllar?.[0] || {};
           }
-          yangila(item.key, { holat: natija.holat || (natija.ok ? "tayyor" : "xato"), xabar: natija.xabar || "",
+          // REV428: server faylni fonda o'rnatadi — tugaguncha har 3 soniyada holatini so'raymiz (20 daqiqagacha)
+          if (natija.holat === "ishlanmoqda" && natija.id) {
+            const t0 = Date.now();
+            item.id = natija.id;
+            while (natija.holat === "ishlanmoqda" && !stop.current && Date.now() - t0 < 20 * 60 * 1000) {
+              const sek = Math.round((Date.now() - t0) / 1000);
+              yangila(item.key, { holat: "ishlanmoqda", id: natija.id, xabar: __kbUi(`O‘rnatilmoqda — server fonda ishlayapti (${Math.floor(sek / 60)}:${String(sek % 60).padStart(2, "0")})`) });
+              await kut(3000);
+              try {
+                const r = await scopedFetch(url(`/api/admin/paket/fayl/${natija.id}/holat`));
+                if (r.ok) natija = await r.json();
+              } catch { /* tarmoq uzildi — keyingi so'rovda */ }
+            }
+          }
+          yangila(item.key, { holat: natija.holat || (natija.ok ? "tayyor" : "xato"), xabar: natija.xabar || "", id: natija.id || item.id,
             xatolar: natija.xatolar || [], turi: natija.turi || item.turi, belgi: natija.belgi || item.belgi });
           break;
         } catch (e) {
