@@ -1210,3 +1210,20 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .fo-karta b{display:block;color:#1d2b3a}
 .fo-karta small{color:#5b6573}
 .fo-doska{background:#0e2a44;border-radius:18px;padding:12px}
+/* REV438: 1–4-sinf o'yinlari */
+.bo-maydon{position:relative;height:220px;padding:0 6%;border-radius:14px;background:rgba(255,255,255,.06)}
+.bo-narsa{position:absolute;width:52px;height:52px;margin:-26px 0 0 -26px;border:0;border-radius:50%;background:transparent;cursor:pointer;font-size:36px;transition:transform .15s}
+.bo-narsa:hover{transform:scale(1.1)}
+.bo-narsa.is-on{background:rgba(255,213,74,.25)}
+.bo-narsa b{position:absolute;right:-4px;top:-4px;min-width:24px;height:24px;border-radius:12px;background:#FFD54A;color:#13202e;font:900 14px/24px system-ui}
+.bo-ramka{display:grid;grid-template-columns:repeat(5,42px);gap:4px;padding:6px;border:3px solid #F4F1E8;border-radius:8px}
+.bo-ramka span{width:42px;height:42px;border:1px dashed rgba(255,255,255,.35);display:grid;place-items:center}
+.bo-ramka i,.bo-ortiq i{width:30px;height:30px;border-radius:50%;display:block;animation:bo-tush .35s}
+.bo-ramka i.is-a{background:#F4A6A6}.bo-ramka i.is-b,.bo-ortiq i.is-b{background:#9CC9FF}
+.bo-ortiq{display:flex;flex-wrap:wrap;gap:6px;max-width:140px;padding-top:8px}
+.bo-massiv{display:grid;gap:6px;font-size:28px;padding:8px}
+.bo-massiv span{transition:opacity .3s}
+.bo-juft{display:grid;grid-template-columns:44px 90px 44px;gap:6px 8px;align-items:center;font-size:30px;justify-content:start}
+.bo-juft>span{min-height:40px;display:grid;place-items:center}
+.bo-juft>i{display:block;height:3px;background:#FFD54A;transition:opacity .4s}
+.bo-juft .is-ortiq{filter:drop-shadow(0 0 6px #FFD54A)}

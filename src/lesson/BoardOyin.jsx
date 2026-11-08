@@ -477,8 +477,102 @@ function TaroziOyin({ a = 3, b = 2, c = 11 }) {
   </div>;
 }
 
+// ───────────── REV438: 1–4-sinf o'yinlari (narsalar bilan) ─────────────
+const NARSA = { olma: "🍎", qalam: "✏️", shar: "🎈", konfet: "🍬", kitob: "📘", yulduz: "⭐", baliq: "🐟", gul: "🌷" };
+/** OYIN: sana 5 olma — narsalarni bittadan bosib sanash; oxirgi son — jami. */
+function SanaOyin({ n = 5, narsa = "olma" }) {
+  const belgi = NARSA[narsa] || "🍎";
+  const joy = useMemo(() => {   // panjara + biroz tartibsizlik: narsalar ustma-ust tushmaydi
+    const kol = Math.ceil(Math.sqrt(n * 1.8)), qat = Math.ceil(n / kol);
+    return Array.from({ length: n }, (_, i) => { const c = i % kol, r = Math.floor(i / kol), j = ((i * 7919) % 13) / 13 - 0.5;
+      return [((c + 0.5) / kol) * 100 + j * (40 / kol), ((r + 0.5) / qat) * 100 + j * (30 / qat)]; });
+  }, [n]);
+  const [sanoq, setSanoq] = useState([]);
+  const tayyor = sanoq.length === n;
+  return <div className="bo-oyin">
+    <div className="bo-sarl">👆 {__kbUi("Har bir narsani bittadan bosib sanang. Nechta ekan?")}</div>
+    <div className="bo-maydon">{joy.map(([x, y], i) => { const k = sanoq.indexOf(i);
+      return <button key={i} type="button" className={`bo-narsa ${k >= 0 ? "is-on" : ""}`} style={{ left: `${x}%`, top: `${y}%` }} onClick={() => k < 0 && setSanoq((o) => [...o, i])}>
+        <span>{belgi}</span>{k >= 0 && <b>{k + 1}</b>}</button>; })}</div>
+    <div className="bo-hisob">{tayyor ? <>{__kbUi("Jami")}: <b style={{ fontSize: 26 }}>{n}</b> 🎉</> : <>{__kbUi("Sanadingiz")}: <b>{sanoq.length}</b></>}</div>
+    {tayyor && <div className="bo-xulosa">{__kbUi(`Oxirgi aytilgan son — jami: ${n}. Narsalarni qayerga qo‘ysak ham, soni o‘zgarmaydi.`)}</div>}
+    {sanoq.length > 0 && <button type="button" style={tugma2} onClick={() => setSanoq([])}>↺ {__kbUi("Qaytadan")}</button>}
+  </div>;
+}
+
+/** OYIN: ramka 8 5 — o'nlik ramka: 8 ga 5 ni qo'shish — avval 10 gacha to'ldiramiz. */
+function RamkaOyin({ a = 8, b = 5 }) {
+  const [q, setQ] = useState(0);   // 0 — boshlang'ich, 1 — 10 gacha to'ldirildi, 2 — natija
+  const tolDir = Math.min(10 - a, b), qoldi = b - tolDir;
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🔟 {__kbUi(`${a} + ${b} = ? Avval o‘nlik ramkani to‘ldiramiz.`)}</div>
+    <div className="bo-qator" style={{ alignItems: "flex-start", gap: 18 }}>
+      <div className="bo-ramka">{Array.from({ length: 10 }, (_, i) => <span key={i}>{i < a ? <i className="is-a" /> : q >= 1 && i < a + tolDir ? <i className="is-b" /> : null}</span>)}</div>
+      <div className="bo-ortiq">{Array.from({ length: q >= 1 ? qoldi : b }, (_, i) => <i key={i} className="is-b" />)}</div>
+    </div>
+    <div className="bo-hisob">{q === 0 ? `${a} + ${b}` : q === 1 ? `${a} + ${tolDir} = 10, ${__kbUi("yana")} ${qoldi}` : <>10 + {qoldi} = <b style={{ fontSize: 24 }}>{a + b}</b></>}</div>
+    <div className="bo-qator">{q < 2 ? <button type="button" style={tugma} onClick={() => setQ(q + 1)}>{q === 0 ? __kbUi(`${tolDir} tasini ramkaga o‘tkaz`) : __kbUi("Natijani ko‘rsat")} →</button>
+      : <button type="button" style={tugma2} onClick={() => setQ(0)}>↺</button>}</div>
+    {q === 2 && <div className="bo-xulosa">{__kbUi(`${a} + ${b} = ${a} + ${tolDir} + ${qoldi} = 10 + ${qoldi} = ${a + b}. Avval 10 gacha to‘ldirish hisoblashni osonlashtiradi.`)}</div>}
+  </div>;
+}
+
+/** OYIN: nur 6 2 — son nurida qurbaqa a dan b qadam sakraydi (manfiy b — orqaga). */
+function NurOyin({ a = 6, b = 2, max = 10 }) {
+  const [poz, setPoz] = useState(a);
+  const maqsad = a + b, yon = b >= 0 ? 1 : -1, tugadi = poz === maqsad;
+  const lo = Math.min(0, a, maqsad), hi = Math.max(max, a, maqsad), W = 520, sx = (v) => 20 + ((v - lo) / (hi - lo)) * (W - 40);
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🐸 {__kbUi(`Qurbaqa ${a} da turibdi. ${b >= 0 ? `${b} qadam oldinga` : `${-b} qadam orqaga`} sakraydi. Qayerga tushadi?`)}</div>
+    <svg viewBox={`0 0 ${W} 110`} className="bo-grafik" role="img" aria-label="son nuri">
+      <line x1="10" y1="70" x2={W - 10} y2="70" stroke="#F4F1E8" strokeWidth="2" />
+      {Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).map((v) => <g key={v}><line x1={sx(v)} y1="62" x2={sx(v)} y2="78" stroke="#F4F1E8" /><text x={sx(v)} y="98" textAnchor="middle" fill={v === maqsad && tugadi ? "#FFD54A" : "#F4F1E8"} fontSize="15" fontWeight={v === poz ? 800 : 400}>{v}</text></g>)}
+      {Array.from({ length: Math.abs(poz - a) }, (_, i) => { const x0 = sx(a + yon * i), x1 = sx(a + yon * (i + 1)); return <path key={i} d={`M${x0} 62 Q${(x0 + x1) / 2} 28 ${x1} 62`} fill="none" stroke="#FFD54A" strokeWidth="2.5" />; })}
+      <text x={sx(poz)} y="56" textAnchor="middle" fontSize="28" style={{ transition: "all .35s" }}>🐸</text>
+    </svg>
+    <div className="bo-qator">{!tugadi ? <button type="button" style={tugma} onClick={() => setPoz((p) => p + yon)}>🐸 {__kbUi("Sakra")} ({Math.abs(poz - a) + 1})</button>
+      : <button type="button" style={tugma2} onClick={() => setPoz(a)}>↺</button>}</div>
+    <div className="bo-hisob">{tugadi ? <>{a} {b >= 0 ? "+" : "−"} {Math.abs(b)} = <b style={{ fontSize: 24 }}>{maqsad}</b></> : <>{__kbUi("Hozir")}: <b>{poz}</b></>}</div>
+    {tugadi && <div className="bo-xulosa">{b >= 0 ? __kbUi("Qo‘shganda son nurida o‘ngga, katta sonlar tomonga yuramiz.") : __kbUi("Ayirganda son nurida chapga, kichik sonlar tomonga yuramiz.")}</div>}
+  </div>;
+}
+
+/** OYIN: massiv 4 3 — 4 qator, har qatorda 3 tadan: qatorlarni bittadan chiqarib ko'paytirishni ko'rish; burish — o'rin almashtirish. */
+function MassivOyin({ q = 4, u = 3 }) {
+  const [k, setK] = useState(0);
+  const [burildi, setBur] = useState(false);
+  const qator = burildi ? u : q, ustun = burildi ? q : u;
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🍎 {__kbUi(`${q} ta savatda ${u} tadan olma. Jami nechta?`)}</div>
+    <div className="bo-massiv" style={{ gridTemplateColumns: `repeat(${ustun}, 34px)` }}>{Array.from({ length: qator * ustun }, (_, i) => <span key={i} style={{ opacity: burildi || Math.floor(i / ustun) < k ? 1 : 0.12 }}>🍎</span>)}</div>
+    <div className="bo-hisob">{burildi ? <>{u} × {q} = <b>{q * u}</b> — {__kbUi("javob o‘zgarmadi!")}</> : k ? <>{Array(k).fill(u).join(" + ")} = <b>{k * u}</b>{k === q ? <> → {q} × {u} = <b>{q * u}</b></> : null}</> : __kbUi("Qatorlarni bittadan chiqaring")}</div>
+    <div className="bo-qator">
+      {!burildi && k < q && <button type="button" style={tugma} onClick={() => setK(k + 1)}>➕ {__kbUi(`yana ${u} ta`)}</button>}
+      {k === q && !burildi && <button type="button" style={tugma} onClick={() => setBur(true)}>🔄 {__kbUi("90° bur")}</button>}
+      <button type="button" style={tugma2} onClick={() => { setK(0); setBur(false); }}>↺</button>
+    </div>
+    {k === q && <div className="bo-xulosa">{__kbUi(`Bir xil qo‘shiluvchilar yig‘indisi ko‘paytma bo‘ladi: ${Array(q).fill(u).join(" + ")} = ${q} × ${u}.`)}{burildi ? " " + __kbUi(`Burilganda ham olmalar soni o‘zgarmaydi: ${q} × ${u} = ${u} × ${q}.`) : ""}</div>}
+  </div>;
+}
+
+/** OYIN: juftla 4 3 — piyola va qoshiqlarni juftlab, qaysi biri ko'p/kam ekanini topish. */
+function JuftlaOyin({ a = 4, b = 3 }) {
+  const [j, setJ] = useState(false);
+  const min = Math.min(a, b);
+  return <div className="bo-oyin">
+    <div className="bo-sarl">🍵 {__kbUi(`${a} ta piyola va ${b} ta qoshiq. Qaysi biri ko‘p? Juftlab tekshiring.`)}</div>
+    <div className="bo-juft">{Array.from({ length: Math.max(a, b) }, (_, i) => <React.Fragment key={i}>
+      <span className={j && i >= min ? "is-ortiq" : ""}>{i < a ? "🍵" : ""}</span>
+      <i style={{ opacity: j && i < min ? 1 : 0 }} />
+      <span className={j && i >= min ? "is-ortiq" : ""}>{i < b ? "🥄" : ""}</span></React.Fragment>)}</div>
+    <div className="bo-qator"><button type="button" style={j ? tugma2 : tugma} onClick={() => setJ(!j)}>{j ? "↺" : `🔗 ${__kbUi("Juftla")}`}</button></div>
+    {j && <div className="bo-xulosa">{a === b ? __kbUi("Hammasining jufti bor — teng.") : a > b ? __kbUi(`Jufti yo‘q piyola qoldi — piyola ko‘p, qoshiq ${a - b} ta kam: ${a} > ${b}.`) : __kbUi(`Jufti yo‘q qoshiq qoldi — qoshiq ko‘p: ${b} > ${a}.`)}</div>}
+  </div>;
+}
+
 /** REV437: «Fan o'yinlari» bo'limi uchun ro'yxat — fan va daraja bo'yicha */
 export const FAN_OYINLARI = [
+  { fan: "Matematika · 1–4-sinf", oyinlar: [["sana 7 olma", "👆", "Sanab chiq", "Har narsani bittadan bosib sanash"], ["juftla 5 3", "🍵", "Ko‘p, kam, teng", "Juftlab taqqoslash"], ["nur 6 3 12", "🐸", "Son nurida sakrash", "Qo‘shish — o‘ngga, ayirish — chapga"], ["ramka 8 5", "🔟", "O‘nlik ramka", "8 + 5 — avval 10 gacha to‘ldiramiz"], ["massiv 4 3", "🍎", "Ko‘paytirish massivi", "4 × 3 — qatorlar va o‘rin almashtirish"]] },
   { fan: "Matematika · boshlang‘ich va 5–6-sinf", oyinlar: [["pitsa", "🍕", "Pitsa va kasrlar", "Pitsani bo‘lib, kasr nima ekanini ko‘ring"], ["tarozi 3 2 11", "⚖️", "Tarozida tenglama", "Ikkala pallaga bir xil amal — x ni toping"], ["ikkikub", "🎲🎲", "Ikki zar yig‘indisi", "Qaysi yig‘indi ko‘p tushadi?"]] },
   { fan: "Matematika · kombinatorika", oyinlar: [["joylashtir 3", "🎯", "Tartib tuz", "3 ta narsa necha xil tartiblanadi?"], ["joylashtir 4", "🎯", "Tartib tuz (4 ta)", "4 ta narsa — 24 tartibni toping"]] },
   { fan: "Ehtimollar nazariyasi", oyinlar: [["tanga", "🪙", "Tanga otish", "Nisbiy chastota 0,5 ga yaqinlashadimi?"], ["kub 6", "🎲", "Zar tashlash", "Har yuz ehtimoli 1/6"], ["karta 36", "🃏", "Dastadan karta", "Tuz chiqish ehtimoli"], ["qop 5 3", "👜", "Qopdan shar", "Shartli ehtimol"], ["venn 30 20 8", "⭕", "Venn diagrammasi", "Kesishma ikki marta sanalmasin"], ["daraxt 0,6 0,05 0,1", "🌳", "Ehtimollar daraxti", "To‘la ehtimol va Bayes"], ["nuqta", "🎯", "Kvadratga nuqtalar", "Geometrik ehtimol, π/4"], ["galton 10", "⚪", "Galton taxtasi", "Normal taqsimot qo‘ng‘irog‘i"]] },
@@ -499,6 +593,11 @@ export default function BoardOyin({ arg }) {
   if (t === "ikkikub") return <IkkiKub />;
   if (t === "karta") return <KartaOyin soni={n === 52 ? 52 : 36} />;
   if (t === "pitsa") return <PitsaOyin />;
+  if (t === "sana") return <SanaOyin n={nums[0] || 5} narsa={qolgan[1] || "olma"} />;
+  if (t === "ramka") return <RamkaOyin a={nums[0] || 8} b={nums[1] || 5} />;
+  if (t === "nur") return <NurOyin a={nums[0] || 0} b={Number.isFinite(nums[1]) ? nums[1] : 2} max={nums[2] || 10} />;
+  if (t === "massiv") return <MassivOyin q={nums[0] || 4} u={nums[1] || 3} />;
+  if (t === "juftla") return <JuftlaOyin a={nums[0] || 4} b={nums[1] || 3} />;
   if (t === "tarozi") return <TaroziOyin a={nums[0] || 3} b={nums[1] || 2} c={nums[2] || 11} />;
   if (t === "qop") return <QopOyin oq={nums[0] || 5} qora={nums[1] || 3} />;
   if (t === "nuqta") return <NuqtaOyin />;
