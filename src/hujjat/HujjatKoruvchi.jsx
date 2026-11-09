@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./hujjat.css";
+import "./shriftlar.css";   // REV443: Office shriftlarining bepul egizaklari
 
 export const HUJJAT_TURLARI = ".pdf,.docx,.xlsx,.xls,.csv,.pptx,.txt,.md,.json,.png,.jpg,.jpeg,.gif,.webp,.svg,.doc,.ppt,.odt,.ods,.rtf";
 
@@ -136,9 +137,31 @@ function PptxKoruvchi({ buf }) {
   return <div ref={host} className="hk-pptx" />;
 }
 
-export default function HujjatKoruvchi({ fayl, nom: nomBer = "", onYop, faqatKorish = false, suvBelgi = "" }) {
-  const nom = nomBer || fayl?.name || "hujjat";
+const API = (import.meta.env?.VITE_API_BASE || "https://talimplatformasi-production.up.railway.app").replace(/\/+$/, "");
+
+/** REV443: «✨ Asl ko'rinishda» — fayl serverga yuboriladi, LibreOffice uni PDF ga aylantiradi (server saqlamaydi). */
+async function aslKorinish(fayl, nom) {
+  const fd = new FormData(); fd.append("fayl", fayl, nom);
+  const r = await fetch(`${API}/api/hujjat/aylantir`, { method: "POST", body: fd });
+  if (!r.ok) { let x = ""; try { x = (await r.json()).detail; } catch { /* */ } throw new Error(x || `Server xatosi (${r.status})`); }
+  const b = await r.blob();
+  return new File([b], nom.replace(/\.[^.]+$/, "") + ".pdf", { type: "application/pdf" });
+}
+
+export default function HujjatKoruvchi({ fayl: asl, nom: nomBer = "", onYop, faqatKorish = false, suvBelgi = "" }) {
+  const [aylantirilgan, setAyl] = useState(null);
+  const [aylHolat, setAylHolat] = useState("");
+  const fayl = aylantirilgan || asl;
+  const nom = aylantirilgan?.name || nomBer || asl?.name || "hujjat";
   const tur = hujjatTuri(nom, fayl?.type || "");
+  const aslTur = hujjatTuri(nomBer || asl?.name || "", asl?.type || "");
+  const aylantirsaBoladi = !aylantirilgan && ["docx", "pptx", "jadval", "eski"].includes(aslTur);
+  const aylantir = async () => {
+    if (!window.confirm(__kbUi("Asl ko‘rinish uchun fayl serverimizga yuboriladi, PDF ga aylantiriladi va darhol o‘chiriladi. Davom etasizmi?"))) return;
+    setAylHolat("⏳");
+    try { setAyl(await aslKorinish(asl, nomBer || asl?.name || "hujjat")); setAylHolat(""); }
+    catch (e) { setAylHolat(String(e?.message || e)); }
+  };
   const [buf, setBuf] = useState(null);
   const [matn, setMatn] = useState("");
   const [zoom, setZoom] = useState(1);
@@ -148,6 +171,7 @@ export default function HujjatKoruvchi({ fayl, nom: nomBer = "", onYop, faqatKor
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   useEffect(() => {
     if (!fayl) return;
+    setBuf(null); setSahifalar(0);
     fayl.arrayBuffer().then((b) => { setBuf(b); if (tur === "matn") setMatn(new TextDecoder().decode(b).slice(0, 2_000_000)); });
   }, [fayl, tur]);
   const yuklab = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(fayl); a.download = nom; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
@@ -158,9 +182,12 @@ export default function HujjatKoruvchi({ fayl, nom: nomBer = "", onYop, faqatKor
       {tur === "pdf" && <><button type="button" className="hk-t" onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))} aria-label="−">−</button>
         <span className="hk-zoom">{Math.round(zoom * 100)}%</span>
         <button type="button" className="hk-t" onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))} aria-label="+">+</button></>}
+      {aylantirsaBoladi && <button type="button" className="hk-t hk-asl" onClick={aylantir} disabled={aylHolat === "⏳"} title={__kbUi("Office’dagidek aniq ko‘rinish")}>{aylHolat === "⏳" ? "⏳" : "✨"} <span>{__kbUi("Asl ko‘rinishda")}</span></button>}
+      {aylantirilgan && <button type="button" className="hk-t hk-asl" onClick={() => setAyl(null)}>↩ <span>{__kbUi("Tez ko‘rinish")}</span></button>}
       <button type="button" className="hk-t" onClick={() => setToliq((x) => !x)} aria-label={__kbUi("Butun ekran")}>{toliq ? "🗗" : "⛶"}</button>
       {!faqatKorish && fayl && <button type="button" className="hk-t" onClick={yuklab} aria-label={__kbUi("Yuklab olish")}>⬇</button>}
     </div>
+    {aylHolat && aylHolat !== "⏳" && <p className="hk-xato" style={{ padding: "8px 12px", margin: 0 }}>{aylHolat}</p>}
     <div className="hk-ich" data-eski-alifbo="1" translate="no" style={faqatKorish && suvBelgi ? { backgroundImage: suvBelgiFon(suvBelgi) } : undefined}>
       {!buf && tur !== "rasm" ? <p className="hk-kut">⏳ {__kbUi("Ochilmoqda…")}</p>
         : tur === "pdf" ? <PdfKoruvchi buf={buf} zoom={zoom} setSahifalar={setSahifalar} />
@@ -169,7 +196,7 @@ export default function HujjatKoruvchi({ fayl, nom: nomBer = "", onYop, faqatKor
         : tur === "pptx" ? <PptxKoruvchi buf={buf} />
         : tur === "rasm" ? <div className="hk-rasm"><img src={url} alt={nom} /></div>
         : tur === "matn" ? <pre className="hk-matn">{matn}</pre>
-        : tur === "eski" ? <p className="hk-xato">{__kbUi("Bu eski format (.doc, .ppt, .rtf). Hozircha ochilmaydi — uni Word'da .docx yoki PDF qilib saqlab, qayta oching.")}</p>
+        : tur === "eski" ? <p className="hk-xato">{__kbUi("Bu eski format (.doc, .ppt, .xls, .rtf). Ochish uchun yuqoridagi «✨ Asl ko‘rinishda» tugmasini bosing.")}</p>
         : <p className="hk-xato">{__kbUi("Bu fayl turini ochib bo‘lmaydi.")}</p>}
       {faqatKorish && suvBelgi && <div className="hk-suv" aria-hidden="true" style={{ backgroundImage: suvBelgiFon(suvBelgi) }} />}
     </div>

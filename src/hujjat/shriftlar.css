@@ -1,0 +1,30 @@
+/* REV443: Office shriftlarining bepul, o'lchami bir xil egizaklari (SIL Open Font License): Times New Roman → Liberation Serif,
+   Arial/Helvetica → Liberation Sans, Calibri → Carlito, Cambria → Caladea. Hujjat sahifalari siljimaydi. */
+@font-face{font-family:'Times New Roman';src:local('Times New Roman'),url('/shriftlar/LiberationSerif-Regular.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Times New Roman';src:local('Times New Roman'),url('/shriftlar/LiberationSerif-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+@font-face{font-family:'Times New Roman';src:local('Times New Roman'),url('/shriftlar/LiberationSerif-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Times New Roman';src:local('Times New Roman'),url('/shriftlar/LiberationSerif-BoldItalic.woff2') format('woff2');font-style:italic;font-weight:700;font-display:swap}
+@font-face{font-family:'Times';src:local('Times'),url('/shriftlar/LiberationSerif-Regular.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Times';src:local('Times'),url('/shriftlar/LiberationSerif-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+@font-face{font-family:'Times';src:local('Times'),url('/shriftlar/LiberationSerif-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Times';src:local('Times'),url('/shriftlar/LiberationSerif-BoldItalic.woff2') format('woff2');font-style:italic;font-weight:700;font-display:swap}
+@font-face{font-family:'Arial';src:local('Arial'),url('/shriftlar/LiberationSans-Regular.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Arial';src:local('Arial'),url('/shriftlar/LiberationSans-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+@font-face{font-family:'Arial';src:local('Arial'),url('/shriftlar/LiberationSans-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Arial';src:local('Arial'),url('/shriftlar/LiberationSans-BoldItalic.woff2') format('woff2');font-style:italic;font-weight:700;font-display:swap}
+@font-face{font-family:'Helvetica';src:local('Helvetica'),url('/shriftlar/LiberationSans-Regular.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Helvetica';src:local('Helvetica'),url('/shriftlar/LiberationSans-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+@font-face{font-family:'Helvetica';src:local('Helvetica'),url('/shriftlar/LiberationSans-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Helvetica';src:local('Helvetica'),url('/shriftlar/LiberationSans-BoldItalic.woff2') format('woff2');font-style:italic;font-weight:700;font-display:swap}
+@font-face{font-family:'Calibri';src:local('Calibri'),url('/shriftlar/Carlito-Regular.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Calibri';src:local('Calibri'),url('/shriftlar/Carlito-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+@font-face{font-family:'Calibri';src:local('Calibri'),url('/shriftlar/Carlito-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Calibri';src:local('Calibri'),url('/shriftlar/Carlito-BoldItalic.woff2') format('woff2');font-style:italic;font-weight:700;font-display:swap}
+@font-face{font-family:'Calibri Light';src:local('Calibri Light'),url('/shriftlar/Carlito-Regular.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Calibri Light';src:local('Calibri Light'),url('/shriftlar/Carlito-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+@font-face{font-family:'Calibri Light';src:local('Calibri Light'),url('/shriftlar/Carlito-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Calibri Light';src:local('Calibri Light'),url('/shriftlar/Carlito-BoldItalic.woff2') format('woff2');font-style:italic;font-weight:700;font-display:swap}
+@font-face{font-family:'Cambria';src:local('Cambria'),url('/shriftlar/Caladea-Regular.woff2') format('woff2');font-style:normal;font-weight:400;font-display:swap}
+@font-face{font-family:'Cambria';src:local('Cambria'),url('/shriftlar/Caladea-Bold.woff2') format('woff2');font-style:normal;font-weight:700;font-display:swap}
+@font-face{font-family:'Cambria';src:local('Cambria'),url('/shriftlar/Caladea-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:swap}
+@font-face{font-family:'Cambria';src:local('Cambria'),url('/shriftlar/Caladea-BoldItalic.woff2') format('woff2');font-style:italic;font-weight:700;font-display:swap}

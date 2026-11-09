@@ -30,7 +30,7 @@ const XESHLI = /-[A-Za-z0-9_-]{6,}\.[a-z0-9]+$/;
 
 // Fayl va uning siqilgan nusxalari xotirada (build o'zgarmaydi — server qayta ishga tushganda yangilanadi).
 const KESH = new Map();   // yo'l -> { buf, br, gz, tur, etag }
-const KESH_MAX_BAYT = Number(process.env.STATIC_CACHE_MB || 200) * 1024 * 1024;
+const KESH_MAX_BAYT = Number(process.env.STATIC_CACHE_MB || 64) * 1024 * 1024;   // REV443: 200 → 64 MB (xotira — Railway to'lovi kamayadi)
 let keshBayt = 0;
 
 function topish(urlPath) {
