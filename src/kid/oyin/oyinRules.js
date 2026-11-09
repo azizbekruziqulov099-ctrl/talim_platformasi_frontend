@@ -525,12 +525,25 @@ const YASOVCHI = {
       variantlar: aralash(guruhlar.map((g) => ({ k: g.el.k, el: g.el })), rnd), togri: `f_${f}` }));
   },
   // REV348: ulash — juftining birinchisi ko'rsatiladi, bola ikkinchisini topadi
-  ...Object.fromEntries(Object.keys(ULASH).map((nom) => [nom, ({ n, rnd, R, izoh }) => {
-    const j = ULASH[nom].juft;
+  // REV450: bosqich o'z juftlarini oladi (els — bosqichdagi «ulashA» so'zlari), takror kam bo'ladi; bir narsaning bir nechta
+  // to'g'ri jufti bo'lsa (mushuk — sut, baliq), ulardan hech biri «xato variant» bo'lib chiqmaydi.
+  ...Object.fromEntries(Object.keys(ULASH).map((nom) => [nom, ({ n, rnd, R, izoh, els }) => {
+    const hamma = ULASH[nom].juft;
+    const tanlov = new Set((els || []).map((e) => e.ulashA).filter(Boolean));
+    const j0 = tanlov.size ? hamma.filter((p) => tanlov.has(p[0].s.uz)) : hamma;
+    const j = j0.length >= 2 ? j0 : hamma;
+    const togrilar = (a) => new Set([...hamma.filter((p) => p[0].s.uz === a).map((p) => p[1].s.uz), ...(ULASH[nom].ham?.[a] || [])]);
     return navbat(j.map((p, i) => ({ p, i })), R, rnd).map(({ p, i }) => {
-      const boshqa = tanla(j.filter((_, x) => x !== i), n - 1, rnd).map((q) => sozEl(q[1], izoh, `b${j.indexOf(q)}`));
-      const togri = sozEl(p[1], izoh, `b${i}`);
-      return { tur: "tanlov", savol: { el: sozEl(p[0], izoh, `a${i}`) }, variantlar: aralash([togri, ...boshqa].map((e) => ({ k: e.k, el: e })), rnd), togri: togri.k };
+      const mos = togrilar(p[0].s.uz);
+      const xatolar = [];
+      for (const q of aralash(hamma, rnd)) {
+        if (mos.has(q[1].s.uz) || xatolar.some((x) => x[1].s.uz === q[1].s.uz)) continue;
+        xatolar.push(q);
+        if (xatolar.length >= n - 1) break;
+      }
+      const boshqa = xatolar.map((q) => sozEl(q[1], izoh, `b${hamma.indexOf(q)}`));
+      const togri = sozEl(p[1], izoh, `b${hamma.indexOf(p)}`);
+      return { tur: "tanlov", savol: { el: sozEl(p[0], izoh, `a${hamma.indexOf(p)}`) }, variantlar: aralash([togri, ...boshqa].map((e) => ({ k: e.k, el: e })), rnd), togri: togri.k };
     });
   }])),
 

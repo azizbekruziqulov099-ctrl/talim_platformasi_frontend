@@ -1,3 +1,5 @@
+import { ULASH } from "../oyin/saralashData.js";
+import { oyinOl } from "../oyin/oyinRules.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { bosqichlar, bosqichHolati, bosqichSozlama, yulduzHisob, xonaOyinlari, xonaElementlar, XONA_OYINLAR } from "./xonaRules.js";
@@ -10,7 +12,12 @@ test("REV371: to'plamlar — har narsada rasm va 5 tilda nom", () => {
 });
 test("REV371: har o'yinda 7–20 bosqich, har bosqichda 6–15 narsa, narsa takrorlanmaydi", () => {
   for (const id of XONA_OYINLAR) {
-    const b = bosqichlar(id); assert.ok(b.length >= 7 && b.length <= 20, `${id}: ${b.length}`);
+    const b = bosqichlar(id);
+    if (ULASH[oyinOl(id)?.kalit]) {   // REV450: juft o'yinlari — o'z juftlaridan (har bosqichda 3 yangi + 1 takror, oxirida «hammasi»)
+      assert.ok(b.length >= 2); for (const x of b) assert.ok(x.items.length >= 2 && new Set(x.items.map((i) => i.s.uz)).size === x.items.length);
+      continue;
+    }
+    assert.ok(b.length >= 7 && b.length <= 20, `${id}: ${b.length}`);
     const uz = b.flatMap((x) => x.items.map((i) => i.s.uz)); assert.equal(new Set(uz).size, uz.length);
     for (const x of b) assert.ok(x.items.length >= 6 && x.items.length <= 15);
   }
@@ -18,6 +25,7 @@ test("REV371: har o'yinda 7–20 bosqich, har bosqichda 6–15 narsa, narsa takr
 });
 test("REV371: qulf — 1-bosqich ochiq, keyingisi o'tilgandan keyingi kuni va faqat obunada", () => {
   assert.equal(bosqichHolati({}, 1, {}), "ochiq");
+  assert.equal(bosqichHolati({}, 9, { admin: true }), "ochiq");   // REV450: admin — hammasi ochiq
   assert.equal(bosqichHolati({}, 2, { obuna: true, bugun: "2026-11-07" }), "qulf");
   const p = { 1: { sana: "2026-11-07", yulduz: 3 } };
   assert.equal(bosqichHolati(p, 2, { obuna: true, bugun: "2026-11-07" }), "ertaga");

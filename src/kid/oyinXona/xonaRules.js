@@ -3,6 +3,7 @@
 // o‘tilgan kundan keyin yangi kun kelganda ochiladi (har kuni bittadan), hamda faqat obunachilarga.
 import { XONA_TOPLAM } from "./xonaData.js";
 import { oyinOl } from "../oyin/oyinRules.js";
+import { ULASH } from "../oyin/saralashData.js";   // REV450
 
 // REV379: «Rivojlantiruvchi o'yinlar» — hamma 57 xil o'yin, yo'nalishlar bo'yicha
 export const XONA_GURUHLAR = [
@@ -32,7 +33,26 @@ const MAX_BOSQICH = 20, MIN_QOLDIQ = 6;
 const yoshNorm = (y) => (["2-3", "4-5", "6-7"].includes(String(y)) ? String(y) : "4-5");
 
 /** O‘yin uchun bosqichlar ro‘yxati: [{ i, toplam, belgi, nom, items }] — to‘plamlar har o‘yinda boshqa tartibda. */
+/** REV450: juft topish o'yinlarida (Hayvonni boq, Ona va bola…) bosqichlar o'yinning O'Z juftlaridan:
+ *  har bosqichda 3 ta yangi narsa + oldingi bosqichdan 1 tasi takrorlash uchun. Rasmi — shu bosqichning birinchi narsasi. */
+function ulashBosqichlari(nom) {
+  const tartib = [];
+  for (const [a] of ULASH[nom].juft) if (!tartib.some((x) => x.s.uz === a.s.uz)) tartib.push(a);
+  const out = [];
+  for (let i = 0; i < tartib.length; i += 3) {
+    const yangi = tartib.slice(i, i + 3);
+    const takror = i > 0 ? [tartib[i - 1]] : [];
+    const items = [...yangi, ...takror].map((a) => ({ e: a.e, s: a.s, ulashA: a.s.uz }));
+    if (yangi.length) out.push({ toplam: nom, belgi: yangi[0].e, nom: yangi.map((a) => a.s.uz).join(", "), items });
+  }
+  // oxirida — hammasi aralash (umumiy takrorlash) bosqichi
+  out.push({ toplam: nom, belgi: "⭐", nom: "hammasi", items: tartib.map((a) => ({ e: a.e, s: a.s, ulashA: a.s.uz })) });
+  return out.map((b, i) => ({ ...b, i: i + 1 }));
+}
+
 export function bosqichlar(oyinId) {
+  const kal = oyinOl(Number(oyinId))?.kalit;
+  if (kal && ULASH[kal]) return ulashBosqichlari(kal);
   const k = Math.max(0, XONA_OYINLAR.indexOf(Number(oyinId)));
   const t = XONA_TOPLAM.map((_, j) => XONA_TOPLAM[(j + k) % XONA_TOPLAM.length]);
   const out = [];
@@ -66,8 +86,9 @@ export function xonaOyinlari(yosh, yopiqmi = () => false) {
 }
 
 /** Bosqich holati: otdi | ochiq | ertaga | qulf | obuna. prog = { [bosqich]: { sana, yulduz } }. */
-export function bosqichHolati(prog = {}, i, { obuna = false, bugun = "" } = {}) {
+export function bosqichHolati(prog = {}, i, { obuna = false, bugun = "", admin = false } = {}) {
   if (prog[i]) return "otdi";
+  if (admin) return "ochiq";   // REV450: admin — hamma bosqich darhol ochiq (kutish va obunasiz)
   if (i === 1) return "ochiq";
   const old = prog[i - 1];
   if (!old) return "qulf";
@@ -82,4 +103,4 @@ export function yulduzHisob(togri, xato, jami = BOSQICH_RAUND) {
 }
 
 /** Bosqich narsalari o‘yin elementlariga: rasm — kutubxonadan (rasmId), nom — izoh tilida. */
-export const xonaElementlar = (b, izoh = "uz") => (b?.items || []).map((x, i) => ({ k: `${b.toplam}-${b.i}-${i}`, image: x.r, rasmId: x.r, emoji: "", uz: x.s[izoh] || x.s.uz, soz: x.s }));
+export const xonaElementlar = (b, izoh = "uz") => (b?.items || []).map((x, i) => ({ k: `${b.toplam}-${b.i}-${i}`, image: x.r, rasmId: x.r, emoji: x.e || "", uz: x.s[izoh] || x.s.uz, soz: x.s, ...(x.ulashA ? { ulashA: x.ulashA } : {}) }));

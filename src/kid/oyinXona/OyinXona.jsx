@@ -96,7 +96,8 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
           onClick={() => { if (ochiq) { setXabar(""); setOynaydi(b); } else { const m = t(hol === "ertaga" ? "ertaga" : hol === "obuna" ? "obuna" : "qulf", izoh); setXabar(m); say(m); } }}
           aria-label={`${b.i} ${t("bosqich", izoh)} — ${b.nom[izoh] || b.nom.uz}`}>
           <span className="ox-bosqich-son">{ochiq ? b.i : "🔒"}</span>
-          <span className="ox-bosqich-rasm" aria-hidden="true"><img src={oyinRasmTop({ rasmId: b.items[0].r })} alt="" /></span>
+          <span className="ox-bosqich-rasm" aria-hidden="true">{(() => { const x = b.items[0]; const src = oyinRasmTop(x.r ? { rasmId: x.r } : { emoji: x.e, uz: x.s?.uz, soz: x.s });   // REV450: juft o'yinlari — hayvon rasmi
+            return src ? <img src={src} alt="" /> : <span style={{ fontSize: 44 }}>{x.e}</span>; })()}</span>
           <span className="ox-yulduz" aria-hidden="true">{hol === "otdi" ? "⭐".repeat(p[b.i]?.yulduz || 1) : hol === "ertaga" ? "🌙" : hol === "obuna" ? "💎" : ""}</span>
         </button>;
       })}</div>

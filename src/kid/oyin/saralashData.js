@@ -1,3 +1,4 @@
+import { HAYVON_OVQAT_JUFT, HAYVON_HAM } from "./hayvonOvqatData.js";   // REV450
 // REV348: saralash va ulash o'yinlari ma'lumoti (5 tilda). Avtomatik yaratilgan — /tmp/sar/data.py
 export const SARALASH = {
  "uyYovvoyi": {
@@ -2076,3 +2077,6 @@ export const ULASH = {
   ]
  }
 };
+
+// REV450: «Hayvonni boq» — 28 ta hayvon, 44 ta to'g'ri juft (eski 6 ta juft o'rniga)
+ULASH.hayvonOvqat = { ...ULASH.hayvonOvqat, juft: HAYVON_OVQAT_JUFT, ham: HAYVON_HAM };
