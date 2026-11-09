@@ -2099,3 +2099,30 @@ SARALASH.faslKiyim = { ...SARALASH.faslKiyim,
 for (const [, b] of ULASH.nimaBilan.juft) if (b.s.uz === "kosa") b.s = { ...b.s, r: "d_m-kosa-idish" };
 // REV451: «qush → in» — kutubxonadagi «in» rasmi qush oziqlantirgich edi; rassom chizguncha 🪺 (in, ichida tuxumlar)
 for (const [, b] of ULASH.uyiQayerda.juft) if (b.s.uz === "in") { b.e = "🪺"; b.faqatEmoji = true; }
+
+// REV452: yangi chizilgan rasmlar — emoji o'rniga (o_* kalitlar — oyinRasmlari.js)
+const _YANGI = { "quyosh ko‘zoynagi": "o_quyosh_kozoynagi", "qishki etik": "o_qishki_etik", "in": "o_qush_ini", "havo shari": "o_havo_shari", "karton quti": "o_karton_quti",
+  "rangli qalam": "o_rangli_qalam", "kitoblar": "o_kitoblar", "g‘isht": "o_gisht", "pichan": "o_pichan", "bambuk": "o_bambuk", "chuvalchang": "o_chuvalchang", "chivin": "o_chivin",
+  "tikan": "o_yantoq", "kit": "o_kit", "jo‘ja": "o_joja", "gul hidi": "o_gul_hidi", "yumshoq ayiqcha": "o_yumshoq_ayiqcha", "olma qoldig‘i": "o_olma_qoldigi",
+  "banan po‘chog‘i": "o_banan_pochogi", "plastik stakan": "o_plastik_stakan", "yerda yuradi": "o_yerda", "suvda suzadi": "o_suvda", "osmonda uchadi": "o_osmonda",
+  "uchadi": "o_uchadi", "yuradi": "o_yuradi" };
+const _yangila = (w) => { const r = _YANGI[w?.s?.uz]; if (r) { w.s = { ...w.s, r }; delete w.faqatEmoji; } };
+for (const d of Object.values(SARALASH)) { d.guruh.forEach(_yangila); Object.values(d.narsa).flat().forEach(_yangila); }
+for (const d of Object.values(ULASH)) d.juft.forEach(([a, b]) => { _yangila(a); _yangila(b); });
+// «tikan» endi «yantoq» deb ataladi (rasm — yantoq buta)
+for (const [, b] of ULASH.hayvonOvqat.juft) if (b.s.uz === "tikan") b.s = { ...b.s, uz: "yantoq", ru: "верблюжья колючка", en: "camelthorn", de: "camelthorn", es: "camelthorn" };
+
+// REV452: «Ona va bola» va «Uyi qayerda» — yangi rasmlar bilan kengaytirildi
+const _S = (e, uz, ru, en, r) => ({ e, s: { uz, ru, en, de: en, es: en, ...(r ? { r } : {}) } });
+ULASH.onaBola.juft.push(
+  [_S("🐎", "ot", "лошадь", "horse"), _S("🐴", "toy", "жеребёнок", "foal", "o_toy")],
+  [_S("🐫", "tuya", "верблюд", "camel"), _S("🐪", "bo‘taloq", "верблюжонок", "baby camel", "o_botaloq")],
+  [_S("🐐", "echki", "коза", "goat"), _S("🐐", "uloq", "козлёнок", "kid", "o_uloq")],
+  [_S("🦆", "o‘rdak", "утка", "duck"), _S("🐥", "o‘rdakcha", "утёнок", "duckling", "o_ordakcha")],
+  [_S("🐻", "ayiq", "медведь", "bear"), _S("🧸", "ayiq bolasi", "медвежонок", "bear cub", "o_ayiq_bolasi")]);
+ULASH.uyiQayerda.juft.push(
+  [_S("🐻", "ayiq", "медведь", "bear"), _S("🪨", "g‘or", "берлога", "cave", "o_gor")],
+  [_S("🐎", "ot", "лошадь", "horse"), _S("🛖", "otxona", "конюшня", "stable", "o_otxona")],
+  [_S("🐝", "ari", "пчела", "bee"), _S("🍯", "asalari uyasi", "улей", "beehive", "o_asalari_uyasi")],
+  [_S("🐜", "chumoli", "муравей", "ant"), _S("⛰️", "chumoli uyasi", "муравейник", "anthill", "o_chumoli_uyasi")],
+  [_S("🐧", "pingvin", "пингвин", "penguin"), _S("🧊", "muz", "лёд", "ice", "o_muz")]);

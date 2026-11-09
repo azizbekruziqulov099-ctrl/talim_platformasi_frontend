@@ -1,6 +1,8 @@
 // REV368: o'yin elementining rasmi — bitta joyda: 1) ma'lumotda aniq ko'rsatilgan rasm (rasmId), 2) so'zi bo'yicha,
 // 3) belgisi bo'yicha. Rasmlar kutubxonasidan (Azizjonning rasmlari).
-import { RASM_HAMMA } from "../darsRasm.js";
+import { RASM_HAMMA as _ASOSIY } from "../darsRasm.js";
+import { OYIN_RASM } from "./oyinRasmlari.js";   // REV452
+const RASM_HAMMA = new Proxy(_ASOSIY, { get: (t, k) => OYIN_RASM[k] || t[k] });
 import { emojiRasm, matnId, sozId } from "../rasmHarakat.js";
 export function oyinRasmTop(el) {
   if (!el) return "";
