@@ -12,6 +12,7 @@ import android.provider.OpenableColumns
 import android.webkit.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
 import java.io.ByteArrayInputStream
 import java.net.URLEncoder
@@ -63,6 +64,11 @@ class MainActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val u = request.url
                 if (u.host == "talimkabutar.uz" || u.host?.endsWith(".talimkabutar.uz") == true) return false
+                // Google bilan kirish: Google o'z sahifasini ilova ichidagi brauzerda ochishga ruxsat bermaydi —
+                // ilova ustida Chrome oynasi (Custom Tab) ochiladi; kirgach server talimai://kirish ga qaytaradi.
+                if (u.path?.startsWith("/auth/google/") == true || u.host == "accounts.google.com") {
+                    return try { CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(this@MainActivity, u); true } catch (e: Exception) { false }
+                }
                 return try { startActivity(Intent(Intent.ACTION_VIEW, u)); true } catch (e: Exception) { false }   // tashqi havolalar — brauzerda
             }
         }
@@ -88,11 +94,20 @@ class MainActivity : AppCompatActivity() {
                 (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(so)
             } catch (e: Exception) { }
         }
-        if (!hujjatniOch(intent)) web.loadUrl(intent?.data?.takeIf { it.host == "talimkabutar.uz" }?.toString() ?: "https://talimkabutar.uz/")
+        if (!kirishgaQayt(intent) && !hujjatniOch(intent)) web.loadUrl(intent?.data?.takeIf { it.host == "talimkabutar.uz" }?.toString() ?: "https://talimkabutar.uz/")
     }
 
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent)
+        if (kirishgaQayt(intent)) return
         if (!hujjatniOch(intent)) intent.data?.takeIf { it.host == "talimkabutar.uz" }?.let { web.loadUrl(it.toString()) } }
+
+    /** Google'dan qaytish: talimai://kirish#oauth_ticket=… → sayt chiptani o'zi almashtiradi (60 soniyalik, bir martalik). */
+    private fun kirishgaQayt(i: Intent?): Boolean {
+        val d = i?.data ?: return false
+        if (d.scheme != "talimai" || d.host != "kirish") return false
+        web.loadUrl("https://talimkabutar.uz/?ilova_kirish=" + System.currentTimeMillis() + "#" + (d.encodedFragment ?: d.encodedQuery ?: ""))
+        return true
+    }
 
     /** VIEW yoki SEND bilan kelgan faylni o'qib, hujjat ko'ruvchini ochadi. */
     private fun hujjatniOch(i: Intent?): Boolean {

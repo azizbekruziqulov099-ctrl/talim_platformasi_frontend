@@ -194,7 +194,9 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   const passwordEnabled = config ? config?.password?.enabled === true : true;
   const googleEnabled = config ? config?.google?.enabled === true : true;
   const pickRole = (next) => { setRole(next); saveLoginRole(next); };
-  const startGoogle = () => { rememberLoginMethod("google"); window.location.assign(authEndpoint(apiBase, readTelegramLinkIntent() ? "/auth/google/login?intent=telegram" : "/auth/google/login")); };
+  // REV442: Android ilovada (TalimAI-Android) — Google oynasi Chrome'da ochiladi va kirgach ilovaga qaytadi
+  const ilovada = typeof navigator !== "undefined" && /TalimAI-Android/.test(navigator.userAgent || "");
+  const startGoogle = () => { rememberLoginMethod("google"); const yol = readTelegramLinkIntent() ? "/auth/google/login?intent=telegram" : "/auth/google/login"; window.location.assign(authEndpoint(apiBase, ilovada ? `${yol}${yol.includes("?") ? "&" : "?"}ilova=1` : yol)); };
 
   // Oldin shu qurilmada kirgan akkaunt: sessiya tirik bo'lsa bir bosishda kiradi,
   // tugagan bo'lsa kirish usuli va login oldindan to'ldiriladi.

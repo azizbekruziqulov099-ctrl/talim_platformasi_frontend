@@ -50,6 +50,13 @@
                 <data android:mimeType="application/vnd.ms-excel" />
                 <data android:mimeType="text/csv" />
             </intent-filter>
+            <!-- Google bilan kirgandan keyin Chrome oynasidan ilovaga qaytish: talimai://kirish#oauth_ticket=... -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="talimai" android:host="kirish" />
+            </intent-filter>
             <!-- talimkabutar.uz havolalari ilovada ochiladi -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
