@@ -11655,4 +11655,5 @@ export const DARS_RASM = {
 /** Xonalar va darslar rasmlari birga — emoji/so'z bo'yicha topilgan id shu yerdan olinadi. */
 // REV153: o'yinlar uchun chizilgan yulduz, quti, pufak — darsda ham (⭐ 📦 🫧)
 export const JONLI_DARS = { j_yulduz: JR.yulduz, j_quti: JR.quti, j_pufak: JR.pufak };
-export const RASM_HAMMA = { ...RASMLAR, ...DARS_RASM, ...JONLI_DARS };
+import { ESKI_ALMASH } from "./oyin/oyinRasmlari.js";   // REV454: eski tekis/noto'g'ri rasmlar o'rniga sifatli hayotiy rasmlar (ona, mevalar, kiyimlar…)
+export const RASM_HAMMA = { ...RASMLAR, ...DARS_RASM, ...JONLI_DARS, ...ESKI_ALMASH };
