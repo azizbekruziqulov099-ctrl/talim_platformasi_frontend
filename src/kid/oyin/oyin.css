@@ -383,3 +383,8 @@ button.oy-esh-quloq,button.oy-sq-ovoz{border:0;background:none;cursor:pointer;pa
 .oy-ayt-yulduz{position:absolute;top:-18px;right:-18px;width:72px;height:72px;animation:oy-ayt-y .6s ease-out}
 @keyframes oy-ayt-silk{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 @keyframes oy-ayt-y{from{transform:scale(0) rotate(-40deg)}to{transform:scale(1)}}
+/* REV451: saralash/ulash — narsa nomi ikki qator bo'lsa ham kartaning ichida, pastdagi variantlarga tegmaydi */
+.oy-namuna.oy-sar-narsa{height:auto;min-height:150px;padding:10px 8px 8px;gap:4px;grid-template-rows:1fr auto}
+.oy-sar-narsa>span{display:grid;place-items:center;max-height:112px;overflow:hidden}
+.oy-sar-narsa>b{font-size:15px;line-height:1.15;text-align:center;max-width:150px}
+.oy-sahna:has(.oy-sar-narsa){gap:22px}

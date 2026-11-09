@@ -4,6 +4,7 @@ import { RASM_HAMMA } from "../darsRasm.js";
 import { emojiRasm, matnId, sozId } from "../rasmHarakat.js";
 export function oyinRasmTop(el) {
   if (!el) return "";
+  if (el.faqatEmoji) return "";   // REV451: masalan «quyosh ko'zoynagi» — kutubxonadagi oddiy ko'zoynak chalg'itadi, emoji 🕶️ aniq
   if (el.rasmId && RASM_HAMMA[el.rasmId]) return RASM_HAMMA[el.rasmId];
   const soz = el.say || el.uz || "";
   const mt = matnId(el.soz?.uz || el.uz || "") || matnId(el.say || "");

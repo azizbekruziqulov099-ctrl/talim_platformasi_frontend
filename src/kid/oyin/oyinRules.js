@@ -371,7 +371,7 @@ import { TARTIB } from "./tartibData.js";   // REV349
 import { HAYVON_OVOZ, TRANSPORT_OVOZ, FASL_OVOZ } from "./eshitData.js";   // REV351
 
 // REV348: saralash/ulash elementi — so'z izoh tilida (bola tushunadigan tilda aytiladi va yoziladi)
-const sozEl = (w, izoh, k) => ({ k, emoji: w.e, uz: w.s[izoh] || w.s.uz, soz: w.s, ...((w.r || w.s?.r) ? { rasmId: w.r || w.s.r } : {}) });
+const sozEl = (w, izoh, k) => ({ k, emoji: w.e, uz: w.s[izoh] || w.s.uz, soz: w.s, ...((w.r || w.s?.r) ? { rasmId: w.r || w.s.r } : {}), ...(w.faqatEmoji ? { faqatEmoji: true } : {}) });   // REV451: faqatEmoji — kutubxonadagi o'xshash nomli rasm emas
 
 // REV351: eshitish o'yinlari yordamchilari
 function ovozRaund(data, { n, rnd, R, izoh }) {
@@ -511,9 +511,10 @@ const YASOVCHI = {
   ...Object.fromEntries(Object.keys(SARALASH).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
     const d = SARALASH[nom]; const gs = y === "2-3" ? d.guruh.slice(0, 2) : d.guruh;
     const guruhlar = gs.map((g, gi) => sozEl(g, izoh, `g${gi}`));
-    const hovuz = gs.flatMap((_, gi) => d.narsa[gi].map((w, j) => ({ w, gi, j })));
+    const hovuz = gs.flatMap((_, gi) => (d.narsa[gi] || []).map((w, j) => ({ w, gi, j })));
+    // REV451: narsa bir nechta guruhga to'g'ri kelsa (w.ham), o'sha boshqa guruhlar shu raundda ko'rsatilmaydi — javob bitta bo'ladi
     return navbat(hovuz, R, rnd).map(({ w, gi, j }) => ({ tur: "tanlov", savol: { el: sozEl(w, izoh, `n${gi}_${j}`) },
-      variantlar: guruhlar.map((g) => ({ k: g.k, el: g })), togri: `g${gi}` }));
+      variantlar: guruhlar.filter((_, x) => !(w.ham || []).includes(x)).map((g) => ({ k: g.k, el: g })), togri: `g${gi}` }));
   }])),
   // REV348: fasl mevasi — joriy fasl albatta bor; 4–5 yoshda 3 ta, 6–7 yoshda 4 ta fasl
   faslMeva: ({ y, rnd, R, izoh, fasl }) => {

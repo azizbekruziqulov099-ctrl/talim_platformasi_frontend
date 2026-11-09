@@ -33,20 +33,20 @@ export const HAYVON = [
   [W("🦁", "sher", "лев", "lion"), ["gosht"]],
   [W("🐘", "fil", "слон", "elephant"), ["banan", "ot"]],
   [W("🦆", "o‘rdak", "утка", "duck"), ["non"]],
-  [W("🦜", "to‘tiqush", "попугай", "parrot"), ["urug"]],
+  [W("🦜", "to‘tiqush", "попугай", "parrot"), ["banan", "olma"]],
   [W("🦔", "tipratikan", "ёж", "hedgehog"), ["chuvalchang", "olma"]],
   [W("🦊", "tulki", "лиса", "fox"), ["sichqon"]],
   [W("🐫", "tuya", "верблюд", "camel"), ["tikan"]],
   [W("🐺", "bo‘ri", "волк", "wolf"), ["gosht"]],
   [W("🐋", "kit", "кит", "whale"), ["baliq"]],
-  [W("🕊️", "kaptar", "голубь", "pigeon"), ["urug", "non"]],
+  [W("🕊️", "kaptar", "голубь", "pigeon"), ["jozi", "non"]],
 ];
 /** «Bu ham yeydi» — savolga chiqmaydi, lekin XATO variant bo'lib ham tushmaydi (bola chalg'imasin). */
 const HAM = { mushuk: ["gosht", "pishloq"], it: ["non", "baliq"], quyon: ["ot", "olma", "pichan"], sigir: ["karam", "sabzi", "jozi"], maymun: ["olma", "barg", "yongoq"],
   olmaxon: ["urug", "olma", "jozi"], tovuq: ["urug", "non", "pichan"], ot: ["sabzi", "ot", "jozi"], ayiq: ["olma", "yongoq", "gosht", "chuvalchang", "banan"],
   "qo‘y": ["barg", "karam", "olma"], echki: ["ot", "pichan", "olma", "sabzi"], sichqon: ["non", "urug", "olma", "yongoq"], fil: ["barg", "olma", "pichan", "sabzi"],
-  "o‘rdak": ["chuvalchang", "baliq", "urug", "jozi"], tipratikan: ["chivin", "barg"], tulki: ["gosht", "olma"], tuya: ["ot", "pichan", "barg"], kaptar: ["jozi"],
-  "to‘tiqush": ["banan", "olma", "yongoq", "jozi"], "bo‘ri": ["suyak"], sher: ["suyak"], jirafa: ["ot"], panda: ["barg"], kit: [], pingvin: [], qurbaqa: ["chuvalchang"], ari: [], kapalak: [] };
+  "o‘rdak": ["chuvalchang", "baliq", "urug", "jozi"], tipratikan: ["chivin", "barg"], tulki: ["gosht", "olma"], tuya: ["ot", "pichan", "barg"], kaptar: ["urug"],
+  "to‘tiqush": ["yongoq", "jozi"], "bo‘ri": ["suyak"], sher: ["suyak"], jirafa: ["ot"], panda: ["barg"], kit: [], pingvin: [], qurbaqa: ["chuvalchang"], ari: [], kapalak: [] };
 export const HAYVON_HAM = Object.fromEntries(HAYVON.map(([h, ov]) => [h.s.uz, [...ov, ...(HAM[h.s.uz] || [])].map((k) => OVQAT[k].s.uz)]));
 /** ULASH formatidagi juftlar: [hayvon, ovqat] — har ovqat uchun alohida juft. */
 export const HAYVON_OVQAT_JUFT = HAYVON.flatMap(([h, ov]) => ov.map((k) => [h, OVQAT[k]]));

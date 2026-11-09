@@ -2080,3 +2080,22 @@ export const ULASH = {
 
 // REV450: «Hayvonni boq» — 28 ta hayvon, 44 ta to'g'ri juft (eski 6 ta juft o'rniga)
 ULASH.hayvonOvqat = { ...ULASH.hayvonOvqat, juft: HAYVON_OVQAT_JUFT, ham: HAYVON_HAM };
+
+// REV451: «Fasl kiyimi» — 4 fasl, guruh rasmlari faslning o'zi (qorli daraxt, quyosh, gullagan daraxt, sariq barglar).
+// Bahor va kuz kiyimlari bir xil bo'lishi mumkin — shunday narsa chiqqan raundda ikkinchi fasl variantlarda ko'rsatilmaydi («ham»).
+const F = (e, uz, ru, en, r, qo) => ({ e, s: { uz, ru, en, de: en, es: en, ...(r ? { r } : {}) }, ...(qo || {}) });
+SARALASH.faslKiyim = { ...SARALASH.faslKiyim,
+  guruh: [F("❄️", "qish", "зима", "winter", "winter"), F("☀️", "yoz", "лето", "summer", "summer"), F("🌸", "bahor", "весна", "spring", "spring"), F("🍂", "kuz", "осень", "autumn", "autumn")],
+  narsa: [
+    [F("🧤", "qo‘lqop", "варежки", "mittens"), F("🧣", "sharf", "шарф", "scarf"), F("🧥", "palto", "пальто", "coat"), F("🥾", "qishki etik", "зимние сапоги", "winter boots", null, { faqatEmoji: true }),
+     F("🧶", "sviter", "свитер", "sweater", "d_m-sviter", { ham: [3] })],
+    [F("🩳", "shortik", "шорты", "shorts"), F("👒", "yozgi shlyapa", "летняя шляпа", "sun hat", "d_sun-hat"), F("🩴", "shippak", "шлёпанцы", "flip-flops"),
+     F("🕶️", "quyosh ko‘zoynagi", "солнечные очки", "sunglasses", null, { faqatEmoji: true }), F("👕", "futbolka", "футболка", "T-shirt", "d_futbolkam_qizil")],
+    [F("👢", "rezina etik", "резиновые сапоги", "rain boots", "boots", { ham: [3] })],
+    [F("☂️", "soyabon", "зонт", "umbrella", "umbrella", { ham: [2] })],
+  ] };
+
+// REV451: «qoshiq → kosa» — kosa rasmi bo'sh (ichida qoshiq bo'lgan rasm javobni chalkashtirardi)
+for (const [, b] of ULASH.nimaBilan.juft) if (b.s.uz === "kosa") b.s = { ...b.s, r: "d_m-kosa-idish" };
+// REV451: «qush → in» — kutubxonadagi «in» rasmi qush oziqlantirgich edi; rassom chizguncha 🪺 (in, ichida tuxumlar)
+for (const [, b] of ULASH.uyiQayerda.juft) if (b.s.uz === "in") { b.e = "🪺"; b.faqatEmoji = true; }
