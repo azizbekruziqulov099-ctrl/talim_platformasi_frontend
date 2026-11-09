@@ -1081,18 +1081,18 @@ Object.assign(OYIN_MATN, {
  },
  "osish": {
   "nom": {
-   "uz": "Odam o‘sadi",
-   "ru": "Человек растёт",
-   "en": "People grow",
-   "de": "Menschen wachsen",
-   "es": "Las personas crecen"
+   "uz": "Kim qanday o‘sadi?",
+   "ru": "Кто как растёт?",
+   "en": "How do things grow?",
+   "de": "Wie wächst was?",
+   "es": "¿Cómo crece cada uno?"
   },
   "kirish": {
-   "uz": "Hamma avval chaqaloq bo‘ladi, keyin bola, keyin katta odam, keyin bobo-buvi. Tartib bilan joyla!",
-   "ru": "Все сначала малыши, потом дети, потом взрослые, а потом бабушки и дедушки. Разложи по порядку!",
-   "en": "Everyone is first a baby, then a child, then a grown-up, then a grandparent. Put them in order!",
-   "de": "Jeder ist zuerst ein Baby, dann ein Kind, dann erwachsen und dann Oma oder Opa. Bring sie in die Reihenfolge!",
-   "es": "Todos somos primero bebés, luego niños, después adultos y luego abuelos. ¡Ponlos en orden!"
+   "uz": "Hamma narsa o‘sadi: odam ham, jo‘ja ham, daraxt ham. Har safar boshqasini ko‘rsataman — avval nima bo‘lganini, keyin nima bo‘lishini tartib bilan joyla!",
+   "ru": "Всё растёт: и человек, и цыплёнок, и дерево. Каждый раз покажу другое — разложи по порядку, что было сначала и что потом!",
+   "en": "Everything grows: people, chicks and trees. Each time I'll show something new — put what comes first and what comes next in order!",
+   "de": "Alles wächst: Menschen, Küken und Bäume. Jedes Mal zeige ich etwas anderes — bring es in die richtige Reihenfolge!",
+   "es": "Todo crece: personas, pollitos y árboles. Cada vez te mostraré algo distinto — ¡ponlo en orden!"
   }
  }
 });

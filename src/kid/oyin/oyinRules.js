@@ -7,6 +7,7 @@
 //   oyinYasa(id, { elementlar, yosh })      — o'yin holati: raundlar (savol, variantlar, to'g'ri javob)
 //   tekshir(holat, javob)                   — javobni tekshiradi, yangi holat qaytaradi (2 xatoda keyingisi osonroq)
 //   qiyinlikMoslash(qiyinlik, xatolar)      — keyingi o'yin qiyinligi
+import { OSISH_TOPLAM, GUL_TOPLAM } from "./osishData.js";   // REV452
 import { gradeSpeech } from "../../speech/speakRules.js";
 import { OYIN_MATN, oyinMatn, umumiyGap, toza } from "./oyinMatn.js";
 
@@ -62,7 +63,7 @@ export const OYINLAR = [
     raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
   { id: 156, kalit: "tishTozalash", nom: "Tishimni tozalayman", belgi: "💧", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
     raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
-  { id: 166, kalit: "osish", nom: "Odam o‘sadi", belgi: "🧓", yosh: KATTA, harakat: "surish", kerak: { min_element: 0 },
+  { id: 166, kalit: "osish", nom: "Kim qanday o‘sadi?", belgi: "🐣", yosh: KATTA, harakat: "surish", kerak: { min_element: 0 },
     raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
   // REV348: saralash (narsani o'z guruhiga) va ulash (juftini topish) — atrof-muhit, mantiq, fasllar
   { id: 149, kalit: "uyYovvoyi", nom: "Uy yoki yovvoyi", belgi: "🏡", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
@@ -499,6 +500,18 @@ const YASOVCHI = {
   // REV349: tartibga qo'yish (2–3 yoshda 3 qadam, bosqichma-bosqich; 6–7 yoshda butun tartib birdan)
   ...Object.fromEntries(Object.keys(TARTIB).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
     const d = TARTIB[nom];
+    // REV452: «o'sish» o'yinlarida har raund — boshqa tirik narsa (odam, tovuq, daraxt, olma…); 2–3 yoshda faqat 2–3 qadamlilar
+    const TOPLAM = { osish: OSISH_TOPLAM, gulOstir: GUL_TOPLAM }[nom];
+    if (TOPLAM) {
+      const mos = TOPLAM.filter((t) => (y === "2-3" ? t.q.length <= 3 : true));
+      return navbat(mos, R, rnd).map((t, ri) => {
+        const qadam = t.q.map((w, i) => sozEl(w, izoh, `q${ri}_${i}`));
+        let ar = aralash(qadam, rnd);
+        for (let i = 0; i < 8 && ar.every((e, j) => e.k === qadam[j].k); i += 1) ar = aralash(qadam, rnd);
+        if (ar.every((e, j) => e.k === qadam[j].k)) ar = [...ar.slice(1), ar[0]];
+        return { tur: "tartib", savol: { bosqichma: y !== "6-7", nima: t.nom }, variantlar: ar.map((e) => ({ k: e.k, el: e })), togri: qadam.map((e) => e.k) };
+      });
+    }
     const qadam = (y === "2-3" ? d.kichik.map((i) => d.q[i]) : d.q).map((w, i) => sozEl(w, izoh, `q${i}`));
     return Array.from({ length: R }, () => {
       let ar = aralash(qadam, rnd);

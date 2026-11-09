@@ -2,7 +2,10 @@
 // 3) belgisi bo'yicha. Rasmlar kutubxonasidan (Azizjonning rasmlari).
 import { RASM_HAMMA as _ASOSIY } from "../darsRasm.js";
 import { OYIN_RASM } from "./oyinRasmlari.js";   // REV452
-const RASM_HAMMA = new Proxy(_ASOSIY, { get: (t, k) => OYIN_RASM[k] || t[k] });
+// REV453: jadvaldan kesib olingan 35 ta rasm vaqtincha ISHLATILMAYDI (Azizjon alohida, sifatli fayllarini beradi).
+// Fayllar o'rnida turibdi; yangilari kelgach shu belgini true qilish kifoya.
+const KESILGAN_RASMLAR_YOQILGAN = false;
+const RASM_HAMMA = new Proxy(_ASOSIY, { get: (t, k) => (KESILGAN_RASMLAR_YOQILGAN && OYIN_RASM[k]) || t[k] });
 import { emojiRasm, matnId, sozId } from "../rasmHarakat.js";
 export function oyinRasmTop(el) {
   if (!el) return "";
