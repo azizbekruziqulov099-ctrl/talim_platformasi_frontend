@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v20-rev398";   // REV398
+const CACHE = "samtm-shell-v21-rev439";   // REV398/REV439: ulashish (share target)
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
@@ -56,6 +56,23 @@ button{border:none;border-radius:14px;background:#1B4B7A;color:#fff;font:700 16p
 <button onclick="location.reload()">🔄 Qayta urinish</button><small id="s">Har 5 soniyada qayta urinyapti…</small></div>
 <script>setInterval(function(){fetch("/version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){if(r.ok)location.reload()}).catch(function(){})},5000);window.addEventListener("online",function(){location.reload()});</script></body></html>`;
 
+// REV439: Telegram va boshqa ilovalardan «Ulashish → Ta'lim AI» — fayl keshga yoziladi va hujjat ko'ruvchi ochiladi
+self.addEventListener("fetch", event => {
+  const u = new URL(event.request.url);
+  if (event.request.method === "POST" && u.origin === self.location.origin && u.pathname === "/ulashish") {
+    event.respondWith((async () => {
+      try {
+        const fd = await event.request.formData();
+        const f = fd.get("fayl");
+        if (f && typeof f !== "string") {
+          const c = await caches.open("kabutar-ulashish");
+          await c.put("/__ulashilgan_fayl", new Response(f, { headers: { "content-type": f.type || "application/octet-stream", "x-fayl-nomi": encodeURIComponent(f.name || "hujjat") } }));
+        }
+      } catch (e) { /* */ }
+      return Response.redirect("/?hujjat=ulashilgan", 303);
+    })());
+  }
+});
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;

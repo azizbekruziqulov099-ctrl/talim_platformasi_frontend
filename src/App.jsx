@@ -515,6 +515,7 @@ const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
 const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
 const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.jsx"));
 const LazyFanOyinlari = _samtmLazyRetry(() => import("./games/FanOyinlari.jsx"));   // REV437
+const LazyHujjatSahifa = _samtmLazyRetry(() => import("./hujjat/HujjatSahifa.jsx"));   // REV439: hujjat ko'ruvchi
 const LazyOyinXona = _samtmLazyRetry(() => import("./kid/oyinXona/OyinXona.jsx"));   // REV379: rivojlantiruvchi o'yinlar
 const LazyChempionat = _samtmLazyRetry(() => import("./chempionat/Chempionat.jsx"));
 const StudentScheduleWorkspace = _samtmLazyRetry(() => import("./student/StudentScheduleWorkspace.jsx"));
@@ -13207,14 +13208,16 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: sinf natijalari (o'qituvchi paneli)
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
-            { kalit: "profil", nom: "Profil", ikon: User },
+            { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
+      { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
   if (rol === "ota-ona") {
     return [
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       { kalit: "farzand", nom: "Farzand tahlili", ikon: Heart },
-            { kalit: "profil", nom: "Profil", ikon: User },
+            { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
+      { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
   // O'quvchi / talaba / bog'cha / markaz: asosiy yo'l — O'rganish (fan → mavzu → dars → test).
@@ -13226,7 +13229,8 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
-    { kalit: "profil", nom: "Profil", ikon: User },
+    { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
+      { kalit: "profil", nom: "Profil", ikon: User },
   ];
 }
 
@@ -13256,6 +13260,7 @@ function PastkiMenyu({
       { kalit: "test", nom: "O‘yin va testlar", ikon: PencilLine },
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
       { kalit: "kurslar", nom: "To‘garaklar", ikon: BookOpen },
+      { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
       { kalit: "profil", nom: "Profil", ikon: User });
   }
   if (taqdimotMavjud) bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
@@ -15152,6 +15157,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         }} />
       )}
       {korinishRoli !== "ota-ona" && tab === "fan_oyinlari" && lazyPanel(LazyFanOyinlari, { onClose: () => setTab("oyinlar") })}
+      {tab === "hujjat_ochish" && lazyPanel(LazyHujjatSahifa, {})}
       {korinishRoli !== "ota-ona" && tab === "mantiq" && lazyPanel(LazyOyinXona, { apiBase: API_BASE, token, izoh: String(document.documentElement.lang || "uz").slice(0, 2),
         yosh: (() => { const g = String(foydalanuvchi?.yosh_guruhi || ""); return _kbAccountRole(foydalanuvchi) === "bogcha" && g ? (/2-3|3-4/.test(g) ? "2-3" : /6-7|5-6/.test(g) ? "6-7" : "4-5") : ""; })(),
         onSay: (t, d) => { import("./kid/kabuOvoz.js").then((m) => m.kabuAyt(API_BASE, t, { izoh: String(document.documentElement.lang || "uz").slice(0, 2), tugadi: d })).catch(() => d?.()); },
@@ -15323,7 +15329,13 @@ function exchangeGoogleTicket(ticket) {
   return pending;
 }
 
+const _HUJJAT_YOLI = (() => { try { return new URLSearchParams(window.location.search).get("hujjat"); } catch { return null; } })();   // REV439
 export default function App() {
+  if (_HUJJAT_YOLI) return <React.Suspense fallback={<p style={{ padding: 24 }}>⏳</p>}><LazyHujjatSahifa onYop={() => { window.location.href = "/"; }} /></React.Suspense>;
+  return <AppAsosiy />;
+}
+
+function AppAsosiy() {
   useKbInterfaceLocale();
   const [yol] = useState(_boshlangichYolniOl);
   const [courseReturn, setCourseReturn] = useState(() => yol.courses ? { courseId: yol.courseId, at: Date.now() } : readCourseReturn());

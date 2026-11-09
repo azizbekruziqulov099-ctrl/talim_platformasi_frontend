@@ -72,6 +72,8 @@ function keshSarlavha(full, urlPath) {
 }
 
 const server = http.createServer((req, res) => {
+  // REV439: «Ulashish → Ta'lim AI» — service worker hali o'rnatilmagan bo'lsa, hujjat sahifasiga yo'naltiramiz
+  if (req.method === "POST" && (req.url || "").split("?")[0] === "/ulashish") { req.resume(); res.writeHead(303, { Location: "/?hujjat=ochish" }); res.end(); return; }
   if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405, { Allow: "GET, HEAD" }); res.end(); return; }
   const urlPath = req.url || "/";
   if (urlPath === "/healthz") { res.writeHead(200, { "Content-Type": "text/plain" }); res.end("ok"); return; }
