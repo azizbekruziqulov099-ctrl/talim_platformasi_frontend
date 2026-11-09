@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v21-rev439";   // REV398/REV439: ulashish (share target)
+const CACHE = "samtm-shell-v22-rev441";   // REV398/REV439: ulashish (share target)
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
@@ -92,10 +92,10 @@ self.addEventListener("fetch", event => {
       return response;
     });
     const keshdan = () => caches.match("/", { ignoreSearch: true });
-    const kutish = new Promise(resolve => setTimeout(() => keshdan().then(resolve), 10000));
+    // REV441: sekin internetda eski (keshdagi) sahifa BERILMAYDI — u yangilanishdan keyin o'chirilgan fayllarni so'rab,
+    // telefonda oq ekranda qotib qolardi. Kesh faqat internet umuman yo'q bo'lsa (so'rov xato bilan tugasa) ishlatiladi.
     event.respondWith(
-      Promise.race([tarmoq, kutish.then(c => c || tarmoq)])
-        .catch(async () => (await keshdan()) || new Response(OFLAYN_HTML, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } }))
+      tarmoq.catch(async () => (await keshdan()) || new Response(OFLAYN_HTML, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } }))
     );
     return;
   }

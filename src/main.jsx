@@ -71,9 +71,12 @@ class AppErrorBoundary extends React.Component {
 
 function LoadingScreen(){const {t}=useKbInterfaceLocale();return <div style={{padding:32,textAlign:'center'}}>{t('Yuklanmoqda…')}</div>;}
 
+function BootOk() { React.useEffect(() => { try { window.__kbBootOk?.(); } catch { /* */ } }, []); return null; }   // REV441: ilova ochildi — qotish himoyasi o'chadi
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <InterfaceProvider>
+    <BootOk />
     <AppErrorBoundary>
       <React.Suspense
         fallback={

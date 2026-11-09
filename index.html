@@ -18,6 +18,37 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- REV441: «oq ekranda qotib qolish»dan himoya. Yangilanishdan keyin telefon eski sahifani ochib, uning fayllari
+         serverda yo'q bo'lsa — ilova ishga tushmay oq ekran qolardi. Endi: asosiy fayl yuklanmasa yoki fayllar yuklangandan
+         keyin 8 soniyada ilova ochilmasa — kesh tozalanadi va sahifa yangidan ochiladi (2 martagacha); 3-marta service worker ham o'chiriladi. -->
+    <script>
+      (function () {
+        var K = "kb_boot_urinish", tugadi = false;
+        function tikla(sabab) {
+          if (tugadi) return; tugadi = true;
+          var n = 0; try { n = +(sessionStorage.getItem(K) || 0); } catch (e) {}
+          if (n >= 3) { korsat(); return; }
+          try { sessionStorage.setItem(K, String(n + 1)); } catch (e) {}
+          var ishlar = [];
+          try { if (window.caches) ishlar.push(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return k.indexOf("samtm-") === 0; }).map(function (k) { return caches.delete(k); })); })); } catch (e) {}
+          try { if (n >= 1 && navigator.serviceWorker) ishlar.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); })); } catch (e) {}
+          var och = function () { var u = location.pathname + "?_kb=" + Date.now() + (location.search.indexOf("hujjat=") > 0 ? "&" + location.search.slice(1) : ""); location.replace(u); };
+          Promise.all(ishlar).then(och, och); setTimeout(och, 3000);
+        }
+        function korsat() {
+          var r = document.getElementById("root"); if (!r || r.children.length) return;
+          r.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;background:#f7f5f0;padding:24px;text-align:center"><div><div style="font-size:44px">🕊️</div><h2 style="margin:10px 0">Sahifa ochilmadi</h2><p style="color:#5b6573">Internet sekin bo‘lishi mumkin. Bir oz kutib, qayta bosing.</p><button onclick="sessionStorage.removeItem(\'kb_boot_urinish\');location.replace(location.pathname+\'?_kb=\'+Date.now())" style="border:0;border-radius:14px;background:#1B4B7A;color:#fff;font:700 16px system-ui;padding:14px 22px">🔄 Qayta ochish</button></div></div>';
+        }
+        window.addEventListener("error", function (e) {
+          var t = e && e.target;
+          if (t && t.tagName === "SCRIPT" && /\/assets\//.test(t.src || "")) tikla("skript");
+        }, true);
+        // vaqt sahifa fayllari to'liq yuklangandan keyin hisoblanadi (sekin internetda yuklanish o'rtasida qayta ochilmasin)
+        var soat = 0;
+        window.addEventListener("load", function () { soat = setTimeout(function () { var r = document.getElementById("root"); if (!r || !r.children.length) tikla("vaqt"); }, 8000); });
+        window.__kbBootOk = function () { clearTimeout(soat); tugadi = true; try { sessionStorage.removeItem(K); } catch (e) {} };
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
