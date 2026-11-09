@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Kabutar" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:statusBarColor">#0D7A77</item>
+        <item name="android:navigationBarColor">#0D7A77</item>
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
+</resources>

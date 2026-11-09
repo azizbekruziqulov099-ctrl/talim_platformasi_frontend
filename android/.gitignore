@@ -1,0 +1,7 @@
+*.jks
+*.keystore
+.parol
+local.properties
+build/
+.gradle/
+*.log
