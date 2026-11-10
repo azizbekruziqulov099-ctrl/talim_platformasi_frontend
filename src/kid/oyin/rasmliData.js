@@ -26,6 +26,10 @@ export const TARTIB_TOPLAM = {
   suvSayohati: [
     { nom: "suv aylanishi", q: [W("🌊", "quyosh dengizni isitadi", "солнце греет море", "the sun warms the sea", "dengiz_quyosh"), W("☁️", "bulut", "облако", "cloud", "bulut"), W("🌧", "yomg‘ir", "дождь", "rain", "yomgir"), W("🏞", "daryo", "река", "river", "daryo")] },
   ],
+  kapalak: [   // REV470: «Kapalak hayoti» — rasmli
+    { nom: "kapalak", q: [W("🥚", "tuxum", "яйцо", "egg", "kapalak_tuxumi"), W("🐛", "qurtcha", "гусеница", "caterpillar", "qurtcha"), W("🫛", "g‘umbak", "куколка", "cocoon", "gumbak"), { e: "🦋", s: { uz: "kapalak", ru: "бабочка", en: "butterfly", de: "Schmetterling", es: "mariposa", r: "d_butterfly" } }] },
+    { nom: "qurbaqa", q: [W("🫧", "uvildiriq", "икринки", "frog eggs", "uvildiriq"), W("🐟", "itbaliq", "головастик", "tadpole", "itbaliq"), W("🐸", "qurbaqacha", "лягушонок", "froglet", "qurbaqacha")] },
+  ],
   qayerdan: [
     { nom: "non", q: [W("🌾", "bug‘doy dalasi", "пшеничное поле", "wheat field", "bugdoy_dalasi"), W("🚜", "kombayn o‘radi", "комбайн убирает", "harvester", "kombayn"), W("🏭", "tegirmonda un", "мука на мельнице", "flour mill", "tegirmon"), W("🥣", "xamir qoriladi", "замешивают тесто", "dough", "xamir"), W("🔥", "tandirga yopiladi", "печь в тандыре", "tandoor", "tandir"), W("🍞", "tayyor non", "готовый хлеб", "fresh bread", "tayyor_non")] },
     { nom: "sut", q: [W("🐄", "sigir o‘tloqda", "корова на лугу", "cow in the meadow", "sigir_oyloqda"), W("🪣", "sut sog‘iladi", "доят молоко", "milking", "sut_sogish"), W("🥛", "sut paketi", "пакет молока", "milk carton", "sut_paket"), W("🧒", "sut ichaman", "пью молоко", "I drink milk", "sut_stakanda")] },
