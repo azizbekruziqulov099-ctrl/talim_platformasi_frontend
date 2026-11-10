@@ -91,3 +91,9 @@
 .kg-nz-q.is-shubha{border-color:#f2b72e;background:#fffaf0}
 .kg-nz-b{color:#7a4a00;font-size:13px;margin-top:4px}
 .kg-nz-rasm{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.kg-nz-rasm img{width:72px;height:54px;object-fit:cover;border-radius:6px}
+/* REV484: yakuniy baho */
+.kk-yakuniy{border:0;border-radius:14px;background:#eef6ff;color:#13314f;font:600 15px system-ui;padding:10px 14px;cursor:pointer;margin:6px 0;text-align:left}
+.kk-yakuniy-ich{background:#fff;border-radius:14px;padding:10px 14px;box-shadow:0 4px 14px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.kk-yakuniy-ich div{display:flex;justify-content:space-between}.kk-yakuniy-ich p{color:#5b6573;margin:4px 0 0;font-size:13px}
+.kg-baho{overflow-x:auto;margin-top:8px}.kg-baho table{border-collapse:collapse;width:100%;font-size:14px}
+.kg-baho th,.kg-baho td{padding:6px 8px;border-bottom:1px solid #e3e8ef;text-align:center}.kg-baho td:first-child,.kg-baho th:first-child{text-align:left}

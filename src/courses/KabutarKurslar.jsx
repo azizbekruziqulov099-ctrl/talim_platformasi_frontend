@@ -52,7 +52,11 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     && (!qidir.trim() || kursNomi(k).toLowerCase().includes(qidir.trim().toLowerCase()))), [data, kat, qidir]);
   const soni = (c) => (data?.kurslar || []).filter((k) => k.kategoriya === c).length;
 
+  const [yakuniy, setYakuniy] = useState(null);   // REV484
+  const [yakOchiq, setYakOchiq] = useState(false);
   const kursniOch = (k, ochilsin = null) => {
+    setYakuniy(null);
+    if (token) fetch(`${base}/api/yakuniy?${new URLSearchParams({ token, fan: k.fan, grade: k.sinflar?.[0] || "" })}`).then((r) => (r.ok ? r.json() : null)).then(setYakuniy).catch(() => {});
     setKurs({ ...k, darslarSoni: k.darslar, darslar: [], yuklanmoqda: true });
     fetch(`${base}/api/kurslar/kurs?${new URLSearchParams({ token, fan: k.fan, grade: k.sinflar[0] || "" })}`).then(async (r) => {
       const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${r.status}`);
@@ -80,6 +84,11 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     <button type="button" className="kk-ortga" onClick={() => setKurs(null)}>← {__kbUi("Kurslar")}</button>
     <header className="kk-kurs-bosh"><h2>{kursNomi(kurs)}</h2>
       <p>{kurs.yuklanmoqda ? (kurs.darslarSoni ?? "…") : kurs.darslar.filter((x) => !x.nazorat).length} {__kbUi("ta dars")} · {Number(kurs.narx) > 0 ? (kurs.obuna_tugaydi ? __kbUi(`✓ Ochiq · ${kurs.obuna_tugaydi} gacha`) : __kbUi(`Birinchi ${kurs.bepul} ta dars bepul · ${somFmt(kurs.narx)} / 30 kun`)) : __kbUi("Bepul kurs")}</p></header>
+    {yakuniy?.foiz != null && <button type="button" className="kk-yakuniy" onClick={() => setYakOchiq((x) => !x)}>
+      🎓 {__kbUi("Yakuniy baho")}: <b>{yakuniy.foiz}%</b> · <b>{yakuniy.ball}</b> {__kbUi("baho")}{!yakuniy.tasdiqlangan && <small> · {__kbUi("tasdiqlanmagan")}</small>}</button>}
+    {yakOchiq && yakuniy && <div className="kk-yakuniy-ich">{yakuniy.qismlar.map((q) => <div key={q.kalit}><span>{__kbUi(q.nom)} <small>({q.ulush}%)</small></span>
+      <b>{q.foiz == null ? "—" : `${q.foiz}%`}</b></div>)}
+      {!yakuniy.tasdiqlangan && <p>{__kbUi("O‘qituvchi bahosi hali yo‘q — baho uy ishi va onlayn nazoratlar bo‘yicha hisoblandi.")}</p>}</div>}
     {kurs.yuklanmoqda && <p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}
     {kurs.xato && <p className="kk-xato" role="alert">{kurs.xato}</p>}
     {!kurs.yuklanmoqda && <KursGuruh apiBase={apiBase} token={token} user={user} kurs={kurs}

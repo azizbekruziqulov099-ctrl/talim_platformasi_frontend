@@ -53,6 +53,27 @@ function Nazoratlar({ apiBase, token, g }) {
   </div>; })}</div>;
 }
 
+/** REV484: o'qituvchi — guruhning yakuniy baholari (uy 30 / kurs 40 / onlayn 10 / imtihon 20) va o'z bahosini qo'yish */
+function Baholar({ apiBase, token, g }) {
+  const [d, setD] = useState(null), [xato, setXato] = useState("");
+  const yukla = () => kgFetch(apiBase, `/api/kurs_guruh/${g.id}/yakuniy`, token).then(setD).catch((e) => setXato(e.message));
+  useEffect(() => { yukla(); }, [g.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const qoy = (o, turi) => {
+    const v = window.prompt(__kbUi(turi === "imtihon" ? `${o.ism}: imtihon bahosi (0–100 %)` : `${o.ism}: kurs bahosi — mashg‘ulot, uy vazifasi (0–100 %)`));
+    const n = Number(String(v || "").replace(",", ".")); if (v == null || !Number.isFinite(n) || n < 0 || n > 100) return;
+    kgFetch(apiBase, `/api/kurs_guruh/${g.id}/baho`, token, { method: "POST", body: { user_id: o.user_id, turi, ball: Math.round(n) } }).then(yukla).catch((e) => setXato(e.message));
+  };
+  if (xato) return <p className="kk-xato">{xato}</p>;
+  if (!d) return <p className="kk-p">⏳</p>;
+  if (!d.oquvchilar.length) return <p className="kk-p">{__kbUi("Guruhda hali o‘quvchi yo‘q.")}</p>;
+  const f = (o, k) => { const q = o.qismlar.find((x) => x.kalit === k); return q?.foiz == null ? "—" : `${q.foiz}`; };
+  return <div className="kg-baho"><table><thead><tr><th>{__kbUi("O‘quvchi")}</th><th>🏠 30%</th><th>👩‍🏫 40%</th><th>💻 10%</th><th>✍️ 20%</th><th>🎓</th><th /></tr></thead>
+    <tbody>{d.oquvchilar.map((o) => <tr key={o.user_id}><td>{o.ism}</td><td>{f(o, "uy")}</td><td>{f(o, "kurs")}</td><td>{f(o, "onlayn")}</td><td>{f(o, "imtihon")}</td>
+      <td><b>{o.foiz == null ? "—" : `${o.foiz}% · ${o.ball}`}</b></td>
+      <td><button type="button" className="kg-btn" onClick={() => qoy(o, "kurs")}>+ {__kbUi("kurs")}</button> <button type="button" className="kg-btn" onClick={() => qoy(o, "imtihon")}>+ {__kbUi("imtihon")}</button></td></tr>)}</tbody></table>
+    <p className="kk-p">{__kbUi("Baho: 86–100% → 5, 71–85% → 4, 56–70% → 3. Qaysidir qism bo‘lmasa, qolganlari ulushiga qarab hisoblanadi.")}</p></div>;
+}
+
 export default function KursGuruh({ apiBase, token, user, kurs, onDars }) {
   const oqituvchi = Boolean(user?.is_admin) || ["oqituvchi", "admin", "direktor"].includes(String(user?.role || ""));
   const [d, setD] = useState(null);
@@ -62,6 +83,7 @@ export default function KursGuruh({ apiBase, token, user, kurs, onDars }) {
   const [xato, setXato] = useState("");
   const [kuzat, setKuzat] = useState(null);
   const [nzOchiq, setNzOchiq] = useState(null);   // REV483
+  const [bahoOchiq, setBahoOchiq] = useState(null);   // REV484
   const grade = (kurs.sinflar || [])[0] || "";
   const yukla = () => kgFetch(apiBase, "/api/kurs_guruh", token, { params: { fan: kurs.fan, grade } }).then(setD).catch((e) => setXato(e.message));
   useEffect(() => { yukla(); }, [kurs.kalit]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -96,10 +118,12 @@ export default function KursGuruh({ apiBase, token, user, kurs, onDars }) {
           <button type="button" className="kg-btn" onClick={() => nusxa(g)}>🔗 {__kbUi("Havola")}</button>
           <button type="button" className={`kg-btn ${kuzat === g.id ? "is-asosiy" : ""}`} disabled={!g.bugungi} onClick={() => setKuzat(kuzat === g.id ? null : g.id)}>🔴 {__kbUi("Jonli kuzatish")}</button>
           <button type="button" className={`kg-btn ${nzOchiq === g.id ? "is-asosiy" : ""}`} onClick={() => setNzOchiq(nzOchiq === g.id ? null : g.id)}>📋 {__kbUi("Nazoratlar")}</button>
+          <button type="button" className={`kg-btn ${bahoOchiq === g.id ? "is-asosiy" : ""}`} onClick={() => setBahoOchiq(bahoOchiq === g.id ? null : g.id)}>🎓 {__kbUi("Baholar")}</button>
           <label className="kg-kamera" title={__kbUi("Yoqilsa — guruhning barcha nazoratlari kamera bilan (oylik va maksimum imtihonda kamera doim bor)")}>
             <input type="checkbox" checked={Boolean(g.kamera)} onChange={(e) => kgFetch(apiBase, `/api/kurs_guruh/${g.id}/kamera`, token, { method: "POST", body: { kamera: e.target.checked } }).then(yukla).catch((x) => setXato(x.message))} /> 📷 {__kbUi("Kamera")}</label>
         </div>
         {nzOchiq === g.id && <Nazoratlar apiBase={apiBase} token={token} g={g} />}
+        {bahoOchiq === g.id && <Baholar apiBase={apiBase} token={token} g={g} />}
         <label className="kg-bugungi">📅 {__kbUi("Bugungi mashg‘ulot")}: <select value={g.bugungi || ""} onChange={(e) => bugungi(g, e.target.value)}>
           <option value="">— {__kbUi("tanlang")} —</option>
           {(kurs.darslar || []).map((x, i) => <option key={x.topic_code} value={x.topic_code}>{i + 1}. {x.nomi}</option>)}</select></label>
