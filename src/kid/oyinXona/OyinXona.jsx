@@ -1,6 +1,7 @@
 // REV371: «O‘yinlar xonasi» — bolaning o‘yinlari o‘z nomi bilan; har o‘yin bosqichlarga bo‘lingan (10 raund),
 // bosqichlar qulflangan: kuniga bittadan ochiladi (oldingisi o‘tilgan bo‘lsa), 2-bosqichdan boshlab — obuna bilan.
 import { BandBelgi } from "../../pwa/band.js";   // REV466
+import Nazoratchi, { OyinYopiq } from "./Nazoratchi.jsx";   // REV481
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Oyin from "../oyin/index.js";
 import { oyinRasmTop } from "../oyin/oyinRasmTop.js";
@@ -39,6 +40,16 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
   const [, setSoz] = useState(0);
   const urug = useRef(Math.floor(Math.random() * 1e6));
   const say = (s, d) => { try { onSay?.(s, d); } catch { d?.(); } };
+  const [nz, setNz] = useState(null);   // REV481: {ruxsat, sabab, nazoratchi, ...}
+  const [nzOyna, setNzOyna] = useState(false);
+  const boshlanganlar = useRef(0);
+  const nzYukla = () => (token ? fetch(`${base}/api/nazoratchi/ruxsat?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : null)).then((j) => setNz(j || { ruxsat: true })).catch(() => setNz({ ruxsat: true })) : setNz({ ruxsat: true }));
+  useEffect(() => { nzYukla(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {   // har ikkinchi bosqich boshida Nazoratchi chiqadi (kuniga ko'pi bilan 3 marta — server hisoblaydi)
+    if (!oynaydi) return;
+    boshlanganlar.current += 1;
+    if (nz?.nazoratchi && boshlanganlar.current % 2 === 0) setNzOyna(true);
+  }, [oynaydi]); // eslint-disable-line react-hooks/exhaustive-deps
   const yukla = () => fetch(`${base}/api/bola/oyin_xona?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : null)).catch(() => null)
     .then((j) => setH(j || { holat: {}, obuna: false, bugun: new Date().toISOString().slice(0, 10) }));
   useEffect(() => { yukla(); oyinSozlamaYukla(base).then(() => setSoz((x) => x + 1)).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -53,7 +64,10 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
     const h = () => { const q = qadamRef.current; if (q === 2) { setOynaydi(null); setNatija(null); } else if (q === 1) { setTanlangan(null); setXabar(""); } };
     window.addEventListener("popstate", h); return () => window.removeEventListener("popstate", h);
   }, []);
-  if (!h) return <div className="ox-root"><p role="status">…</p></div>;
+  if (!h || !nz) return <div className="ox-root"><p role="status">…</p></div>;
+  if (!nz.ruxsat) return <div className="ox-root"><OyinYopiq r={nz} onClose={onClose} /></div>;   // REV481
+  if (nzOyna) return <div className="ox-root"><Nazoratchi base={base} token={token} yosh={yosh} say={say}
+    onTugadi={(r) => { setNzOyna(false); if (r?.qulf) { setOynaydi(null); setTanlangan(null); nzYukla(); } else setNz((x) => ({ ...x })); }} /></div>;
   const prog = (id) => h.holat?.[String(id)] || {};
 
   if (oynaydi && tanlangan) {
