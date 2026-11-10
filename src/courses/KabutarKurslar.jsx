@@ -62,6 +62,10 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {dars.guruh && <p className="kg-darsda">👥 {dars.guruh.nom} · {__kbUi("javoblaringiz o‘qituvchiga ko‘rinadi")}</p>}
     <React.Suspense fallback={<p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}>
     <DarsXonasi onNatija={dars.guruh ? (n) => kgFetch(apiBase, "/api/kurs_dars/javob", token, { method: "POST", body: { topic_code: dars.topic_code, ...n } }).catch(() => {}) : null}
+      onTugadi={(n) => fetch(`${base}/api/kurslar/dars_tugadi`, { method: "POST", headers: { "Content-Type": "application/json" },   // REV477: kurs tartibi
+        body: JSON.stringify({ token, fan: kurs?.fan || "", grade: (kurs?.sinflar || [])[0] || "", topic_code: dars.topic_code, ...(n || {}) }) }).catch(() => {})}
+      keyingiDars={(() => { const ds = kurs?.darslar || []; const i = ds.findIndex((x) => x.topic_code === dars.topic_code); const k = i >= 0 ? ds[i + 1] : null;
+        return k ? { nomi: k.nomi || k.topic_code, darhol: Boolean(kurs?.tartib_erkin), och: () => setDars({ ...k }) } : null; })()}
       adminMi={Boolean(user?.is_admin)} apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")}
       jins={user?.jins} learnerRole={user?.role || ""} onClose={() => { setDars(null); if (kurs) kursniOch((data?.kurslar || []).find((x) => x.kalit === kurs.kalit) || kurs); }} /></React.Suspense></div>;
   if (kat === "sertifikat") return <Bolim nom="🎓 Sertifikat" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MarkazPanel apiBase={apiBase} token={token} user={user} /></React.Suspense></Bolim>;
@@ -77,9 +81,11 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       onDars={(tc, g) => { const x = (kurs.darslar || []).find((y) => y.topic_code === tc); if (x?.ochiq) setDars({ ...x, guruh: g }); else if (x) setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }); }} />}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code}>
       {kurs.kategoriya === "repetitor" && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
-      <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"}`} onClick={() => (d.ochiq ? setDars(d) : setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }))}>
+      <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""}`}
+        onClick={() => (d.ochiq ? setDars(d) : d.holat === "ertaga" ? alert(__kbUi("🌙 Bu dars ertaga ochiladi — bugungi darsni yaxshilab o‘rganib oling."))
+          : d.holat === "qulf" ? alert(__kbUi("🔒 Avval oldingi darslarni tugating — darslar ketma-ket ochiladi.")) : setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }))}>
         <span className="kk-raqam">{i + 1}</span><span className="kk-dars-nom">{d.nomi || d.topic_code}{kurs.kategoriya === "bolalar" && (kurs.sinflar || []).length > 1 ? <small> · {__kbUi(`${(kurs.sinflar || []).indexOf(d.sinf) + 1}-qism`)}</small> : null}</span>
-        <span className="kk-belgi" aria-label={d.ochiq ? (d.bepul ? __kbUi("bepul") : __kbUi("ochiq")) : __kbUi("yopiq")}>{d.ochiq ? (d.bepul && Number(kurs.narx) > 0 ? "🎁" : "▶") : "🔒"}</span></button></li>)}</ol>
+        <span className="kk-belgi" aria-label={d.ochiq ? (d.bepul ? __kbUi("bepul") : __kbUi("ochiq")) : __kbUi("yopiq")}>{d.holat === "tugadi" ? "✅" : d.holat === "ertaga" ? "🌙" : d.ochiq ? (d.bepul && Number(kurs.narx) > 0 ? "🎁" : "▶") : "🔒"}</span></button></li>)}</ol>
     {tolov && <KursTolov apiBase={apiBase} token={token} kurs={tolov} onClose={() => setTolov(null)} />}
   </section>;
 

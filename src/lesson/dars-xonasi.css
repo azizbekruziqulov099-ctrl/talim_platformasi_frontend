@@ -1251,3 +1251,7 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-kop-chip.is-on{background:#2f6fb3;border-color:#8fc1ff}
 .dx-kop-chip.is-ok{background:#2e9e5b;border-color:#8be0a9}
 .dx-kop-chip.is-no{background:#b3362f;border-color:#f19a94}
+/* REV477: dars tugagach — keyingi dars */
+.dx-keyingi-dars{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:center;margin:10px auto;padding:12px 16px;border-radius:16px;background:#fff7e0;border:1px solid #f2d27a;color:#3d2e00;font-weight:700;max-width:760px}
+.dx-keyingi-dars small{font-weight:600;opacity:.8;margin-left:6px}
+.dx-keyingi-ertaga b{font-weight:800}

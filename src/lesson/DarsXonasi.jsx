@@ -175,7 +175,7 @@ export function teglarniAjrat(d) {
 }
 
 import KursTolov from "../courses/KursTolov.jsx";
-export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, boshqaTillar = [], cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
+export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNatija = null, apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, boshqaTillar = [], cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
   const uiT = (m) => (m && ["ru", "en"].includes(uiLocale) && !/\[[a-z]{2}\]/.test(m) ? `[${uiLocale}]${m}[/${uiLocale}]` : m);
@@ -1541,6 +1541,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       setStiker(stikerBer(topicCode, { egasi: String(kidPlan ? "bola" : "mehmon") }) || null);   // REV333
       if (kidPlan) stikerServer(apiBase, token, topicCode).then((d) => { if (d?.albom) albomYoz(d.albom, "bola"); });   // REV339: serverda ham
     }
+    if (mode === "end" || (mode === "result" && !xatoTartib)) onTugadi?.(mode === "result" && questions.length ? { togri: score, jami: questions.length } : {});   // REV477
     if (mode === "result" && !xatoTartib && questions.length) { markLessonDone(topicCode, kidStars(score, questions.length)); natijaYoz(topicCode, score, questions.length); tilniBelgila(topicCode, darsIzohTili(fan || lesson?.topic?.fan)); }
     if (learnerRole !== "oquvchi" || !token) return;
     if (mode === "lesson" && !darsBosh.current) darsBosh.current = Date.now();
@@ -2142,6 +2143,12 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       ayt={(m) => { try { izohCtl.current?.stop(); } catch { /* */ } izohCtl.current = ikkiOvozOqi(speakableText(m), { til: darsTil, nomzodlar: [...new Set([izTilU, darsTil, "uz"])],
         url: (x, kim) => `${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: x.slice(0, 1500), jins: kim === "til" ? "qiz" : "ogil", ohang: kim === "til" ? KABU_TV.til : KABU_TV.iz, ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}) })}`,
         onKim: (k) => setKabuKim(k), onEnd: () => setKabuKim(null) }); }} />}
+    {/* REV477: dars tugadi — keyingi dars (kurs tartibi: odatda ertaga ochiladi, admin/o'qituvchiga darhol) */}
+    {keyingiDars && (mode === "end" || (mode === "result" && !xatoTartib)) && <div className="dx-keyingi-dars">
+      <span>✅ {__kbUi("Dars tugadi!")}</span>
+      {keyingiDars.darhol ? <button type="button" className="dx-btn dx-primary is-keyingi-tayyor" onClick={() => { hush(); keyingiDars.och(); }}>{__kbUi("Keyingi dars")} → <small>{keyingiDars.nomi}</small></button>
+        : <span className="dx-keyingi-ertaga">🌙 {__kbUi("Keyingi dars ertaga ochiladi:")} <b>{keyingiDars.nomi}</b></span>}
+    </div>}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
       {darsTil && qisqa.length > 0 && mode === "end" && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
       <button type="button" className={`dx-btn dx-primary ${pauza && mode === "lesson" ? "is-davom-kut" : ""}`} disabled={mode === "test"} onClick={() => {
