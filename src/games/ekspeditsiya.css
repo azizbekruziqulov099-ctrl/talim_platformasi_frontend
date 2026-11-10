@@ -41,3 +41,8 @@
 @keyframes ek-yulduz{0%{transform:scale(0) rotate(-90deg)}100%{transform:none}}
 .ek-qator{display:flex;gap:10px;justify-content:center;margin-top:12px;flex-wrap:wrap}
 @media (max-width:560px){.ek-variantlar{grid-template-columns:1fr}.ek-savol{font-size:19px}}
+/* REV457: topshiriq ko'rinishlari */
+.ek-teglar{display:flex;gap:6px;flex-wrap:wrap}
+.ek-teg.is-korinish{background:#fff;color:#1d2b3a;border:1px solid #d6dee8}
+.ek-variantlar.is-ikki .ek-v{font-size:22px;min-height:70px}
+.ek-savol>div+div{margin-top:6px}

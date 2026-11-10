@@ -6,6 +6,7 @@ import { BoardText } from "../lesson/AmaliyDoska.jsx";
 import "./ekspeditsiya.css";
 
 const TEG = { yangi: ["Yangi", "#1B4B7A"], takror: ["Takror", "#0D7A77"], uzoq: ["Eski mavzu", "#7A4FBF"], xato: ["Xatoni tuzatish", "#C2410C"], darvoza: ["Darvoza", "#B45309"] };
+const KORINISH = { xato_top: "🔎 Xatoni top", chamalash: "≈ Chamalash", togri_notogri: "⚖️ To‘g‘rimi?", naqsh: "🧩 Naqsh" };   // REV457
 const USLUB = (k) => { const g = Number(String(k).replace(/\D/g, "")); return g <= 4 ? "vodiy" : g <= 6 ? "orol" : g <= 9 ? "shahar" : "kosmos"; };
 
 function nuqtalar(W, H) {   // ilonsimon yo'l bo'ylab 20 bekat
@@ -103,9 +104,10 @@ function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
     <div className="ek-tepa"><button type="button" className="ek-t" onClick={onOrqaga}>←</button><b>{dat.darvoza ? `🏛 ${__kbUi("Darvoza")}` : `${__kbUi("Bosqich")} ${n}`}</b>
       <div className="ek-nuqtalar">{T.map((_, k) => <i key={k} className={k < natija.length ? (natija[k].ok ? "is-ok" : "is-xato") : k === i ? "is-joriy" : ""} />)}</div></div>
     <div className="ek-karta">
-      <span className="ek-teg" style={{ background: rang }}>{__kbUi(nom)}</span>
-      <div className="ek-savol"><BoardText text={t.savol} /></div>
-      <div className="ek-variantlar">{t.variantlar.map((v, k) => <button key={k} type="button" disabled={tanlov !== null}
+      <div className="ek-teglar"><span className="ek-teg" style={{ background: rang }}>{__kbUi(nom)}</span>
+        {KORINISH[t.korinish] && <span className="ek-teg is-korinish">{__kbUi(KORINISH[t.korinish])}</span>}</div>
+      <div className="ek-savol">{String(t.savol).split("\n").map((q, k) => <div key={k}><BoardText text={q} /></div>)}</div>
+      <div className={`ek-variantlar ${t.variantlar.length === 2 ? "is-ikki" : ""}`}>{t.variantlar.map((v, k) => <button key={k} type="button" disabled={tanlov !== null}
         className={`ek-v ${tanlov !== null && k === t.togri ? "is-togri" : ""} ${tanlov === k && k !== t.togri ? "is-xato" : ""}`} onClick={() => javob(k)}><BoardText text={/[\\^_]/.test(v) ? `$${v}$` : v} /></button>)}</div>
       {tanlov !== null && <div className={`ek-fikr ${tanlov === t.togri ? "is-ok" : "is-xato"}`}>
         <b>{tanlov === t.togri ? __kbUi("To‘g‘ri!") : __kbUi("Xato — mana yechimi:")}</b>
