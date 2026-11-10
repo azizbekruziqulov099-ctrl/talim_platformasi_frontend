@@ -91,7 +91,7 @@ function nuqtalarTik(W, H) {   // telefon: 7 qator, ilonsimon (3 tadan)
   });
 }
 
-function Xarita({ kurs, d, onBosqich, onOrqaga, onNishonlar }) {
+function Xarita({ kurs, d, avatar, onAvatar, onReyting, onBosqich, onOrqaga, onNishonlar }) {
   const [tik, setTik] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
   useEffect(() => { const f = () => setTik(window.innerWidth < 640); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
   const uslub = USLUB(kurs), tema = TEMA[uslub];
@@ -105,7 +105,9 @@ function Xarita({ kurs, d, onBosqich, onOrqaga, onNishonlar }) {
       <span className="ek-chip"><img src={R("olov_streak")} alt="" className="ek-ik" /> {d.streak || 0}</span>
       <span className="ek-chip">✅ {d.jami || 0}</span>
       {d.xato_navbat > 0 && <span className="ek-chip" title={__kbUi("Qayta yechiladigan mavzular")}>🔁 {d.xato_navbat}</span>}
-      <button type="button" className="ek-chip ek-chip-btn" onClick={onNishonlar}><img src={R("kubok")} alt="" className="ek-ik" /> {olindi}/{(d.nishonlar || []).length}</button></div>
+      <button type="button" className="ek-chip ek-chip-btn" onClick={onNishonlar}><img src={R("kubok")} alt="" className="ek-ik" /> {olindi}/{(d.nishonlar || []).length}</button>
+      <button type="button" className="ek-chip ek-chip-btn" onClick={onReyting}>🏅 {__kbUi("Reyting")}</button>
+      <button type="button" className="ek-avatar-tepa" onClick={onAvatar} title={__kbUi("Avatarni tanlash")}>{avatar ? <img src={R(avatar)} alt="" /> : "👤"}</button></div>
     <svg viewBox={`0 0 ${W} ${H}`} className="ek-svg" role="img" aria-label={d.nom}>
       {fon ? <image href={fon} x="0" y="0" width={W} height={H} preserveAspectRatio="xMidYMid slice" /> : <XaritaFon uslub={uslub} W={W} H={H} />}
       {!fon && <path d={yol} stroke="#ffffffaa" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 22" />}
@@ -215,12 +217,35 @@ function Hisobot({ api, kurslar, guruhlar, onOrqaga }) {
         : <p className="ek-izoh">{__kbUi("Hali yetarli ma’lumot yo‘q — o‘quvchilar bir necha bosqich o‘ynagach ko‘rinadi.")}</p>}
       <h3>{__kbUi("O‘quvchilar")} {h.boshlamagan ? <small className="ek-izoh">· {h.boshlamagan} {__kbUi("ta hali boshlamagan")}</small> : null}</h3>
       <div className="ek-jadval-q"><table><thead><tr><th>{__kbUi("O‘quvchi")}</th><th>{__kbUi("Bosqich")}</th><th>★</th><th>{__kbUi("Aniqlik")}</th><th>🔥</th><th>{__kbUi("Zaif mavzular")}</th></tr></thead>
-        <tbody>{h.oquvchilar.map((q, i) => <tr key={i}><td>{q.ism}</td>
+        <tbody>{h.oquvchilar.map((q, i) => <tr key={i}><td><span className="ek-hisobot-ism">{q.avatar ? <img src={R(q.avatar)} alt="" /> : <i>👤</i>}{q.ism}</span></td>
           <td><div className="ek-bar kichik"><i style={{ width: `${(q.bosqich / 20) * 100}%` }} /></div>{q.bosqich}/20</td>
           <td>{q.yulduz}</td><td>{q.aniqlik == null ? "—" : `${q.aniqlik}%`}</td><td>{q.streak || 0}</td>
           <td>{q.zaif.map((z) => <span key={z.tur} className="ek-chip kichik">{__kbUi(z.nom)} {z.foiz}%</span>)}</td></tr>)}</tbody></table></div>
     </>}
   </div>;
+}
+
+/** REV464: avatar tanlash (12 ta) */
+function AvatarTanlov({ joriy, onTanla, onYop }) {
+  return <div className="ek-modal" onClick={onYop}><div className="ek-modal-ich" onClick={(e) => e.stopPropagation()}>
+    <div className="ek-tepa"><b>👤 {__kbUi("Avataringizni tanlang")}</b><button type="button" className="ek-t" style={{ marginLeft: "auto" }} onClick={onYop}>✕</button></div>
+    <div className="ek-avatarlar">{Array.from({ length: 12 }, (_, i) => `avatar_${String(i + 1).padStart(2, "0")}`).map((a) =>
+      <button key={a} type="button" className={`ek-avatar-b ${a === joriy ? "is-tanlangan" : ""}`} onClick={() => onTanla(a)}><img src={R(a)} alt="" /></button>)}</div>
+  </div></div>;
+}
+
+/** REV464: guruhdoshlar reytingi */
+function Reyting({ api, kurs, onYop }) {
+  const [r, setR] = useState(null);
+  useEffect(() => { api(`/api/ekspeditsiya/${kurs}/reyting`).then(setR).catch(() => setR({ reyting: [], guruhsiz: true })); }, [kurs]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="ek-modal" onClick={onYop}><div className="ek-modal-ich" onClick={(e) => e.stopPropagation()}>
+    <div className="ek-tepa"><b>🏅 {__kbUi("Guruh reytingi")}</b><button type="button" className="ek-t" style={{ marginLeft: "auto" }} onClick={onYop}>✕</button></div>
+    {!r ? <p className="ek-izoh">⏳</p> : r.guruhsiz ? <p className="ek-izoh">{__kbUi("Reyting o‘qituvchingiz ochgan guruhda ko‘rinadi. Guruhga qo‘shilish uchun o‘qituvchingiz yuborgan havolani oching.")}</p>
+      : <ol className="ek-reyting">{r.reyting.map((x) => <li key={`${x.orin}-${x.ism}`} className={x.men ? "is-men" : ""}>
+        <span className="ek-orin">{x.orin <= 3 ? ["🥇", "🥈", "🥉"][x.orin - 1] : x.orin}</span>
+        {x.avatar ? <img src={R(x.avatar)} alt="" /> : <span className="ek-avatar-bosh">👤</span>}
+        <b>{x.ism}{x.men ? ` (${__kbUi("siz")})` : ""}</b><span>★ {x.yulduz}</span><small>{x.bosqich}/20</small></li>)}</ol>}
+  </div></div>;
 }
 
 export default function Ekspeditsiya({ apiBase = "", token = "", onClose }) {
@@ -236,17 +261,27 @@ export default function Ekspeditsiya({ apiBase = "", token = "", onClose }) {
   const [guruhlar, setGuruhlar] = useState([]);
   const [hisobotda, setHisobotda] = useState(false);
   const [nishonda, setNishonda] = useState(false);
+  const [avatar, setAvatar] = useState("");
+  const [avatarda, setAvatarda] = useState(false);
+  const [reytingda, setReytingda] = useState(false);
   const yangila = () => kurs && api(`/api/ekspeditsiya/${kurs}`).then(setD).catch(() => setD(null));
   useEffect(() => { api("/api/ekspeditsiya/kurslar").then((r) => setKurslar(r.kurslar || [])).catch(() => {});
-    api("/api/ekspeditsiya/oqituvchi/guruhlar").then((r) => setGuruhlar(r.guruhlar || [])).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    api("/api/ekspeditsiya/oqituvchi/guruhlar").then((r) => setGuruhlar(r.guruhlar || [])).catch(() => {});
+    api("/api/ekspeditsiya/profil").then((r) => setAvatar(r.avatar || "")).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setD(null); if (kurs) { try { localStorage.setItem("kb_eksp_kurs", kurs); } catch { /* */ } yangila(); } }, [kurs]); // eslint-disable-line react-hooks/exhaustive-deps
   if (bosqich) return <div className="ek-root"><Oyin key={`${kurs}-${bosqich}`} api={api} apiBase={apiBase} kurs={kurs} n={bosqich}
     onOrqaga={() => { setBosqich(0); yangila(); }} onTugadi={(keyin) => { yangila(); setBosqich(0); if (keyin) setTimeout(() => setBosqich(keyin), 0); }} /></div>;
   if (hisobotda && guruhlar.length) return <div className="ek-root"><Hisobot api={api} kurslar={kurslar} guruhlar={guruhlar} onOrqaga={() => setHisobotda(false)} /></div>;
-  if (kurs && d) return <div className="ek-root"><Xarita kurs={kurs} d={d} onBosqich={setBosqich} onOrqaga={() => setKurs("")} onNishonlar={() => setNishonda(true)} />
-    {nishonda && <Nishonlar d={d} onYop={() => setNishonda(false)} />}</div>;
+  const avatarTanla = (a) => { setAvatar(a); setAvatarda(false); api("/api/ekspeditsiya/profil", { method: "POST", body: JSON.stringify({ avatar: a }) }).catch(() => {}); };
+  const avatarModal = avatarda && <AvatarTanlov joriy={avatar} onTanla={avatarTanla} onYop={() => setAvatarda(false)} />;
+  if (kurs && d) return <div className="ek-root"><Xarita kurs={kurs} d={d} avatar={avatar} onAvatar={() => setAvatarda(true)} onReyting={() => setReytingda(true)}
+    onBosqich={setBosqich} onOrqaga={() => setKurs("")} onNishonlar={() => setNishonda(true)} />
+    {nishonda && <Nishonlar d={d} onYop={() => setNishonda(false)} />}{avatarModal}
+    {reytingda && <Reyting api={api} kurs={kurs} onYop={() => setReytingda(false)} />}</div>;
   return <div className="ek-root ek-tanlov">
-    <div className="ek-tepa">{onClose && <button type="button" className="ek-t" onClick={onClose}>←</button>}<b>🧭 {__kbUi("Matematik ekspeditsiya")}</b></div>
+    <div className="ek-tepa">{onClose && <button type="button" className="ek-t" onClick={onClose}>←</button>}<b>🧭 {__kbUi("Matematik ekspeditsiya")}</b>
+      <button type="button" className="ek-avatar-tepa" onClick={() => setAvatarda(true)} title={__kbUi("Avatarni tanlash")}>{avatar ? <img src={R(avatar)} alt="" /> : "👤"}</button></div>
+    {avatarModal}
     {guruhlar.length > 0 && <button type="button" className="ek-btn" style={{ alignSelf: "flex-start", marginBottom: 10 }} onClick={() => setHisobotda(true)}>👩‍🏫 {__kbUi("O‘qituvchi hisoboti")}</button>}
     <p className="ek-izoh">{__kbUi("Sinfingizni tanlang. 20 bosqich, har birida 15 ta topshiriq — o‘tgan mavzular ham vaqti-vaqti bilan qaytib keladi.")}</p>
     <div className="ek-kurslar">{kurslar.map((k) => <button key={k.kalit} type="button" className={`ek-kurs is-${USLUB(k.kalit)}`} onClick={() => setKurs(k.kalit)}>

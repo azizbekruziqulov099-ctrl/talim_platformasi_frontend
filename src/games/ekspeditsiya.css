@@ -86,3 +86,18 @@
 .ek-kichik-rasm{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:36px;line-height:1}
 .ek-kichik-rasm b{font-size:30px;margin:0 8px;color:#1B4B7A}
 .ek-kichik-rasm .is-olindi{opacity:.25;filter:grayscale(1);text-decoration:line-through}
+/* REV464: avatar va reyting */
+.ek-avatar-tepa{margin-left:auto;width:46px;height:46px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.18);background:#eef2f6;padding:0;overflow:hidden;cursor:pointer;font-size:22px}
+.ek-avatar-tepa img{width:100%;height:100%;object-fit:cover}
+.ek-avatarlar{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px}
+.ek-avatar-b{border:3px solid transparent;border-radius:50%;padding:0;overflow:hidden;background:#f6f8fb;cursor:pointer;aspect-ratio:1}
+.ek-avatar-b img{width:100%;height:100%;object-fit:cover}
+.ek-avatar-b.is-tanlangan{border-color:#f2b72e;box-shadow:0 0 0 4px #fff3c4}
+.ek-reyting{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.ek-reyting li{display:grid;grid-template-columns:40px 44px 1fr auto auto;gap:10px;align-items:center;padding:6px 10px;border-radius:14px;background:#f6f8fb}
+.ek-reyting li.is-men{background:#fff3c4;font-weight:700}
+.ek-reyting img,.ek-avatar-bosh{width:40px;height:40px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#eef2f6}
+.ek-orin{font-weight:800;text-align:center;font-size:18px}
+.ek-reyting small{color:#5b6573}
+.ek-hisobot-ism{display:inline-flex;align-items:center;gap:8px}
+.ek-hisobot-ism img,.ek-hisobot-ism i{width:28px;height:28px;border-radius:50%;object-fit:cover;font-style:normal;display:grid;place-items:center;background:#eef2f6}
