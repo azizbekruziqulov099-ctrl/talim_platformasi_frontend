@@ -1260,3 +1260,13 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-savol-vaqt i{display:block;height:100%;border-radius:999px;transition:width .25s linear,background .4s}
 .dx-savol-vaqt b{position:absolute;right:6px;top:-18px;font:700 12px system-ui;color:#ffd76a}
 .dx-savol-vaqt.is-kid{height:16px;max-width:520px;margin:10px auto}
+/* REV482: o'qituvchi qo'lini ochganda qo'llari doska ORTIGA yashirinmasin — sinf foni alohida qatlam (stacking context) bo'lmaydi,
+   o'qituvchi (z 4) doskadan (z 2) oldinda chiziladi; fon rasmi esa orqada qoladi. O'qituvchi bosishga xalaqit bermaydi. */
+.dx-root.dx-sinf .dx-sinf-fon{z-index:auto}
+.dx-root.dx-sinf .dx-sinf-fon .us-stage{contain:none}
+.dx-root.dx-sinf .dx-sinf-fon .us-teacher{z-index:4;pointer-events:none}
+/* REV482: sanash — bola bosib sanaydi, keyin sonni tanlaydi */
+.dx-sanash{position:absolute;right:14px;bottom:14px;z-index:5;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.dx-sanash-son{background:#fff3c4;color:#5a4300;border-radius:999px;padding:6px 14px;font:800 20px system-ui}
+.dx-sanash-var{display:flex;gap:10px}
+.dx-sanash-var button{min-width:72px;min-height:72px;border-radius:20px;border:3px solid #fff;background:#2f6fb3;color:#fff;font:900 30px system-ui;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.25)}

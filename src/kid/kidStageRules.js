@@ -440,6 +440,22 @@ export function faolRasm(pics = [], sozlar = [], at = -1, mik = "") {
 const BOS_FEL = /(?:^|[^\p{L}])(bos|bosing|bosgin|nuqi|tegin|нажми|нажмите|коснись|tap|touch|press)(?=$|[^\p{L}])/iu;
 const SON_SOZ = { bitta: 1, bir: 1, ikkita: 2, ikki: 2, uchta: 3, uch: 3, "to‘rtta": 4, "to'rtta": 4, "to‘rt": 4, beshta: 5, besh: 5,
   "один": 1, "одну": 1, "одно": 1, "два": 2, "две": 2, "три": 3, "четыре": 4, "пять": 5, one: 1, two: 2, three: 3, four: 4, five: 5 };
+/** REV482: «Baliqlarni sanang», «Nechta baliq?» — bola HAR BIRINI bosib sanaydi (Kabu sonni aytadi), keyin «Nechta?» deb
+ *  3 ta sondan tanlaydi. Javob oldindan aytilmaydi va doskada sonlar ko'rsatilmaydi. → {belgilar, kerak, sanash:true, nom} | null */
+const SANA_FEL = /(?:^|[^\p{L}])(sana|sanang|sanab|sanaymiz|sanagin|nechta|nechtа|сосчитай|посчитай|сколько|count|how many)(?=$|[^\p{L}])/iu;
+export function sanashTopshiriq(step) {
+  const matn = String(step?.ovoz || step?.doska || "").replace(TAGS_ALL, " ");
+  if (!SANA_FEL.test(matn)) return null;
+  const belgilar = [...String(step?.doska || "").replace(TAGS_ALL, " ").matchAll(/\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu)].map((m) => m[0])
+    .filter((e) => !/^(?:✋|👆|👉|❓|➡|⬅|🔁|🌟|⭐|🧩|🎲|🔢)/u.test(e));
+  if (belgilar.length < 2 || belgilar.length > 12) return null;
+  const soni = {}; belgilar.forEach((e) => { soni[e] = (soni[e] || 0) + 1; });
+  const [nom, n] = Object.entries(soni).sort((a, b) => b[1] - a[1])[0];
+  if (n < 2) return null;
+  const faqat = belgilar.filter((e) => e === nom);
+  return { belgilar: faqat, kerak: faqat.length, sanash: true, nom };
+}
+
 export function sanoqBosish(step) {
   const matn = String(step?.ovoz || step?.doska || "").replace(TAGS_ALL, " ");
   if (!BOS_FEL.test(matn)) return null;

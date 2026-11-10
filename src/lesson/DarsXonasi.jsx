@@ -60,7 +60,7 @@ import { darsIzohi, darsTiliIzoh, gap, izohTeg } from "../kid/izohTil.js";
 import { K as DIQQAT, kutishVaqtlari } from "../kid/diqqatGaplari.js";
 import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
-import { boardCards, cardSize, doskaJuftlari, emojiPictures, gameTargets, sanoqBosish, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
+import { boardCards, cardSize, doskaJuftlari, emojiPictures, gameTargets, sanoqBosish, sanashTopshiriq, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
 import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
@@ -929,6 +929,9 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       if (autoplay && kid && s.tanlov?.variantlar?.length) { setTanlov({ stepIdx: next, ...s.tanlov, holat: {}, xato: 0 }); return; }
       const targets = autoplay && kid && s.turi === "amaliy" && next >= opening.length ? gameTargets(s, steps, kinds) : [];
       if (targets.length) { gameApi.current.start(next, targets); return; }
+      // REV482: «Nechta baliq?» — bola har birini bosib sanaydi, keyin sonni tanlaydi (javob oldindan aytilmaydi)
+      const ss = autoplay && kid && s.turi === "amaliy" && next >= opening.length ? sanashTopshiriq(s) : null;
+      if (ss) { setSanoq({ stepIdx: next, ...ss, tanlangan: [], sorov: false }); return; }
       // REV291: «Bitta bananni bos!» — bola aytilgan sonidagi narsani bosadi, bosmaguncha kutiladi
       const sb = autoplay && kid && s.turi === "amaliy" && next >= opening.length ? sanoqBosish(s) : null;
       if (sb) { setSanoq({ stepIdx: next, ...sb, tanlangan: [] }); return; }
@@ -936,7 +939,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         // REV93: bog'chada topshiriq (qo'shiq, harakat, o'yin) — bolaga bajarishga vaqt, keyin maqtov va davom. Tugma kerak emas.
         // Bajarganini tekshirib bo'lmaydi — shuning uchun «Barakalla» demaymiz, to'g'ri javobni birga aytamiz.
         const praise = kidTaskModel(s.ovoz || s.doska, izoh, tIzoh, immersiya ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)).map((w) => w.say) : []);
-        setTimeout(() => { if (playingRef.current && idxRef.current === next) say(praise, () => setTimeout(() => { if (playingRef.current && idxRef.current === next) go(next + 1, true); }, 900)); }, 4000);
+        setTimeout(() => { if (playingRef.current && idxRef.current === next) say(praise, () => setTimeout(() => { if (playingRef.current && idxRef.current === next) go(next + 1, true); }, 900)); }, 7000);   // REV482: bajarishga ko'proq vaqt
         return;
       }
       // So'z o'rgatiladigan qadam («Men bilan takrorla») — bola qaytarib aytishi uchun biroz ko'proq kutiladi
@@ -1786,6 +1789,14 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       }
       return;
     }
+    if (sanoq && sanoq.stepIdx === idx && sanoq.sanash) {   // REV482: sanash — har bosishda Kabu sonni aytadi
+      if (sanoq.tanlangan.includes(i) || sanoq.sorov) return;
+      const tanlangan = [...sanoq.tanlangan, i]; pop();
+      const tugadi = tanlangan.length >= sanoq.kerak;
+      setSanoq({ ...sanoq, tanlangan, sorov: tugadi });
+      say(String(tanlangan.length), tugadi ? () => setTimeout(() => say(gap(tIzoh, "Xo‘sh, nechta ekan?")), 300) : undefined);
+      return;
+    }
     if (sanoq && sanoq.stepIdx === idx) {
       if (sanoq.tanlangan.includes(i) || sanoq.tanlangan.length >= sanoq.kerak) return;
       const tanlangan = [...sanoq.tanlangan, i]; pop(); setSanoq({ ...sanoq, tanlangan });
@@ -1873,6 +1884,15 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         </> : <div className="dx-kabu-robot"><KidStage compact tur={String(uiLocale || "uz").slice(0, 2)} mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} aylan={celebrate} speaking={speaking} /></div>}</div>}
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
         <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
+        {sanoq?.sanash && sanoq.stepIdx === idx && <div className="dx-sanash">
+          <span className="dx-sanash-son">{sanoq.tanlangan.length} / ?</span>
+          {sanoq.sorov && <div className="dx-sanash-var">{[sanoq.kerak - 1, sanoq.kerak, sanoq.kerak + 1].filter((x) => x >= 1)
+            .sort((a, b) => ((a * 7 + sanoq.kerak) % 5) - ((b * 7 + sanoq.kerak) % 5)).map((x) => <button key={x} type="button" onClick={() => {
+              if (x === sanoq.kerak) { const my = idx; setCelebrate((c) => c + 1);
+                say(gap(tIzoh, "To‘g‘ri! {n} ta.", { n: String(x) }), () => setTimeout(() => { setSanoq(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }, 700)); }
+              else { say(gap(tIzoh, "Yana bir sanab ko‘raylik.")); setSanoq({ ...sanoq, tanlangan: [], sorov: false }); }
+            }}>{x}</button>)}</div>}
+        </div>}
         {!kid && ["lesson", "test", "ovoz"].includes(mode) && <button type="button" className="dx-burchak-daftar" onClick={() => { hush(); setBurchakDaftar(true); }}
           title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}><span aria-hidden="true">✏️</span>{__kbUi("Qoralama")}</button>}
           {sinfXona && !kid && <div className="dx-panel-chip" aria-hidden="true">{lesson.topic?.mavzu}</div>}
