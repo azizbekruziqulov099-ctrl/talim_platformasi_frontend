@@ -8,6 +8,7 @@ import "./kabutarKurslar.css";
 
 const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
 const NazoratTest = lazyQayta(() => import("./NazoratTest.jsx"));   // REV479
+const KonikmaXarita = lazyQayta(() => import("./KonikmaXarita.jsx"));   // REV480
 const MarkazPanel = lazyQayta(() => import("../markaz/MarkazPanel.jsx"));
 const XalqaroBaholash = lazyQayta(() => import("../xalqaro/XalqaroBaholash.jsx"));
 
@@ -27,6 +28,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   const [kurs, setKurs] = useState(null);        // ochilgan kurs (darslar ro'yxati)
   const [dars, setDars] = useState(null);        // ochilgan dars
   const [tolov, setTolov] = useState(null);      // yopiq dars bosilganda
+  const [konikmaOchiq, setKonikmaOchiq] = useState(false);   // REV480
 
   const yukla = () => {
     setXato("");
@@ -93,6 +95,8 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   </section>;
 
   return <section className="kk" aria-label={__kbUi("Kabutar kurslari")}>
+    {token && <button type="button" className="kk-konikma-btn" onClick={() => setKonikmaOchiq(true)}>📊 {__kbUi("Ko‘nikmalarim")}</button>}
+    {konikmaOchiq && <React.Suspense fallback={null}><KonikmaXarita base={base} token={token} onYop={() => setKonikmaOchiq(false)} /></React.Suspense>}
     <div className="kk-kategoriyalar" role="tablist" aria-label={__kbUi("Yo‘nalishlar")}>
       <button type="button" role="tab" aria-selected={!kat} className={!kat ? "is-faol" : ""} onClick={() => setKat(null)}><b>✨</b><span>{__kbUi("Hammasi")}</span><small>{(data?.kurslar || []).length}</small></button>
       {(data?.kategoriyalar || []).filter((c) => c.kalit === "sertifikat" || c.kalit === "xalqaro" || soni(c.kalit)).map((c) => (

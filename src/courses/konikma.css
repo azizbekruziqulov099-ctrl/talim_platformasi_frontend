@@ -1,0 +1,10 @@
+/* REV480: ko'nikmalar xaritasi */
+.kn-modal{position:fixed;inset:0;background:rgba(15,25,40,.45);display:grid;place-items:center;z-index:60;padding:14px}
+.kn-ich{background:#fff;border-radius:20px;max-width:620px;width:100%;padding:16px;max-height:86vh;overflow:auto}
+.kn-tepa{display:flex;align-items:center;margin-bottom:10px}.kn-tepa b{flex:1;font-size:19px}
+.kn-tepa button{border:0;background:#eef2f6;border-radius:10px;width:36px;height:36px;cursor:pointer}
+.kn-bars{display:flex;flex-direction:column;gap:8px}
+.kn-q{display:grid;grid-template-columns:minmax(150px,1.2fr) 2fr 48px 56px;gap:10px;align-items:center;font-size:14px}
+.kn-bars.is-kichik .kn-q{grid-template-columns:minmax(110px,1fr) 1.4fr 40px;font-size:12px;gap:6px}
+.kn-bar{height:12px;border-radius:999px;background:#eef2f6;overflow:hidden}.kn-bar i{display:block;height:100%;border-radius:999px}
+.kn-q small{color:#5b6573}.kn-izoh{color:#4a5563;margin-top:12px}

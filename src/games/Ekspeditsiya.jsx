@@ -7,6 +7,7 @@ import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";   // REV462: 1–2-si
 import { integerWords } from "../speech/mathSpeech.js";
 import "./ekspeditsiya.css";
 import { useBand } from "../pwa/band.js";   // REV466
+import { KonikmaBarlar } from "../courses/KonikmaXarita.jsx";   // REV480
 import XARITA_NUQTA from "./ekspeditsiyaXarita.json";   // REV459: bekatlar xaritadagi tayyor maydonchalar ustida
 
 // REV459: Azizjon yuborgan rasmlar (xaritalar, bekatlar, darvozalar, mukofotlar, nishonlar, sahnalar)
@@ -202,6 +203,8 @@ function Hisobot({ api, kurslar, guruhlar, onOrqaga }) {
   const [k, setK] = useState(() => { const gr = guruhlar[0]; const s = String(gr?.grade || "").replace(/\D/g, ""); return kurslar.find((x) => x.kalit.replace(/\D/g, "") === s)?.kalit || kurslar[0]?.kalit || ""; });
   const [h, setH] = useState(null);
   const [xato, setXato] = useState("");
+  const [kn, setKn] = useState(null);   // REV480
+  useEffect(() => { if (g) api(`/api/konikma/guruh?guruh=${g}`).then(setKn).catch(() => setKn(null)); }, [g]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (g && k) { setH(null); setXato(""); api(`/api/ekspeditsiya/oqituvchi/hisobot?guruh=${g}&kurs=${k}`).then(setH).catch((e) => setXato(String(e.message || e))); } }, [g, k]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div className="ek-hisobot">
     <div className="ek-tepa"><button type="button" className="ek-t" onClick={onOrqaga}>←</button><b>👩‍🏫 {__kbUi("O‘qituvchi hisoboti")}</b></div>
@@ -212,6 +215,7 @@ function Hisobot({ api, kurslar, guruhlar, onOrqaga }) {
     {xato && <p className="ek-izoh">{xato}</p>}
     {!h && !xato && <p className="ek-izoh">⏳</p>}
     {h && <>
+      {kn?.sinf?.some((x) => x.jami) && <><h3>📊 {__kbUi("Sinf ko‘nikmalari")}</h3><div className="ek-zaif"><KonikmaBarlar konikmalar={kn.sinf} /></div></>}
       <h3>{__kbUi("Sinfning zaif mavzulari")}</h3>
       {h.sinf_zaif.length ? <div className="ek-zaif">{h.sinf_zaif.map((z) => <div key={z.tur} className="ek-zaif-q">
         <span>{__kbUi(z.nom)}</span><div className="ek-bar"><i style={{ width: `${z.aniqlik}%`, background: z.aniqlik < 60 ? "#d9534f" : z.aniqlik < 80 ? "#f2b72e" : "#2e9e5b" }} /></div>

@@ -1,4 +1,5 @@
-import { useBand } from "../pwa/band.js";   // REV466: dars/test o'rtasida yangilanish to'xtatilmaydi
+import { useBand } from "../pwa/band.js";
+import { konikmaYoz } from "./konikmaYoz.js";   // REV480   // REV466: dars/test o'rtasida yangilanish to'xtatilmaydi
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { fanIzohi } from "../curriculum/izohTanlov.js";
 import { lazyQayta } from "../workspace/lazyQayta.js";
@@ -1261,6 +1262,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     }
     const q = savollar[testIndex];
     setPicked(k);
+    konikmaRef.current.push({ savol: String(q.savol || "").slice(0, 300), togri: k === q.togri, manba: isReviewQuestion?.(q) ? "takror" : "",
+      ...(vaqtBoshRef.current ? { soniya: (Date.now() - vaqtBoshRef.current) / 1000, chegara: savolVaqti } : {}) });   // REV480
     onNatija?.({ item: q.kod || q.id || `T${testIndex + 1}`, turi: "test", togri: k === q.togri,
       ...(vaqtBoshRef.current ? { soniya: Math.round((Date.now() - vaqtBoshRef.current) / 100) / 10 } : {}) });   // REV411/REV478
     if (k !== q.togri) { const asl = xatoTartib ? xatoTartib[testIndex] : testIndex; if (!xatolar.current.includes(asl)) xatolar.current.push(asl); }
@@ -1311,6 +1314,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     return () => clearTimeout(t);
   }, [kid, mode, testIndex, xatoTartib]); // eslint-disable-line react-hooks/exhaustive-deps
   const vaqtBoshRef = useRef(0);
+  const konikmaRef = useRef([]);   // REV480: shu testdagi javoblar (natijada yuboriladi)
   const [vaqtQoldi, setVaqtQoldi] = useState(null);
   useEffect(() => { vaqtBoshRef.current = 0; setVaqtQoldi(null); }, [testIndex, mode]);
   useEffect(() => {   // boshlash: maktabda — ustoz o'qib bo'lgach; bog'chada — variantlar o'qilib, kutish boshlangach
@@ -1331,6 +1335,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         const q = savollar[testIndex]; if (!q) return;
         setPicked(-1);
         onNatija?.({ item: q.kod || q.id || `T${testIndex + 1}`, turi: "test", togri: false, soniya: savolVaqti, vaqt_tugadi: true });
+        konikmaRef.current.push({ savol: String(q.savol || "").slice(0, 300), togri: false, soniya: savolVaqti, chegara: savolVaqti });
         const asl = xatoTartib ? xatoTartib[testIndex] : testIndex; if (!xatolar.current.includes(asl)) xatolar.current.push(asl);
         say(__kbUi("Vaqt tugadi. To‘g‘ri javob yashil bilan ko‘rsatildi."));
       }
@@ -1577,6 +1582,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       setStiker(stikerBer(topicCode, { egasi: String(kidPlan ? "bola" : "mehmon") }) || null);   // REV333
       if (kidPlan) stikerServer(apiBase, token, topicCode).then((d) => { if (d?.albom) albomYoz(d.albom, "bola"); });   // REV339: serverda ham
     }
+    if (mode === "result" && konikmaRef.current.length) { konikmaYoz(apiBase, token, konikmaRef.current); konikmaRef.current = []; }   // REV480
     if (mode === "end" || (mode === "result" && !xatoTartib)) onTugadi?.(mode === "result" && questions.length ? { togri: score, jami: questions.length } : {});   // REV477
     if (mode === "result" && !xatoTartib && questions.length) { markLessonDone(topicCode, kidStars(score, questions.length)); natijaYoz(topicCode, score, questions.length); tilniBelgila(topicCode, darsIzohTili(fan || lesson?.topic?.fan)); }
     if (learnerRole !== "oquvchi" || !token) return;
@@ -2144,6 +2150,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         <DarsOldiTakror apiBase={apiBase} iz={izohL(izoh)} sinf={Number(/(\d{1,2})/.exec(String(grade || lesson?.topic?.sinf || ""))?.[1]) || 5} darslar={oldiTakror}
           onTugadi={(r) => {
             takrorBelgila(topicCode); setOldiTakror(null);
+            if (r?.jami) konikmaYoz(apiBase, token, Array.from({ length: r.jami }, (_, i) => ({ manba: "eslash", togri: i < (r.togri || 0) })));   // REV480
             if (learnerRole === "oquvchi" && token && r?.jami) faollikYoz(apiBase, token, { turi: "takror", kod: `takror:${topicCode}`, fan: fan || lesson?.topic?.fan || "", mavzu: `Darsdan oldin takror: ${lesson?.topic?.mavzu || ""}`, togri: r.togri, jami: r.jami });
             togglePlay();
           }}

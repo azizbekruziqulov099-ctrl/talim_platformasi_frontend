@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
+import { konikmaYoz } from "../lesson/konikmaYoz.js";   // REV480
 
 const vaqtSinf = (g) => { const m = /(\d+)/.exec(String(g || "")); const n = m ? Number(m[1]) : 0; return !n ? 45 : n <= 2 ? 30 : n <= 4 ? 40 : n <= 6 ? 50 : 60; };
 
@@ -23,10 +24,11 @@ export default function NazoratTest({ base, token, kurs, item, onYop }) {
     const t = setInterval(() => setQoldi((x) => { if (document.visibilityState !== "visible") return x; if (x <= 0.25) { clearInterval(t); javob(-1); return 0; } return x - 0.25; }), 250);
     return () => clearInterval(t);
   }, [q, tanlov, yakun]); // eslint-disable-line react-hooks/exhaustive-deps
-  const javob = (k) => { if (tanlov !== null || !q) return; setTanlov(k); setJav((o) => [...o, { ok: k === q.togri, dars: q.dars, dars_nomi: q.dars_nomi, soniya: vaqt - qoldi }]); };
+  const javob = (k) => { if (tanlov !== null || !q) return; setTanlov(k); setJav((o) => [...o, { ok: k === q.togri, dars: q.dars, dars_nomi: q.dars_nomi, soniya: vaqt - qoldi, savol: String(q.savol || "").slice(0, 300) }]); };
   const keyingi = async () => {
     if (i + 1 < S.length) { setI(i + 1); setTanlov(null); return; }
     const togri = jav.filter((x) => x.ok).length;
+    konikmaYoz(base, token, jav.map((x) => ({ savol: x.savol, togri: x.ok, soniya: x.soniya, chegara: vaqt })));   // REV480
     const xatoD = [...new Set(jav.filter((x) => !x.ok).map((x) => x.dars))];
     const r = await fetch(`${base}/api/kurslar/nazorat_natija`, { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token, fan: kurs.fan, grade: (kurs.sinflar || [])[0] || "", kod: item.topic_code, tur: d.tur, togri, jami: S.length, xato_darslar: xatoD }) })
