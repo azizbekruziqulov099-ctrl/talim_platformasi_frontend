@@ -49,7 +49,9 @@
             ".pptx",
             "image/*",
             "text/plain",
-            ".txt"
+            ".txt",
+            "application/zip",
+            ".zip"
           ]
         }
       ]
@@ -73,6 +75,9 @@
         ],
         "application/vnd.openxmlformats-officedocument.presentationml.presentation": [
           ".pptx"
+        ],
+        "application/zip": [
+          ".zip"
         ]
       }
     }
