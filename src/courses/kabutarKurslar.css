@@ -64,3 +64,21 @@
 /* REV477: kurs tartibi */
 .kk-dars.is-tugadi{background:#eef9f1}
 .kk-dars.is-ertaga{background:#f3f0ff;opacity:.85}
+/* REV479: nazorat zinapoyasi */
+.kk-dars.is-nazorat{border:2px dashed #f2b72e;background:#fffaf0}
+.kk-dars.is-nazorat .kk-raqam{background:#f2b72e;color:#13202e}
+.nz{max-width:760px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.nz-tepa{display:flex;align-items:center;gap:10px}.nz-tepa b{flex:1}
+.nz-vaqt{position:relative;height:10px;border-radius:999px;background:#eef2f6}
+.nz-vaqt i{display:block;height:100%;border-radius:999px;transition:width .25s linear,background .4s}
+.nz-vaqt b{position:absolute;right:0;top:-18px;font:700 12px system-ui;color:#7a5a00}
+.nz-savol{font-size:21px;font-weight:600;background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.nz-var{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nz-var button{padding:14px;border-radius:14px;border:2px solid #dbe3ec;background:#f8fafc;font:600 18px system-ui;cursor:pointer;text-align:left}
+.nz-var button.is-ok{border-color:#2e9e5b;background:#e3f6ea}.nz-var button.is-no{border-color:#d9534f;background:#fde7e6}
+.nz-fikr{background:#fff7e0;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;font-weight:700}
+.nz-btn{align-self:flex-end;padding:12px 20px;border-radius:14px;border:0;background:#1B4B7A;color:#fff;font:700 16px system-ui;cursor:pointer}
+.nz-izoh{font-weight:500;color:#5b4b00}
+.nz-yakun{text-align:center;align-items:center}.nz-belgi{font-size:70px}.nz-foiz{font-size:20px}
+.nz-takror{text-align:left;background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+@media (max-width:560px){.nz-var{grid-template-columns:1fr}}

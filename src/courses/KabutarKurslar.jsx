@@ -7,6 +7,7 @@ import KursGuruh, { GURUH_KALIT, kgFetch } from "./KursGuruh.jsx";   // REV411
 import "./kabutarKurslar.css";
 
 const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
+const NazoratTest = lazyQayta(() => import("./NazoratTest.jsx"));   // REV479
 const MarkazPanel = lazyQayta(() => import("../markaz/MarkazPanel.jsx"));
 const XalqaroBaholash = lazyQayta(() => import("../xalqaro/XalqaroBaholash.jsx"));
 
@@ -58,6 +59,8 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     }).catch((e) => setKurs({ ...k, darslar: [], yuklanmoqda: false, xato: e.message }));
   };
 
+  if (dars?.nazorat) return <div className="kk-toliq"><React.Suspense fallback={<p className="kk-p">…</p>}>
+    <NazoratTest base={base} token={token} kurs={kurs} item={dars} onYop={() => { setDars(null); if (kurs) kursniOch((data?.kurslar || []).find((x) => x.kalit === kurs.kalit) || kurs); }} /></React.Suspense></div>;
   if (dars) return <div className="kk-toliq">{dars.guruh && <GuruhJonli apiBase={apiBase} token={token} tc={dars.topic_code} />}
     {dars.guruh && <p className="kg-darsda">👥 {dars.guruh.nom} · {__kbUi("javoblaringiz o‘qituvchiga ko‘rinadi")}</p>}
     <React.Suspense fallback={<p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}>
@@ -74,18 +77,18 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   if (kurs) return <section className="kk" aria-label={kursNomi(kurs)}>
     <button type="button" className="kk-ortga" onClick={() => setKurs(null)}>← {__kbUi("Kurslar")}</button>
     <header className="kk-kurs-bosh"><h2>{kursNomi(kurs)}</h2>
-      <p>{kurs.yuklanmoqda ? (kurs.darslarSoni ?? "…") : kurs.darslar.length} {__kbUi("ta dars")} · {Number(kurs.narx) > 0 ? (kurs.obuna_tugaydi ? __kbUi(`✓ Ochiq · ${kurs.obuna_tugaydi} gacha`) : __kbUi(`Birinchi ${kurs.bepul} ta dars bepul · ${somFmt(kurs.narx)} / 30 kun`)) : __kbUi("Bepul kurs")}</p></header>
+      <p>{kurs.yuklanmoqda ? (kurs.darslarSoni ?? "…") : kurs.darslar.filter((x) => !x.nazorat).length} {__kbUi("ta dars")} · {Number(kurs.narx) > 0 ? (kurs.obuna_tugaydi ? __kbUi(`✓ Ochiq · ${kurs.obuna_tugaydi} gacha`) : __kbUi(`Birinchi ${kurs.bepul} ta dars bepul · ${somFmt(kurs.narx)} / 30 kun`)) : __kbUi("Bepul kurs")}</p></header>
     {kurs.yuklanmoqda && <p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}
     {kurs.xato && <p className="kk-xato" role="alert">{kurs.xato}</p>}
     {!kurs.yuklanmoqda && <KursGuruh apiBase={apiBase} token={token} user={user} kurs={kurs}
       onDars={(tc, g) => { const x = (kurs.darslar || []).find((y) => y.topic_code === tc); if (x?.ochiq) setDars({ ...x, guruh: g }); else if (x) setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }); }} />}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code}>
       {kurs.kategoriya === "repetitor" && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
-      <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""}`}
-        onClick={() => (d.ochiq ? setDars(d) : d.holat === "ertaga" ? alert(__kbUi("🌙 Bu dars ertaga ochiladi — bugungi darsni yaxshilab o‘rganib oling."))
+      <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""} ${d.nazorat ? "is-nazorat" : ""}`}
+        onClick={() => (d.ochiq ? setDars(d) : d.holat === "qayta_ertaga" ? alert(__kbUi("🌙 Qayta topshirish — ertaga. Bugun xato qilgan darslaringizni takrorlang.")) : d.holat === "ertaga" ? alert(__kbUi("🌙 Bu dars ertaga ochiladi — bugungi darsni yaxshilab o‘rganib oling."))
           : d.holat === "qulf" ? alert(__kbUi("🔒 Avval oldingi darslarni tugating — darslar ketma-ket ochiladi.")) : setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }))}>
-        <span className="kk-raqam">{i + 1}</span><span className="kk-dars-nom">{d.nomi || d.topic_code}{kurs.kategoriya === "bolalar" && (kurs.sinflar || []).length > 1 ? <small> · {__kbUi(`${(kurs.sinflar || []).indexOf(d.sinf) + 1}-qism`)}</small> : null}</span>
-        <span className="kk-belgi" aria-label={d.ochiq ? (d.bepul ? __kbUi("bepul") : __kbUi("ochiq")) : __kbUi("yopiq")}>{d.holat === "tugadi" ? "✅" : d.holat === "ertaga" ? "🌙" : d.ochiq ? (d.bepul && Number(kurs.narx) > 0 ? "🎁" : "▶") : "🔒"}</span></button></li>)}</ol>
+        <span className="kk-raqam">{d.nazorat ? "★" : (kurs.darslar || []).slice(0, i + 1).filter((x) => !x.nazorat).length}</span><span className="kk-dars-nom">{d.nomi || d.topic_code}{kurs.kategoriya === "bolalar" && (kurs.sinflar || []).length > 1 ? <small> · {__kbUi(`${(kurs.sinflar || []).indexOf(d.sinf) + 1}-qism`)}</small> : null}</span>
+        <span className="kk-belgi" aria-label={d.ochiq ? (d.bepul ? __kbUi("bepul") : __kbUi("ochiq")) : __kbUi("yopiq")}>{d.nazorat && d.natija ? `${Math.round((100 * d.natija.togri) / Math.max(1, d.natija.jami))}%` : d.holat === "tugadi" ? "✅" : d.holat === "ertaga" || d.holat === "qayta_ertaga" ? "🌙" : d.ochiq ? (d.bepul && Number(kurs.narx) > 0 ? "🎁" : "▶") : "🔒"}</span></button></li>)}</ol>
     {tolov && <KursTolov apiBase={apiBase} token={token} kurs={tolov} onClose={() => setTolov(null)} />}
   </section>;
 
