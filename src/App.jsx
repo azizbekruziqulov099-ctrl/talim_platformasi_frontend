@@ -13416,10 +13416,16 @@ function SuhbatlarRoyxati({ token, onSuhbatOch }) {
   const [qidiruvNatijalari, setQidiruvNatijalari] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/chat/guruhlarim?token=${encodeURIComponent(token)}`)
+    const ol = () => fetch(`${API_BASE}/api/chat/guruhlarim?token=${encodeURIComponent(token)}`)
       .then((r) => r.json())
       .then((d) => { setGuruhlar(d.guruhlar || []); setShaxsiylar(d.shaxsiylar || []); setYuklanmoqda(false); })
       .catch(() => setYuklanmoqda(false));
+    ol();
+    // REV467: suhbatlar ro'yxati (o'qilmaganlar soni, oxirgi xabar) o'zi yangilanadi — sahifa ko'rinib turganda har 15 s
+    const t = setInterval(() => { if (document.visibilityState === "visible") ol(); }, 15000);
+    const korindi = () => { if (document.visibilityState === "visible") ol(); };
+    document.addEventListener("visibilitychange", korindi);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", korindi); };
   }, [token]);
 
   useEffect(() => {
@@ -13869,6 +13875,43 @@ function SuhbatOynasi({ token, suhbat, onOrtga }) {
     oxirgiKorildiRef.current = null;
     yukla();
     return () => xabarAbortRef.current?.abort();
+  }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // REV467: yangi xabarlar o'zi kelib turadi (Telegram kabi) — faqat oxirgi ko'rilgandan KEYINGILARI so'raladi (yengil so'rov).
+  // Ochiq suhbatda har 3 s; 1 daqiqa jimlikdan keyin 8 s; sahifa yashirin bo'lsa — so'ramaydi. Har 30 s to'liq yangilash
+  // (tahrirlangan/o'chirilgan xabarlar, reaksiyalar ham yangilanadi). Ko'p foydalanuvchida server yuklamasi kichik qoladi.
+  useEffect(() => {
+    const parametr = suhbat.guruh_id ? `guruh_id=${suhbat.guruh_id}` : `boshqa_user_id=${suhbat.boshqa_user_id}`;
+    let toxta = false, taymer = 0, oxirgiYangi = Date.now(), oxirgiToliq = Date.now(), band = false;
+    const navbat = () => { const jim = Date.now() - oxirgiYangi > 60000; taymer = setTimeout(qadam, jim ? 8000 : 3000); };
+    const qadam = async () => {
+      if (toxta) return;
+      if (document.visibilityState !== "visible" || band) { navbat(); return; }
+      band = true;
+      try {
+        if (Date.now() - oxirgiToliq > 30000) { oxirgiToliq = Date.now(); yukla(); return; }
+        let oxirgiId = 0;
+        setXabarlar((eski) => { oxirgiId = eski.length ? eski[eski.length - 1].id : 0; return eski; });
+        if (!oxirgiId) return;
+        const r = await fetch(`${API_BASE}/api/chat/xabarlar?token=${encodeURIComponent(token)}&${parametr}&keyingidan=${oxirgiId}`);
+        if (!r.ok) return;
+        const d = await r.json();
+        const yangi = (d.xabarlar || []).filter((x) => x.id > oxirgiId);
+        if (yangi.length) {
+          oxirgiYangi = Date.now();
+          setXabarlar((eski) => { const bor = new Set(eski.map((x) => x.id)); return [...eski, ...yangi.filter((x) => !bor.has(x.id))]; });
+          if (d.boshqa_tomon_korgan_id != null) setBoshqaTomonKorganId(d.boshqa_tomon_korgan_id);
+          setTimeout(() => oxiriRef.current?.scrollIntoView({ behavior: "smooth" }), 60);
+          const songgi = yangi[yangi.length - 1].id;
+          oxirgiKorildiRef.current = songgi;
+          fetch(`${API_BASE}/api/chat/korildi_belgila?token=${encodeURIComponent(token)}&oxirgi_xabar_id=${songgi}&${parametr}`, { method: "POST" }).catch(() => {});
+        }
+      } catch { /* tarmoq — keyingi safar */ } finally { band = false; if (!toxta) navbat(); }
+    };
+    navbat();
+    const korindi = () => { if (document.visibilityState === "visible") { clearTimeout(taymer); oxirgiYangi = Date.now(); qadam(); } };
+    document.addEventListener("visibilitychange", korindi);
+    return () => { toxta = true; clearTimeout(taymer); document.removeEventListener("visibilitychange", korindi); };
   }, [token, suhbat.guruh_id, suhbat.boshqa_user_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
