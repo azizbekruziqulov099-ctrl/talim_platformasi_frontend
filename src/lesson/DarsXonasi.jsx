@@ -1261,7 +1261,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     }
     const q = savollar[testIndex];
     setPicked(k);
-    onNatija?.({ item: q.kod || q.id || `T${testIndex + 1}`, turi: "test", togri: k === q.togri });   // REV411
+    onNatija?.({ item: q.kod || q.id || `T${testIndex + 1}`, turi: "test", togri: k === q.togri,
+      ...(vaqtBoshRef.current ? { soniya: Math.round((Date.now() - vaqtBoshRef.current) / 100) / 10 } : {}) });   // REV411/REV478
     if (k !== q.togri) { const asl = xatoTartib ? xatoTartib[testIndex] : testIndex; if (!xatolar.current.includes(asl)) xatolar.current.push(asl); }
     if (sinfXona) flashPhase(k === q.togri ? "happy" : "enc");   // REV177: Kabu quvonadi / dalda beradi
     const izL = izohL(izoh);
@@ -1269,6 +1270,10 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     else if (q.xatolar?.[String(k)]) say(`${q.xatolar[String(k)]} ${q.izoh || ""}`.trim());   // REV269: aynan shu xatoning izohi
     else say(q.izoh ? testOvozi({ savol: q.izoh, til: darsTil || "", iz: izL, lugat: tilLugati(lesson?.steps || [], darsTil || "", maktabSozlar) }) : uiT(__kbUi("Javob noto‘g‘ri. To‘g‘ri variant yashil bilan belgilandi.")));
   };
+  // REV478: har test savoliga vaqt — yoshga qarab; bog'chada faqat rangli chiziq (yashil → sariq → qizil), maktabda chiziq va soniyalar.
+  // Vaqt savol o'qib bo'lingandan keyin boshlanadi; tugasa — javobsiz hisoblanadi, to'g'risi ko'rsatiladi; javob vaqti natijaga yoziladi.
+  const savolVaqti = (() => { const m = /(\d+)/.exec(String(gradeRef.current || "")); const g = m ? Number(m[1]) : 0;
+    return kid ? 45 : g <= 2 ? 30 : g <= 4 ? 40 : g <= 6 ? 50 : 60; })();
   const nextQuestion = () => {
     setPicked(null);
     setTestIndex((i) => {
@@ -1305,6 +1310,37 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     const t = setTimeout(() => say(matn), 350);
     return () => clearTimeout(t);
   }, [kid, mode, testIndex, xatoTartib]); // eslint-disable-line react-hooks/exhaustive-deps
+  const vaqtBoshRef = useRef(0);
+  const [vaqtQoldi, setVaqtQoldi] = useState(null);
+  useEffect(() => { vaqtBoshRef.current = 0; setVaqtQoldi(null); }, [testIndex, mode]);
+  useEffect(() => {   // boshlash: maktabda — ustoz o'qib bo'lgach; bog'chada — variantlar o'qilib, kutish boshlangach
+    if (mode !== "test" || picked !== null || vaqtBoshRef.current) return undefined;
+    const tayyor = kid ? waiting : !speaking;
+    if (!tayyor) return undefined;
+    const t = setTimeout(() => { if (!vaqtBoshRef.current) { vaqtBoshRef.current = Date.now(); setVaqtQoldi(savolVaqti); } }, kid ? 0 : 900);
+    return () => clearTimeout(t);
+  }, [mode, picked, speaking, waiting, testIndex, kid]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {   // sanash; tugasa (maktabda) — javobsiz
+    if (mode !== "test" || picked !== null || vaqtQoldi === null) return undefined;
+    const id = setInterval(() => {
+      if (document.visibilityState !== "visible") { vaqtBoshRef.current += 250; return; }   // ilova yashirin — soat yurmaydi
+      const q0 = Math.max(0, savolVaqti - (Date.now() - vaqtBoshRef.current) / 1000);
+      setVaqtQoldi(q0);
+      if (q0 <= 0 && !kid) {
+        clearInterval(id);
+        const q = savollar[testIndex]; if (!q) return;
+        setPicked(-1);
+        onNatija?.({ item: q.kod || q.id || `T${testIndex + 1}`, turi: "test", togri: false, soniya: savolVaqti, vaqt_tugadi: true });
+        const asl = xatoTartib ? xatoTartib[testIndex] : testIndex; if (!xatolar.current.includes(asl)) xatolar.current.push(asl);
+        say(__kbUi("Vaqt tugadi. To‘g‘ri javob yashil bilan ko‘rsatildi."));
+      }
+    }, 250);
+    return () => clearInterval(id);
+  }, [mode, picked, vaqtQoldi === null, testIndex, kid]); // eslint-disable-line react-hooks/exhaustive-deps
+  const vaqtChizigi = vaqtQoldi === null || picked !== null ? null : (() => { const u = vaqtQoldi / savolVaqti;
+    return <div className={`dx-savol-vaqt ${kid ? "is-kid" : ""}`} role="timer" aria-label={__kbUi("Qolgan vaqt")}>
+      <i style={{ width: `${Math.max(0, u * 100)}%`, background: u > 0.5 ? "#2e9e5b" : u > 0.25 ? "#f2b72e" : "#d9534f" }} />
+      {!kid && <b>{Math.ceil(vaqtQoldi)} s</b>}</div>; })();
   // REV171: «Shu yerdamisan?» — test savolida bola javob bermasa: 1) so'raydi, 2) to'g'ri javobni yoritadi,
   // 3) tasalli berib keyingi savolga o'tadi (bog'chada). Maktabda faqat eslatadi. Ilova yashirin bo'lsa — soat yurmaydi.
   useEffect(() => {
@@ -1976,7 +2012,9 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
               {questionCard(q.savol) && <div className={`dx-kid-qcard sz-${cardSize(questionCard(q.savol))}`} aria-hidden="true">{questionCard(q.savol)}</div>}
               <button type="button" className="dx-listen dx-listen-big" onClick={() => readQuestion(q)} aria-label={__kbUi("Qayta eshitish")}><B e="🔊" /></button></div>
               : <><h3 className="dx-title">{xatoTartib ? `🔁 ${__kbUi("Xatolar ustida ishlash")}` : __kbUi("Test")} · {testIndex + 1} / {savollar.length}</h3>
+                {vaqtChizigi}
                 <div className="dx-q"><BoardText text={stripSpeechTags(q.savol)} /></div></>}
+            {kid && vaqtChizigi}
             {kid ? <div className={`dx-kid-opts dx-n${q.variantlar.length}`}>{kidOptions(Object.fromEntries(q.variantlar.map((o, k) => [`option_${"abcd"[k]}`, o])), q.savol, izohRef.current).map((o, k) => <div key={k} className="dx-kid-wrap"><button type="button" onClick={() => pick(k)} disabled={picked !== null}
               className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : kidOptionQator(o.picture) ? <span className={`kb-qator ${qatorNaqshmi(kidOptionQator(o.picture)) ? "is-satr" : ""}`} aria-hidden="true">{kidOptionQator(o.picture).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span> : (keycapNumber(o.picture) ? <span className="dx-kid-pic kb-num">{keycapNumber(o.picture)}</span> : <span className={`dx-kid-pic sz-${cardSize(o.picture || "x")} ${!o.picture && (o.oqiladi || !o.listen) && o.word ? "is-soz" : ""}`}>{o.picture || (o.oqiladi ? <>🔊 {o.word}</> : o.listen ? k + 1 : (o.word || o.letter))}</span>)}</button>
 </div>)}</div>
