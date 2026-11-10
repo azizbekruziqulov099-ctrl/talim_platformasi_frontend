@@ -1448,7 +1448,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   useLayoutEffect(() => {
     const el = doskaRef.current;
     if (!sinfXona || !el) return undefined;
-    sahifaRef.current = 0; setSahifa({ n: 0, korish: false });
+    sahifaRef.current = 0; setSahifa({ n: 0, korish: false }); el.scrollTop = 0;
     el.querySelectorAll(".is-sahifa-yashirin").forEach((x) => { x.classList.remove("is-sahifa-yashirin"); delete x.dataset.sahifa; });
     const sigdir = () => {
       if (el.classList.contains("is-korish")) return;   // o'quvchi oldingi sahifani ko'ryapti — tegmaymiz
@@ -1458,23 +1458,21 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       // doskada hozirgi qator qoladi (haqiqiy elektron panel kabi «+»), oldingi sahifani ◀ bilan ko'rish mumkin
       const zMin = el.closest(".dx-yotiq") ? 0.7 : 0.85;   // REV381: telefonda (buralgan dars) yozuv ko'proq kichrayib sig'sin
       for (let k = 0; k < 24 && el.scrollHeight > el.clientHeight + 2 && z > zMin; k++) { z = Math.round((z - 0.05) * 100) / 100; el.style.setProperty("--dx-sig", String(z)); }
-      if (el.scrollHeight > el.clientHeight + 2) {
-        // yangi sahifa: eng eski qatorlar bittalab oldingi sahifaga o'tadi — doskaga sig'guncha (yangi qatorlar ko'rinib turadi)
-        const qatorlar = [...new Set(el.querySelectorAll(".dx-line:not(.is-sahifa-yashirin), .mdx-line:not(.is-sahifa-yashirin)"))]
-          .filter((x) => !x.closest(".dx-task") && !x.parentElement?.closest(".dx-line, .mdx-line"));
-        if (qatorlar.length >= 2) {
-          const n = ++sahifaRef.current;
-          for (let k = 0; k < qatorlar.length - 1 && el.scrollHeight > el.clientHeight + 2; k++) {
-            qatorlar[k].classList.add("is-sahifa-yashirin"); qatorlar[k].dataset.sahifa = String(n);
-          }
-          el.classList.remove("is-yangi-sahifa"); void el.offsetWidth; el.classList.add("is-yangi-sahifa");
-          setSahifa({ n, korish: false });
-        }
-      }
+      // REV460: doska to'lsa — YANGI SAHIFA («+» va ◀ ▶) EMAS: doska pastga suriladi, oldingi yozuvlar tepada qoladi,
+      // yangi yozuv pastda paydo bo'ladi (tepaga surib eskisini o'qish mumkin). Haqiqiy uzun doska kabi.
       const sigmas = el.scrollHeight > el.clientHeight + 2;
       el.classList.toggle("is-sigmas", sigmas);
-      if (sigmas) { const h = el.querySelector(".dx-line.is-hozir") || [...el.querySelectorAll(".dx-line")].pop(); try { h?.scrollIntoView({ block: "nearest" }); } catch { /* */ } }
+      if (sigmas) {   // yangi yozuv ko'rinsin: doska ichida pastga silliq suriladi (sahifa o'zi siljimaydi)
+        const h = el.querySelector(".dx-line.is-hozir") || [...el.querySelectorAll(".dx-line, .mdx-line")].pop();
+        if (h && !el.dataset.qolda) {
+          const pastki = h.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom;
+          if (pastki > -8) el.scrollTo({ top: el.scrollTop + pastki + 24, behavior: "smooth" });
+        }
+      }
     };
+    let qolT = 0;
+    const qolda = () => { el.dataset.qolda = "1"; clearTimeout(qolT); qolT = setTimeout(() => { delete el.dataset.qolda; }, 6000); };
+    el.addEventListener("wheel", qolda, { passive: true }); el.addEventListener("touchmove", qolda, { passive: true });
     sigdir();
     const t = setTimeout(sigdir, 450);   // rasmlar yuklangach qayta o'lchanadi
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sigdir) : null;
@@ -1485,7 +1483,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
     const mo = typeof MutationObserver !== "undefined" ? new MutationObserver(() => { cancelAnimationFrame(kut); kut = requestAnimationFrame(sigdir); }) : null;
     mo?.observe(el, { childList: true, subtree: true, characterData: true });
     el.querySelectorAll("img").forEach((im) => { if (!im.complete) im.addEventListener("load", sigdir, { once: true }); });
-    return () => { clearTimeout(t); ro?.disconnect(); mo?.disconnect(); cancelAnimationFrame(kut); };
+    return () => { clearTimeout(t); clearTimeout(qolT); el.removeEventListener("wheel", qolda); el.removeEventListener("touchmove", qolda); ro?.disconnect(); mo?.disconnect(); cancelAnimationFrame(kut); };
   }, [sinfXona, idx, mode, testIndex, picked, variant, yotiq, tanlov]); // eslint-disable-line react-hooks/exhaustive-deps
   // REV415: dars sahifasi ko'rinmay qolsa (boshqa bo'limga o'tilgan, lekin dars yopilmagan) — saytning menyu va tugmalari
   // yashirin qolib ketmasin: «butun ekran» belgisi faqat dars haqiqatan ko'rinib turganda qo'yiladi.

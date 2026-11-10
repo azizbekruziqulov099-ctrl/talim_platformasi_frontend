@@ -726,7 +726,7 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-opts button{font-size:17px;min-height:44px}
   .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-why .dx-btn,  .dx-root.dx-root.dx-root.dx-focus:not(.dx-yotiq) .dx-test .dx-btn{font-size:15px;min-height:40px}
 }
-.dx-root.dx-sinf .dx-board.is-sigmas{overflow-y:auto;scrollbar-width:thin}
+.dx-root.dx-sinf .dx-board.is-sigmas{overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent;overscroll-behavior:contain}   /* REV460: doska pastga suriladi */
 /* telefonda: ovozli tekshiruv sarlavhasi yashiriladi (yulduzchalar qatori bor), ikki Kabu doskaga joy beradi */
 .dx-root.dx-yotiq.dx-sinf .dx-voice .dx-title{display:none}
 .dx-root.dx-yotiq .dx-kabu-fon.is-juft .dx-kabu-robot{width:17%}
@@ -1227,3 +1227,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .bo-juft>span{min-height:40px;display:grid;place-items:center}
 .bo-juft>i{display:block;height:3px;background:#FFD54A;transition:opacity .4s}
 .bo-juft .is-ortiq{filter:drop-shadow(0 0 6px #FFD54A)}
+
+/* REV460: doska to'lganda pastki chetida «davomi pastda» emas — yangi yozuv pastda; tepada eski yozuvlar borligi soya bilan bildiriladi */
+.dx-root.dx-sinf .dx-board.is-sigmas{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 18px);mask-image:linear-gradient(to bottom,transparent 0,#000 18px)}
