@@ -749,7 +749,8 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   // REV297: faqat test rejimi — dars yuklangach darhol test (Kabular muhitida) boshlanadi, dars qadamlari o'tkazib yuboriladi
   const faqatTestBoshlandi = useRef(false);
   useEffect(() => {
-    if (!faqatTest || !lesson || faqatTestBoshlandi.current || !(lesson.savollar || []).length) return;
+    // REV461: «nazorat testi», «oraliq nazorat» — server ularni test sifatida beradi (faqat_test) — darhol test boshlanadi
+    if (!(faqatTest || lesson?.faqat_test) || !lesson || faqatTestBoshlandi.current || !(lesson.savollar || []).length) return;
     faqatTestBoshlandi.current = true;
     startQuizRef.current?.();
   }, [faqatTest, lesson]);
