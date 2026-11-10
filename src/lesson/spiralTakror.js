@@ -129,6 +129,31 @@ export function erkinTuz(oxirgi, maqsad = 5) {
   return { mavzu: oxirgi.mavzu, til: oxirgi.til || "", kutilgan, maqsad: Math.min(maqsad, kutilgan.length) };
 }
 
+/** REV475: erkin eslash YOZMASDAN — 7–8 ta variantdan o'tgan darsda bo'lganlarini belgilash.
+ *  To'g'rilari — o'tgan dars tushunchalari (ko'pi bilan 4), chalg'ituvchilar — eski darslardan (o'tgan darsda bo'lmaganlar).
+ *  Vaqt yoshga qarab: 1–4-sinf har bir to'g'ri javobga 10 s, kattalar 6 s (vaqt ham eslash ko'nikmasiga kiradi). */
+export function erkinTanlov(darslar = [], sinf = 5, aralash = Math.random) {
+  const oxirgi = darslar[0];
+  const e = erkinTuz(oxirgi, 4);
+  if (!e) return null;
+  const tog = e.kutilgan.slice(0, Math.min(4, e.kutilgan.length));
+  const borlar = new Set(e.kutilgan.map((k) => String(k.matn).toLowerCase()));
+  const chalg = [];
+  for (const d of darslar.slice(1)) {
+    const lst = d?.til && d?.sozlar?.length ? d.sozlar.map((w) => w.soz) : (d?.atamalar || []);
+    for (const m of lst) {
+      const t = String(m || "").trim();
+      if (t && !borlar.has(t.toLowerCase()) && !chalg.some((x) => x.toLowerCase() === t.toLowerCase())) chalg.push(t);
+    }
+  }
+  const kerak = Math.max(3, 8 - tog.length);
+  const tanlangan = chalg.sort(() => aralash() - 0.5).slice(0, kerak);
+  if (tanlangan.length < 3) return null;   // chalg'ituvchi yetmasa — bu bosqich o'tkazib yuboriladi
+  const variantlar = [...tog.map((k) => ({ matn: k.matn, togri: true })), ...tanlangan.map((m) => ({ matn: m, togri: false }))].sort(() => aralash() - 0.5);
+  const kichik = (Number(sinf) || 5) <= 4;
+  return { mavzu: e.mavzu, til: e.til, variantlar, togriSoni: tog.length, soniya: tog.length * (kichik ? 10 : 6) };
+}
+
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/ß/g, "ss").replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
 const ARTIKL = /^(der|die|das|the|a|an|le|la|les|l|el|los|las|un|une|una|ein|eine)\s+/;
 /** Ikki so'z deyarli bir xilmi (bitta harf xatosi kechiriladi, 5+ harfli so'zda). */
