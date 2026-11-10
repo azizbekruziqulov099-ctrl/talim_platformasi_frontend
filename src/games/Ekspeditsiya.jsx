@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
+import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";   // REV462: 1–2-sinfda Kabu savolni o'qib beradi
+import { integerWords } from "../speech/mathSpeech.js";
 import "./ekspeditsiya.css";
 import XARITA_NUQTA from "./ekspeditsiyaXarita.json";   // REV459: bekatlar xaritadagi tayyor maydonchalar ustida
 
@@ -18,6 +20,27 @@ const SAHNA = { foiz: "dokon", chegirma: "dokon", osish: "bank", qiymat: "bozor"
   burchak_chiziq: "arxitektura", parallel: "arxitektura", aylana: "arxitektura", sektor: "arxitektura", pifagor: "qurilish", silindr: "suv_hovuz", unumdorlik: "zavod" };
 
 const TEG = { yangi: ["Yangi", "#1B4B7A"], takror: ["Takror", "#0D7A77"], uzoq: ["Eski mavzu", "#7A4FBF"], xato: ["Xatoni tuzatish", "#C2410C"], darvoza: ["Darvoza", "#B45309"] };
+const KICHIK = (k) => ["mat1", "mat2"].includes(String(k));   // REV462: 1–2-sinf
+/** Kichiklar uchun o'qiladigan matn: «7 + 5 = ?» → «yetti qo'shuv besh nechaga teng?» */
+function kichikOvoz(matn) {
+  let t = String(matn || "").replace(/\$/g, "").replace(/\\;|\\,/g, " ").replace(/\\cdot|·|×/g, " karra ").replace(/\s*=\s*\?/g, " nechaga teng?")
+    .replace(/\s*[−-]\s*(?=\d)/g, " ayiruv ").replace(/\s*\+\s*/g, " qo‘shuv ").replace(/(\d)\s*:\s*(?=\d)/g, "$1 bo‘linsin ")
+    .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, "").replace(/…\?|…/g, "").replace(/\s+/g, " ");
+  t = t.replace(/\d+/g, (x) => integerWords(Number(x), "uz") || x);
+  return t.trim();
+}
+/** «4 + 3 = ?» kabi kichik sonlar — sanash uchun rasm qatori (olma: qo'shishda ikki guruh, ayirishda o'chirilganlari xira). */
+function KichikRasm({ savol }) {
+  const m = String(savol || "").replace(/\$/g, "").match(/(\d+)\s*([+−-])\s*(\d+)\s*=/);
+  if (!m) return null;
+  const a = Number(m[1]), b = Number(m[3]), qosh = m[2] === "+";
+  if (a > 10 || b > 10 || (!qosh && b > a)) return null;
+  return <div className="ek-kichik-rasm" aria-hidden="true">
+    {Array.from({ length: a }, (_, i) => <span key={`a${i}`} className={!qosh && i >= a - b ? "is-olindi" : ""}>🍎</span>)}
+    {qosh && <><b>+</b>{Array.from({ length: b }, (_, i) => <span key={`b${i}`}>🍏</span>)}</>}
+  </div>;
+}
+
 const KORINISH = { xato_top: "🔎 Xatoni top", chamalash: "≈ Chamalash", togri_notogri: "⚖️ To‘g‘rimi?", naqsh: "🧩 Naqsh" };   // REV457
 const USLUB = (k) => { const g = Number(String(k).replace(/\D/g, "")); return g <= 4 ? "vodiy" : g <= 6 ? "orol" : g <= 9 ? "shahar" : "kosmos"; };
 
@@ -113,7 +136,9 @@ function Nishonlar({ d, onYop }) {
   </div></div>;
 }
 
-function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
+function Oyin({ api, apiBase, kurs, n, onTugadi, onOrqaga }) {
+  const ovoz = useMemo(() => ovozManbai(apiBase), [apiBase]);
+  useEffect(() => () => ovoz.stop(), [ovoz]);
   const [dat, setDat] = useState(null);
   const [i, setI] = useState(0);
   const [tanlov, setTanlov] = useState(null);
@@ -122,6 +147,8 @@ function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
   const [xato, setXato] = useState("");
   const [boshlandi] = useState(() => Date.now());
   useEffect(() => { api(`/api/ekspeditsiya/${kurs}/${n}/boshlash`, { method: "POST" }).then(setDat).catch((e) => setXato(String(e.message || e))); }, [kurs, n]); // eslint-disable-line react-hooks/exhaustive-deps
+  const oqi = (tt) => { if (tt) ovoz.oqi(kichikOvoz(tt.savol), { ...KABU_OVOZ, sekin: true }); };
+  useEffect(() => { if (KICHIK(kurs) && dat?.topshiriqlar?.[i] && tanlov === null) oqi(dat.topshiriqlar[i]); }, [dat, i]); // eslint-disable-line react-hooks/exhaustive-deps
   if (xato) return <div className="ek-oyin"><p>{xato}</p><button type="button" className="ek-btn" onClick={onOrqaga}>←</button></div>;
   if (!dat) return <div className="ek-oyin"><p>⏳</p></div>;
   const T = dat.topshiriqlar, t = T[i];
@@ -143,13 +170,15 @@ function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
       {yakun.otdi && n < 20 ? <button type="button" className="ek-btn" onClick={() => onTugadi(n + 1)}>{__kbUi("Keyingi bosqich")} →</button> : <button type="button" className="ek-btn" onClick={() => onTugadi(n)}>↻ {__kbUi("Qayta")}</button>}</div>
   </div>;
   const [nom, rang] = TEG[t.tag] || TEG.yangi;
-  return <div className="ek-oyin">
+  return <div className={`ek-oyin ${KICHIK(kurs) ? "is-kichik" : ""}`}>
     <div className="ek-tepa"><button type="button" className="ek-t" onClick={onOrqaga}>←</button><b>{dat.darvoza ? `🏛 ${__kbUi("Darvoza")}` : `${__kbUi("Bosqich")} ${n}`}</b>
       <div className="ek-nuqtalar">{T.map((_, k) => <i key={k} className={k < natija.length ? (natija[k].ok ? "is-ok" : "is-xato") : k === i ? "is-joriy" : ""} />)}</div></div>
     <div className="ek-karta">
       <div className="ek-teglar"><span className="ek-teg" style={{ background: rang }}>{__kbUi(nom)}</span>
         {KORINISH[t.korinish] && <span className="ek-teg is-korinish">{__kbUi(KORINISH[t.korinish])}</span>}</div>
       {SAHNA[t.tur] && R(`sahna_${SAHNA[t.tur]}`) && <img className="ek-sahna" src={R(`sahna_${SAHNA[t.tur]}`)} alt="" />}
+      {KICHIK(kurs) && <button type="button" className="ek-tingla" onClick={() => oqi(t)} aria-label={__kbUi("Qayta eshitish")}>🔊 {__kbUi("Eshitish")}</button>}
+      {KICHIK(kurs) && <KichikRasm savol={t.savol} />}
       <div className="ek-savol">{String(t.savol).split("\n").map((q, k) => <div key={k}><BoardText text={q} /></div>)}</div>
       <div className={`ek-variantlar ${t.variantlar.length === 2 ? "is-ikki" : ""}`}>{t.variantlar.map((v, k) => <button key={k} type="button" disabled={tanlov !== null}
         className={`ek-v ${tanlov !== null && k === t.togri ? "is-togri" : ""} ${tanlov === k && k !== t.togri ? "is-xato" : ""}`} onClick={() => javob(k)}><BoardText text={/[\\^_]/.test(v) ? `$${v}$` : v} /></button>)}</div>
@@ -209,7 +238,7 @@ export default function Ekspeditsiya({ apiBase = "", token = "", onClose }) {
   useEffect(() => { api("/api/ekspeditsiya/kurslar").then((r) => setKurslar(r.kurslar || [])).catch(() => {});
     api("/api/ekspeditsiya/oqituvchi/guruhlar").then((r) => setGuruhlar(r.guruhlar || [])).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setD(null); if (kurs) { try { localStorage.setItem("kb_eksp_kurs", kurs); } catch { /* */ } yangila(); } }, [kurs]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (bosqich) return <div className="ek-root"><Oyin key={`${kurs}-${bosqich}`} api={api} kurs={kurs} n={bosqich}
+  if (bosqich) return <div className="ek-root"><Oyin key={`${kurs}-${bosqich}`} api={api} apiBase={apiBase} kurs={kurs} n={bosqich}
     onOrqaga={() => { setBosqich(0); yangila(); }} onTugadi={(keyin) => { yangila(); setBosqich(0); if (keyin) setTimeout(() => setBosqich(keyin), 0); }} /></div>;
   if (hisobotda && guruhlar.length) return <div className="ek-root"><Hisobot api={api} kurslar={kurslar} guruhlar={guruhlar} onOrqaga={() => setHisobotda(false)} /></div>;
   if (kurs && d) return <div className="ek-root"><Xarita kurs={kurs} d={d} onBosqich={setBosqich} onOrqaga={() => setKurs("")} onNishonlar={() => setNishonda(true)} />
