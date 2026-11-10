@@ -33,6 +33,41 @@ const KESH = new Map();   // yo'l -> { buf, br, gz, tur, etag }
 const KESH_MAX_BAYT = Number(process.env.STATIC_CACHE_MB || 64) * 1024 * 1024;   // REV443: 200 → 64 MB (xotira — Railway to'lovi kamayadi)
 let keshBayt = 0;
 
+// REV466: oldingi versiyalarning build fayllari arxivi (Railway volume: /data). Yangilanishdan keyin dars yoki o'yin
+// o'rtasidagi o'quvchi eski versiyaning fayllarini so'rasa ham topiladi — dars uzilmaydi, sahifa qayta yuklanmaydi.
+const ARXIV = process.env.ASSET_ARXIV || (fs.existsSync("/data") ? "/data/assets-arxiv" : "");
+const ARXIV_KUN = Number(process.env.ASSET_ARXIV_KUN || 30);
+function arxivTayyorla() {
+  if (!ARXIV) return;
+  try {
+    fs.mkdirSync(ARXIV, { recursive: true });
+    const manba = path.join(ROOT, "assets");
+    let yangi = 0;
+    for (const f of fs.existsSync(manba) ? fs.readdirSync(manba) : []) {
+      const d = path.join(ARXIV, f);
+      if (!fs.existsSync(d)) { fs.copyFileSync(path.join(manba, f), d); yangi += 1; }
+      else fs.utimesSync(d, new Date(), new Date());   // hozirgi versiyada bor — «yangi» deb belgilanadi
+    }
+    const chegara = Date.now() - ARXIV_KUN * 86400000;
+    let ochdi = 0;
+    for (const f of fs.readdirSync(ARXIV)) {
+      const d = path.join(ARXIV, f);
+      if (fs.statSync(d).mtimeMs < chegara) { fs.rmSync(d, { force: true }); ochdi += 1; }
+    }
+    console.log(`[arxiv] ${yangi} ta yangi fayl qo'shildi, ${ochdi} ta eskisi (${ARXIV_KUN} kundan oshgan) o'chirildi`);
+  } catch (e) { console.log("[arxiv] xato:", e.message); }
+}
+setTimeout(arxivTayyorla, 2000);   // server ishga tushgach, fonda (birinchi marta minglab fayl ko'chiriladi)
+function arxivdan(urlPath) {
+  if (!ARXIV) return null;
+  const p = urlPath.split("?")[0];
+  if (!p.startsWith("/assets/") || !XESHLI.test(p)) return null;
+  const nom = path.basename(p);
+  if (nom.includes("..") || nom.includes("/")) return null;
+  const d = path.join(ARXIV, nom);
+  try { return fs.statSync(d).isFile() ? d : null; } catch { return null; }
+}
+
 function topish(urlPath) {
   let p;
   try { p = decodeURIComponent(urlPath.split("?")[0]); } catch { return null; }
@@ -77,7 +112,7 @@ const server = http.createServer((req, res) => {
   if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405, { Allow: "GET, HEAD" }); res.end(); return; }
   const urlPath = req.url || "/";
   if (urlPath === "/healthz") { res.writeHead(200, { "Content-Type": "text/plain" }); res.end("ok"); return; }
-  let full = topish(urlPath);
+  let full = topish(urlPath) || arxivdan(urlPath);   // REV466: yo'q bo'lsa — oldingi versiyalar arxividan
   // SPA: kengaytmasiz yo'l (masalan /maktab) — index.html; yo'q fayl (/assets/x.js) — 404 (eski kesh HTML olmasin)
   if (!full) {
     if (path.extname(urlPath.split("?")[0])) { res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" }); res.end("Topilmadi"); return; }

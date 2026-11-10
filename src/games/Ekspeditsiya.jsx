@@ -6,6 +6,7 @@ import { BoardText } from "../lesson/AmaliyDoska.jsx";
 import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";   // REV462: 1–2-sinfda Kabu savolni o'qib beradi
 import { integerWords } from "../speech/mathSpeech.js";
 import "./ekspeditsiya.css";
+import { useBand } from "../pwa/band.js";   // REV466
 import XARITA_NUQTA from "./ekspeditsiyaXarita.json";   // REV459: bekatlar xaritadagi tayyor maydonchalar ustida
 
 // REV459: Azizjon yuborgan rasmlar (xaritalar, bekatlar, darvozalar, mukofotlar, nishonlar, sahnalar)
@@ -141,6 +142,7 @@ function Nishonlar({ d, onYop }) {
 
 function Oyin({ api, apiBase, kurs, n, onTugadi, onOrqaga }) {
   const ovoz = useMemo(() => ovozManbai(apiBase), [apiBase]);
+  useBand(true);   // REV466: bosqich o'ynalayotganda yangilanish kutadi
   useEffect(() => () => ovoz.stop(), [ovoz]);
   const [dat, setDat] = useState(null);
   const [i, setI] = useState(0);

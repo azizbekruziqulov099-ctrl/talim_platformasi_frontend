@@ -1,5 +1,6 @@
 // REV371: «O‘yinlar xonasi» — bolaning o‘yinlari o‘z nomi bilan; har o‘yin bosqichlarga bo‘lingan (10 raund),
 // bosqichlar qulflangan: kuniga bittadan ochiladi (oldingisi o‘tilgan bo‘lsa), 2-bosqichdan boshlab — obuna bilan.
+import { BandBelgi } from "../../pwa/band.js";   // REV466
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Oyin from "../oyin/index.js";
 import { oyinRasmTop } from "../oyin/oyinRasmTop.js";
@@ -59,7 +60,7 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
     const b = oynaydi;
     return <div className="ox-root ox-oyin">
       <button type="button" className="ox-orqa-oyin" onClick={() => { setNatija(null); setOynaydi(null); }}>← {t("ortga", izoh)}</button>
-      <Oyin key={`${tanlangan.id}-${b.i}-${takror}`} id={tanlangan.id} elementlar={xonaElementlar(b, izoh)} yosh={yosh} til={izoh} izoh={izoh} rasm={oyinRasmTop}
+      <BandBelgi /><Oyin key={`${tanlangan.id}-${b.i}-${takror}`} id={tanlangan.id} elementlar={xonaElementlar(b, izoh)} yosh={yosh} til={izoh} izoh={izoh} rasm={oyinRasmTop}
         urug={urug.current + b.i} kirishDaraja="yoq" {...bosqichSozlama(yosh, b.i, tanlangan.id)} onSay={(s, d) => say(s, d)}
         onNatija={(togri, xatolar) => {
           const xato = Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0;

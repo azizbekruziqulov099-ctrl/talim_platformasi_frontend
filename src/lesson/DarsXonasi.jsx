@@ -1,3 +1,4 @@
+import { useBand } from "../pwa/band.js";   // REV466: dars/test o'rtasida yangilanish to'xtatilmaydi
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { fanIzohi } from "../curriculum/izohTanlov.js";
 import { lazyQayta } from "../workspace/lazyQayta.js";
@@ -183,6 +184,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
   const [loading, setLoading] = useState(true);
   const [idx, setIdx] = useState(-1);
   const [mode, setMode] = useState("idle"); // idle | lesson | test | result
+  useBand(mode !== "idle" && mode !== "result");
   const [playing, setPlaying] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [bubble, setBubble] = useState("");

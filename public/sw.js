@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v22-rev441";   // REV398/REV439: ulashish (share target)
+const CACHE = "samtm-shell-v23-rev466";   // REV398/REV439: ulashish (share target)
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
@@ -39,9 +39,11 @@ self.addEventListener("activate", event => {
       const eski = keys.filter(key => key.startsWith("samtm-") && key !== CACHE);
       await Promise.all(eski.map(key => caches.delete(key)));
       await self.clients.claim();
+      // REV466: oynalar MAJBURAN qayta yuklanmaydi (dars yoki o'yin o'rtasida bola uloqtirilmasin) — faqat xabar beriladi;
+      // sahifa o'zi qaror qiladi: dars/o'yin yo'q bo'lsa jimgina yangilanadi, bor bo'lsa — tugagach («🔄 Yangilash» lavhasi)
       if (eski.length) {
         const oynalar = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-        await Promise.all(oynalar.map(c => (c.navigate ? c.navigate(c.url).catch(() => {}) : null)));
+        oynalar.forEach(c => { try { c.postMessage({ tur: "yangi_versiya" }); } catch (e) { /* */ } });
       }
     })
   );
