@@ -1237,3 +1237,17 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-btn.is-davom-kut,.dx-btn.is-keyingi-tayyor{animation:dx-yon 1.4s ease-in-out infinite;border-color:#f2b72e!important}
 .dx-btn.is-keyingi-tayyor{background:#fff3c4!important;color:#5a4300!important;font-weight:800}
 @keyframes dx-yon{0%,100%{box-shadow:0 0 0 0 rgba(242,183,46,.0)}50%{box-shadow:0 0 0 6px rgba(242,183,46,.45)}}
+/* REV474: doskadagi yordamchi tugmalar oq «yamoq» bo'lib turmaydi — doska rangiga mos, shaffof; asosiylari ajralib turadi */
+.dx-amaliy .dx-yordam-tug .dx-btn,.dx-amaliy .dx-amaliy-actions .dx-btn:not(.dx-primary){background:rgba(255,255,255,.08);color:#e8eef6;border:1px solid rgba(255,255,255,.22);box-shadow:none}
+.dx-amaliy .dx-yordam-tug .dx-btn:hover,.dx-amaliy .dx-amaliy-actions .dx-btn:not(.dx-primary):hover{background:rgba(255,255,255,.16)}
+.dx-amaliy .dx-amaliy-actions .dx-primary{background:#f2b72e;color:#13202e;border:0}
+/* yozma javob kutilayotganda burchakdagi «✏️ Qoralama» — rangli, bir tekis (miltillamaydi) */
+.dx-root.dx-yozish-kerak .dx-burchak-daftar{background:#f2b72e!important;color:#13202e!important;border-color:#f2b72e!important;box-shadow:0 2px 10px rgba(242,183,46,.45)}
+/* ko'p tanlov (xossalar) */
+.dx-kop-tanlov{margin-top:10px}
+.dx-kop-izoh{color:#ffd76a;font-weight:700;margin:0 0 8px}
+.dx-kop-chiplar{display:flex;flex-wrap:wrap;gap:8px}
+.dx-kop-chip{padding:10px 16px;border-radius:999px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.06);color:#fff;font:700 17px system-ui;cursor:pointer}
+.dx-kop-chip.is-on{background:#2f6fb3;border-color:#8fc1ff}
+.dx-kop-chip.is-ok{background:#2e9e5b;border-color:#8be0a9}
+.dx-kop-chip.is-no{background:#b3362f;border-color:#f19a94}

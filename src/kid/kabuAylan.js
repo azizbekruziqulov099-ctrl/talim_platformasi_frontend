@@ -38,8 +38,9 @@ const silliq = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
 function hajmQosh(kbot) {
   const asl = [...kbot.children].filter((c) => !c.classList.contains("kbot-qatlam"));
   const eni = kbot.getBoundingClientRect().width || 120;
-  // REV469: qatlamlar zichroq (20 ta) va oralig'i kichik — burilganda yon tomoni «zinapoya» emas, silliq tana bo'lib ko'rinadi
-  const chuqur = Math.max(10, eni * 0.13), N = 20;
+  // REV476: haqiqiy robot qobig'i — yon tomoni TEKIS emas, DUMALOQ: o'rtadagi qatlamlar biroz kattaroq (bo'rtiq), old va orqa
+  // qirralari kichikroq (yumaloq qirra); yorug'lik silindrdek — o'rtasi yorug', qirralari to'q; metall tusi (kam rang, ko'p kontrast)
+  const chuqur = Math.max(12, eni * 0.16), N = 32;
   const html = asl.map((c) => c.outerHTML).join("");
   const qatlamlar = [];
   for (let i = 1; i <= N; i += 1) {
@@ -48,8 +49,9 @@ function hajmQosh(kbot) {
     q.className = `kbot-qatlam${orqa ? " kbot is-orqa" : ""}`;
     q.setAttribute("aria-hidden", "true");
     Object.assign(q.style, { position: "absolute", inset: "0", width: "100%", height: "100%", padding: "0", margin: "0", pointerEvents: "none",
-      transform: `translateZ(${(-chuqur * i) / N}px)${orqa ? " rotateY(180deg)" : ""}`, backfaceVisibility: orqa ? "hidden" : "visible",
-      filter: orqa ? "brightness(.97)" : `brightness(${(0.62 - 0.012 * Math.abs(i - N / 2)).toFixed(3)}) saturate(.75)` });
+      transform: `translateZ(${(-chuqur * i) / N}px) scale(${(1 + 0.045 * Math.sin((Math.PI * i) / N) - 0.03 * (i / N) ** 2).toFixed(4)})${orqa ? " rotateY(180deg)" : ""}`,
+      backfaceVisibility: orqa ? "hidden" : "visible",
+      filter: orqa ? "brightness(.97)" : `brightness(${(0.42 + 0.34 * Math.sin((Math.PI * i) / N)).toFixed(3)}) saturate(.45) contrast(1.15)` });
     q.innerHTML = html;
     kbot.insertBefore(q, kbot.firstChild);
     qatlamlar.push(q);
@@ -72,13 +74,16 @@ export function kabuAylan(kbot, { gradus = 360, ms = 1600 } = {}) {
   let tozala = () => {};
   try { tozala = hajmQosh(kbot); } catch { /* eski brauzer — hajmsiz aylanadi */ }
   let id = 0; const t0 = performance.now();
-  const tugat = () => { kbot.style.transform = ""; kbot.style.filter = ""; kbot.classList.remove("is-orqa"); tozala(); tozala = () => {}; };
+  const asl = [...kbot.children].filter((c) => !c.classList.contains("kbot-qatlam"));
+  const tugat = () => { kbot.style.transform = ""; kbot.style.filter = ""; asl.forEach((c) => { c.style.filter = ""; }); kbot.classList.remove("is-orqa"); tozala(); tozala = () => {}; };
   const qadam = (t) => {
     const k = Math.min(1, (t - t0) / ms);
     const g = qaytadi ? gradus * Math.sin(Math.PI * silliq(k)) : gradus * silliq(k);
     // REV426/REV431: haqiqiy 3D — perspektiva, qatlamlar chuqurlikda turadi (filter bu yerda emas: u 3D ni tekislab qo'yadi)
     kbot.style.transformOrigin = "50% 55%";
     kbot.style.transform = `perspective(1000px) rotateY(${g}deg) translateY(${-6 * Math.sin(Math.PI * k)}%)`;   // REV469: yumshoqroq perspektiva
+    const nur = Math.cos(((g - 25) * Math.PI) / 180);   // REV476: chapdan tushgan yorug'lik — burilganda yuzi yaltirab, so'ng soyalanadi
+    asl.forEach((c) => { c.style.filter = `brightness(${(0.88 + 0.22 * Math.max(0, nur)).toFixed(3)})`; });
     if (k < 1) id = requestAnimationFrame(qadam); else tugat();
   };
   id = requestAnimationFrame(qadam);

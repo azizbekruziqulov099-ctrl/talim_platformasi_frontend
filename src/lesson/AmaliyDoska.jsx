@@ -57,9 +57,57 @@ export function useBoardVoice(apiBase, jins = "qiz") {
   return useMemo(() => ({ say, hush, speaking }), [say, hush, speaking]);
 }
 
+
+// REV474: «limonni 3 ta xossa bilan tasvirla» kabi topshiriqlar — YOZDIRMAYMIZ: 6–7 ta variantdan to'g'rilarini tanlaydi.
+// Kutilgan javob — vergul bilan ajratilgan so'zlar ro'yxati («sariq, nordon, oval») bo'lsa ishlaydi. Xato variantlar o'sha
+// toifadan, lekin aniq noto'g'ri (masalan rangga — boshqa ranglar; ta'mga — boshqa ta'mlar).
+const TOIFA = {
+  rang: ["qizil", "ko‘k", "yashil", "sariq", "oq", "qora", "binafsha", "pushti", "jigarrang", "to‘q sariq", "kulrang"],
+  tam: ["shirin", "nordon", "achchiq", "sho‘r", "mazali"],
+  shakl: ["dumaloq", "oval", "kvadrat", "uchburchak", "to‘g‘ri to‘rtburchak", "uzunchoq", "yassi"],
+  olcham: ["katta", "kichik", "uzun", "qisqa", "baland", "past", "yo‘g‘on", "ingichka"],
+  sezgi: ["yumshoq", "qattiq", "silliq", "g‘adir-budur", "issiq", "sovuq", "og‘ir", "yengil", "ho‘l", "quruq", "tikanli"],
+};
+const UZOQ = { rang: { sariq: ["ko‘k", "binafsha", "qora"], qizil: ["ko‘k", "qora", "oq"], yashil: ["ko‘k", "qora", "pushti"], "to‘q sariq": ["ko‘k", "binafsha", "qora"] },
+  tam: { nordon: ["shirin", "sho‘r"], shirin: ["sho‘r", "nordon"], achchiq: ["shirin"] },
+  shakl: { dumaloq: ["kvadrat", "uchburchak"], oval: ["kvadrat", "uchburchak"], uzunchoq: ["dumaloq", "kvadrat"] } };
+const ichida = (t, x) => (t || "").toLowerCase().replace(/[ʻ'`’]/g, "‘").includes(x);
+export function kopTanlovYasa(item, kutilgan) {
+  if (!kutilgan || (item?.variantlar || []).length) return null;
+  const shart = String(item?.shart || "").toLowerCase();
+  // faqat XOSSALAR bilan tasvirlash (rang, ta'm, shakl…) — ochiq misollar («narsalarni sanab ber») yozma qoladi
+  if (!/xossa|xususiyat|belgisi bilan|belgi bilan|tasvirla/.test(shart.replace(/[ʻ`’]/g, "‘"))) return null;
+  if (/masalan/i.test(String(kutilgan))) return null;
+  const togri = String(kutilgan).replace(/^.*?:/, "").split(/[,;]| va /).map((x) => x.trim().replace(/[.!]$/, "")).filter(Boolean);
+  if (togri.length < 2 || togri.length > 5 || togri.some((x) => x.split(/\s+/).length > 3 || /\d/.test(x))) return null;
+  const kichik = togri.map((x) => x.toLowerCase().replace(/[ʻ'`’]/g, "‘"));
+  const xato = [];
+  for (const t of kichik) {
+    const toifa = Object.keys(TOIFA).find((k) => TOIFA[k].includes(t));
+    const nomzod = (toifa && UZOQ[toifa]?.[t]) || (toifa ? TOIFA[toifa].filter((x) => !kichik.includes(x)).slice(-3) : []);
+    for (const x of nomzod) if (!kichik.includes(x) && !xato.includes(x) && xato.length < 4) xato.push(x);
+  }
+  for (const x of ["temir", "shaffof", "uchadi", "kvadrat", "ko‘k"]) if (xato.length < Math.max(3, 7 - togri.length) && !kichik.includes(x) && !xato.includes(x)) xato.push(x);
+  const hammasi = [...togri, ...xato].map((x, i) => ({ x, k: (x.charCodeAt(0) * 7 + i * 13) % 97 })).sort((a, z) => a.k - z.k).map((o) => o.x);
+  return { togri: kichik, hammasi, soni: togri.length };
+}
+
 /** Amaliy topshiriq doskasi: sharti ko'rinadi, yechimi «Yechimni ko'rsatish» bosilganda
  *  o'qituvchi ovozi bilan qadamma-qadam yoziladi. Dars xonasi va kitob kodi oynasi bir xil ishlatadi. */
-export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false, jonli = false, soz = -1, sozSoni = 0, onNatija = null }) {
+/** REV476: 1-sinf — yozdirmaymiz: sonli javob 4 ta variantdan tanlanadi (to'g'ri, ±1, ±2 yoki +10 — odatiy xatolar). */
+function sonliTanlov(item, kutilgan) {
+  const t = String(kutilgan ?? "").replace(/\$/g, "").replace(/\s/g, "").replace(",", ".");
+  if (!/^-?\d+(\.\d+)?$/.test(t)) return null;
+  const n = Number(t), butun = Number.isInteger(n);
+  const xato = butun ? [n + 1, n - 1, n + 2, n + 10, n - 2].filter((x) => x >= 0 && x !== n) : [n + 0.1, n - 0.1, n * 10].map((x) => Math.round(x * 100) / 100);
+  const urug = String(item?.kod || item?.id || t).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const tanlangan = [...new Set(xato)].slice(0, 3);
+  const hammasi = [n, ...tanlangan];
+  for (let i = hammasi.length - 1; i > 0; i -= 1) { const j = (urug + i * 17) % (i + 1); [hammasi[i], hammasi[j]] = [hammasi[j], hammasi[i]]; }
+  return { togri: n, hammasi };
+}
+
+export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false, jonli = false, soz = -1, sozSoni = 0, onNatija = null, yozmasdan = false }) {
   useKbInterfaceLocale();
   const steps = item?.yechim || [];
   const options = item?.variantlar || [];
@@ -72,6 +120,16 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const [klav, setKlav] = useState(false);   // REV312: matematik klaviatura ochiqmi
   const [daftar, setDaftar] = useState(false);   // REV385: qoralama daftar ochiqmi
   const kutilgan = item?.javob || javobYechimdan(steps);
+  const kop = useMemo(() => kopTanlovYasa(item, kutilgan), [item, kutilgan]);   // REV474
+  const sonli = useMemo(() => (yozmasdan && !options.length && !kop ? sonliTanlov(item, kutilgan) : null), [yozmasdan, options.length, kop, item, kutilgan]);   // REV476
+  const [sonliTanlandi, setSonliTanlandi] = useState(null);
+  const [belgilangan, setBelgilangan] = useState([]);
+  useEffect(() => {   // REV474: yozma javob kutilayotgani — burchakdagi «✏️ Qoralama» tugmasi rangli bo'lib eslatib turadi
+    const el = typeof document !== "undefined" ? document.querySelector(".dx-root") : null;
+    const kerak = !options.length && kutilgan && !kop && !kid && !sonli;
+    el?.classList.toggle("dx-yozish-kerak", Boolean(kerak));
+    return () => el?.classList.remove("dx-yozish-kerak");
+  }, [options.length, kutilgan, kop, kid, sonli]);
   useEffect(() => {   // klaviatura ochiq — dars oynasi pastdan joy qoldiradi (doska yopilmaydi)
     const el = typeof document !== "undefined" ? document.querySelector(".dx-root") : null;
     el?.classList.toggle("dx-klav-ochiq", klav);
@@ -82,7 +140,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const stop = useCallback(() => { runRef.current += 1; setRunning(false); hush?.(); }, [hush]);
   // REV93: yangi topshiriq ochilganda o'qituvchi ovozini O'CHIRMAYMIZ (dars xonasi shu payt shartni o'qiyapti) —
   // faqat o'zimizning yechim ko'rsatishni to'xtatamiz. Oldin bu ovozni kesib, dars shu qadamda to'xtab qolardi.
-  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); setMaslahatN(0); setKlav(false); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); setMaslahatN(0); setKlav(false); setBelgilangan([]); setSonliTanlandi(null); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { runRef.current += 1; }, []);
 
   const reveal = useCallback((from = 0) => {
@@ -140,16 +198,35 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
       return <button key={k} type="button" onClick={() => pick(k)} className={state === "ok" ? "is-ok" : state === "no" ? "is-no" : state === "picked" ? "is-picked" : ""}>
         {"ABCDE"[k]}) <BoardText text={o} /></button>;
     })}</div>}
+    {kop && <div className="dx-kop-tanlov">
+      <p className="dx-kop-izoh">{__kbUi(`${kop.soni} tasini tanlang`)}</p>
+      <div className="dx-kop-chiplar">{kop.hammasi.map((x) => { const on = belgilangan.includes(x.toLowerCase());
+        const holat = feedback ? (kop.togri.includes(x.toLowerCase()) ? "is-ok" : on ? "is-no" : "") : on ? "is-on" : "";
+        return <button key={x} type="button" className={`dx-kop-chip ${holat}`} disabled={Boolean(feedback?.ok)}
+          onClick={() => { setFeedback(null); setBelgilangan((b) => b.includes(x.toLowerCase()) ? b.filter((y) => y !== x.toLowerCase()) : [...b, x.toLowerCase()]); }}>{x}</button>; })}</div>
+      <div className="dx-javob-maydon"><button type="button" className="dx-btn dx-primary" disabled={belgilangan.length !== kop.soni}
+        onClick={() => { const ok = belgilangan.every((b) => kop.togri.includes(b)) && belgilangan.length === kop.togri.length;
+          setFeedback(ok ? { ok: true, text: __kbUi("✅ To‘g‘ri!") } : { ok: false, text: __kbUi("Yashil belgilanganlar — to‘g‘ri javoblar.") });
+          say(ok ? __kbUi("Barakalla, to‘g‘ri!") : __kbUi("Deyarli! To‘g‘ri javoblarga qarang.")); onNatija?.(ok); }}>{__kbUi("Tekshirish")}</button>
+        {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}</div>
+    </div>}
+    {sonli && <div className="dx-opts dx-sonli">{sonli.hammasi.map((x) => {
+      const holat = sonliTanlandi === null ? "" : x === sonli.togri ? "is-ok" : x === sonliTanlandi ? "is-no" : "";
+      return <button key={x} type="button" className={holat} disabled={sonliTanlandi !== null && sonliTanlandi === sonli.togri}
+        onClick={() => { setSonliTanlandi(x); const ok = x === sonli.togri;
+          setFeedback(ok ? { ok: true, text: __kbUi("✅ To‘g‘ri!") } : { ok: false, text: __kbUi("Yana bir o‘ylab ko‘r — yashili to‘g‘ri javob.") });
+          say(ok ? __kbUi("Barakalla, to‘g‘ri!") : __kbUi("Deyarli! To‘g‘ri javobga qara.")); onNatija?.(ok); if (ok) onSolved?.(); }}>{String(x).replace(".", ",")}</button>; })}
+      {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}</div>}
     {/* REV312: javob — doskadagi quti (telefon klaviaturasi chiqmaydi), bosilsa pastda matematik klaviatura */}
-    {!options.length && kutilgan && !kid && <div className="dx-javob-maydon">
+    {!options.length && kutilgan && !kid && !kop && !sonli && <div className="dx-javob-maydon">
       <button type="button" className={`dx-javob-quti ${klav ? "is-ochiq" : ""}`} onClick={() => setKlav(true)} aria-label={__kbUi("Javobingiz")}>
         <JavobKorinishi qiymat={answer} bosh="✏️ Javobni yozing" /></button>
       <button type="button" className="dx-btn dx-primary" disabled={!answer} onClick={submit}>{__kbUi("Tekshirish")}</button>
       {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}
     </div>}
-    {!kid && <div className="dx-yordam-tug">
-      <button type="button" className="dx-btn dx-daftar-och" onClick={() => { setKlav(false); setDaftar(true); }}>📝 {__kbUi("Qoralama daftar")}</button>
-      {!options.length && kutilgan && <button type="button" className={`dx-btn dx-klav-och ${klav ? "is-on" : ""}`} onClick={() => setKlav((x) => !x)}>⌨️ {__kbUi("Klaviatura: harflar va belgilar")}</button>}
+    {!kid && !options.length && kutilgan && !kop && !sonli && <div className="dx-yordam-tug">
+      {/* REV474: «Qoralama daftar» tugmasi olib tashlandi — doskaning burchagida «✏️ Qoralama» doim bor (yozish kerak bo'lsa rangli) */}
+      {<button type="button" className={`dx-btn dx-klav-och ${klav ? "is-on" : ""}`} onClick={() => setKlav((x) => !x)}>⌨️ {__kbUi("Klaviatura: harflar va belgilar")}</button>}
     </div>}
     {daftar && <QoralamaDaftar kalit={`dars:${item.kod || ""}`} savol={<>{lines.map((line, i) => <p key={i}><BoardText text={line} /></p>)}</>}
       chizma={item.rasm ? <img className="qd-rasm" src={mediaUrl(item.rasm)} alt="" /> : null}

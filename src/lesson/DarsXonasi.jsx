@@ -1885,6 +1885,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
           {!kid && mode === "lesson" && step && step.turi === "amaliy" && <>
             {step.sarlavha && <h3 className="dx-title"><BoardText text={step.sarlavha} /></h3>}
             <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} kid={kid}
+              yozmasdan={["1", "0", "yosh"].includes(String(grade || lesson?.topic?.sinf || "").trim())}   /* REV476: 1-sinfda yozma javob yo'q — tanlash */
               jonli={matem} soz={word} sozSoni={sayWords.current.length}
               onNatija={onNatija ? (togri) => onNatija({ item: step.kitob_kodi || step.kod || step.id, turi: step.amaliy_turi || "masala", togri }) : null} />
           </>}
