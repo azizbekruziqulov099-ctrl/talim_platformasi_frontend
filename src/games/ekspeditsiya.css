@@ -46,3 +46,18 @@
 .ek-teg.is-korinish{background:#fff;color:#1d2b3a;border:1px solid #d6dee8}
 .ek-variantlar.is-ikki .ek-v{font-size:22px;min-height:70px}
 .ek-savol>div+div{margin-top:6px}
+/* REV458: o'qituvchi hisoboti */
+.ek-hisobot select{padding:10px 12px;border-radius:12px;border:1px solid #d6dee8;font:600 15px system-ui;background:#fff}
+.ek-hisobot h3{margin:18px 0 8px;font-size:17px}
+.ek-zaif{display:flex;flex-direction:column;gap:8px;background:#fff;border-radius:16px;padding:12px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.ek-zaif-q{display:grid;grid-template-columns:minmax(150px,1.2fr) 2fr 52px minmax(0,1.3fr);gap:10px;align-items:center;font-size:14px}
+.ek-zaif-q small{color:#b3261e;font-weight:600}
+.ek-bar{height:12px;border-radius:999px;background:#eef2f6;overflow:hidden}
+.ek-bar i{display:block;height:100%;border-radius:999px;background:#1B4B7A}
+.ek-bar.kichik{height:8px;width:90px;display:inline-block;vertical-align:middle;margin-right:6px}
+.ek-jadval-q{overflow-x:auto;background:#fff;border-radius:16px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.ek-jadval-q table{width:100%;border-collapse:collapse;font-size:14px}
+.ek-jadval-q th,.ek-jadval-q td{padding:9px 10px;border-bottom:1px solid #eef2f6;text-align:left;white-space:nowrap}
+.ek-jadval-q th{background:#f6f8fb;font-weight:700}
+.ek-chip.kichik{font-size:12px;padding:2px 8px;margin:1px 3px 1px 0;display:inline-block;background:#fdecea;border-color:#f5c2bd}
+@media (max-width:640px){.ek-zaif-q{grid-template-columns:1fr 60px;}.ek-zaif-q .ek-bar,.ek-zaif-q small{grid-column:1/-1}}

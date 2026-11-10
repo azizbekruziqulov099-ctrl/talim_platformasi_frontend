@@ -117,6 +117,37 @@ function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
   </div>;
 }
 
+/** REV458: o'qituvchi hisoboti — guruh va ekspeditsiya tanlanadi: kim qaysi bosqichda, aniqligi, zaif mavzulari va sinfning zaif mavzulari. */
+function Hisobot({ api, kurslar, guruhlar, onOrqaga }) {
+  const [g, setG] = useState(guruhlar[0]?.id || "");
+  const [k, setK] = useState(() => { const gr = guruhlar[0]; const s = String(gr?.grade || "").replace(/\D/g, ""); return kurslar.find((x) => x.kalit.replace(/\D/g, "") === s)?.kalit || kurslar[0]?.kalit || ""; });
+  const [h, setH] = useState(null);
+  const [xato, setXato] = useState("");
+  useEffect(() => { if (g && k) { setH(null); setXato(""); api(`/api/ekspeditsiya/oqituvchi/hisobot?guruh=${g}&kurs=${k}`).then(setH).catch((e) => setXato(String(e.message || e))); } }, [g, k]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="ek-hisobot">
+    <div className="ek-tepa"><button type="button" className="ek-t" onClick={onOrqaga}>←</button><b>👩‍🏫 {__kbUi("O‘qituvchi hisoboti")}</b></div>
+    <div className="ek-qator" style={{ justifyContent: "flex-start" }}>
+      <select value={g} onChange={(e) => setG(e.target.value)}>{guruhlar.map((x) => <option key={x.id} value={x.id}>{x.nom} ({x.soni})</option>)}</select>
+      <select value={k} onChange={(e) => setK(e.target.value)}>{kurslar.map((x) => <option key={x.kalit} value={x.kalit}>{x.nom}</option>)}</select>
+    </div>
+    {xato && <p className="ek-izoh">{xato}</p>}
+    {!h && !xato && <p className="ek-izoh">⏳</p>}
+    {h && <>
+      <h3>{__kbUi("Sinfning zaif mavzulari")}</h3>
+      {h.sinf_zaif.length ? <div className="ek-zaif">{h.sinf_zaif.map((z) => <div key={z.tur} className="ek-zaif-q">
+        <span>{__kbUi(z.nom)}</span><div className="ek-bar"><i style={{ width: `${z.aniqlik}%`, background: z.aniqlik < 60 ? "#d9534f" : z.aniqlik < 80 ? "#f2b72e" : "#2e9e5b" }} /></div>
+        <b>{z.aniqlik}%</b><small>{z.qiynalganlar ? `${z.ulush}% ${__kbUi("o‘quvchi qiynalmoqda")}` : ""}</small></div>)}</div>
+        : <p className="ek-izoh">{__kbUi("Hali yetarli ma’lumot yo‘q — o‘quvchilar bir necha bosqich o‘ynagach ko‘rinadi.")}</p>}
+      <h3>{__kbUi("O‘quvchilar")} {h.boshlamagan ? <small className="ek-izoh">· {h.boshlamagan} {__kbUi("ta hali boshlamagan")}</small> : null}</h3>
+      <div className="ek-jadval-q"><table><thead><tr><th>{__kbUi("O‘quvchi")}</th><th>{__kbUi("Bosqich")}</th><th>★</th><th>{__kbUi("Aniqlik")}</th><th>🔥</th><th>{__kbUi("Zaif mavzular")}</th></tr></thead>
+        <tbody>{h.oquvchilar.map((q, i) => <tr key={i}><td>{q.ism}</td>
+          <td><div className="ek-bar kichik"><i style={{ width: `${(q.bosqich / 20) * 100}%` }} /></div>{q.bosqich}/20</td>
+          <td>{q.yulduz}</td><td>{q.aniqlik == null ? "—" : `${q.aniqlik}%`}</td><td>{q.streak || 0}</td>
+          <td>{q.zaif.map((z) => <span key={z.tur} className="ek-chip kichik">{__kbUi(z.nom)} {z.foiz}%</span>)}</td></tr>)}</tbody></table></div>
+    </>}
+  </div>;
+}
+
 export default function Ekspeditsiya({ apiBase = "", token = "", onClose }) {
   const api = async (yol, o = {}) => {
     const r = await fetch(`${apiBase}${yol}${yol.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`, { ...o, headers: { "Content-Type": "application/json", ...(o.headers || {}) } });
@@ -127,14 +158,19 @@ export default function Ekspeditsiya({ apiBase = "", token = "", onClose }) {
   const [kurs, setKurs] = useState(() => { try { return localStorage.getItem("kb_eksp_kurs") || ""; } catch { return ""; } });
   const [d, setD] = useState(null);
   const [bosqich, setBosqich] = useState(0);
+  const [guruhlar, setGuruhlar] = useState([]);
+  const [hisobotda, setHisobotda] = useState(false);
   const yangila = () => kurs && api(`/api/ekspeditsiya/${kurs}`).then(setD).catch(() => setD(null));
-  useEffect(() => { api("/api/ekspeditsiya/kurslar").then((r) => setKurslar(r.kurslar || [])).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { api("/api/ekspeditsiya/kurslar").then((r) => setKurslar(r.kurslar || [])).catch(() => {});
+    api("/api/ekspeditsiya/oqituvchi/guruhlar").then((r) => setGuruhlar(r.guruhlar || [])).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { setD(null); if (kurs) { try { localStorage.setItem("kb_eksp_kurs", kurs); } catch { /* */ } yangila(); } }, [kurs]); // eslint-disable-line react-hooks/exhaustive-deps
   if (bosqich) return <div className="ek-root"><Oyin key={`${kurs}-${bosqich}`} api={api} kurs={kurs} n={bosqich}
     onOrqaga={() => { setBosqich(0); yangila(); }} onTugadi={(keyin) => { yangila(); setBosqich(0); if (keyin) setTimeout(() => setBosqich(keyin), 0); }} /></div>;
+  if (hisobotda && guruhlar.length) return <div className="ek-root"><Hisobot api={api} kurslar={kurslar} guruhlar={guruhlar} onOrqaga={() => setHisobotda(false)} /></div>;
   if (kurs && d) return <div className="ek-root"><Xarita kurs={kurs} d={d} onBosqich={setBosqich} onOrqaga={() => setKurs("")} /></div>;
   return <div className="ek-root ek-tanlov">
     <div className="ek-tepa">{onClose && <button type="button" className="ek-t" onClick={onClose}>←</button>}<b>🧭 {__kbUi("Matematik ekspeditsiya")}</b></div>
+    {guruhlar.length > 0 && <button type="button" className="ek-btn" style={{ alignSelf: "flex-start", marginBottom: 10 }} onClick={() => setHisobotda(true)}>👩‍🏫 {__kbUi("O‘qituvchi hisoboti")}</button>}
     <p className="ek-izoh">{__kbUi("Sinfingizni tanlang. 20 bosqich, har birida 15 ta topshiriq — o‘tgan mavzular ham vaqti-vaqti bilan qaytib keladi.")}</p>
     <div className="ek-kurslar">{kurslar.map((k) => <button key={k.kalit} type="button" className={`ek-kurs is-${USLUB(k.kalit)}`} onClick={() => setKurs(k.kalit)}>
       <span>{USLUB(k.kalit) === "vodiy" ? "🌳" : USLUB(k.kalit) === "orol" ? "🏝" : USLUB(k.kalit) === "shahar" ? "🕌" : "🚀"}</span><b>{k.nom}</b></button>)}</div>
