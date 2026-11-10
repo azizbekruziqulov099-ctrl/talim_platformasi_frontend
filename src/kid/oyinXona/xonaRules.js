@@ -3,7 +3,7 @@
 // o‘tilgan kundan keyin yangi kun kelganda ochiladi (har kuni bittadan), hamda faqat obunachilarga.
 import { XONA_TOPLAM } from "./xonaData.js";
 import { oyinOl } from "../oyin/oyinRules.js";
-import { ULASH } from "../oyin/saralashData.js";   // REV450
+import { ULASH, SARALASH } from "../oyin/saralashData.js";   // REV450/REV455
 
 // REV379: «Rivojlantiruvchi o'yinlar» — hamma 57 xil o'yin, yo'nalishlar bo'yicha
 export const XONA_GURUHLAR = [
@@ -50,9 +50,27 @@ function ulashBosqichlari(nom) {
   return out.map((b, i) => ({ ...b, i: i + 1 }));
 }
 
+/** REV455: saralash o'yinlarida ham bosqichlar o'z narsalaridan: guruhlardan navbat bilan 4 ta yangi narsa + 1 takror. */
+function saralashBosqichlari(nom) {
+  const d = SARALASH[nom];
+  const navbat = [];
+  const maks = Math.max(...d.narsa.map((n) => n.length));
+  for (let i = 0; i < maks; i += 1) d.narsa.forEach((n, gi) => { if (n[i]) navbat.push({ w: n[i], gi }); });
+  const out = [];
+  for (let i = 0; i < navbat.length; i += 4) {
+    const yangi = navbat.slice(i, i + 4);
+    const takror = i > 0 ? [navbat[i - 1]] : [];
+    const items = [...yangi, ...takror].map(({ w }) => ({ e: w.e, s: w.s, r: w.s?.r, sarA: w.s.uz }));
+    out.push({ toplam: nom, belgi: yangi[0].w.e, nom: yangi.map(({ w }) => w.s.uz).join(", "), items });
+  }
+  out.push({ toplam: nom, belgi: "⭐", nom: "hammasi", items: navbat.map(({ w }) => ({ e: w.e, s: w.s, r: w.s?.r, sarA: w.s.uz })) });
+  return out.map((b, i) => ({ ...b, i: i + 1 }));
+}
+
 export function bosqichlar(oyinId) {
   const kal = oyinOl(Number(oyinId))?.kalit;
   if (kal && ULASH[kal]) return ulashBosqichlari(kal);
+  if (kal && SARALASH[kal]) return saralashBosqichlari(kal);
   const k = Math.max(0, XONA_OYINLAR.indexOf(Number(oyinId)));
   const t = XONA_TOPLAM.map((_, j) => XONA_TOPLAM[(j + k) % XONA_TOPLAM.length]);
   const out = [];
@@ -103,4 +121,4 @@ export function yulduzHisob(togri, xato, jami = BOSQICH_RAUND) {
 }
 
 /** Bosqich narsalari o‘yin elementlariga: rasm — kutubxonadan (rasmId), nom — izoh tilida. */
-export const xonaElementlar = (b, izoh = "uz") => (b?.items || []).map((x, i) => ({ k: `${b.toplam}-${b.i}-${i}`, image: x.r, rasmId: x.r, emoji: x.e || "", uz: x.s[izoh] || x.s.uz, soz: x.s, ...(x.ulashA ? { ulashA: x.ulashA } : {}) }));
+export const xonaElementlar = (b, izoh = "uz") => (b?.items || []).map((x, i) => ({ k: `${b.toplam}-${b.i}-${i}`, image: x.r, rasmId: x.r, emoji: x.e || "", uz: x.s[izoh] || x.s.uz, soz: x.s, ...(x.ulashA ? { ulashA: x.ulashA } : {}), ...(x.sarA ? { sarA: x.sarA } : {}) }));

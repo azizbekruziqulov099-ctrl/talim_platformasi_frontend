@@ -521,10 +521,12 @@ const YASOVCHI = {
     });
   }])),
   // REV348: saralash — narsa ko'rsatiladi, bola uning guruhini bosadi (2–3 yoshda 2 guruh)
-  ...Object.fromEntries(Object.keys(SARALASH).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
+  ...Object.fromEntries(Object.keys(SARALASH).map((nom) => [nom, ({ y, rnd, R, izoh, els }) => {
     const d = SARALASH[nom]; const gs = y === "2-3" ? d.guruh.slice(0, 2) : d.guruh;
     const guruhlar = gs.map((g, gi) => sozEl(g, izoh, `g${gi}`));
-    const hovuz = gs.flatMap((_, gi) => (d.narsa[gi] || []).map((w, j) => ({ w, gi, j })));
+    const hamma = gs.flatMap((_, gi) => (d.narsa[gi] || []).map((w, j) => ({ w, gi, j })));
+    const tanlov = new Set((els || []).map((e) => e.sarA).filter(Boolean));   // REV455: bosqich o'z narsalari bilan
+    const hovuz = tanlov.size ? (hamma.filter(({ w }) => tanlov.has(w.s.uz)).length >= 2 ? hamma.filter(({ w }) => tanlov.has(w.s.uz)) : hamma) : hamma;
     // REV451: narsa bir nechta guruhga to'g'ri kelsa (w.ham), o'sha boshqa guruhlar shu raundda ko'rsatilmaydi — javob bitta bo'ladi
     return navbat(hovuz, R, rnd).map(({ w, gi, j }) => ({ tur: "tanlov", savol: { el: sozEl(w, izoh, `n${gi}_${j}`) },
       variantlar: guruhlar.filter((_, x) => !(w.ham || []).includes(x)).map((g) => ({ k: g.k, el: g })), togri: `g${gi}` }));

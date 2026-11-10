@@ -1,4 +1,4 @@
-import { ULASH } from "../oyin/saralashData.js";
+import { ULASH, SARALASH } from "../oyin/saralashData.js";
 import { oyinOl } from "../oyin/oyinRules.js";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -13,7 +13,7 @@ test("REV371: to'plamlar — har narsada rasm va 5 tilda nom", () => {
 test("REV371: har o'yinda 7–20 bosqich, har bosqichda 6–15 narsa, narsa takrorlanmaydi", () => {
   for (const id of XONA_OYINLAR) {
     const b = bosqichlar(id);
-    if (ULASH[oyinOl(id)?.kalit]) {   // REV450: juft o'yinlari — o'z juftlaridan (har bosqichda 3 yangi + 1 takror, oxirida «hammasi»)
+    if (ULASH[oyinOl(id)?.kalit] || SARALASH[oyinOl(id)?.kalit]) {   // REV450/REV455: juft o'yinlari — o'z juftlaridan (har bosqichda 3 yangi + 1 takror, oxirida «hammasi»)
       assert.ok(b.length >= 2); for (const x of b) assert.ok(x.items.length >= 2 && new Set(x.items.map((i) => i.s.uz)).size === x.items.length);
       continue;
     }

@@ -1,3 +1,4 @@
+import { XONA_TOPLAM } from "../oyinXona/xonaData.js";   // REV455
 import { HAYVON_OVQAT_JUFT, HAYVON_HAM } from "./hayvonOvqatData.js";   // REV450
 // REV348: saralash va ulash o'yinlari ma'lumoti (5 tilda). Avtomatik yaratilgan — /tmp/sar/data.py
 export const SARALASH = {
@@ -2126,3 +2127,11 @@ ULASH.uyiQayerda.juft.push(
   [_S("🐝", "ari", "пчела", "bee"), _S("🍯", "asalari uyasi", "улей", "beehive", "o_asalari_uyasi")],
   [_S("🐜", "chumoli", "муравей", "ant"), _S("⛰️", "chumoli uyasi", "муравейник", "anthill", "o_chumoli_uyasi")],
   [_S("🐧", "pingvin", "пингвин", "penguin"), _S("🧊", "muz", "лёд", "ice", "o_muz")]);
+
+// REV455: saralash o'yinlari kengaytirildi — kutubxonadagi mavjud rasmlar bilan (takror kamayadi; har guruhda 10–16 narsa)
+{
+  const XS = new Map(XONA_TOPLAM.flatMap((t) => t.items).map((it) => [it.s.uz, it]));   // 5 tildagi nomlar xona ma'lumotidan
+  const Q = (uz, r) => ({ e: "", s: { ...(XS.get(uz)?.s || { uz, ru: uz, en: uz, de: uz, es: uz }), r } });
+  const ADD = {"uyYovvoyi": [[["eshak", "d_m-eshak"], ["tuya", "d_bactrian-camel"], ["o‘rdak", "duck"], ["g‘oz", "d_m-goz"], ["kurka", "d_kurka"], ["xo‘roz", "d_rooster"]], [["jirafa", "d_giraffe"], ["maymun", "d_monkey"], ["begemot", "d_m-begemot"], ["karkidon", "d_m-karkidon"], ["timsoh", "d_crocodile"], ["bug‘u", "d_buxoro-bug-usi"], ["tipratikan", "d_hedgehog"], ["olmaxon", "d_squirrel"], ["panda", "d_black-and-white"], ["koala", "d_m-koala"]]], "mevaSabzavot": [[["o‘rik", "d_m-orik"], ["olcha", "d_m-olcha"], ["anor", "d_m-anor"], ["ananas", "d_m-ananas"], ["kivi", "d_m-kivi"], ["olxo‘ri", "d_m-olxori"], ["apelsin", "orange"], ["limon", "lemon"], ["nok", "d_pear"]], [["sarimsoq", "d_m-sarimsoq"], ["ismaloq", "d_m-ismaloq"], ["kartoshka", "potato"]]], "transport": [[["tramvay", "d_m-tramvay"], ["metro", "d_metroda"], ["taksi", "taxi"], ["traktor", "d_m-traktor"], ["mototsikl", "d_m-mototsikl"], ["yuk mashinasi", "d_yuk-mashinasi"], ["tez yordam mashinasi", "ambulance"], ["o‘t o‘chirish mashinasi", "fireengine"]], [], []], "harakatTuri": [[["boyqush", "d_am56-u6-boyqush"], ["to‘tiqush", "d_m-totiqush"], ["kaptar", "d_u1f54a"], ["chumchuq", "d_am56-u5-chumchuq"], ["xonqizi", "d_ladybug"]], [["akula", "d_akula"]], [["sigir", "cow"], ["ot", "horse"], ["sher", "d_lion"], ["zebra", "d_zebra"], ["jirafa", "d_giraffe"], ["tuya", "d_bactrian-camel"]]], "yeyiladi": [[["banan", "banana"], ["guruch", "rice"], ["tort", "cake"], ["sharbat", "juice"], ["osh", "d_m-osh-palov"], ["sho‘rva", "soup"], ["sabzi", "carrot"], ["uzum", "grapes"]], [["sovun", "d_bar-of-soap-with"], ["qalam", "pencil"], ["stakan", "d_v-stakan"], ["taroq", "d_m-taroq"], ["supurgi", "d_tozalik"], ["kitob", "book"], ["qum", "sand"]]]};
+  for (const [k, gr] of Object.entries(ADD)) gr.forEach((list, gi) => { const bor = new Set(SARALASH[k].narsa[gi].map((w) => w.s.uz)); for (const [uz, r] of list) if (!bor.has(uz)) SARALASH[k].narsa[gi].push(Q(uz, r)); });
+}
