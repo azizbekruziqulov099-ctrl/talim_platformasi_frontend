@@ -207,3 +207,7 @@
 .kb-chat45 .kb-gb-belgi{font-style:normal;font-size:11px;color:#fff;background:var(--tg-blue);border-radius:8px;padding:1px 6px;margin-left:4px}
 .kb-chat45 .kb-gb-xato{color:#c62828;margin:0}
 @media (prefers-color-scheme:dark){.kb-chat45 .kb-gb{background:#17212b}.kb-chat45 .kb-gb-kalit{background:#202b36}}
+
+/* REV474: chatdagi hujjat — sayt ichidagi ko'ruvchida */
+.kb-hujjat-modal{position:fixed;inset:0;z-index:2147483100;background:#eef2f6;display:flex;flex-direction:column}
+.kb-hujjat-modal>*{flex:1;min-height:0}

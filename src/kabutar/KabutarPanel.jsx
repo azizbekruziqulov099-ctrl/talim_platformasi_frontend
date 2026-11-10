@@ -1,6 +1,8 @@
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from '../interface/InterfacePreferences.jsx';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+const HujjatKoruvchiLazy = React.lazy(() => import("../hujjat/HujjatKoruvchi.jsx"));   // REV474: chatdagi hujjat sayt ichida ochiladi
+const KORINADI = /\.(pdf|docx|xlsx|xls|csv|pptx|txt|md|json|png|jpe?g|webp|gif|svg|doc|ppt|odt|ods|rtf|zip)$/i;
 import { ArrowDown, ArrowLeft, Copy, Download, Forward, Loader2, MessageCircle, MoreHorizontal, Pencil, Phone, Reply, Search, Send, ShieldCheck, Trash2, Video } from "lucide-react";
 import KabutarAccount, { KabutarAccountButton, useKabutarPreferences } from "./KabutarAccount.jsx";
 import { kabutarRequest, normalizeKabutarId, copyKabutarText, suhbatKaliti } from "./kabutarAccountRules.js";
@@ -109,6 +111,8 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
   const [gbOchiq, setGbOchiq] = useState(false);
   const [qatorMenyu, setQatorMenyu] = useState(null);
   const [qadalganXabar, setQadalgan] = useState(null);   // REV395: suhbatda qadalgan xabar
+  const [hujjat, setHujjat] = useState(null);   // REV474: {fayl: File} — hujjat ko'ruvchida
+  const [hujjatYuk, setHujjatYuk] = useState(0);
   const [qidiruv, setQidiruv] = useState(null);      // REV395: suhbat ichida qidirish {matn, i}
   const [tanlov, setTanlov] = useState(null);        // REV396: bir nechta xabarni belgilash — Set(id) yoki null
   const [galereya, setGalereya] = useState(null);    // REV397: ochiq rasm (xabar id)
@@ -875,7 +879,14 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
                 {!m.ochirilgan && m.fayl_turi === "video" && <video controls playsInline preload="none" className={`mt-1 ${peer?.kanal ? "w-[560px]" : "w-64"} max-w-full rounded-lg`} src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
                 {!m.ochirilgan && m.fayl_turi === "video_doira" && <video controls playsInline preload="none" className="mt-1 w-48 h-48 max-w-full rounded-full object-cover border-4 border-white/40" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/>} 
                 {!m.ochirilgan && isPhotoMessage(m) && <div className="mt-1"><a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer" onClick={(e) => { if (tanlov) return; e.preventDefault(); setGalereya(m.id); }}><img loading="lazy" decoding="async" alt={m.fayl_nomi || t("Yuborilgan rasm")} className="kb-inline-photo" src={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`}/></a>{m.matn && <div className="mt-2 whitespace-pre-wrap break-words" style={{ fontSize: preferences.settings.textSize, lineHeight: 1.55 }}>{m.matn}</div>}</div>}
-                {!m.ochirilgan && m.fayl_turi === "hujjat" && !isPhotoMessage(m) && <a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-xs font-black underline"><Download size={14}/> {m.fayl_nomi || t("Hujjat")}{m.fayl_hajmi_kb ? __kbUi(` · ${m.fayl_hajmi_kb} KB`) : __kbUi("")}</a>}
+                {!m.ochirilgan && m.fayl_turi === "hujjat" && !isPhotoMessage(m) && <a href={`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-2 text-xs font-black underline"
+                  onClick={async (e) => {   // REV474: PDF/Word/Excel/PowerPoint/ZIP — sayt ichidagi ko'ruvchida (yuklab olmasdan)
+                    if (tanlov || !KORINADI.test(m.fayl_nomi || "")) return;
+                    e.preventDefault(); setHujjatYuk(m.id);
+                    try { const r = await fetch(`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}&oqim=1`); if (!r.ok) throw new Error();
+                      const b = await r.blob(); setHujjat({ fayl: new File([b], m.fayl_nomi || "hujjat", { type: b.type }) }); }
+                    catch { window.open(`${apiBase}/api/chat/fayl/${m.id}?token=${encodeURIComponent(token)}`, "_blank", "noopener"); } finally { setHujjatYuk(0); } }}>
+                  {hujjatYuk === m.id ? "⏳" : null}<Download size={14}/> {m.fayl_nomi || t("Hujjat")}{m.fayl_hajmi_kb ? __kbUi(` · ${m.fayl_hajmi_kb} KB`) : __kbUi("")}</a>}
                 {!m.ochirilgan && (m.reaksiyalar || []).length > 0 && <div className="flex flex-wrap gap-1 mt-1">{m.reaksiyalar.map(item => <span key={item.emoji} className="px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: palette.sky }}>{item.emoji} {item.soni}</span>)}</div>}
                 {peer.guruh_id && !threadTargetId && (groupThreads || peer.kanal) && <button type="button" className="kb-discussion-open" disabled={sending || mediaBusy} onClick={() => selectMessage(m)}><MessageCircle size={15}/>{m.earlierThread ? t("Oldingi muhokamani ochish") : __kbUi(`${Number(m.reply_count || 0)} ${t("ta izoh")}`)}<span>{t("Ochish")} ›</span></button>}
                 <div className="mt-1 text-[10px] text-right" style={{ opacity: .75 }}>{m.tahrirlangan ? __kbUi(`${t("tahrirlangan")} · `) : __kbUi("")}{__kbUi(kabutarTime(m.yaratilgan_at, locale))}{m.meniki ? (peerSeenId && m.id <= peerSeenId ? <span className="kb-tick is-korildi" title={t("ko‘rildi")}> ✓✓</span> : <span className="kb-tick"> ✓</span>) : __kbUi("")}</div>
@@ -917,6 +928,8 @@ export default function KabutarPanel({ toliq = false, token, apiBase, maktabId =
         </>}
       </section>
     </div>
+    {hujjat && <div className="kb-hujjat-modal" role="dialog" aria-modal="true"><React.Suspense fallback={<div style={{ padding: 40 }}>⏳</div>}>
+      <HujjatKoruvchiLazy fayl={hujjat.fayl} onYop={() => setHujjat(null)} /></React.Suspense></div>}
     {galereya && (() => { const rasmlar = messages.filter((x) => !x.ochirilgan && isPhotoMessage(x)); const i = rasmlar.findIndex((x) => x.id === galereya); const r = rasmlar[i];
       if (!r) return null; const url = `${apiBase}/api/chat/fayl/${r.id}?token=${encodeURIComponent(token)}`;
       const ot = (d) => { const n = rasmlar[(i + d + rasmlar.length) % rasmlar.length]; if (n) setGalereya(n.id); };
