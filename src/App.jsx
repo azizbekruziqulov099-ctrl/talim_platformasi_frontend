@@ -515,6 +515,7 @@ const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
 const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
 const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.jsx"));
 const LazyFanOyinlari = _samtmLazyRetry(() => import("./games/FanOyinlari.jsx"));   // REV437
+const LazyEkspeditsiya = _samtmLazyRetry(() => import("./games/Ekspeditsiya.jsx"));   // REV456
 const LazyHujjatSahifa = _samtmLazyRetry(() => import("./hujjat/HujjatSahifa.jsx"));   // REV439: hujjat ko'ruvchi
 const LazyOyinXona = _samtmLazyRetry(() => import("./kid/oyinXona/OyinXona.jsx"));   // REV379: rivojlantiruvchi o'yinlar
 const LazyChempionat = _samtmLazyRetry(() => import("./chempionat/Chempionat.jsx"));
@@ -609,7 +610,7 @@ function Shashka(props) { return lazyPanel(LazyShashka, props); }
 function Shaxmat(props) { return lazyPanel(LazyShaxmat, props); }
 function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
 function Chempionat(props) { return lazyPanel(LazyChempionat, props); }
-const OYIN_TABLARI = new Set(["oyinlar", "fan_oyinlari", "mantiq", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
+const OYIN_TABLARI = new Set(["oyinlar", "ekspeditsiya", "fan_oyinlari", "mantiq", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
 const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
 const LazyXalqaroBaholash = _samtmLazyRetry(() => import("./xalqaro/XalqaroBaholash.jsx"));   // REV260: xalqaro baholash
 // REV373: ?xb_sinf=KOD — o'qituvchining sinf taklifi: kodni eslab qolamiz (kirishdan keyin ham), keyin «Xalqaro baholash» ochiladi
@@ -15157,6 +15158,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         }} />
       )}
       {korinishRoli !== "ota-ona" && tab === "fan_oyinlari" && lazyPanel(LazyFanOyinlari, { onClose: () => setTab("oyinlar") })}
+      {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
       {tab === "hujjat_ochish" && lazyPanel(LazyHujjatSahifa, {})}
       {korinishRoli !== "ota-ona" && tab === "mantiq" && lazyPanel(LazyOyinXona, { apiBase: API_BASE, token, izoh: String(document.documentElement.lang || "uz").slice(0, 2),
         yosh: (() => { const g = String(foydalanuvchi?.yosh_guruhi || ""); return _kbAccountRole(foydalanuvchi) === "bogcha" && g ? (/2-3|3-4/.test(g) ? "2-3" : /6-7|5-6/.test(g) ? "6-7" : "4-5") : ""; })(),
