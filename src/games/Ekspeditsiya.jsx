@@ -42,7 +42,8 @@ function KichikRasm({ savol }) {
 }
 
 const KORINISH = { xato_top: "🔎 Xatoni top", chamalash: "≈ Chamalash", togri_notogri: "⚖️ To‘g‘rimi?", naqsh: "🧩 Naqsh" };   // REV457
-const USLUB = (k) => { const g = Number(String(k).replace(/\D/g, "")); return g <= 4 ? "vodiy" : g <= 6 ? "orol" : g <= 9 ? "shahar" : "kosmos"; };
+const USLUB = (k) => { if (String(k) === "xalqaro") return "kosmos";   // REV463: Xalqaro ekspeditsiya — Yer va sayyoralar
+  const g = Number(String(k).replace(/\D/g, "")); return g <= 4 ? "vodiy" : g <= 6 ? "orol" : g <= 9 ? "shahar" : "kosmos"; };
 
 function nuqtalar(W, H) {   // ilonsimon yo'l bo'ylab 20 bekat
   return Array.from({ length: 20 }, (_, i) => {
@@ -176,7 +177,8 @@ function Oyin({ api, apiBase, kurs, n, onTugadi, onOrqaga }) {
     <div className="ek-karta">
       <div className="ek-teglar"><span className="ek-teg" style={{ background: rang }}>{__kbUi(nom)}</span>
         {KORINISH[t.korinish] && <span className="ek-teg is-korinish">{__kbUi(KORINISH[t.korinish])}</span>}</div>
-      {SAHNA[t.tur] && R(`sahna_${SAHNA[t.tur]}`) && <img className="ek-sahna" src={R(`sahna_${SAHNA[t.tur]}`)} alt="" />}
+      {t.sahna && R(t.sahna) ? <img className="ek-sahna" src={R(t.sahna)} alt="" />
+        : SAHNA[t.tur] && R(`sahna_${SAHNA[t.tur]}`) && <img className="ek-sahna" src={R(`sahna_${SAHNA[t.tur]}`)} alt="" />}
       {KICHIK(kurs) && <button type="button" className="ek-tingla" onClick={() => oqi(t)} aria-label={__kbUi("Qayta eshitish")}>🔊 {__kbUi("Eshitish")}</button>}
       {KICHIK(kurs) && <KichikRasm savol={t.savol} />}
       <div className="ek-savol">{String(t.savol).split("\n").map((q, k) => <div key={k}><BoardText text={q} /></div>)}</div>
