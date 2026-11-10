@@ -7,6 +7,8 @@ import "katex/dist/katex.min.css";
 import "./index.css";
 import { rasmTiklashniYoq } from "./pwa/rasmTiklash.js";
 import { versiyaTekshirishniBoshla } from "./pwa/versiyaTekshir.js";   // REV378
+import { soroqVaqtiniYoq } from "./pwa/soroqVaqti.js";   // REV467: API so'rovlari abadiy osilmaydi
+soroqVaqtiniYoq();
 import { yangiVersiyagaOt } from "./pwa/tiklash.js";   // REV413
 import { startYangiAlifbo } from "./interface/yangiAlifbo.js";
 import { startIzohBayroq } from "./interface/izohBayroq.js";
