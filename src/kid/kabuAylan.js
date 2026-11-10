@@ -38,7 +38,8 @@ const silliq = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
 function hajmQosh(kbot) {
   const asl = [...kbot.children].filter((c) => !c.classList.contains("kbot-qatlam"));
   const eni = kbot.getBoundingClientRect().width || 120;
-  const chuqur = Math.max(12, eni * 0.17), N = 12;   // 12 qatlam — yon tomoni silliq ko'rinadi
+  // REV469: qatlamlar zichroq (20 ta) va oralig'i kichik — burilganda yon tomoni «zinapoya» emas, silliq tana bo'lib ko'rinadi
+  const chuqur = Math.max(10, eni * 0.13), N = 20;
   const html = asl.map((c) => c.outerHTML).join("");
   const qatlamlar = [];
   for (let i = 1; i <= N; i += 1) {
@@ -48,7 +49,7 @@ function hajmQosh(kbot) {
     q.setAttribute("aria-hidden", "true");
     Object.assign(q.style, { position: "absolute", inset: "0", width: "100%", height: "100%", padding: "0", margin: "0", pointerEvents: "none",
       transform: `translateZ(${(-chuqur * i) / N}px)${orqa ? " rotateY(180deg)" : ""}`, backfaceVisibility: orqa ? "hidden" : "visible",
-      filter: orqa ? "brightness(.97)" : `brightness(${(0.48 + 0.025 * i).toFixed(2)}) saturate(.7)` });
+      filter: orqa ? "brightness(.97)" : `brightness(${(0.62 - 0.012 * Math.abs(i - N / 2)).toFixed(3)}) saturate(.75)` });
     q.innerHTML = html;
     kbot.insertBefore(q, kbot.firstChild);
     qatlamlar.push(q);
@@ -77,7 +78,7 @@ export function kabuAylan(kbot, { gradus = 360, ms = 1600 } = {}) {
     const g = qaytadi ? gradus * Math.sin(Math.PI * silliq(k)) : gradus * silliq(k);
     // REV426/REV431: haqiqiy 3D — perspektiva, qatlamlar chuqurlikda turadi (filter bu yerda emas: u 3D ni tekislab qo'yadi)
     kbot.style.transformOrigin = "50% 55%";
-    kbot.style.transform = `perspective(700px) rotateY(${g}deg) translateY(${-6 * Math.sin(Math.PI * k)}%)`;
+    kbot.style.transform = `perspective(1000px) rotateY(${g}deg) translateY(${-6 * Math.sin(Math.PI * k)}%)`;   // REV469: yumshoqroq perspektiva
     if (k < 1) id = requestAnimationFrame(qadam); else tugat();
   };
   id = requestAnimationFrame(qadam);

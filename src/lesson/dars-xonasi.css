@@ -1230,3 +1230,10 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 
 /* REV460: doska to'lganda pastki chetida «davomi pastda» emas — yangi yozuv pastda; tepada eski yozuvlar borligi soya bilan bildiriladi */
 .dx-root.dx-sinf .dx-board.is-sigmas{-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 18px);mask-image:linear-gradient(to bottom,transparent 0,#000 18px)}
+/* REV469: tugmalar aniq ko'rinsin; pauzada «Davom etish», qadam tugaganda «Keyingi» yonib turadi */
+.dx-btn:disabled{opacity:.62}
+.dx-controls .dx-btn{color:var(--dx-ink,#1d2b3a)}
+.dx-controls .dx-primary{color:#fff}
+.dx-btn.is-davom-kut,.dx-btn.is-keyingi-tayyor{animation:dx-yon 1.4s ease-in-out infinite;border-color:#f2b72e!important}
+.dx-btn.is-keyingi-tayyor{background:#fff3c4!important;color:#5a4300!important;font-weight:800}
+@keyframes dx-yon{0%,100%{box-shadow:0 0 0 0 rgba(242,183,46,.0)}50%{box-shadow:0 0 0 6px rgba(242,183,46,.45)}}

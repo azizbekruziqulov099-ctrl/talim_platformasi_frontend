@@ -2078,7 +2078,10 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
           <div><strong>{USTOZ_ISMI[ustozRef.current]?.[izohL(izoh)] || __kbUi(labels.teacher)}</strong><span className="dx-state"><i />{speaking ? __kbUi("Gapirmoqda…") : playing ? __kbUi("Tinglayapti") : __kbUi("Pauza")}</span></div>
         </div>
         {/* REV247: doskada yozuv bo'lsa — pastda takrorlanmaydi (bola bir xil matnni ikki joyda ko'rib chalg'iydi) */}
-        {!String(step?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim() && <div className="dx-bubble">{words.map((w, i) => <span key={i} className={i === word ? "is-on" : ""}>{w} </span>)}</div>}
+        {/* REV469: testda savol doskada turibdi — pastda xom matn ([1], $…$) takrorlanmaydi; boshqa paytda ham belgilar tozalanadi */}
+        {mode !== "test" && !String(step?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim() && <div className="dx-bubble">{words.map((w, i) => {
+          const t = String(w).replace(/^\[\d{1,2}\]$/, "").replace(/\$/g, "").replace(/\\cdot/g, "·").replace(/\\times/g, "×").replace(/\\[a-zA-Z]+/g, "").replace(/[{}]/g, "");
+          return t ? <span key={i} className={i === word ? "is-on" : ""}>{t} </span> : null; })}</div>}
         {!kid && <form className="dx-ask" onSubmit={(e) => { e.preventDefault(); ask(); }}>
           <label htmlFor={`dx-ask-${topicCode}`}>{__kbUi("O‘qituvchiga savol")}{sinfXona && <button type="button" className="dx-ask-yop" onClick={() => setSavolOchiq(false)} aria-label={__kbUi("Yopish")}>✕</button>}</label>
           <div className="dx-row"><input id={`dx-ask-${topicCode}`} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={__kbUi("Masalan: nega maxraj o‘zgarmaydi?")} disabled={asking} />
@@ -2140,7 +2143,7 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
         onKim: (k) => setKabuKim(k), onEnd: () => setKabuKim(null) }); }} />}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
       {darsTil && qisqa.length > 0 && mode === "end" && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
-      <button type="button" className="dx-btn dx-primary" disabled={mode === "test"} onClick={() => {
+      <button type="button" className={`dx-btn dx-primary ${pauza && mode === "lesson" ? "is-davom-kut" : ""}`} disabled={mode === "test"} onClick={() => {
         if (yotiq && mode === "idle") kengaytir();
         // REV177: yangi dars oldidan — oldingi darslardan spiral takror (bugun shu darsda qilinmagan bo'lsa)
         if (!kid && mode === "idle" && !playing && topicCode && !takrorQilindi(topicCode)) {
@@ -2151,10 +2154,11 @@ export default function DarsXonasi({ onNatija = null, apiBase, token, topicCode,
       }}>{kid
         ? <KidIcon icon={playing && !pauza ? "⏸️" : "▶️"} label={playing && !pauza ? "Pauza" : "Davom"} />
         : playing && !pauza ? __kbUi("❚❚ Pauza") : mode === "idle" ? __kbUi(labels.start) : mode === "result" || mode === "end" ? __kbUi("↺ Qaytadan") : __kbUi("▶ Davom etish")}</button>
-      {!kid && <button type="button" className="dx-btn" disabled={idx <= 0 || mode !== "lesson"} onClick={() => { setPlaying(false); go(idx - 1, false); }}>{__kbUi("‹ Oldingi")}</button>}
-      {!kid && <button type="button" className="dx-btn" disabled={mode !== "lesson"} onClick={() => go(idx + 1)}>{__kbUi("Keyingi ›")}</button>}
+      {!kid && mode !== "test" && <button type="button" className="dx-btn" disabled={idx <= 0 || mode !== "lesson"} onClick={() => { setPlaying(false); go(idx - 1, false); }}>{__kbUi("‹ Oldingi")}</button>}
+      {/* REV469: qadam tugab, o'zi davom etmasa — «Keyingi» yonib turadi */}
+      {!kid && mode !== "test" && <button type="button" className={`dx-btn ${mode === "lesson" && stepFinished && !speaking ? "is-keyingi-tayyor" : ""}`} disabled={mode !== "lesson"} onClick={() => go(idx + 1)}>{__kbUi("Keyingi ›")}</button>}
       <button type="button" className="dx-btn" disabled={!step && !variant} onClick={() => { if (variant) { say(variant.ovoz); return; } if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => setStepFinished(true)); } }}>{kid ? <KidIcon icon="🔁" label="Yana ayt" /> : __kbUi("↻ Qayta ayt")}</button>
-      <button type="button" className="dx-btn dx-help" disabled={mode !== "lesson"} onClick={dunno}>{kid ? <KidIcon icon="🙋" label="Tushuntir" /> : __kbUi("Tushunmadim")}</button>
+      {mode !== "test" && <button type="button" className="dx-btn dx-help" disabled={mode !== "lesson"} onClick={dunno}>{kid ? <KidIcon icon="🙋" label="Tushuntir" /> : __kbUi("Tushunmadim")}</button>}
       {sinfXona && !kabuMuhit && <button type="button" className={`dx-btn dx-savol-btn ${savolOchiq ? "is-on" : ""}`} aria-pressed={savolOchiq} onClick={() => setSavolOchiq((x) => !x)}>❓ {__kbUi("Savol berish")}</button>}
       <span className="dx-spacer" />
       {!kid && <label className="dx-speed">{__kbUi("Tezlik")}
