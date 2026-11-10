@@ -8,6 +8,7 @@
 //   tekshir(holat, javob)                   — javobni tekshiradi, yangi holat qaytaradi (2 xatoda keyingisi osonroq)
 //   qiyinlikMoslash(qiyinlik, xatolar)      — keyingi o'yin qiyinligi
 import { OSISH_TOPLAM, GUL_TOPLAM } from "./osishData.js";   // REV452
+import { TARTIB_TOPLAM, TESKARI_QOSH } from "./rasmliData.js";   // REV459
 import { gradeSpeech } from "../../speech/speakRules.js";
 import { OYIN_MATN, oyinMatn, umumiyGap, toza } from "./oyinMatn.js";
 
@@ -63,6 +64,8 @@ export const OYINLAR = [
     raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
   { id: 156, kalit: "tishTozalash", nom: "Tishimni tozalayman", belgi: "💧", yosh: HAMMA, harakat: "surish", kerak: { min_element: 0 },
     raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
+  { id: 176, kalit: "qayerdan", nom: "Qayerdan keladi?", belgi: "🍞", yosh: KATTA, harakat: "surish", kerak: { min_element: 0 },   // REV459: non va sut qayerdan keladi
+    raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 26, "4-5": 28, "6-7": 30 } },
   { id: 166, kalit: "osish", nom: "Kim qanday o‘sadi?", belgi: "🐣", yosh: KATTA, harakat: "surish", kerak: { min_element: 0 },
     raund: { "2-3": 2, "4-5": 2, "6-7": 2 }, soniya: { "2-3": 22, "4-5": 24, "6-7": 26 } },
   // REV348: saralash (narsani o'z guruhiga) va ulash (juftini topish) — atrof-muhit, mantiq, fasllar
@@ -450,6 +453,12 @@ export const TESKARI = [
   [{ emoji: "😀", s: { uz: "quvnoq", ru: "весёлый", en: "happy", de: "fröhlich", es: "alegre" } }, { emoji: "😢", s: { uz: "xafa", ru: "грустный", en: "sad", de: "traurig", es: "triste" } }],
   [{ emoji: "🔓", s: { uz: "ochiq", ru: "открыто", en: "open", de: "offen", es: "abierto" } }, { emoji: "🔒", s: { uz: "yopiq", ru: "закрыто", en: "closed", de: "zu", es: "cerrado" } }],
 ];
+// REV459: rasmli teskari juftlar — bor juftning o'rniga (rasm bilan), yo'qlari qo'shiladi
+for (const [a, b] of TESKARI_QOSH) {
+  const el = (w) => ({ emoji: w.e, s: w.s });
+  const k = TESKARI.findIndex((p) => p[0].s.uz === a.s.uz || p[1].s.uz === b.s.uz);
+  if (k >= 0) TESKARI[k] = [el(a), el(b)]; else TESKARI.push([el(a), el(b)]);
+}
 // REV336: chalkash yo'llar — chapdagi narsalardan o'ngga chiziqlar; bittasi suyakka (🦴) olib boradi
 function yollarRaund(els, n, rnd) {
   const tanlangan = tanla(els, Math.min(n, els.length), rnd);
@@ -501,9 +510,11 @@ const YASOVCHI = {
   ...Object.fromEntries(Object.keys(TARTIB).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
     const d = TARTIB[nom];
     // REV452: «o'sish» o'yinlarida har raund — boshqa tirik narsa (odam, tovuq, daraxt, olma…); 2–3 yoshda faqat 2–3 qadamlilar
-    const TOPLAM = { osish: OSISH_TOPLAM, gulOstir: GUL_TOPLAM }[nom];
+    const TOPLAM = { osish: OSISH_TOPLAM, gulOstir: GUL_TOPLAM, ...TARTIB_TOPLAM }[nom];
     if (TOPLAM) {
-      const mos = TOPLAM.filter((t) => (y === "2-3" ? t.q.length <= 3 : true));
+      // 2–3 yoshda 3 qadamgacha: qisqalari bo'lsa o'shalar, bo'lmasa har ketma-ketlikning birinchi 3 qadami (REV459)
+      const qisqa = TOPLAM.filter((t) => t.q.length <= 3);
+      const mos = y === "2-3" ? (qisqa.length ? qisqa : TOPLAM.map((t) => ({ ...t, q: t.q.slice(0, 3) }))) : TOPLAM;
       return navbat(mos, R, rnd).map((t, ri) => {
         const qadam = t.q.map((w, i) => sozEl(w, izoh, `q${ri}_${i}`));
         let ar = aralash(qadam, rnd);
@@ -610,7 +621,8 @@ const YASOVCHI = {
     return { tur: "tanlov", savol: { chap: a, ong: b, ogir, yengil }, variantlar: [elVariant(a), elVariant(b)], togri };
   }),
   // 114 — teskarisini top: bitta so'z ko'rsatiladi, uning teskarisi topiladi
-  teskari: ({ n, rnd, R }) => navbat(TESKARI.flatMap((p, pi) => [[p[0], p[1], pi], [p[1], p[0], pi]]), R, rnd).map(([w, t, pi]) => {
+  teskari: ({ n, rnd, R }) => navbat(TESKARI.flatMap((p, pi) => [[p[0], p[1], pi], [p[1], p[0], pi]]), R, rnd).map(([w0, t0, pi]) => {
+    const w = { ...w0, ...(w0.s?.r ? { rasmId: w0.s.r } : {}) }, t = { ...t0, ...(t0.s?.r ? { rasmId: t0.s.r } : {}) };   // REV459
     const togri = { k: `t${pi}`, el: { emoji: t.emoji, soz: t.s } };
     const boshqa = tanla(TESKARI.filter((_, j) => j !== pi).map((p, j) => p[(j + pi) % 2]), n - 1, rnd).map((x, j) => ({ k: `b${j}`, el: { emoji: x.emoji, soz: x.s } }));
     return { tur: "tanlov", savol: { el: { emoji: w.emoji, soz: w.s } }, variantlar: aralash([togri, ...boshqa], rnd), togri: togri.k };
@@ -1131,7 +1143,7 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "joylashuv": gap = M(k, "raundJoy", izoh, { t: nom(r.savol.el), j: M(k, r.savol.joy, izoh) }, xi); break;   // REV370: «mushuk qutining ustida» — rasmini top
     case "aytOch": gap = M(k, holat.mik && !j.bosib ? "raund" : "raundBos", izoh, { t: nom(r.savol.el) }, xi); break;
     case "ketmaKet": gap = M(k, "raund", izoh, { q: r.savol.qator.map(nom).filter(Boolean).join(", ") }, xi); break;
-    case "tartib": case "kapalak": case "gulOstir": case "kunTartibi": case "qolYuvish": case "suvSayohati": case "fasllar": case "tishTozalash": case "osish": {
+    case "tartib": case "kapalak": case "gulOstir": case "kunTartibi": case "qolYuvish": case "suvSayohati": case "fasllar": case "tishTozalash": case "osish": case "qayerdan": {
       const els = r.togri.map((x) => r.variantlar.find((v) => v.k === x)?.el);
       const nomi = (el) => (k === "tartib" ? nom(el) : el?.uz);   // REV349: jarayon so'zlari izoh tilida
       if (k !== "tartib" && holat.yosh !== "2-3") {   // REV349: 4–7 yoshda jarayon tartibini bola o'zi topadi — aytib qo'yilmaydi

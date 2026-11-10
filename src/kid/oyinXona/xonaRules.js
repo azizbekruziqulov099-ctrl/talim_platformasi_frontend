@@ -20,7 +20,7 @@ export const XONA_GURUHLAR = [
   { kalit: "olam", belgi: "🌍", nom: { uz: "Atrof-olam", ru: "Окружающий мир", en: "The world around us", de: "Die Welt um uns", es: "El mundo que nos rodea" },
     oyinlar: [149, 154, 161, 162, 168, 150, 96, 14, 18, 148, 94, 158, 147, 95, 165] },
   { kalit: "hayot", belgi: "🌱", nom: { uz: "Hayot va tartib", ru: "Жизнь и порядок", en: "Life and routines", de: "Leben und Abläufe", es: "Vida y rutinas" },
-    oyinlar: [152, 146, 29, 157, 153, 15, 156, 166] },
+    oyinlar: [152, 146, 29, 157, 153, 15, 156, 166, 176] },
 ];
 export const XONA_OYINLAR = XONA_GURUHLAR.flatMap((g) => g.oyinlar);
 // O'z ma'lumoti bilan ishlaydigan o'yinlar (saralash, tartib, eshitish) — 10 bosqich, qiyinlik bosqich sayin oshadi

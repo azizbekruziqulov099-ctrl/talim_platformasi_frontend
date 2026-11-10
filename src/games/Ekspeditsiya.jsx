@@ -4,6 +4,18 @@ import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
 import "./ekspeditsiya.css";
+import XARITA_NUQTA from "./ekspeditsiyaXarita.json";   // REV459: bekatlar xaritadagi tayyor maydonchalar ustida
+
+// REV459: Azizjon yuborgan rasmlar (xaritalar, bekatlar, darvozalar, mukofotlar, nishonlar, sahnalar)
+const RASM = import.meta.glob("./ekspeditsiya_rasm/*.webp", { eager: true, import: "default" });
+const R = (nom) => RASM[`./ekspeditsiya_rasm/${nom}.webp`] || "";
+const TEMA = { vodiy: "vodiy", orol: "orollar", shahar: "samarqand", kosmos: "kosmos" };
+const XARITA = { vodiy: "xarita_1_4", orol: "xarita_5_6", shahar: "xarita_7_9", kosmos: "xarita_10_1" };
+const SAHNA = { foiz: "dokon", chegirma: "dokon", osish: "bank", qiymat: "bozor", meyor: "bozor", massa: "bozor", harakat: "sayohat", qarama: "sayohat", quvlama: "poyezd",
+  ortacha_tezlik: "sport", vaqt: "poyezd", hajm: "suv_hovuz", prizma: "qurilish", yuz: "bog", perimetr: "bog", yuzbirlik: "dala", uchburchak_yuz: "qurilish", trapyuz: "qurilish",
+  unum: "zavod", ehtimol: "tanga_kub", kombinatorika: "lotereya", statistika: "maktab", ortacha: "maktab", diagramma: "maktab", masofa: "gps", vektor: "gps", fazovektor: "gps",
+  koordinata: "gps", daraja: "kosmos", korxona: "kosmos", nisbat: "oshxona", qolgan: "oshxona", ulush: "oshxona", toplam: "maktab", oxshash: "arxitektura", muntazam: "arxitektura",
+  burchak_chiziq: "arxitektura", parallel: "arxitektura", aylana: "arxitektura", sektor: "arxitektura", pifagor: "qurilish", silindr: "suv_hovuz", unumdorlik: "zavod" };
 
 const TEG = { yangi: ["Yangi", "#1B4B7A"], takror: ["Takror", "#0D7A77"], uzoq: ["Eski mavzu", "#7A4FBF"], xato: ["Xatoni tuzatish", "#C2410C"], darvoza: ["Darvoza", "#B45309"] };
 const KORINISH = { xato_top: "🔎 Xatoni top", chamalash: "≈ Chamalash", togri_notogri: "⚖️ To‘g‘rimi?", naqsh: "🧩 Naqsh" };   // REV457
@@ -47,30 +59,58 @@ function XaritaFon({ uslub, W, H }) {
   </g>;
 }
 
-function Xarita({ kurs, d, onBosqich, onOrqaga }) {
-  const W = 860, H = 640, uslub = USLUB(kurs);
-  const P = useMemo(() => nuqtalar(W, H), []);
+function nuqtalarTik(W, H) {   // telefon: 7 qator, ilonsimon (3 tadan)
+  return Array.from({ length: 20 }, (_, i) => {
+    const q = Math.floor(i / 3), j = i % 3, ong = q % 2 === 0;
+    const x = 170 + (ong ? j : 2 - j) * ((W - 340) / 2), y = H - 130 - q * ((H - 260) / 6);
+    return [x, y];
+  });
+}
+
+function Xarita({ kurs, d, onBosqich, onOrqaga, onNishonlar }) {
+  const [tik, setTik] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+  useEffect(() => { const f = () => setTik(window.innerWidth < 640); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
+  const uslub = USLUB(kurs), tema = TEMA[uslub];
+  const fon = R(`${XARITA[uslub]}_${tik ? "vertikal" : "gorizontal"}`);
+  const W = fon ? (tik ? 941 : 1672) : (tik ? 900 : 1600), H = fon ? (tik ? 1672 : 941) : (tik ? 1600 : 900);
+  const P = useMemo(() => (fon && XARITA_NUQTA[tik ? "vertikal" : "gorizontal"]?.[tema]) || (tik ? nuqtalarTik(W, H) : nuqtalar(W, H)), [tik, fon, tema]); // eslint-disable-line react-hooks/exhaustive-deps
   const yol = P.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
-  const yorq = uslub === "kosmos";
+  const olindi = (d.nishonlar || []).filter((x) => x.olindi).length;
   return <div className="ek-xarita">
     <div className="ek-tepa"><button type="button" className="ek-t" onClick={onOrqaga}>←</button><b>{d.nom}</b>
-      <span className="ek-chip">🔥 {d.streak || 0}</span><span className="ek-chip">✅ {d.jami || 0}</span>{d.xato_navbat > 0 && <span className="ek-chip" title={__kbUi("Qayta yechiladigan mavzular")}>🔁 {d.xato_navbat}</span>}</div>
+      <span className="ek-chip"><img src={R("olov_streak")} alt="" className="ek-ik" /> {d.streak || 0}</span>
+      <span className="ek-chip">✅ {d.jami || 0}</span>
+      {d.xato_navbat > 0 && <span className="ek-chip" title={__kbUi("Qayta yechiladigan mavzular")}>🔁 {d.xato_navbat}</span>}
+      <button type="button" className="ek-chip ek-chip-btn" onClick={onNishonlar}><img src={R("kubok")} alt="" className="ek-ik" /> {olindi}/{(d.nishonlar || []).length}</button></div>
     <svg viewBox={`0 0 ${W} ${H}`} className="ek-svg" role="img" aria-label={d.nom}>
-      <XaritaFon uslub={uslub} W={W} H={H} />
-      <path d={yol} stroke={yorq ? "#ffffff55" : "#ffffffcc"} strokeWidth="18" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={yol} stroke={yorq ? "#f4c27a" : "#c79a52"} strokeWidth="4" strokeDasharray="10 10" fill="none" />
-      {d.bosqichlar.map((b, i) => { const [x, y] = P[i]; const r = b.darvoza ? 30 : 23;
-        const fon = b.holat === "otdi" ? "#f2b72e" : b.holat === "ochiq" ? "#1B4B7A" : "#9aa5b1";
+      {fon ? <image href={fon} x="0" y="0" width={W} height={H} preserveAspectRatio="xMidYMid slice" /> : <XaritaFon uslub={uslub} W={W} H={H} />}
+      {!fon && <path d={yol} stroke="#ffffffaa" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 22" />}
+      {d.bosqichlar.map((b, i) => { const [x, y] = P[i];
+        const holat = b.holat === "otdi" ? "otilgan" : b.holat;
+        const rasm = b.darvoza ? R(`darvoza_${b.n / 5}_${tema}`) : R(`bekat_${holat}_${tema}`);
+        const S = b.darvoza ? 150 : 96;
         return <g key={b.n} className={`ek-bekat is-${b.holat}`} onClick={() => b.holat !== "yopiq" && onBosqich(b.n)} style={{ cursor: b.holat === "yopiq" ? "default" : "pointer" }}>
-          {b.darvoza && <path d={`M${x - 36} ${y + 26} V${y - 18} a 36 36 0 0 1 72 0 V${y + 26}`} fill="none" stroke={b.holat === "yopiq" ? "#9aa5b1" : "#B45309"} strokeWidth="7" />}
-          <circle cx={x} cy={y} r={r} fill={fon} stroke="#fff" strokeWidth="4" />
-          <text x={x} y={y + 6} textAnchor="middle" fill="#fff" fontSize={b.darvoza ? 18 : 16} fontWeight="800" fontFamily="system-ui">{b.holat === "yopiq" ? "🔒" : b.n}</text>
-          {b.holat !== "yopiq" && <text x={x} y={y + r + 18} textAnchor="middle" fontSize="13">{"★".repeat(b.yulduz) + "☆".repeat(3 - b.yulduz)}</text>}
-          {b.holat === "ochiq" && <circle cx={x} cy={y} r={r + 8} fill="none" stroke="#fff" strokeWidth="3" className="ek-puls" />}
+          {b.holat === "ochiq" && <circle cx={x} cy={y} r={S / 2 + 4} fill="none" stroke="#fff" strokeWidth="5" className="ek-puls" />}
+          {rasm ? <image href={rasm} x={x - S / 2} y={y - S / 2} width={S} height={S} className={b.darvoza && b.holat === "yopiq" ? "ek-kulrang" : ""} />
+            : <circle cx={x} cy={y} r={S / 3} fill="#1B4B7A" />}
+          {b.darvoza && b.holat === "yopiq" && R("bekat_yopiq_" + tema) && <image href={R("bekat_yopiq_" + tema)} x={x - 32} y={y - 10} width="64" height="64" />}
+          <g transform={`translate(${x + S / 2 - 8},${y - S / 2 + 6})`}>
+            <circle r="17" fill="#ffffff" stroke="#1d2b3a22" strokeWidth="2" />
+            <text x="0" y="7" textAnchor="middle" fontSize="19" fontWeight="800" fill="#1d2b3a" fontFamily="system-ui">{b.n}</text>
+          </g>
+          {b.holat !== "yopiq" && b.yulduz > 0 && [0, 1, 2].map((k) => <image key={k} href={R(k < b.yulduz ? "yulduz_tola" : "yulduz_bosh")} x={x - 39 + k * 26} y={y + S / 2 - 14} width="26" height="26" />)}
         </g>; })}
     </svg>
     <p className="ek-izoh">{__kbUi("Har bosqichda 15 ta topshiriq: yangi mavzu, yaqinda o‘tilgan va eski mavzular aralash keladi. Xato qilgan turingiz keyinroq yana qaytadi. Har 5-bosqich — sinov darvozasi (15 tadan 12 tasi to‘g‘ri bo‘lishi kerak).")}</p>
   </div>;
+}
+
+function Nishonlar({ d, onYop }) {
+  return <div className="ek-modal" onClick={onYop}><div className="ek-modal-ich" onClick={(e) => e.stopPropagation()}>
+    <div className="ek-tepa"><b>🏅 {__kbUi("Nishonlar")}</b><button type="button" className="ek-t" style={{ marginLeft: "auto" }} onClick={onYop}>✕</button></div>
+    <div className="ek-nishonlar">{(d.nishonlar || []).map((x) => <div key={x.kalit} className={`ek-nishon ${x.olindi ? "is-bor" : ""}`}>
+      <img src={R(`nishon_${x.kalit}`)} alt="" /><b>{__kbUi(x.nom)}</b><small>{x.olindi || "🔒"}</small></div>)}</div>
+  </div></div>;
 }
 
 function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
@@ -80,21 +120,24 @@ function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
   const [natija, setNatija] = useState([]);
   const [yakun, setYakun] = useState(null);
   const [xato, setXato] = useState("");
+  const [boshlandi] = useState(() => Date.now());
   useEffect(() => { api(`/api/ekspeditsiya/${kurs}/${n}/boshlash`, { method: "POST" }).then(setDat).catch((e) => setXato(String(e.message || e))); }, [kurs, n]); // eslint-disable-line react-hooks/exhaustive-deps
   if (xato) return <div className="ek-oyin"><p>{xato}</p><button type="button" className="ek-btn" onClick={onOrqaga}>←</button></div>;
   if (!dat) return <div className="ek-oyin"><p>⏳</p></div>;
   const T = dat.topshiriqlar, t = T[i];
-  const javob = (k) => { if (tanlov !== null) return; setTanlov(k); setNatija((o) => [...o, { tur: t.tur, ok: k === t.togri }]); };
+  const javob = (k) => { if (tanlov !== null) return; setTanlov(k); setNatija((o) => [...o, { tur: t.tur, ok: k === t.togri, korinish: t.korinish }]); };
   const keyingi = async () => {
     if (i + 1 < T.length) { setI(i + 1); setTanlov(null); return; }
     const togri = natija.filter((x) => x.ok).length;
-    const r = await api(`/api/ekspeditsiya/${kurs}/${n}/natija`, { method: "POST", body: JSON.stringify({ togri, togri_turlar: natija.filter((x) => x.ok).map((x) => x.tur), xato_turlar: natija.filter((x) => !x.ok).map((x) => x.tur) }) });
+    const r = await api(`/api/ekspeditsiya/${kurs}/${n}/natija`, { method: "POST", body: JSON.stringify({ togri, togri_turlar: natija.filter((x) => x.ok).map((x) => x.tur), xato_turlar: natija.filter((x) => !x.ok).map((x) => x.tur),
+      vaqt: Math.round((Date.now() - boshlandi) / 1000), korinish_togri: natija.filter((x) => x.ok && x.korinish !== "oddiy").reduce((o, x) => ({ ...o, [x.korinish]: (o[x.korinish] || 0) + 1 }), {}) }) });
     setYakun({ ...r, togri });
   };
   if (yakun) return <div className="ek-oyin ek-yakun">
-    <div className={`ek-sandiq ${yakun.otdi ? "is-ochiq" : ""}`} aria-hidden="true">{yakun.otdi ? "🎁" : "📦"}</div>
+    <div className={`ek-sandiq ${yakun.otdi ? "is-ochiq" : ""}`} aria-hidden="true"><img src={R(yakun.otdi ? "sandiq_ochiq" : "sandiq_yopiq")} alt="" /></div>
     <h2>{yakun.otdi ? (dat.darvoza ? __kbUi("Darvoza ochildi!") : __kbUi("Bosqich o‘tildi!")) : __kbUi("Yana bir urinib ko‘ring")}</h2>
-    <div className="ek-yulduzlar">{[1, 2, 3].map((s) => <span key={s} className={s <= yakun.yulduz ? "is-on" : ""} style={{ animationDelay: `${s * 0.25}s` }}>★</span>)}</div>
+    <div className="ek-yulduzlar">{[1, 2, 3].map((s) => <img key={s} src={R(s <= yakun.yulduz ? "yulduz_tola" : "yulduz_bosh")} alt="" className={s <= yakun.yulduz ? "is-on" : ""} style={{ animationDelay: `${s * 0.25}s` }} />)}</div>
+    {(yakun.yangi_nishonlar || []).length > 0 && <div className="ek-yangi-nishon">{yakun.yangi_nishonlar.map((x) => <div key={x.kalit}><img src={R(`nishon_${x.kalit}`)} alt="" /><b>{__kbUi("Yangi nishon")}: {__kbUi(x.nom)}</b></div>)}</div>}
     <p><b>{yakun.togri}</b> / {T.length} {__kbUi("to‘g‘ri")} · 🔥 {yakun.streak} · {yakun.xato_navbat ? `🔁 ${yakun.xato_navbat} ${__kbUi("mavzu keyinroq qaytadi")}` : __kbUi("hamma mavzu joyida")}</p>
     <div className="ek-qator"><button type="button" className="ek-btn is-ikkinchi" onClick={() => onTugadi(false)}>🗺 {__kbUi("Xarita")}</button>
       {yakun.otdi && n < 20 ? <button type="button" className="ek-btn" onClick={() => onTugadi(n + 1)}>{__kbUi("Keyingi bosqich")} →</button> : <button type="button" className="ek-btn" onClick={() => onTugadi(n)}>↻ {__kbUi("Qayta")}</button>}</div>
@@ -106,6 +149,7 @@ function Oyin({ api, kurs, n, onTugadi, onOrqaga }) {
     <div className="ek-karta">
       <div className="ek-teglar"><span className="ek-teg" style={{ background: rang }}>{__kbUi(nom)}</span>
         {KORINISH[t.korinish] && <span className="ek-teg is-korinish">{__kbUi(KORINISH[t.korinish])}</span>}</div>
+      {SAHNA[t.tur] && R(`sahna_${SAHNA[t.tur]}`) && <img className="ek-sahna" src={R(`sahna_${SAHNA[t.tur]}`)} alt="" />}
       <div className="ek-savol">{String(t.savol).split("\n").map((q, k) => <div key={k}><BoardText text={q} /></div>)}</div>
       <div className={`ek-variantlar ${t.variantlar.length === 2 ? "is-ikki" : ""}`}>{t.variantlar.map((v, k) => <button key={k} type="button" disabled={tanlov !== null}
         className={`ek-v ${tanlov !== null && k === t.togri ? "is-togri" : ""} ${tanlov === k && k !== t.togri ? "is-xato" : ""}`} onClick={() => javob(k)}><BoardText text={/[\\^_]/.test(v) ? `$${v}$` : v} /></button>)}</div>
@@ -160,6 +204,7 @@ export default function Ekspeditsiya({ apiBase = "", token = "", onClose }) {
   const [bosqich, setBosqich] = useState(0);
   const [guruhlar, setGuruhlar] = useState([]);
   const [hisobotda, setHisobotda] = useState(false);
+  const [nishonda, setNishonda] = useState(false);
   const yangila = () => kurs && api(`/api/ekspeditsiya/${kurs}`).then(setD).catch(() => setD(null));
   useEffect(() => { api("/api/ekspeditsiya/kurslar").then((r) => setKurslar(r.kurslar || [])).catch(() => {});
     api("/api/ekspeditsiya/oqituvchi/guruhlar").then((r) => setGuruhlar(r.guruhlar || [])).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -167,7 +212,8 @@ export default function Ekspeditsiya({ apiBase = "", token = "", onClose }) {
   if (bosqich) return <div className="ek-root"><Oyin key={`${kurs}-${bosqich}`} api={api} kurs={kurs} n={bosqich}
     onOrqaga={() => { setBosqich(0); yangila(); }} onTugadi={(keyin) => { yangila(); setBosqich(0); if (keyin) setTimeout(() => setBosqich(keyin), 0); }} /></div>;
   if (hisobotda && guruhlar.length) return <div className="ek-root"><Hisobot api={api} kurslar={kurslar} guruhlar={guruhlar} onOrqaga={() => setHisobotda(false)} /></div>;
-  if (kurs && d) return <div className="ek-root"><Xarita kurs={kurs} d={d} onBosqich={setBosqich} onOrqaga={() => setKurs("")} /></div>;
+  if (kurs && d) return <div className="ek-root"><Xarita kurs={kurs} d={d} onBosqich={setBosqich} onOrqaga={() => setKurs("")} onNishonlar={() => setNishonda(true)} />
+    {nishonda && <Nishonlar d={d} onYop={() => setNishonda(false)} />}</div>;
   return <div className="ek-root ek-tanlov">
     <div className="ek-tepa">{onClose && <button type="button" className="ek-t" onClick={onClose}>←</button>}<b>🧭 {__kbUi("Matematik ekspeditsiya")}</b></div>
     {guruhlar.length > 0 && <button type="button" className="ek-btn" style={{ alignSelf: "flex-start", marginBottom: 10 }} onClick={() => setHisobotda(true)}>👩‍🏫 {__kbUi("O‘qituvchi hisoboti")}</button>}

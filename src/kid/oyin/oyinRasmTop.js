@@ -12,7 +12,8 @@ export function oyinRasmTop(el) {
   // REV454: yangi sifatli rasm so'z bo'yicha birinchi (quyosh ko'zoynagi, qishki etik, in… endi emoji emas)
   const yangi = SOZ_RASM[String(el.soz?.uz || el.uz || "").trim().toLowerCase()];
   if (yangi) return yangi;
-  if (el.faqatEmoji) return "";   // REV451: masalan «quyosh ko'zoynagi» — kutubxonadagi oddiy ko'zoynak chalg'itadi, emoji 🕶️ aniq
+  if (el.faqatEmoji) return "";
+  if (el.soz?.r && RASM_HAMMA[el.soz.r]) return RASM_HAMMA[el.soz.r];   // REV459: so'z ichidagi rasm kaliti (o_…)   // REV451: masalan «quyosh ko'zoynagi» — kutubxonadagi oddiy ko'zoynak chalg'itadi, emoji 🕶️ aniq
   if (el.rasmId && RASM_HAMMA[el.rasmId]) return RASM_HAMMA[el.rasmId];
   const soz = el.say || el.uz || "";
   const mt = matnId(el.soz?.uz || el.uz || "") || matnId(el.say || "");

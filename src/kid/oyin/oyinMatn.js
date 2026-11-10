@@ -999,6 +999,10 @@ Object.assign(OYIN_MATN, {
    "es": "Plantamos una semilla y la regamos: poco a poco se convierte en flor. ¡Ponlo en orden!"
   }
  },
+ "qayerdan": {
+  "nom": { "uz": "Qayerdan keladi?", "ru": "Откуда это?", "en": "Where does it come from?", "de": "Woher kommt das?", "es": "¿De dónde viene?" },
+  "kirish": { "uz": "Non va sut dasturxonga qanday yetib keladi? Rasmlarni tartib bilan joyla!", "ru": "Как хлеб и молоко попадают к нам на стол? Разложи картинки по порядку!", "en": "How do bread and milk get to our table? Put the pictures in order!", "de": "Wie kommen Brot und Milch auf unseren Tisch? Ordne die Bilder!", "es": "¿Cómo llegan el pan y la leche a la mesa? ¡Ordena las imágenes!" }
+ },
  "kunTartibi": {
   "nom": {
    "uz": "Kun tartibi",

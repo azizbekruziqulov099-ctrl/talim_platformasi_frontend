@@ -401,3 +401,5 @@ export const TARTIB = {
   ]
  }
 };
+// REV459: «Qayerdan keladi?» — non va sut (ketma-ketliklar rasmliData.js TARTIB_TOPLAM da)
+TARTIB.qayerdan = { id: 176, q: [{ e: "🌾", s: { uz: "bug‘doy", ru: "пшеница", en: "wheat", de: "Weizen", es: "trigo" } }, { e: "🏭", s: { uz: "un", ru: "мука", en: "flour", de: "Mehl", es: "harina" } }, { e: "🍞", s: { uz: "non", ru: "хлеб", en: "bread", de: "Brot", es: "pan" } }], kichik: [0, 1, 2] };

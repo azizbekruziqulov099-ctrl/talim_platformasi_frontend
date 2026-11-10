@@ -2135,3 +2135,17 @@ ULASH.uyiQayerda.juft.push(
   const ADD = {"uyYovvoyi": [[["eshak", "d_m-eshak"], ["tuya", "d_bactrian-camel"], ["o‘rdak", "duck"], ["g‘oz", "d_m-goz"], ["kurka", "d_kurka"], ["xo‘roz", "d_rooster"]], [["jirafa", "d_giraffe"], ["maymun", "d_monkey"], ["begemot", "d_m-begemot"], ["karkidon", "d_m-karkidon"], ["timsoh", "d_crocodile"], ["bug‘u", "d_buxoro-bug-usi"], ["tipratikan", "d_hedgehog"], ["olmaxon", "d_squirrel"], ["panda", "d_black-and-white"], ["koala", "d_m-koala"]]], "mevaSabzavot": [[["o‘rik", "d_m-orik"], ["olcha", "d_m-olcha"], ["anor", "d_m-anor"], ["ananas", "d_m-ananas"], ["kivi", "d_m-kivi"], ["olxo‘ri", "d_m-olxori"], ["apelsin", "orange"], ["limon", "lemon"], ["nok", "d_pear"]], [["sarimsoq", "d_m-sarimsoq"], ["ismaloq", "d_m-ismaloq"], ["kartoshka", "potato"]]], "transport": [[["tramvay", "d_m-tramvay"], ["metro", "d_metroda"], ["taksi", "taxi"], ["traktor", "d_m-traktor"], ["mototsikl", "d_m-mototsikl"], ["yuk mashinasi", "d_yuk-mashinasi"], ["tez yordam mashinasi", "ambulance"], ["o‘t o‘chirish mashinasi", "fireengine"]], [], []], "harakatTuri": [[["boyqush", "d_am56-u6-boyqush"], ["to‘tiqush", "d_m-totiqush"], ["kaptar", "d_u1f54a"], ["chumchuq", "d_am56-u5-chumchuq"], ["xonqizi", "d_ladybug"]], [["akula", "d_akula"]], [["sigir", "cow"], ["ot", "horse"], ["sher", "d_lion"], ["zebra", "d_zebra"], ["jirafa", "d_giraffe"], ["tuya", "d_bactrian-camel"]]], "yeyiladi": [[["banan", "banana"], ["guruch", "rice"], ["tort", "cake"], ["sharbat", "juice"], ["osh", "d_m-osh-palov"], ["sho‘rva", "soup"], ["sabzi", "carrot"], ["uzum", "grapes"]], [["sovun", "d_bar-of-soap-with"], ["qalam", "pencil"], ["stakan", "d_v-stakan"], ["taroq", "d_m-taroq"], ["supurgi", "d_tozalik"], ["kitob", "book"], ["qum", "sand"]]]};
   for (const [k, gr] of Object.entries(ADD)) gr.forEach((list, gi) => { const bor = new Set(SARALASH[k].narsa[gi].map((w) => w.s.uz)); for (const [uz, r] of list) if (!bor.has(uz)) SARALASH[k].narsa[gi].push(Q(uz, r)); });
 }
+
+// REV459: rasmli juftlar va saralash narsalari (rasmliData.js)
+import { ULASH_QOSH, SARALASH_QOSH } from "./rasmliData.js";
+for (const [k, list] of Object.entries(ULASH_QOSH)) {
+  const bor = new Set(ULASH[k].juft.map(([a, b]) => `${a.s.uz}|${b.s.uz}`));
+  for (const [a, b] of list) if (!bor.has(`${a.s.uz}|${b.s.uz}`)) ULASH[k].juft.push([a, b]);
+}
+for (const [k, gi, list] of SARALASH_QOSH) {
+  const d = SARALASH[k];
+  let i = gi;
+  if (typeof gi === "object") { i = d.guruh.findIndex((g) => g.s.uz === gi.guruh.s.uz); if (i < 0) { d.guruh.push(gi.guruh); d.narsa.push([]); i = d.guruh.length - 1; } }
+  const bor = new Set(d.narsa[i].map((w) => w.s.uz));
+  for (const w of list) if (!bor.has(w.s.uz)) d.narsa[i].push(w);
+}
