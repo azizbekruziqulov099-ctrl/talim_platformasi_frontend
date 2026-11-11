@@ -37,7 +37,35 @@ function standaloneMode() {
   return Boolean(
     window.matchMedia?.("(display-mode: standalone)")?.matches
     || window.navigator?.standalone === true
+    || /TalimAI-Android/.test(String(window.navigator?.userAgent || ""))   // REV506: Android ilovamiz ichida — o'rnatish taklifi kerak emas
   );
+}
+
+// REV506: telefonda «Ta'lim Kabutar» ilovasi o'rnatilgan bo'lsa (Chrome buni sayt va ilova bog'lanishi orqali biladi) —
+// brauzerda «Bosh ekranga qo'shish» ko'rsatilmaydi, o'rniga kichik «📱 Ilovada ochish» tugmasi.
+let ilovaBor = null;
+async function ilovaOrnatilgan() {
+  if (ilovaBor !== null) return ilovaBor;
+  try {
+    const r = await window.navigator?.getInstalledRelatedApps?.();
+    ilovaBor = Array.isArray(r) && r.some((a) => a?.id === "uz.talimkabutar.app" || a?.platform === "play");
+  } catch { ilovaBor = false; }
+  return ilovaBor;
+}
+function ilovadaOchishTugmasi() {
+  if (document.getElementById("samtm-ilovada-och")) return;
+  const a = document.createElement("a");
+  a.id = "samtm-ilovada-och";
+  a.href = `intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=uz.talimkabutar.app;end`;
+  a.textContent = "📱 Ilovada ochish";
+  a.style.cssText = "position:fixed;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:70;background:#0D7A77;color:#fff;border-radius:999px;padding:9px 14px;font:700 14px system-ui;text-decoration:none;box-shadow:0 6px 18px rgba(0,0,0,.18)";
+  const yop = document.createElement("button");
+  yop.type = "button"; yop.textContent = "✕"; yop.setAttribute("aria-label", "Yopish");
+  yop.style.cssText = "margin-left:8px;border:0;background:transparent;color:#fff;font-size:14px;cursor:pointer";
+  yop.onclick = (e) => { e.preventDefault(); a.remove(); try { sessionStorage.setItem("kb_ilovada_och_yop", "1"); } catch { /* */ } };
+  a.appendChild(yop);
+  try { if (sessionStorage.getItem("kb_ilovada_och_yop")) return; } catch { /* */ }
+  document.body.appendChild(a);
 }
 
 function iosLikeDevice() {
@@ -296,13 +324,14 @@ export function initializeSamtmPwa() {
   ensureMeta("apple-mobile-web-app-status-bar-style", "default");
   armPhoneBackGuard();
   window.addEventListener("popstate", handlePhoneBack);
-  window.addEventListener("beforeinstallprompt", event => {
+  window.addEventListener("beforeinstallprompt", async event => {
     event.preventDefault();
     installPrompt = event;
     if (manualInstallTimer) {
       window.clearTimeout(manualInstallTimer);
       manualInstallTimer = null;
     }
+    if (await ilovaOrnatilgan()) { removeInstallButton(); ilovadaOchishTugmasi(); return; }   // REV506
     showInstallButton();
     dispatchPwaStatus("native-install-available");
   });
@@ -316,8 +345,9 @@ export function initializeSamtmPwa() {
     // Boshqa brauzerlarda native promptga imkon berib, keyin manual yo'lni
     // ko'rsatamiz. Native event kelsa bu timer yuqorida bekor qilinadi.
     if (iosLikeDevice()) showManualInstallButton();
-    else manualInstallTimer = window.setTimeout(() => {
+    else manualInstallTimer = window.setTimeout(async () => {
       manualInstallTimer = null;
+      if (await ilovaOrnatilgan()) { ilovadaOchishTugmasi(); return; }   // REV506: ilova bor — o'rnatish taklifi yo'q
       showManualInstallButton();
     }, 2500);
   }

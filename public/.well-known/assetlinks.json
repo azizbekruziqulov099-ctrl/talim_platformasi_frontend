@@ -1,0 +1,5 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls", "delegate_permission/common.get_login_creds"],
+  "target": { "namespace": "android_app", "package_name": "uz.talimkabutar.app",
+    "sha256_cert_fingerprints": ["5B:23:6C:B3:3A:85:EE:9B:20:56:3F:89:C7:69:4E:37:18:BC:75:71:28:CB:A9:4B:DE:D4:F7:D1:73:77:16:EF"] }
+}]

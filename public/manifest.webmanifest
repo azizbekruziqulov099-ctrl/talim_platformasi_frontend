@@ -84,5 +84,13 @@
   ],
   "launch_handler": {
     "client_mode": "focus-existing"
-  }
+  },
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "uz.talimkabutar.app",
+      "url": "https://play.google.com/store/apps/details?id=uz.talimkabutar.app"
+    }
+  ],
+  "prefer_related_applications": false
 }
