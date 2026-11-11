@@ -56,3 +56,4 @@
 .cd-varaq-quti{position:relative;flex:1;min-height:0;display:flex}
 .cd-oyna-matn{position:absolute;inset:0;padding:18px 22px;font-size:clamp(18px,3.2vw,30px);line-height:1.5;color:#1d2b3a;opacity:.22;pointer-events:none;overflow:hidden;z-index:0}
 .cd-varaq.is-oyna{background-color:transparent;position:relative;z-index:1}
+.cd-varaqlar{display:inline-flex;align-items:center;gap:2px}.cd-varaqlar small{font-weight:700;min-width:30px;text-align:center}

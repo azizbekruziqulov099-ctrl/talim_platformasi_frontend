@@ -6,6 +6,8 @@ import ReactDOM from "react-dom/client";
 import "katex/dist/katex.min.css";
 import "./index.css";
 import { rasmTiklashniYoq } from "./pwa/rasmTiklash.js";
+import { bittaOvozniYoq } from "./speech/bittaOvoz.js";   // REV492
+bittaOvozniYoq();
 import { versiyaTekshirishniBoshla } from "./pwa/versiyaTekshir.js";   // REV378
 import { soroqVaqtiniYoq } from "./pwa/soroqVaqti.js";   // REV467: API so'rovlari abadiy osilmaydi
 soroqVaqtiniYoq();

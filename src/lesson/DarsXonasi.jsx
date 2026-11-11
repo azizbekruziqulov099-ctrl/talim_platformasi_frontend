@@ -597,7 +597,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     setSpeaking(true);
     // REV292: qorovul — telefon ovoz tugaganini bildirmay qolsa ham (avtoplay bloki, uzilgan tarmoq) dars TO'XTAB QOLMAYDI
     let bitdi = false;
-    const qorovul = setTimeout(() => { if (!bitdi && my === tokenRef.current && playingRef.current) finish(); },
+    let qorovul = setTimeout(() => { if (!bitdi && my === tokenRef.current && playingRef.current) finish(); },
       Math.min(60000, 6000 + clean.length * 110 / Math.max(0.5, rateRef.current || 1)));
     const finish = () => { if (my !== tokenRef.current || bitdi) return; bitdi = true; clearTimeout(qorovul); clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
     // REV180: Kabu muhitida (test, ovozli tekshiruv) — ikki Kabu: izoh qismi birinchi Kabu ovozida, o'rganilayotgan til qismi —
@@ -632,7 +632,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
           const bosh = ofs, n = soni;
           // aytilayotgan so'z yonadi (bog'chada — doskadagi rasm ham), og'iz bog'chada ovoz to'lqiniga mos
           a.ontimeupdate = () => { if (my === tokenRef.current && a.duration && Number.isFinite(a.duration)) { const k = Math.min(n - 1, Math.floor((a.currentTime / a.duration) * n)); setQismSoz(k); setWord(Math.min(words.length - 1, bosh + k)); } };
-          if (kidRef.current) loadEnvelope(a.src).then((lv) => { if (lv && my === tokenRef.current && audioRef.current === a) lipRef.current = { lv, audio: a }; });
+          loadEnvelope(a.src).then((lv) => { if (lv && my === tokenRef.current && audioRef.current === a) lipRef.current = { lv, audio: a }; });
         },
         onKim: (k) => { if (my === tokenRef.current) setUstozKim(k); },
         onEnd: () => { if (my === tokenRef.current) { setUstozKim(null); finish(); } } });
@@ -685,8 +685,15 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       const stall = setTimeout(() => { if (!started) fail(); }, 15000);
       audio.onplaying = () => {
         started = true; clearTimeout(stall);
+        // REV492: qorovul ovoz HAQIQATAN boshlangandan, uning uzunligiga qarab qayta qo'yiladi — server sekin bo'lsa ham
+        // nazariya oxirigacha aytiladi, keyingi qadam (misol) erta kirib kelmaydi
+        if (Number.isFinite(audio.duration) && audio.duration > 0) {
+          clearTimeout(qorovul);
+          qorovul = setTimeout(() => { if (!bitdi && my === tokenRef.current && playingRef.current) finish(); },
+            Math.min(180000, (audio.duration / Math.max(0.5, rateRef.current || 1)) * 1000 + 5000));
+        }
         // og'iz uchun tahlil — ovoz boshlangach (server ovozni allaqachon tayyorlagan, ikki marta yaratilmaydi)
-        if (kidRef.current && !lipRef.current) loadEnvelope(src).then((lv) => { if (lv && my === tokenRef.current && audioRef.current === audio) lipRef.current = { lv, audio }; });
+        if (!lipRef.current) loadEnvelope(src).then((lv) => { if (lv && my === tokenRef.current && audioRef.current === audio) lipRef.current = { lv, audio }; });
       };
       audio.ontimeupdate = () => {
         if (my !== tokenRef.current || !audio.duration || !Number.isFinite(audio.duration)) return;
@@ -700,13 +707,25 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   }, [hush, ovozUrl, juftUrl]);
 
   // Qadamda aytiladigan gap (go() va oldindan yuklash uchun bir xil — server keshi mos tushadi).
+  // REV492: qadamlar bir-biriga ulansin — nazariyadan misolga yoki mashqqa o'tishda ustoz oldin aytadi
+  const koprik = (s, i) => {
+    const old = i > 0 ? steps[i - 1] : null;
+    if (!old || i <= opening.length) return "";
+    const nazariya = ["qoida", "tushuntirish", "bilim", "kirish", "nazariya", "xulosa"].includes(old.turi);
+    const matn = String(s.ovoz || s.doska || "").trim();
+    if (/^(endi|keling|qani|misol|masalan|navbat|let|now|теперь|давай)/i.test(matn)) return "";
+    if (nazariya && ["misol", "birga", "namuna"].includes(s.turi)) return gap(tIzoh, "Endi shuni bir misolda ko‘raylik.");
+    if (nazariya && s.turi === "amaliy") return gap(tIzoh, "Endi o‘zingiz bajarib ko‘ring.");
+    if (old.turi === "amaliy" && ["qoida", "tushuntirish", "bilim"].includes(s.turi)) return gap(tIzoh, "Yaxshi. Endi keyingi qoidaga o‘tamiz.");
+    return "";
+  };
   const stepSpeech = useCallback((s, i) => {
     const cue = boardCues(s.doska, s.ovoz || s.doska);
-    if (!kid) return dialog(cue.spoken || s.doska);
+    if (!kid) { const k = koprik(s, i); const asl = dialog(cue.spoken || s.doska); return k ? `${k} ⏸ ${asl}` : asl; }
     // REV95: eski yuklangan kitoblarda qolgan «yechimni keyin ochasiz» — bog'cha bolasiga aytilmaydi.
     const spoken = String(cue.spoken || s.doska).replace(/\s*Avval o['‘’]zingiz bajarib ko['‘’]ring, yechimni keyin ochasiz\.?/g, "");
     // REV102: takrordan yangiga o'tishda robot aytadi: «Avval o'tganlarni eslaymiz!» / «Endi — yangi so'z!»
-    const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, tIzoh);
+    const lead = kindCue(kinds[i], i > 0 ? kinds[i - 1] : "", spoken, lesson?.topic?.mavzu, tIzoh) || koprik(s, i);
     // «Qani, birga aytamiz!» dan keyin so'zlar pauza bilan; REV140: «Endi sen ayt: X» — avval ustoz X ni ikki marta aytadi
     return dialog(ismOldin(kidRepeatSpeech(lead ? `${lead} ${spoken}` : spoken, { doska: s.doska, izoh })));
   }, [kid, kinds, lesson, izoh, tIzoh, darsTil, ikkinchi, tilUlush, korSnap, gloss, grade]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1899,6 +1918,9 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
               else { say(gap(tIzoh, "Yana bir sanab ko‘raylik.")); setSanoq({ ...sanoq, tanlangan: [], sorov: false }); }
             }}>{x}</button>)}</div>}
         </div>}
+        {/* REV492: nazariyada ishlanadigan misol bo'lsa — «Misolni daftarda ishlash» tugmasi (yozuv doskasi ochiladi) */}
+        {!kid && mode === "lesson" && step && step.turi !== "amaliy" && /misol|masala|hisobla|yeching|toping|ishlang|[0-9]\s*[+\-−·×:÷=]\s*[0-9a-z(]/i.test(`${step.doska || ""} ${step.ovoz || ""}`)
+          && <button type="button" className="dx-misol-daftar" onClick={() => { hush(); setPlaying(false); setBurchakDaftar(true); }}>✏️ {__kbUi("Misolni daftarda ishlash")}</button>}
         {!kid && ["lesson", "test", "ovoz"].includes(mode) && <button type="button" className="dx-burchak-daftar" onClick={() => { hush(); setBurchakDaftar(true); }}
           title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}><span aria-hidden="true">✏️</span>{__kbUi("Qoralama")}</button>}
           {sinfXona && !kid && <div className="dx-panel-chip" aria-hidden="true">{lesson.topic?.mavzu}</div>}
