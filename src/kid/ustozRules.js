@@ -10,6 +10,19 @@ const TIL_NOMI = [
 ];
 // REV240: izoh tili (interfeys) bo'yicha fan ustozi — ruscha: Dmitriy / Svetlana, inglizcha: Daniel / Oliver
 const FAN_USTOZ = { uz: { mat: "sardor", tab: "malika" }, ru: { mat: "dmitriy", tab: "svetlana" }, en: { mat: "daniel", tab: "oliver" } };
+/** REV503: o'zbekcha matematika — bosqich bo'yicha ustoz, ayol yoki erkak (o'quvchi tanlaydi).
+ *  sinf: "yosh"/bog'cha, 1–4, 5–7, 8–11, talaba (kurs/universitet). jins: "ayol" | "erkak". */
+export function matUstoz(sinf = "", jins = "") {
+  const t = String(sinf || "").toLowerCase();
+  const n = Number((/(\d{1,2})/.exec(t) || [])[1] || 0);
+  const bosqich = /yosh|bog|kid|mtt/.test(t) || (n === 0 && !/talaba|kurs|univ/.test(t) && t !== "") ? "bogcha"
+    : /talaba|kurs|univ|oliy|bakalavr|magistr/.test(t) ? "talaba" : n >= 8 ? "sinf811" : n >= 5 ? "sinf57" : n >= 1 ? "sinf14" : "";
+  if (!bosqich) return "";
+  const j = jins === "ayol" ? "ayol" : jins === "erkak" ? "erkak" : (bosqich === "bogcha" ? "ayol" : "erkak");
+  if (bosqich === "sinf14") return j === "ayol" ? "nilufar" : "sardor";
+  return `m_${bosqich}_${j}`;
+}
+
 export function ustozFor(fan = "", iz = "uz") {
   const f = String(fan).toLowerCase();
   const izTil = /izoh:\s*rus/.test(f) ? "ru" : /izoh:\s*ingliz/.test(f) ? "en" : (FAN_USTOZ[String(iz || "uz").slice(0, 2)] ? String(iz).slice(0, 2) : "uz");
@@ -35,7 +48,9 @@ export function ikkinchiUstoz({ til = "", iz = "uz", ustoz = "" } = {}) {
 
 export const XONA = { sardor: "matematika", nilufar: "onatili", malika: "atrofolam",
   dmitriy: "matematika", daniel: "matematika", svetlana: "atrofolam", oliver: "atrofolam", olga: "onatili", sarah: "onatili",   // REV240
-  ...Object.fromEntries(Object.values(TIL_USTOZ).map((k) => [k, `til_${k}`])) };
+  ...Object.fromEntries(Object.values(TIL_USTOZ).map((k) => [k, `til_${k}`])),
+  // REV503: matematika ustozlari — matematika xonasida
+  ...Object.fromEntries(["bogcha", "sinf57", "sinf811", "talaba"].flatMap((b) => ["ayol", "erkak"].map((j) => [`m_${b}_${j}`, "matematika"]))) };
 
 /** Poza raqami (rasmdagi tartib): 1 tik turish, 2 salom, 3 ko'rsatish, 4 o'ylash, 5 quvonish, 6 tinglash, 7 doskaga yozish. */
 export function pozaFor(mood = "", { hasPics = false, listening = false } = {}) {

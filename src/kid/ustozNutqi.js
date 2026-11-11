@@ -4,6 +4,16 @@
 // Test/o'yin ekranidagi robot Kabu esa o'z uslubida qoladi (bu funksiya faqat ustoz gapirganda ishlatiladi).
 
 export const USTOZ_ISMI = {
+  // REV503: matematika ustozlari (bosqich bo'yicha)
+  m_bogcha_ayol: { uz: "Dilnoza opa", ru: "Дилноза опа", en: "Miss Dilnoza" },
+  m_bogcha_erkak: { uz: "Jasur aka", ru: "Жасур ака", en: "Mr Jasur" },
+  m_sinf57_ayol: { uz: "Madina opa", ru: "Мадина опа", en: "Miss Madina" },
+  m_sinf57_erkak: { uz: "Bekzod aka", ru: "Бекзод ака", en: "Mr Bekzod" },
+  m_sinf811_ayol: { uz: "Zarina opa", ru: "Зарина опа", en: "Ms Zarina" },
+  m_sinf811_erkak: { uz: "Rustam aka", ru: "Рустам ака", en: "Mr Rustam" },
+  m_talaba_ayol: { uz: "Gulnora opa", ru: "Гулнора опа", en: "Dr Gulnora" },
+  m_talaba_erkak: { uz: "Yusuf domla", ru: "Юсуф домла", en: "Prof. Yusuf" },
+
   nilufar: { uz: "Nilufar opa", ru: "Нилуфар опа", en: "Miss Nilufar" },
   malika: { uz: "Malika opa", ru: "Малика опа", en: "Miss Malika" },
   sardor: { uz: "Sardor aka", ru: "Сардор ака", en: "Mr Sardor" },

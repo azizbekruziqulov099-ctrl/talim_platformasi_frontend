@@ -4,14 +4,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { BoardText } from "../../lesson/AmaliyDoska.jsx";
 import "./nazoratchi.css";
-import RobotKabu from "../RobotKabu.jsx";   // REV502: Nazoratchi — Kabu'ning o'zi (o'yinchoqdek SVG emas), qo'lida lupa
 
-/** REV502: Nazoratchi — Kabu (bolalar taniydigan sifatli qahramon) + 🔍 lupa belgisi. holat: oddiy | sorayapti | xursand | qayta */
-export function NazoratchiRasm({ holat = "oddiy", size = 150 }) {
-  const mood = holat === "xursand" ? "happy" : holat === "qayta" ? "think" : holat === "sorayapti" ? "talk" : "";
-  return <div className={`nzc-kabu is-${holat}`} style={{ width: size, height: size * 1.25 }} aria-hidden="true">
-    <RobotKabu mood={mood} celebrate={holat === "xursand" ? 1 : 0} /><span className="nzc-lupa-belgi">🔍</span></div>;
-}
+/** REV503: Nazoratchi — Kabu EMAS (Azizjon), alohida qahramon: ko'zoynakli, lupa ushlagan robot-inspektor.
+ *  Rassom chizgan rasmlar (zakazdagi «Mister Nazoratchi» 4 holati) kelguncha — vaqtinchalik SVG. */
+export function NazoratchiRasm(props) { return <EskiNazoratchiRasm {...props} />; }
 
 function EskiNazoratchiRasm({ holat = "oddiy", size = 150 }) {
   const ogiz = holat === "xursand" ? "M86 112 Q100 126 114 112" : holat === "qayta" ? "M88 118 Q100 110 112 118" : "M90 114 H110";

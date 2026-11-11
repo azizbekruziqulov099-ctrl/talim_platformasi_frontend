@@ -52,7 +52,7 @@ const Repetitor = lazyQayta(() => import("../maktab/Repetitor.jsx"));
 const DarsOldiTakror = lazyQayta(() => import("./DarsOldiTakror.jsx"));   // REV177: yangi darsdan oldin Kabu bilan spiral takror
 import UstozSahna from "../kid/UstozSahna.jsx";
 import { useKeepLight } from "../kid/useKeepLight.js";
-import { havoTuri, quyoshVaqti, ustozFor, xonaKaliti, ikkinchiUstoz, XONA } from "../kid/ustozRules.js";
+import { havoTuri, quyoshVaqti, ustozFor, xonaKaliti, ikkinchiUstoz, XONA, matUstoz } from "../kid/ustozRules.js";
 import { darsSozlari, kirishniTozala, ochilish, qadamSozi } from "../kid/darsOchilishi.js";
 // REV156: qadamning o'z so'zi (mikrofon faqat shuni so'raydi)
 // REV157: bog'cha guruhi yoshi («4-5 yosh» → 4); topilmasa — 0 (izoh rejimi)
@@ -310,6 +310,13 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   // REV122: kim gapiryapti — sinfxonada (kutish, dars, ko'prik) jonli ustoz, test/ovoz ekranida robot Kabu
   const ustozRef = useRef("nilufar");
   ustozRef.current = ustozFor(fan || lesson?.topic?.fan, uiLocale);
+  // REV503: o'zbekcha matematika — bosqich bo'yicha ustoz (bog'cha, 1–4, 5–7, 8–11, talaba), ayol yoki erkak — o'quvchi tanlaydi
+  const [ustozJins, setUstozJins] = useState(() => { try { return localStorage.getItem("kb_mat_ustoz_jins") || ""; } catch { return ""; } });
+  const matUz = ["sardor"].includes(ustozRef.current);
+  const matBosqichUstoz = matUz ? matUstoz(grade || lesson?.topic?.sinf || "", ustozJins) : "";
+  if (matBosqichUstoz && USTOZLAR[matBosqichUstoz]) ustozRef.current = matBosqichUstoz;
+  const ustozniAlmashtir = () => { const yangi = (USTOZLAR[ustozRef.current]?.lab === "ayol") ? "erkak" : "ayol";
+    try { localStorage.setItem("kb_mat_ustoz_jins", yangi); } catch { /* */ } setUstozJins(yangi); };
   // REV175: maktabda ham haqiqiy sinfxona — ustoz o'z xonasida (deraza, ob-havo, soat), doska xona o'rtasida katta
   const sinfXona = !kid && Boolean(USTOZLAR[ustozRef.current]);
   const doskaRef = useRef(null);
@@ -2253,6 +2260,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         : <span className="dx-keyingi-ertaga">🌙 {__kbUi("Keyingi dars ertaga ochiladi:")} <b>{keyingiDars.nomi}</b></span>}
     </div>}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
+      {matBosqichUstoz && <button type="button" className="dx-btn dx-ustoz-jins" onClick={ustozniAlmashtir}
+        title={__kbUi("Ustozni almashtirish")} aria-label={__kbUi("Ustozni almashtirish")}>{USTOZLAR[ustozRef.current]?.lab === "ayol" ? "👩‍🏫 ⇄ 👨‍🏫" : "👨‍🏫 ⇄ 👩‍🏫"}</button>}
       {darsTil && qisqa.length > 0 && mode === "end" && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
       <button type="button" className={`dx-btn dx-primary ${pauza && mode === "lesson" ? "is-davom-kut" : ""}`} disabled={mode === "test"} onClick={() => {
         if (yotiq && mode === "idle") kengaytir();
