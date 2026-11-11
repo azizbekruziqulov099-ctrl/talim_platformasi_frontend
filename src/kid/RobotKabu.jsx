@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { kabuMarkup, kabuTuri } from "./kabuMillat.js";   // KABU_MARKUP — har til uchun rangi almashtirilgan nusxa
 import "./robotKabu.css";
-import { kabuAylan } from "./kabuAylan.js";   // REV331: aylanish
+// REV497: aylanish (kabuAylan) ishlatilmaydi — sakrash va yulduzchalar
 
 const MOODS = ["is-talk", "is-wave", "is-think", "is-happy", "is-enc"];
 
@@ -24,15 +24,15 @@ function RobotKabuSvg({ mood = "", celebrate = 0, className = "", tur, aylan = 0
     MOODS.forEach((c) => bot.classList.toggle(c, want.has(c)));
     box.current.querySelector(".kabu-think")?.classList.toggle("on", want.has("is-think"));
   }, [mood]);
-  // REV331: aylan o'zgarsa — aylanadi (360° / 180° / 90°); har 3-g'alabada ham to'liq aylanadi
+  // REV497: aylanish olib tashlandi (telefonda qotardi) — o'rniga oddiy sakrash va yulduzchalar (tez va yengil)
   useEffect(() => {
-    if (!aylan || !box.current) return undefined;
-    return kabuAylan(box.current.querySelector(".kbot"), { gradus: aylanGradus, ms: aylanGradus >= 360 ? 1500 : 1100 });
-  }, [aylan]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!celebrate || celebrate % 3 !== 0 || !box.current) return undefined;
-    return kabuAylan(box.current.querySelector(".kbot"), { gradus: 360, ms: 1500 });
-  }, [celebrate]);
+    if (!aylan || !box.current) return;
+    for (const [sel, cls] of [[".kabu-hop", "hop"], [".kabu-burst", "go"]]) {
+      const el = box.current.querySelector(sel);
+      if (!el) continue;
+      el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+    }
+  }, [aylan]);
   useEffect(() => {
     if (!celebrate || !box.current) return;
     for (const [sel, cls] of [[".kabu-hop", "hop"], [".kabu-burst", "go"]]) {
