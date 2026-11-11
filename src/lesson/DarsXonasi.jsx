@@ -221,6 +221,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const [tanlov, setTanlov] = useState(null);
   const [stiker, setStiker] = useState(null);   // REV333: dars oxirida berilgan stiker   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
+  const sensorli = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)")?.matches;   // REV499
+  const [tizimKlav, setTizimKlav] = useState(false);
   const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi
   const [qurilmaHol, setQurilmaHol] = useState(null);   // REV486: profil boshqa qurilmada / qulf
   const [qayta, setQayta] = useState(0);
@@ -1919,10 +1921,10 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
               else { say(gap(tIzoh, "Yana bir sanab ko‘raylik.")); setSanoq({ ...sanoq, tanlangan: [], sorov: false }); }
             }}>{x}</button>)}</div>}
         </div>}
-        {/* REV492: nazariyada ishlanadigan misol bo'lsa — «Misolni daftarda ishlash» tugmasi (yozuv doskasi ochiladi) */}
-        {!kid && mode === "lesson" && step && step.turi !== "amaliy" && /misol|masala|hisobla|yeching|toping|ishlang|[0-9]\s*[+\-−·×:÷=]\s*[0-9a-z(]/i.test(`${step.doska || ""} ${step.ovoz || ""}`)
-          && <button type="button" className="dx-misol-daftar" onClick={() => { hush(); setPlaying(false); setBurchakDaftar(true); }}>✏️ {__kbUi("Misolni daftarda ishlash")}</button>}
-        {!kid && ["lesson", "test", "ovoz"].includes(mode) && <button type="button" className="dx-burchak-daftar" onClick={() => { hush(); setBurchakDaftar(true); }}
+        {/* REV499: bitta tugma — «✏️ Qoralama»; ishlanadigan misol bo'lsa u sariq bo'lib eslatadi (alohida «Misolni daftarda ishlash» olib tashlandi) */}
+        {!kid && ["lesson", "test", "ovoz"].includes(mode) && <button type="button"
+          className={`dx-burchak-daftar ${mode === "lesson" && step && step.turi !== "amaliy" && /misol|masala|hisobla|yeching|toping|ishlang|\d\s*[+−·×:÷=]\s*[\d(]|\d\s+-\s+\d/i.test(`${step.doska || ""} ${step.ovoz || ""}`) ? "is-misol" : ""}`}
+          onClick={() => { hush(); if (mode === "lesson") setPlaying(false); setBurchakDaftar(true); }}
           title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}><span aria-hidden="true">✏️</span>{__kbUi("Qoralama")}</button>}
           {sinfXona && !kid && <div className="dx-panel-chip" aria-hidden="true">{lesson.topic?.mavzu}</div>}
           {/* REV340: 1–4-sinf — o'yin doska ustida */}
@@ -1983,7 +1985,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
           </>}
           {!kid && mode === "lesson" && step && step.turi !== "amaliy" && <>
             {steps[range[0]]?.sarlavha && <h3 className="dx-title"><BoardText text={steps[range[0]].sarlavha} /></h3>}
-            <div className="dx-lines">
+            <div className={`dx-lines ${(() => { const n = range.reduce((a, i) => a + boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska).lines.length, 0);
+              return `${n > 10 ? "is-juda-zich" : n > 6 ? "is-zich" : ""} ${matem ? "is-matem" : ""}`; })()}`}>   {/* REV499: ko'p qatorli doska va misollarda yozuv kichikroq */}
               {matem && !juftDoska ? matQatorlar() : range.flatMap((i) => {
                 const cue = boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska);
                 const shown = i === idx ? visibleLines(cue.cues, word, stepFinished || !speaking) : cue.lines.length;
@@ -2042,8 +2045,12 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
                 {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
               </div>;
               return <form className="dx-answer" onSubmit={submitAnswer}>
-                <input value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label={__kbUi("Javobingiz")} placeholder={step.savol || __kbUi("Javob")} autoComplete="off" />
+                <input value={answer} onChange={(e) => setAnswer(e.target.value)} aria-label={__kbUi("Javobingiz")} placeholder={step.savol || __kbUi("Javob")} autoComplete="off"
+                  inputMode={sensorli && !tizimKlav ? "none" : undefined} />   {/* REV499: telefonda tizim klaviaturasi chiqmaydi */}
                 <button type="submit" className="dx-btn dx-primary">{__kbUi("Tekshirish")}</button>
+                {sensorli && <div className="dx-raqam-klav">{["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ",", "−", "/"].map((r) => <button key={r} type="button" onClick={() => setAnswer((a) => a + (r === "−" ? "-" : r))}>{r}</button>)}
+                  <button type="button" onClick={() => setAnswer((a) => a.slice(0, -1))} aria-label={__kbUi("O‘chirish")}>⌫</button>
+                  <button type="button" className={tizimKlav ? "is-on" : ""} onClick={() => setTizimKlav((x) => !x)} title={__kbUi("Harflar bilan yozish")}>Aa</button></div>}
                 {feedback && <span className={feedback.ok ? "dx-ok" : "dx-no"}>{feedback.text}</span>}
               </form>;
             })()}

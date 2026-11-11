@@ -1276,3 +1276,23 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher,
 .dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-sinf-fon .us-teacher{left:-3.5%;height:76%;bottom:2%}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-ong .dx-sinf-fon .us-teacher{right:-3.5%;height:76%;bottom:2%}
+/* REV499: bitta «Qoralama» tugmasi burchakda, yozuvga xalaqit bermaydi; zich doskada va misollarda yozuv kichikroq; raqam tugmalari */
+.dx-root .dx-burchak-daftar{opacity:.9;font-size:13px}
+.dx-root .dx-burchak-daftar.is-misol{background:#f2b72e!important;color:#13202e!important;box-shadow:0 2px 10px rgba(242,183,46,.45)}
+.dx-root.dx-sinf .dx-board{padding-bottom:calc(2.4cqh + 40px)}
+.dx-lines.is-matem .dx-line{font-size:23px;line-height:1.3}
+.dx-lines.is-zich .dx-line{font-size:21px;line-height:1.25}
+.dx-lines.is-juda-zich .dx-line{font-size:18px;line-height:1.22}
+.dx-root.dx-sinf .dx-lines.is-matem .dx-line{font-size:max(15px,3.4cqh)}
+.dx-root.dx-sinf .dx-lines.is-zich .dx-line{font-size:max(14px,3.1cqh)}
+.dx-root.dx-sinf .dx-lines.is-juda-zich .dx-line{font-size:max(13px,2.7cqh)}
+.dx-raqam-klav{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;width:100%;margin-top:6px}
+.dx-raqam-klav button{min-height:44px;border-radius:12px;border:0;background:rgba(255,255,255,.16);color:#fff;font:800 18px system-ui;cursor:pointer}
+.dx-raqam-klav button.is-on{background:#f2b72e;color:#13202e}
+.dx-lines.is-matem .mdx-line{font-size:24px}
+.dx-lines.is-zich .mdx-line{font-size:21px;line-height:1.28}
+.dx-lines.is-juda-zich .mdx-line{font-size:18px;line-height:1.24}
+.dx-lines.is-matem .mdx-model-yozuv{font-size:26px}
+.dx-root.dx-sinf .dx-lines .mdx-line{font-size:max(14px,3.3cqh)}
+.dx-root.dx-sinf .dx-lines.is-zich .mdx-line{font-size:max(13px,3cqh)}
+.dx-root.dx-sinf .dx-lines.is-juda-zich .mdx-line{font-size:max(12px,2.6cqh)}
