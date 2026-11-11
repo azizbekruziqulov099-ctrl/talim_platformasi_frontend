@@ -148,4 +148,14 @@ if (!fs.existsSync(path.join(ROOT, "index.html"))) {
   process.exit(1);
 }
 server.listen(PORT, HOST, () => console.log(`[server] ${ROOT} → http://${HOST}:${PORT}`));
-for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, () => server.close(() => process.exit(0)));
+// REV494: yangilanishda Railway eski konteynerga SIGTERM yuboradi — bu xato emas. Yangi so'rov qabul qilinmaydi, ochiq
+// ulanishlar yopiladi va 0 kod bilan tinch chiqiladi (avval keep-alive ulanishlar tufayli kutib qolib, npm «command failed
+// signal SIGTERM» deb yozardi). Ishga tushirish npm'siz — to'g'ridan-to'g'ri node.
+let tugamoqda = false;
+for (const sig of ["SIGTERM", "SIGINT"]) process.on(sig, () => {
+  if (tugamoqda) return; tugamoqda = true;
+  console.log(`[server] ${sig} — yangi versiyaga o'tilmoqda, tinch to'xtatilyapti`);
+  server.close(() => process.exit(0));
+  server.closeIdleConnections?.();
+  setTimeout(() => { server.closeAllConnections?.(); process.exit(0); }, 8000).unref();
+});
