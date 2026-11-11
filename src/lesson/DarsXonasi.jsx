@@ -353,7 +353,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   darsTilRef.current = darsTil || "";
   // REV267: test/ovoz sahnasida til darsi bo'lsa — doim ikki Kabu (izoh tili + o'rganilayotgan til: nemis — Taubi)
   const kabuJuftMuhit = kabuMuhit && Boolean(darsTil);
-  const KABU_JOY = kabuJuftMuhit ? { doska: { l: 23, t: 3, w: 54, h: 92 }, gap: { l: 23, t: 96, w: 54, h: 1 } } : { doska: { l: 29, t: 3, w: 69, h: 72 }, gap: { l: 29, t: 77, w: 69, h: 21 } };
+  // REV498: Kabu rejimida doska chekkalarga va burchakka taqalmaydi — atrofida havo, sarlavha bilan ustma-ust tushmaydi
+  const KABU_JOY = kabuJuftMuhit ? { doska: { l: 24, t: 7, w: 52, h: 86 }, gap: { l: 24, t: 94, w: 52, h: 1 } } : { doska: { l: 30, t: 8, w: 64, h: 66 }, gap: { l: 30, t: 77, w: 64, h: 19 } };
   // REV181: til darsida sinfxonada IKKI ustoz — o'rganilayotgan til egasi (masalan, Lukas — nemis) va izoh tili ustozi
   // (o'zbek — Nilufar, rus — Anna, ingliz — Emily). Har biri o'z tilida, o'z ovozida gapiradi; kim gapirsa o'sha yorqin.
   // bog'chada ham (REV181): jonli ustoz gapiradigan qismlarda (salom, dars, ko'prik) ikki ustoz
@@ -1488,7 +1489,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     return () => globalThis.removeEventListener?.("resize", yangila);
   }, []);
   // telefonda ikki Kabu chekkaroqda va kichikroq — doska kengroq, yozuv kattaroq
-  const kabuJoy = telefon && kabuJuftMuhit ? { doska: { l: 19, t: 3, w: 62, h: 92 }, gap: { l: 19, t: 96, w: 62, h: 1 } } : KABU_JOY;
+  const kabuJoy = telefon && kabuJuftMuhit ? { doska: { l: 20, t: 6, w: 60, h: 88 }, gap: { l: 20, t: 95, w: 60, h: 1 } } : KABU_JOY;
   const focus = ["lesson", "ovoz", "test", "bridge", "end", "result", "limit"].includes(mode) || (telefon && mode === "idle" && !error);
   // REV175: tik ushlangan telefonda (avtoburish o'chiq bo'lsa ham) dars o'zi yotiq ko'rinishga buriladi —
   // doska, ustoz va tugmalar eniga sig'adi. Qurilma ruxsat bersa — haqiqiy gorizontal holat (to'liq ekran) yoqiladi.

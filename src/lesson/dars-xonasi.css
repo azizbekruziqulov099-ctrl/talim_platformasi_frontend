@@ -1272,3 +1272,7 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-sanash-var button{min-width:72px;min-height:72px;border-radius:20px;border:3px solid #fff;background:#2f6fb3;color:#fff;font:900 30px system-ui;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.25)}
 /* REV492: nazariyadagi misol uchun yozuv doskasi tugmasi */
 .dx-misol-daftar{position:absolute;left:14px;bottom:14px;z-index:6;border:0;border-radius:14px;background:#f2b72e;color:#3d2e00;font:800 15px system-ui;padding:10px 14px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+/* REV498: o'qituvchi qo'lini ochganda doskaga tegmasin — biroz kichikroq va chetroqda (doska 31%..85% oralig'ida) */
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher,
+.dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-sinf-fon .us-teacher{left:-3.5%;height:76%;bottom:2%}
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-ong .dx-sinf-fon .us-teacher{right:-3.5%;height:76%;bottom:2%}
