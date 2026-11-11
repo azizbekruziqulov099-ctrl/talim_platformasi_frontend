@@ -35,6 +35,8 @@ import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccoun
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 const FamilyProfiles = __kbRev35_external0.lazy(() => import("./auth/FamilyProfiles.jsx"));
 const PinOyna = __kbRev35_external0.lazy(() => import("./auth/PinOyna.jsx"));   // REV489
+const HisobOchirish = __kbRev35_external0.lazy(() => import("./auth/HisobOchirish.jsx"));   // REV491
+const OchirishOgohi = __kbRev35_external0.lazy(() => import("./auth/HisobOchirish.jsx").then((m) => ({ default: m.OchirishOgohi })));
 const TeacherSubjects = __kbRev35_external0.lazy(() => import("./teacher/TeacherSubjects.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
@@ -13171,6 +13173,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
           </div>
         </div>
       )}
+      {!foydalanuvchi?.is_admin && <React.Suspense fallback={null}><HisobOchirish apiBase={API_BASE} token={token} /></React.Suspense>}   {/* REV491 */}
       </div>
     </div>
   );
@@ -15620,7 +15623,7 @@ function AppAsosiy() {
     </div>
     <Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} readOnly />
   </div>;
-  if (token) return <>{pinSorov && <React.Suspense fallback={null}><PinOyna apiBase={API_BASE} ownerToken={pinSorov.ownerToken}
+  if (token) return <><React.Suspense fallback={null}><OchirishOgohi apiBase={API_BASE} token={token} /></React.Suspense>{pinSorov && <React.Suspense fallback={null}><PinOyna apiBase={API_BASE} ownerToken={pinSorov.ownerToken}
       onOk={() => { pinSorov.resolve(true); setPinSorov(null); }} onYop={() => { pinSorov.resolve(false); setPinSorov(null); }} /></React.Suspense>}{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} onProfiles={profillarniOch} />{familyOpen && readFamily() && <React.Suspense fallback={null}><FamilyProfiles apiBase={API_BASE} ownerToken={readFamily().ownerToken} egaMi={readFamily().ownerToken === token} closable={familyFromProfile || readFamily().ownerToken === token} onEnter={profilgaKir} onOwner={egagaQayt} onLogout={egaChiqsin} onClose={() => setFamilyOpen(false)} /></React.Suspense>}</>;
   if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
   return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} onCourses={() => setPublicCourses(true)} />;
