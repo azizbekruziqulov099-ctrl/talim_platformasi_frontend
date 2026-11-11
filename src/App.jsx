@@ -25,6 +25,8 @@ import AdminTestBrowser from './curriculum/AdminTestBrowser.jsx';
 // REV35: new components included so existing-file uploads keep every dependency.
 import * as __kbRev35_external0 from "react";
 import * as __kbRev35_external1 from "lucide-react";
+// REV505: «Bugun» belgisi — MODUL darajasida (avval xato bilan AccountSecurity ichki blokiga tushib qolgan edi → «BugunIkon is not defined»)
+const BugunIkon = __kbRev35_external1["House"] || __kbRev35_external1["Home"];
 import * as __kbRev35_external2 from "react-dom";
 import KabutarAssistant, { KabutarAssistantButton } from "./assistant/KabutarAssistant.jsx";
 import KitobKodQidiruv from "./lesson/KitobKod.jsx";
@@ -61,7 +63,6 @@ const useRef = __kbRev35_external0["useRef"];
 const useState = __kbRev35_external0["useState"];
 const createPortal = __kbRev35_external2["createPortal"];
 const AtSign = __kbRev35_external1["AtSign"];
-const BugunIkon = __kbRev35_external1["House"] || __kbRev35_external1["Home"];   // REV487
 const CheckCircle2 = __kbRev35_external1["CheckCircle2"];
 const ChevronRight = __kbRev35_external1["ChevronRight"];
 const Eye = __kbRev35_external1["Eye"];
