@@ -15,3 +15,9 @@
 @keyframes nzc-lupa{0%,100%{transform:rotate(0)}50%{transform:rotate(-12deg)}}
 @keyframes nzc-sakra{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 .nzc h2{font-size:23px;font-weight:800;margin:0}
+/* REV502: Nazoratchi — Kabu */
+.nzc-kabu{position:relative;flex:0 0 auto}
+.nzc-lupa-belgi{position:absolute;right:-6px;bottom:18%;font-size:38px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25));animation:nzc-lupa 2.4s ease-in-out infinite;transform-origin:30% 70%}
+.nzc-tingla{margin-left:auto;border:0;border-radius:50%;width:52px;height:52px;background:#fff3c4;font-size:26px;cursor:pointer;flex:0 0 auto}
+.nzc-var button{min-height:96px;font-size:36px}
+.nzc-savol{font-size:28px}

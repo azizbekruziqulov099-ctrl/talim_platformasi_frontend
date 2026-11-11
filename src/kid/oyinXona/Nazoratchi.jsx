@@ -4,9 +4,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { BoardText } from "../../lesson/AmaliyDoska.jsx";
 import "./nazoratchi.css";
+import RobotKabu from "../RobotKabu.jsx";   // REV502: Nazoratchi — Kabu'ning o'zi (o'yinchoqdek SVG emas), qo'lida lupa
 
-/** Nazoratchi qahramoni (SVG): ko'zoynakli, lupa ushlagan robot. holat: oddiy | sorayapti | xursand | qayta */
+/** REV502: Nazoratchi — Kabu (bolalar taniydigan sifatli qahramon) + 🔍 lupa belgisi. holat: oddiy | sorayapti | xursand | qayta */
 export function NazoratchiRasm({ holat = "oddiy", size = 150 }) {
+  const mood = holat === "xursand" ? "happy" : holat === "qayta" ? "think" : holat === "sorayapti" ? "talk" : "";
+  return <div className={`nzc-kabu is-${holat}`} style={{ width: size, height: size * 1.25 }} aria-hidden="true">
+    <RobotKabu mood={mood} celebrate={holat === "xursand" ? 1 : 0} /><span className="nzc-lupa-belgi">🔍</span></div>;
+}
+
+function EskiNazoratchiRasm({ holat = "oddiy", size = 150 }) {
   const ogiz = holat === "xursand" ? "M86 112 Q100 126 114 112" : holat === "qayta" ? "M88 118 Q100 110 112 118" : "M90 114 H110";
   return <svg className={`nzc-rasm is-${holat}`} width={size} height={size} viewBox="0 0 200 200" aria-hidden="true">
     <ellipse cx="100" cy="190" rx="48" ry="7" fill="rgba(0,0,0,.12)" />
@@ -71,7 +78,8 @@ export default function Nazoratchi({ base, token, yosh = "", say, onTugadi }) {
   const u = qoldi / vaqt;
   return <div className="nzc">
     <div className="nzc-tepa"><NazoratchiRasm holat={hol} size={120} /><div><b>🕵️ {__kbUi("Mister Nazoratchi")}</b><span>{i + 1} / {S.length}</span>
-      {q.dars_nomi && <small>📘 {q.dars_nomi}</small>}</div></div>
+      {q.dars_nomi && <small>📘 {q.dars_nomi}</small>}</div>
+      <button type="button" className="nzc-tingla" onClick={() => say?.(String(q.savol || "").replace(/\$/g, ""))} aria-label={__kbUi("Qayta eshitish")}>🔊</button></div>
     <div className="nzc-vaqt"><i style={{ width: `${Math.max(0, u * 100)}%`, background: u > 0.5 ? "#2e9e5b" : u > 0.25 ? "#f2b72e" : "#d9534f" }} /></div>
     <div className="nzc-savol"><BoardText text={String(q.savol || "").replace(/\[\/?[a-z]{2,3}\]/g, "")} /></div>
     <div className="nzc-var">{(q.variantlar || []).map((o, k) => <button key={k} type="button" disabled={tanlov !== null} onClick={() => bos(k)}

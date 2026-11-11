@@ -1,3 +1,4 @@
+import { APP_VERSION } from "../appVersion.js";   // REV501
 import {InterfaceContext} from '../interface/InterfacePreferences.jsx';
 import {uiText as __kbUi} from '../interface/interfaceRuntime.js';
 import React from 'react';
@@ -17,6 +18,15 @@ export default class AppErrorBoundary extends React.Component {
       this.setState({ joy: joy.slice(0, 200) }); console.error("[Kabutar bo‘lim xatosi]", error, info?.componentStack); } catch { /* */ }
     // REV305: yangi versiya chiqqanda eski sahifa bo'lak (chunk) topa olmasa — sahifa bir marta o'zi yangilanadi
     const m = String(error?.message || error || "");
+    // REV501: xato serverga yoziladi — sababini ko'rib, tuzatish uchun (shaxsiy ma'lumotsiz)
+    try {
+      const joy = String(info?.componentStack || "").split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 5).join(" ‹ ").slice(0, 400);
+      let token = ""; try { token = localStorage.getItem("samtm_login_token_v1") || ""; } catch { /* */ }
+      const base = import.meta.env.VITE_API_BASE || "https://talimplatformasi-production.up.railway.app";
+      fetch(`${base}/api/frontend_xato`, { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+        body: JSON.stringify({ xato: (m + " " + String(error?.stack || "").split("\n").slice(1, 3).join(" ")).slice(0, 500), joy, url: location.pathname,
+          versiya: APP_VERSION, rol: String(document.body?.dataset?.rol || ""), token }) }).catch(() => {});
+    } catch { /* */ }
     if (chunkXatosimi(m)) yangiVersiyagaOt();   // REV413: keshni tozalab, yangi versiyaga o'zi o'tadi
   }
   render() {
