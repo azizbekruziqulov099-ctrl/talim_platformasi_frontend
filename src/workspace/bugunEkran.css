@@ -1,0 +1,18 @@
+/* REV487: «Bugun» bosh ekrani */
+.bg-root{max-width:760px;margin:0 auto;padding:14px 14px 90px;display:flex;flex-direction:column;gap:12px}
+.bg-bosh small{color:#5b6573;font-weight:600}.bg-bosh h1{margin:2px 0 4px;font-size:30px;color:#13314f}
+.bg-karta{background:#fff;border-radius:20px;padding:16px;box-shadow:0 4px 16px rgba(16,42,67,.07);display:flex;flex-direction:column;gap:8px;border:1px solid #edf1f5}
+.bg-karta b{font-size:17px;color:#13314f}.bg-karta p{margin:0}
+.bg-asosiy{background:linear-gradient(135deg,#1B4B7A,#2a6aa8);border:0}.bg-asosiy b,.bg-asosiy p{color:#fff}
+.bg-asosiy.is-yashil{background:linear-gradient(135deg,#1f7a4d,#2e9e5b)}
+.bg-karta button,.bg-tez button,.bg-qator{border:0;border-radius:14px;padding:12px 14px;font:700 15px system-ui;cursor:pointer}
+.bg-karta button{align-self:flex-start;background:#eef6ff;color:#13314f}.bg-asosiy button{background:#fff;color:#1B4B7A}
+.bg-karta.is-yashil:not(.bg-asosiy){border-color:#bfe6cd;background:#f3fbf6}
+.bg-q{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}.bg-q span{color:#5b6573;font-size:14px}
+.bg-sonlar{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:#3d4a59}.bg-sonlar b{font-size:18px;color:#13314f}
+.bg-sonlar .is-diqqat{color:#8a5a00}
+.bg-izoh{color:#5b6573;font-size:14px}
+.bg-tez{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.bg-tez button{background:#fff;color:#13314f;box-shadow:0 2px 10px rgba(16,42,67,.06)}
+.bg-qator{display:flex;justify-content:space-between;background:#fff;color:#13314f;box-shadow:0 2px 10px rgba(16,42,67,.06)}
+.bg-skelet{height:110px;background:linear-gradient(90deg,#f1f4f8,#e8edf3,#f1f4f8);background-size:200% 100%;animation:bg-sk 1.2s linear infinite}
+@keyframes bg-sk{to{background-position:-200% 0}}

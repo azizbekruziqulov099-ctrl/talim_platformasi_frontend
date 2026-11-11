@@ -13,7 +13,7 @@ test('new Google account opens education home then asks for profile only on stud
 test('a school grade opens tests directly and never becomes a college course',()=>{
  for(const grade of ['1','11','7-sinf']) {
   const user={role:'oquvchi',class:grade};
-  assert.equal(initialEducationTab(user),'mavzular');assert.equal(educationRole(user),'oquvchi');
+  assert.equal(initialEducationTab(user),'bugun');assert.equal(educationRole(user),'oquvchi');
  }
  assert.equal(learningReady({role:'oquvchi',class:'12'}),false);
 });
@@ -22,13 +22,13 @@ test('talaba is never blocked: all institute tests open, profile only ranks own 
  assert.equal(educationRole(user),'talaba');assert.equal(needsEducation(user,'test'),false);
  assert.equal(talabaProfileComplete(user),false);
  user.class='2 kurs'; user.learning_profile={kurs:2,talim_bosqichi:'bakalavr',talim_shakli:'kechki',talim_tili:'ru'};
- assert.equal(initialEducationTab(user),'mavzular');assert.equal(needsEducation(user,'test'),false);
+ assert.equal(initialEducationTab(user),'bugun');assert.equal(needsEducation(user,'test'),false);
  assert.equal(talabaProfileComplete(user),true);
  assert.equal(user.universitet_id,undefined);
 });
 test('teacher and parent open their correct workspaces',()=>{
- assert.equal(initialEducationTab({role:'oqituvchi'}),'oqituvchi');
- assert.equal(initialEducationTab({role:'ota-ona'}),'farzand');
+ assert.equal(initialEducationTab({role:'oqituvchi'}),'bugun');
+ assert.equal(initialEducationTab({role:'ota-ona'}),'bugun');
  assert.equal(initialEducationTab({role:'oqituvchi',is_admin:true}),'admin');
 });
 test('Telegram code mode survives browser reload but expires',()=>{

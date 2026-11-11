@@ -26,7 +26,11 @@ export function learningReady(user) {
   return false;
 }
 export function initialEducationTab(user) {
-  return user?.is_admin ? 'admin' : user?.role === 'oqituvchi' ? 'oqituvchi' : user?.role === 'ota-ona' ? 'farzand' : learningReady(user) ? 'mavzular' : 'home';
+  // REV487: o'qituvchi, ota-ona va o'quvchi — «🏠 Bugun» bosh ekranidan boshlaydi (bog'cha bolasi — o'z sodda ekranidan)
+  if (user?.is_admin) return 'admin';
+  if (user?.role === 'oqituvchi' || user?.role === 'ota-ona') return 'bugun';
+  if (!learningReady(user)) return 'home';
+  return educationRole(user) === 'bogcha' ? 'mavzular' : 'bugun';
 }
 export function needsEducation(user, tab) {
   return ['test', 'mavzular', 'ai_ustoz', 'bilim'].includes(tab) && !learningReady(user);

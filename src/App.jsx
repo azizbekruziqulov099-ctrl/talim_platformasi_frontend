@@ -58,6 +58,7 @@ const useRef = __kbRev35_external0["useRef"];
 const useState = __kbRev35_external0["useState"];
 const createPortal = __kbRev35_external2["createPortal"];
 const AtSign = __kbRev35_external1["AtSign"];
+const BugunIkon = __kbRev35_external1["House"] || __kbRev35_external1["Home"];   // REV487
 const CheckCircle2 = __kbRev35_external1["CheckCircle2"];
 const ChevronRight = __kbRev35_external1["ChevronRight"];
 const Eye = __kbRev35_external1["Eye"];
@@ -516,6 +517,7 @@ const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
 const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.jsx"));
 const LazyFanOyinlari = _samtmLazyRetry(() => import("./games/FanOyinlari.jsx"));   // REV437
 const LazyEkspeditsiya = _samtmLazyRetry(() => import("./games/Ekspeditsiya.jsx"));   // REV456
+const LazyBugun = _samtmLazyRetry(() => import("./workspace/BugunEkran.jsx"));   // REV487: «🏠 Bugun» bosh ekrani
 const LazyHujjatSahifa = _samtmLazyRetry(() => import("./hujjat/HujjatSahifa.jsx"));   // REV439: hujjat ko'ruvchi
 const LazyOyinXona = _samtmLazyRetry(() => import("./kid/oyinXona/OyinXona.jsx"));   // REV379: rivojlantiruvchi o'yinlar
 const LazyChempionat = _samtmLazyRetry(() => import("./chempionat/Chempionat.jsx"));
@@ -13198,6 +13200,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     // Muassasasi bor xodim (dekan, direktor, o'qituvchi...) uchun asosiy ish joyi — muassasasi.
     // Umumiy "Ish maydoni" (to'garak, repetitorlik, AI vositalari) qo'shimcha bo'lib pastda turadi.
     return [
+      { kalit: "bugun", nom: "Bugun", ikon: BugunIkon },   // REV487
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       ...(qoshimchaBand ? [qoshimchaBand] : []),
       // REV96: to'garak endi aniq nom bilan ko'rinadi; kutubxona va ovoz vositasi alohida band.
@@ -13215,14 +13218,16 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   }
   if (rol === "ota-ona") {
     return [
-      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
+      { kalit: "bugun", nom: "Bugun", ikon: BugunIkon },   // REV487
       { kalit: "farzand", nom: "Farzand tahlili", ikon: Heart },
+      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
             { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
       { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
   // O'quvchi / talaba / bog'cha / markaz: asosiy yo'l — O'rganish (fan → mavzu → dars → test).
   return [
+    { kalit: "bugun", nom: "Bugun", ikon: BugunIkon },   // REV487
     // REV301: hamma o'qish (fan, til, erkin til, sertifikat, xalqaro baholash, bolalar kurslari) — «Kurslar» ichida
     { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: GraduationCap },
     { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
@@ -13244,6 +13249,7 @@ function PastkiMenyu({
   qoshimchaBand,
   foydalanuvchi,
   taqdimotMavjud = false,
+  onMenyu = null,
 }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
@@ -13334,9 +13340,12 @@ function PastkiMenyu({
         </div>
       </aside>
 
-      <nav className="premium-mobile-nav">
-        <div style={{ gridTemplateColumns: `repeat(${bandlar.length}, minmax(${bandlar.length > 6 ? 56 : 0}px, 1fr))` }}>
-          {bandlar.map((band) => bandTugmasi(band, false))}
+      {/* REV487: telefonda pastki menyu — rolning 4 ta asosiy bo'limi + «☰ Yana» (qolganlari yon menyuda) */}
+      <nav className="premium-mobile-nav samtm-pastki-4">
+        <div style={{ gridTemplateColumns: "repeat(5, minmax(0, 1fr))" }}>
+          {asosiyBandlar.slice(0, 4).map((band) => bandTugmasi(band, false))}
+          <button type="button" className="premium-mobile-link" onClick={() => onMenyu?.()} style={{ "--nav-accent": aktivRang }}>
+            <span className="premium-mobile-icon">☰</span><span>{uiT("Yana")}</span></button>
         </div>
       </nav>
     </>
@@ -14887,6 +14896,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         /* REV381: ☰ menyu — ustidan ochiladigan panel; asosiy sahifa doim to'liq kenglikda; pastki menyu satri o'rniga ☰ */
         .premium-app-main{margin-left:0 !important}
         .premium-mobile-nav{display:none !important}
+        @media (max-width:820px){.premium-mobile-nav.samtm-pastki-4{display:block !important}.premium-app-main{padding-bottom:calc(76px + env(safe-area-inset-bottom)) !important}}
         .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{display:flex !important;width:min(300px,86vw) !important;padding-inline:16px !important;z-index:2147483080 !important;box-shadow:12px 0 40px rgba(10,25,40,.35);animation:samtm-yon-kir .18s ease-out}
         .premium-app-shell:not(.samtm-yon-yopiq) :is(.premium-side-brand > div:last-child,.premium-role-card > div,.premium-side-link > span:last-child,.premium-side-nav > p,.premium-side-status > div){display:block !important}
         .premium-app-shell:not(.samtm-yon-yopiq) .premium-side-link{display:flex !important;justify-items:start !important}
@@ -15202,6 +15212,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       )}
       {korinishRoli !== "ota-ona" && tab === "fan_oyinlari" && lazyPanel(LazyFanOyinlari, { onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
+      {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
       {tab === "hujjat_ochish" && lazyPanel(LazyHujjatSahifa, {})}
       {korinishRoli !== "ota-ona" && tab === "mantiq" && lazyPanel(LazyOyinXona, { apiBase: API_BASE, token, izoh: String(document.documentElement.lang || "uz").slice(0, 2),
         yosh: (() => { const g = String(foydalanuvchi?.yosh_guruhi || ""); return _kbAccountRole(foydalanuvchi) === "bogcha" && g ? (/2-3|3-4/.test(g) ? "2-3" : /6-7|5-6/.test(g) ? "6-7" : "4-5") : ""; })(),
@@ -15250,7 +15261,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       </SectionErrorBoundary>
           </div>
         </main>
-      <PastkiMenyu faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : OYIN_TABLARI.has(tab) ? "oyinlar" : tab}
+      <PastkiMenyu onMenyu={yonMenyuniAlmashtir} faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : OYIN_TABLARI.has(tab) ? "oyinlar" : tab}
         onTanlash={tabTanlandi} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida}
         qoshimchaBand={muassasaBandi} foydalanuvchi={foydalanuvchi} taqdimotMavjud={presentationsAllowed && !readOnly} />
       </div>
