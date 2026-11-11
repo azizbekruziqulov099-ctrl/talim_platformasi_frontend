@@ -54,8 +54,39 @@ class AppErrorBoundary extends React.Component {
   static contextType=InterfaceContext;
   state = { failed: false };
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+  static getDerivedStateFromError(error) {
+    return { failed: true, xato: String(error?.message || error || "").slice(0, 200) };
+  }
+
+  // REV504: butun sahifa qulasa — sababi serverga yoziladi (avval bu yerda hech narsa yozilmasdi)
+  componentDidCatch(error, info) {
+    try {
+      const joy = String(info?.componentStack || "").split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 6).join(" ‹ ").slice(0, 400);
+      let token = ""; try { token = localStorage.getItem("samtm_login_token_v1") || ""; } catch { /* */ }
+      const base = import.meta.env.VITE_API_BASE || "https://talimplatformasi-production.up.railway.app";
+      fetch(`${base}/api/frontend_xato`, { method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+        body: JSON.stringify({ xato: ("[ILDIZ] " + String(error?.message || error || "") + " " + String(error?.stack || "").split("\n").slice(1, 4).join(" ")).slice(0, 500),
+          joy, url: location.pathname, versiya: String(window.__KB_APP_VERSIYA || ""), token }) }).catch(() => {});
+    } catch { /* */ }
+    // REV504: o'zini o'zi tiklash — foydalanuvchi /tozala'ni bilmasa ham sayt (va ilova) qotib qolmasin:
+    //  1-qadam: eski fayllar va keshni tozalab qayta ochish;  2-qadam (yana qulasa): bola/boshqa profil sessiyasidan
+    //  asosiy akkauntga qaytish;  3-qadam: kirish ekraniga qaytish (akkaunt va natijalar serverda saqlanadi, hech narsa yo'qolmaydi).
+    try {
+      const t = Date.now(), K = "kb_tiklash_v1";
+      const h = JSON.parse(sessionStorage.getItem(K) || "{}");
+      const qadam = h.t && t - h.t < 3 * 60 * 1000 ? (h.q || 0) + 1 : 1;
+      sessionStorage.setItem(K, JSON.stringify({ t, q: qadam }));
+      if (qadam === 2) {
+        try { const fam = JSON.parse(localStorage.getItem("kabutar:family:v1") || "null");
+          if (fam?.ownerToken) localStorage.setItem("samtm_login_token_v1", fam.ownerToken);
+          localStorage.removeItem("kabutar:family:v1"); } catch { /* */ }
+      } else if (qadam >= 3) {
+        try { localStorage.removeItem("samtm_login_token_v1"); localStorage.removeItem("kabutar:family:v1"); } catch { /* */ }
+        sessionStorage.setItem(K, JSON.stringify({ t: 0, q: 0 }));
+      }
+      this.setState({ tiklanmoqda: true });
+      setTimeout(() => { try { window.location.replace("/tozala.html?auto=1"); } catch { window.location.reload(); } }, 900);
+    } catch { /* */ }
   }
 
   render() {
@@ -64,9 +95,10 @@ class AppErrorBoundary extends React.Component {
       <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "#f3f7f6", color: "#16353e", fontFamily: "system-ui, sans-serif" }}>
         <section role="alert" style={{ maxWidth: 440, background: "white", padding: 32, borderRadius: 24, boxShadow: "0 16px 60px #183d3a12" }}>
           <small style={{ color: "#087f79", fontWeight: 800, letterSpacing: 2 }}>{__kbUi("KABUTAR")}</small>
-          <h1 style={{ fontSize: 26 }}>{__kbUi("Bu bo‘limni ochib bo‘lmadi")}</h1>
-          <p style={{ lineHeight: 1.6 }}>{__kbUi("Sahifani yangilab, qayta urinib ko‘ring. Saqlanmagan matn qayta kiritilishi mumkin.")}</p>
-          <button type="button" onClick={() => yangiVersiyagaOt({ majburiy: true })} style={{ border: 0, borderRadius: 12, background: "#087f79", color: "white", padding: "14px 20px", fontWeight: 700, cursor: "pointer" }}>{__kbUi("Sahifani yangilash")}</button>
+          <h1 style={{ fontSize: 26 }}>{this.state.tiklanmoqda ? __kbUi("Sayt o‘zini tiklayapti…") : __kbUi("Bu bo‘limni ochib bo‘lmadi")}</h1>
+          <p style={{ lineHeight: 1.6 }}>{this.state.tiklanmoqda ? __kbUi("Bir necha soniya kuting — eski fayllar tozalanib, sayt qayta ochiladi.") : __kbUi("Sahifani yangilab, qayta urinib ko‘ring. Saqlanmagan matn qayta kiritilishi mumkin.")}</p>
+          {this.state.xato && <p style={{ fontSize: 12, color: "#7a8a8e", wordBreak: "break-word" }}>{this.state.xato}</p>}
+          <button type="button" onClick={() => { try { window.location.href = "/tozala.html"; } catch { yangiVersiyagaOt({ majburiy: true }); } }} style={{ border: 0, borderRadius: 12, background: "#087f79", color: "white", padding: "14px 20px", fontWeight: 700, cursor: "pointer" }}>{__kbUi("Sahifani yangilash")}</button>
         </section>
       </main>
     );
