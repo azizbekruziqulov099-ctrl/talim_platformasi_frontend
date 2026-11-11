@@ -1,5 +1,7 @@
 import { useBand } from "../pwa/band.js";
-import { konikmaYoz } from "./konikmaYoz.js";   // REV480   // REV466: dars/test o'rtasida yangilanish to'xtatilmaydi
+import { konikmaYoz } from "./konikmaYoz.js";   // REV480
+import { qurilmaKaliti } from "../auth/qurilma.js";   // REV486
+import QurilmaOyna from "../auth/QurilmaOyna.jsx";   // REV466: dars/test o'rtasida yangilanish to'xtatilmaydi
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { fanIzohi } from "../curriculum/izohTanlov.js";
 import { lazyQayta } from "../workspace/lazyQayta.js";
@@ -220,6 +222,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const [stiker, setStiker] = useState(null);   // REV333: dars oxirida berilgan stiker   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
   const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi
+  const [qurilmaHol, setQurilmaHol] = useState(null);   // REV486: profil boshqa qurilmada / qulf
+  const [qayta, setQayta] = useState(0);
   // REV305: dars ketayotganda sarlavha (mavzu nomi, qadam) 3 soniyadan keyin yig'iladi — faqat ✕ qoladi, doskani to'smaydi;
   // pauza, boshlanish yoki natija bo'lsa — yana ochiladi
   const [boshYigiq, setBoshYigiq] = useState(false);
@@ -738,16 +742,17 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     setVariant(null); setMenu(false); setAskReply(""); setScore(0); setTestIndex(0); setPicked(null);
     // REV297: «Testlar» bo'limidan — faqat test: Miya'dagi savollar (shu va oldingi mavzular), yoshiga qarab 20–80 ta
     const yol = faqatTest ? `${encodeURIComponent(topicCode)}/test` : encodeURIComponent(topicCode);
-    const qs = new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2), ...(faqatTest ? { soni: String(faqatTest) } : {}) });
+    const qs = new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2), qurilma: qurilmaKaliti(), ...(faqatTest ? { soni: String(faqatTest) } : {}) });
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${yol}?${qs}`, { signal: controller.signal })
       .then(async (r) => { const d = await r.json().catch(() => ({}));
         if (r.status === 402 && d.detail?.kod === "kurs_tolov") { setKursQulf(d.detail); throw new Error(d.detail.xabar || "Kurs yopiq"); }   // REV301
+        if (r.status === 423 && d.detail?.kod === "qurilma") { setQurilmaHol(d.detail); throw new Error(d.detail.xabar || "Qurilma"); }   // REV486
         if (!r.ok) { if (faqatTest && r.status === 404) onTestYoq?.(); throw new Error(typeof d.detail === "string" ? d.detail : d.detail?.xabar || "Dars yuklanmadi"); } return d; })
       .then((d1) => { const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(kabuIsmiQoy(d, uiLocale))); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
-  }, [apiBase, token, topicCode, hush, uiLocale, faqatTest]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [apiBase, token, topicCode, hush, uiLocale, faqatTest, qayta]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // REV297: faqat test rejimi — dars yuklangach darhol test (Kabular muhitida) boshlanadi, dars qadamlari o'tkazib yuboriladi
   const faqatTestBoshlandi = useRef(false);
@@ -1637,6 +1642,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     <p>{__kbUi(kid ? "Ustoz darsni tayyorlayapti…" : "Dars yuklanmoqda…")}</p>
   </div>;
   if (kursQulf) return <KursTolov apiBase={apiBase} token={token} kurs={kursQulf} onClose={onClose} />;
+  if (qurilmaHol) return <QurilmaOyna apiBase={apiBase} token={token} holat={qurilmaHol} onClose={onClose} onTayyor={() => { setQurilmaHol(null); setQayta((x) => x + 1); }} />;
   if (error) return <div className="dx-empty"><p>{__kbUi(error)}</p>{onChat && <button type="button" className="dx-btn dx-primary" onClick={onChat}>{__kbUi("AI ustoz bilan suhbatda o‘rganish")}</button>}</div>;
 
   const range = step ? sceneRange(steps, idx) : [];

@@ -1,0 +1,6 @@
+/* REV486 */
+.qo-root{min-height:60vh;display:grid;place-items:center;padding:16px}
+.qo-ich{max-width:520px;background:#fff;border-radius:22px;padding:22px;box-shadow:0 8px 28px rgba(0,0,0,.1);text-align:center;display:flex;flex-direction:column;gap:10px}
+.qo-belgi{font-size:56px}.qo-ich h2{margin:0;font-size:22px}.qo-izoh{color:#6b5300;background:#fff7e0;border-radius:12px;padding:8px 10px;font-size:14px}
+.qo-btn{padding:14px;border:0;border-radius:14px;background:#1B4B7A;color:#fff;font:800 17px system-ui;cursor:pointer}
+.qo-ortga{border:0;background:none;color:#1B4B7A;font:700 15px system-ui;cursor:pointer}
