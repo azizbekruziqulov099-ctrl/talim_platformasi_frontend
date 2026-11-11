@@ -15217,7 +15217,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       )}
       {korinishRoli !== "ota-ona" && tab === "fan_oyinlari" && lazyPanel(LazyFanOyinlari, { onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
-      {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
+      {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi, muassasalar: muassasalarim, onMuassasa: muassasaniTanla })}
       {tab === "men" && lazyPanel(LazyMen, { apiBase: API_BASE, token, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
       {tab === "guruhlarim" && lazyPanel(LazyGuruhlarim, { apiBase: API_BASE, token, onTab: tabTanlandi })}
       {tab === "hujjat_ochish" && lazyPanel(LazyHujjatSahifa, {})}

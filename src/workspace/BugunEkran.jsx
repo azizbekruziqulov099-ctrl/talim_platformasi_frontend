@@ -6,7 +6,22 @@ import "./bugunEkran.css";
 const kursNomi = (k) => { const p = String(k || "").split("|"); return p.length > 2 ? `${p[1]} · ${/^\d{1,2}$/.test(p[2]) ? `${p[2]}-sinf` : p[2]}` : p[1] || k; };
 const salom = () => { const s = new Date().getHours(); return s < 11 ? "Xayrli tong" : s < 17 ? "Xayrli kun" : "Xayrli kech"; };
 
-export default function BugunEkran({ apiBase, token, rol, ism = "", onTab }) {
+const MT = { maktab: ["🏫", "Maktab"], universitet: ["🎓", "Institut"], bogcha: ["🧸", "Bog‘cha"], markaz: ["📚", "O‘quv markazi"] };
+const LAVOZIM = { direktor: "Direktor", zam_direktor_uquv: "O‘quv ishlari bo‘yicha o‘rinbosar", zam_direktor_tarbiya: "Ma’naviy-ma’rifiy ishlar bo‘yicha o‘rinbosar",
+  academic_deputy: "O‘quv ishlari bo‘yicha o‘rinbosar", spiritual_deputy: "Ma’naviy-ma’rifiy ishlar bo‘yicha o‘rinbosar", rahbar: "Rahbar", owner: "Rahbar", oqituvchi: "O‘qituvchi" };
+
+/** REV490: muassasa xodimi (direktor, o'rinbosarlar, markaz rahbari, o'qituvchi) — «Bugun»ning tepasida o'z muassasasi kartalari */
+function Muassasalar({ list, onMuassasa }) {
+  if (!list?.length || !onMuassasa) return null;
+  return <>{list.slice(0, 4).map((m, i) => { const [ikon, tur] = MT[m.turi] || ["🏢", "Muassasa"];
+    return <div key={`${m.turi}-${m.muassasa_id}-${i}`} className="bg-karta bg-muassasa">
+      <div className="bg-q"><b>{ikon} {m.nomi || m.nom || __kbUi(tur)}</b><span>{__kbUi(LAVOZIM[m.lavozim] || m.lavozim_nomi || tur)}</span></div>
+      <p className="bg-izoh">{m.turi === "markaz" ? __kbUi("Davomat, to‘lovlar, qarzdorlar, guruhlar va o‘qituvchilar") : m.turi === "maktab" ? __kbUi("Sinflar, o‘qituvchilar, davomat va hisobotlar")
+        : __kbUi("Guruhlar, xodimlar va hisobotlar")}</p>
+      <button type="button" onClick={() => onMuassasa(m)}>{__kbUi("Ochish")} →</button></div>; })}</>;
+}
+
+export default function BugunEkran({ apiBase, token, rol, ism = "", onTab, muassasalar = [], onMuassasa = null }) {
   const [d, setD] = useState(null), [xato, setXato] = useState("");
   useEffect(() => {
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/bugun?${new URLSearchParams({ token, rol })}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -18,6 +33,7 @@ export default function BugunEkran({ apiBase, token, rol, ism = "", onTab }) {
   if (!d) return <section className="bg-root">{bosh}<div className="bg-karta bg-skelet" /><div className="bg-karta bg-skelet" /></section>;
 
   if (d.rol === "oqituvchi") return <section className="bg-root">{bosh}
+    <Muassasalar list={muassasalar} onMuassasa={onMuassasa} />
     {!d.guruhlar.length ? <div className="bg-karta bg-asosiy"><b>👥 {__kbUi("Hali guruh yo‘q")}</b><p>{__kbUi("Kurs sahifasida guruh oching — o‘quvchilarga havola yuborasiz.")}</p>
       <button type="button" onClick={() => onTab("kurslar")}>{__kbUi("Kurslarga o‘tish")} →</button></div>
       : d.guruhlar.map((g) => <div key={g.id} className="bg-karta">
