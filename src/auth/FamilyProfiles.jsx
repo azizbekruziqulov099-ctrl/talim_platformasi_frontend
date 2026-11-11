@@ -10,6 +10,7 @@ import {
 // REV162: ota-ona markazi (kundalik, haftalik reja, kurslar) — profil oynasidan ham ochiladi
 const BolaMarkazi = React.lazy(() => import("../parent/BolaMarkazi.jsx"));
 import "./family-profiles.css";
+import PinOyna from "./PinOyna.jsx";   // REV489
 
 const EMPTY_FORM = { name: "", role: "bogcha", age: 3, ageGroup: "", grade: "", relation: "farzandim" };
 const TYPE = Object.fromEntries(PROFILE_TYPES.map((t) => [t.id, t]));
@@ -67,7 +68,19 @@ function QurilmaKodi({ q, onClose, onNew }) {
  * «Kim o‘rganadi?» — bitta akkaunt ichidagi 10 tagacha profil.
  * ownerToken bilan ishlaydi: ro'yxat, qo'shish, yosh/sinfni sozlash, o'chirish, profilga kirish.
  */
-export default function FamilyProfiles({ apiBase, ownerToken, onEnter, onOwner, onLogout, onClose, closable = true }) {
+/** REV489: ota-ona PIN-kodi — bola profilidan chiqishni himoyalaydi */
+function PinSozlash({ apiBase, ownerToken }) {
+  const [bor, setBor] = React.useState(null), [oyna, setOyna] = React.useState(false), [ok, setOk] = React.useState(false);
+  React.useEffect(() => { fetch(`${String(apiBase).replace(/\/+$/, "")}/api/oila/pin?token=${encodeURIComponent(ownerToken)}`).then((r) => (r.ok ? r.json() : null)).then((d) => setBor(Boolean(d?.bor))).catch(() => {}); }, [ownerToken]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (bor === null) return null;
+  return <div className="kb-family-pin">
+    <button type="button" onClick={() => setOyna(true)}>🔒 {bor ? __kbUi("PIN-kodni almashtirish") : __kbUi("Bola uchun PIN-kod o‘rnatish")}</button>
+    <small>{ok ? `✅ ${__kbUi("Saqlandi")}` : bor ? __kbUi("Bola profilidan chiqish PIN bilan himoyalangan") : __kbUi("PIN bo‘lmasa, bola o‘zi ota-ona profiliga o‘tib ketishi mumkin")}</small>
+    {oyna && <PinOyna apiBase={apiBase} ownerToken={ownerToken} rejim={bor ? "almashtir" : "ornat"} onOk={() => { setOyna(false); setBor(true); setOk(true); }} onYop={() => setOyna(false)} />}
+  </div>;
+}
+
+export default function FamilyProfiles({ apiBase, ownerToken, onEnter, onOwner, onLogout, onClose, closable = true, egaMi = false }) {
   useKbInterfaceLocale();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -236,6 +249,7 @@ export default function FamilyProfiles({ apiBase, ownerToken, onEnter, onOwner, 
               <p className="kb-family-note">{__kbUi("Sinov uchun: «Bog‘cha bolasi» profilini oching, yoshini tanlang va kiring — bola ko‘radigan AI mavzular, darslar va testlar xuddi bolanikidek ochiladi. Yoshni almashtirib, boshqa guruhni tekshiring.")}</p>
             )}
 
+            {owner && egaMi && <PinSozlash apiBase={apiBase} ownerToken={ownerToken} />}   {/* REV489: faqat ota-ona o'z profilida turganda (bola PIN qo'yib, ota-onani to'sib qo'ymasin) */}
             <footer className="kb-family-foot">
               {profiles.length > 0 && (
                 <button type="button" className="kb-family-text" onClick={() => setManage((m) => !m)}>

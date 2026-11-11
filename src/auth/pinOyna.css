@@ -1,0 +1,9 @@
+/* REV489 */
+.pin-fon{position:fixed;inset:0;z-index:2147483200;background:rgba(10,20,35,.55);display:grid;place-items:center;padding:16px}
+.pin-ich{background:#fff;border-radius:24px;padding:22px;width:min(340px,100%);text-align:center;display:flex;flex-direction:column;gap:10px}
+.pin-belgi{font-size:40px}.pin-ich h2{margin:0;font-size:20px;color:#13314f}.pin-ich p{margin:0;color:#5b6573;font-size:14px}
+.pin-nuqta{display:flex;justify-content:center;gap:14px;margin:6px 0}.pin-nuqta i{width:16px;height:16px;border-radius:50%;border:2px solid #1B4B7A}.pin-nuqta i.is-on{background:#1B4B7A}
+.pin-xato{color:#b3261e !important;font-weight:700}
+.pin-klav{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pin-klav button{height:58px;border-radius:16px;border:0;background:#eef2f7;font:800 22px system-ui;color:#13314f;cursor:pointer}
+.pin-klav button.is-yon{background:none;font-size:15px;color:#1B4B7A}

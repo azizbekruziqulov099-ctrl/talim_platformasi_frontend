@@ -34,6 +34,7 @@ import { clearFamily, isFamilyProfileUser, isProfileSession, readFamily, writeFa
 import { LOGIN_ROLES, ROLE_NAMES as LOGIN_ROLE_NAMES, accountRole as loginAccountRole, dropToken as dropSavedToken, keepsSessionOnLogout as keepsQuickSession, loginRole as savedLoginRole, rememberAccount, saveLoginRole, takeLoginMethod } from "./auth/loginMemory.js";
 const CourseWorkspace = __kbRev35_external0.lazy(() => import("./courses/CourseWorkspace.jsx"));
 const FamilyProfiles = __kbRev35_external0.lazy(() => import("./auth/FamilyProfiles.jsx"));
+const PinOyna = __kbRev35_external0.lazy(() => import("./auth/PinOyna.jsx"));   // REV489
 const TeacherSubjects = __kbRev35_external0.lazy(() => import("./teacher/TeacherSubjects.jsx"));
 const PresentationStudio = __kbRev35_external0.lazy(() => import("./presentations/PresentationStudio.jsx"));
 import { InterfaceText, InterfaceSettingsButton, useInterface } from "./interface/InterfacePreferences.jsx";
@@ -15433,6 +15434,18 @@ function AppAsosiy() {
     try { if (value) window.localStorage.setItem(SAMTM_TOKEN_STORAGE_KEY, value); else window.localStorage.removeItem(SAMTM_TOKEN_STORAGE_KEY); } catch { /* current tab still works */ }
   }, [korishRejimi]);
   const [familyOpen, setFamilyOpen] = useState(false);   // REV104: «Kim o‘rganadi?» oynasi
+  // REV489: bola profilidan chiqish / ota-onaga qaytish — ota-ona PIN-kodi bilan (o'rnatilgan bo'lsa)
+  const [pinSorov, setPinSorov] = useState(null);
+  const pinKerak = useCallback(async () => {
+    const fam = readFamily();
+    if (!fam?.ownerToken || !isProfileSession(token)) return true;
+    try {
+      const r = await fetch(`${API_BASE}/api/oila/pin?token=${encodeURIComponent(fam.ownerToken)}`);
+      const d = r.ok ? await r.json() : { bor: false };
+      if (!d.bor) return true;
+    } catch { return true; }
+    return new Promise((resolve) => setPinSorov({ resolve, ownerToken: fam.ownerToken }));
+  }, [token]);
   const sessiyaniTozala = useCallback((expiredToken) => {
     if (!korishRejimi && expiredToken && _saqlanganTokenniOl() && _saqlanganTokenniOl() !== expiredToken) return;
     const family = korishRejimi ? null : readFamily();
@@ -15458,6 +15471,7 @@ function AppAsosiy() {
     const startedEpoch = sessionEpoch.current;
     // REV104: profildan chiqish = profil sessiyasini yopib, «Kim o‘rganadi?» oynasiga qaytish.
     if (!korishRejimi && isProfileSession(token)) {
+      if (!(await pinKerak())) return;   // REV489: bola o'zi chiqib keta olmasin
       const family = readFamily();
       try { await workspaceRequest(API_BASE, "/auth/logout", token, { method: "POST", body: { all_devices: false } }); }
       catch (error) { if (error.status !== 401) throw error; }
@@ -15502,6 +15516,7 @@ function AppAsosiy() {
     kirildi(profileToken);
   };
   const egagaQayt = async () => {
+    if (!(await pinKerak())) return;   // REV489
     const family = readFamily();
     setFamilyOpen(false);
     if (!family || family.ownerToken === token) return;
@@ -15510,6 +15525,7 @@ function AppAsosiy() {
     kirildi(family.ownerToken);
   };
   const egaChiqsin = async () => {
+    if (!(await pinKerak())) return;   // REV489
     const family = readFamily();
     setFamilyOpen(false);
     if (family && family.profileToken && family.profileToken === token) {
@@ -15604,7 +15620,8 @@ function AppAsosiy() {
     </div>
     <Kabinet key={token} token={token} onSessionExpired={sessiyaniTozala} readOnly />
   </div>;
-  if (token) return <>{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} onProfiles={profillarniOch} />{familyOpen && readFamily() && <React.Suspense fallback={null}><FamilyProfiles apiBase={API_BASE} ownerToken={readFamily().ownerToken} closable={familyFromProfile || readFamily().ownerToken === token} onEnter={profilgaKir} onOwner={egagaQayt} onLogout={egaChiqsin} onClose={() => setFamilyOpen(false)} /></React.Suspense>}</>;
+  if (token) return <>{pinSorov && <React.Suspense fallback={null}><PinOyna apiBase={API_BASE} ownerToken={pinSorov.ownerToken}
+      onOk={() => { pinSorov.resolve(true); setPinSorov(null); }} onYop={() => { pinSorov.resolve(false); setPinSorov(null); }} /></React.Suspense>}{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} onProfiles={profillarniOch} />{familyOpen && readFamily() && <React.Suspense fallback={null}><FamilyProfiles apiBase={API_BASE} ownerToken={readFamily().ownerToken} egaMi={readFamily().ownerToken === token} closable={familyFromProfile || readFamily().ownerToken === token} onEnter={profilgaKir} onOwner={egagaQayt} onLogout={egaChiqsin} onClose={() => setFamilyOpen(false)} /></React.Suspense>}</>;
   if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
   return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} onCourses={() => setPublicCourses(true)} />;
 }

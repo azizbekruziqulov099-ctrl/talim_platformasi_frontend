@@ -166,3 +166,7 @@
 .kb-family-code { margin: 6px 0; text-align: center; font: 900 clamp(34px, 9vw, 48px)/1.1 ui-monospace, Menlo, monospace; letter-spacing: .08em; color: var(--fam-ink, #153843); background: #f4f9f6; border-radius: 16px; padding: 14px 8px; }
 .kb-family-code.is-old { opacity: .35; text-decoration: line-through; }
 .kb-family-code-time { margin: 0 0 12px; text-align: center; color: #5f777c; font-size: 13px; font-weight: 700; }
+/* REV489: PIN-kod */
+.kb-family-pin{display:flex;flex-direction:column;align-items:center;gap:4px;margin:10px 0}
+.kb-family-pin button{border:0;border-radius:14px;background:#eef6ff;color:#13314f;font:700 15px system-ui;padding:10px 16px;cursor:pointer}
+.kb-family-pin small{color:#5b6573}
