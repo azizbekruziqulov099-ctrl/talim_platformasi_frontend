@@ -221,7 +221,9 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const [tanlov, setTanlov] = useState(null);
   const [stiker, setStiker] = useState(null);   // REV333: dars oxirida berilgan stiker   // REV324: dars boshida bola o'zi tanlaydi (havo…) — { stepIdx, variantlar, togri, javob, holat:{}, xato }
   const [sanoq, setSanoq] = useState(null);   // REV291: «N tasini bos» o'yini — { stepIdx, belgilar, kerak, tanlangan:[] }
-  const sensorli = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)")?.matches;   // REV499
+  // REV499/REV500: sensorli ekran — telefon, planshet VA sinfdagi interaktiv panel (doska-ekran): katta klaviatura chiqmasin
+  const sensorli = typeof window !== "undefined" && (window.matchMedia?.("(pointer: coarse)")?.matches || window.matchMedia?.("(any-pointer: coarse)")?.matches
+    || Number(navigator?.maxTouchPoints || 0) > 0);
   const [tizimKlav, setTizimKlav] = useState(false);
   const [kursQulf, setKursQulf] = useState(null);   // REV301: kursning bepul darslari tugadi — to'lov oynasi
   const [qurilmaHol, setQurilmaHol] = useState(null);   // REV486: profil boshqa qurilmada / qulf
