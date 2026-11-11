@@ -295,6 +295,17 @@ function HaftalikHisobot({ apiBase, token, childId }) {
   return <div className="ff-haftalik">{h.matn.split("\n").map((q, i) => (i === 0 ? <b key={i}>{q}</b> : <p key={i}>{q}</p>))}</div>;
 }
 
+/** REV488: ota-onaga farzandning yakuniy baholari (har kurs: foiz, 5 ballik, 4 qism) */
+function OtaBaholar({ apiBase, token, childId }) {
+  const [k, setK] = useState(null);
+  useEffect(() => { if (!childId) return;
+    fetch(`${String(apiBase).replace(/\/+$/, "")}/api/ota/yakuniy?${new URLSearchParams({ token, bola_id: childId })}`).then((r) => (r.ok ? r.json() : null)).then((x) => setK(x?.kurslar || [])).catch(() => {}); }, [childId]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!k?.length) return null;
+  const nom = (x) => { const p = String(x).split("|"); return p.length > 2 ? `${p[1]} · ${p[2]}` : p[1] || x; };
+  return <div className="ff-haftalik ff-baholar"><b>🎓 {__kbUi("Baholar")}</b>{k.map((c) => <p key={c.kalit}>📘 {nom(c.kalit)}: <b>{c.foiz == null ? "—" : `${c.foiz}% · ${c.ball}`}</b>
+    {!c.tasdiqlangan && <small> ({__kbUi("o‘qituvchi bahosi hali yo‘q")})</small>}</p>)}</div>;
+}
+
 export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -330,6 +341,7 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
   if (!data && !error) return <p className="ff-muted" role="status">{__kbUi("Yuklanmoqda…")}</p>;
   if (!data.bola?.bogcha && !data.bugun?.length && !data.hafta?.length) return <section className="ff-root">
     <HaftalikHisobot apiBase={apiBase} token={token} childId={childId} />
+    <OtaBaholar apiBase={apiBase} token={token} childId={childId} />
     <p className="ff-muted">{__kbUi("Farzandingiz hali dars qilmagan. Birinchi darsdan keyin bu yerda kundalik, baholar va tavsiyalar chiqadi.")}</p></section>;
   const toggle = (id) => setOchiq((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const ochVaBor = (id) => {
@@ -352,6 +364,7 @@ export default function FarzandFaollik({ apiBase, token, childId, onSinov }) {
   ];
   return <section className="ff-root" ref={rootRef} aria-label={__kbUi("Farzandim bugun")}>
     <HaftalikHisobot apiBase={apiBase} token={token} childId={childId} />
+    <OtaBaholar apiBase={apiBase} token={token} childId={childId} />
     <header className="ff-head">
       <h3>👧 {data.bola?.ism || __kbUi("Farzandingiz")} · {__kbUi("Bugun")}{data.reja?.kun ? `, ${__kbUi(data.reja.kun)}` : ""}</h3>
       <p className={`ff-live ${live.cls}`} role="status"><span aria-hidden="true">{live.emoji}</span>

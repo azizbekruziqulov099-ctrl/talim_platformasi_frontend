@@ -16,3 +16,11 @@
 .bg-qator{display:flex;justify-content:space-between;background:#fff;color:#13314f;box-shadow:0 2px 10px rgba(16,42,67,.06)}
 .bg-skelet{height:110px;background:linear-gradient(90deg,#f1f4f8,#e8edf3,#f1f4f8);background-size:200% 100%;animation:bg-sk 1.2s linear infinite}
 @keyframes bg-sk{to{background-position:-200% 0}}
+/* REV488: «Men» va «Guruhlarim» */
+.bg-men-bosh{display:flex;align-items:center;gap:14px}.bg-men-bosh img,.bg-men-bosh>span{width:76px;height:76px;border-radius:50%;object-fit:cover;background:#1B4B7A;color:#fff;display:grid;place-items:center;font:800 30px system-ui;border:3px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.bg-men-bosh h1{margin:0;font-size:24px;color:#13314f}.bg-men-bosh button{border:0;background:none;color:#1B4B7A;font:700 14px system-ui;padding:0;cursor:pointer}
+.bg-baho{border-top:1px solid #edf1f5;padding-top:8px}.bg-qismlar{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.bg-qismlar small{background:#eef6ff;border-radius:999px;padding:3px 8px;color:#13314f}.bg-qismlar small.is-yoq{background:#f3f4f6;color:#8a94a3}
+.bg-nishon{display:flex;flex-wrap:wrap;gap:8px}.bg-nishon span{background:#fff7e0;border-radius:999px;padding:6px 10px;font-weight:700;font-size:14px}
+.bg-tugmalar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.bg-tugmalar button{background:#eef6ff;color:#13314f;border:0;border-radius:12px;padding:9px 12px;font:700 14px system-ui;cursor:pointer}
+.bg-tugmalar button.is-on{background:#1B4B7A;color:#fff}

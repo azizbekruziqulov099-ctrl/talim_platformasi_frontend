@@ -39,7 +39,7 @@ function Jonli({ apiBase, token, g, jami }) {
 }
 
 /** REV483: o'qituvchi — guruh o'quvchilarining nazorat natijalari, halollik belgilari va kamera rasmlari */
-function Nazoratlar({ apiBase, token, g }) {
+export function Nazoratlar({ apiBase, token, g }) {
   const [d, setD] = useState(null);
   useEffect(() => { kgFetch(apiBase, `/api/kurs_guruh/${g.id}/nazoratlar`, token).then(setD).catch(() => setD({ natijalar: [] })); }, [g.id]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return <p className="kk-p">⏳</p>;
@@ -54,7 +54,7 @@ function Nazoratlar({ apiBase, token, g }) {
 }
 
 /** REV484: o'qituvchi — guruhning yakuniy baholari (uy 30 / kurs 40 / onlayn 10 / imtihon 20) va o'z bahosini qo'yish */
-function Baholar({ apiBase, token, g }) {
+export function Baholar({ apiBase, token, g }) {
   const [d, setD] = useState(null), [xato, setXato] = useState("");
   const yukla = () => kgFetch(apiBase, `/api/kurs_guruh/${g.id}/yakuniy`, token).then(setD).catch((e) => setXato(e.message));
   useEffect(() => { yukla(); }, [g.id]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -518,6 +518,8 @@ const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.
 const LazyFanOyinlari = _samtmLazyRetry(() => import("./games/FanOyinlari.jsx"));   // REV437
 const LazyEkspeditsiya = _samtmLazyRetry(() => import("./games/Ekspeditsiya.jsx"));   // REV456
 const LazyBugun = _samtmLazyRetry(() => import("./workspace/BugunEkran.jsx"));   // REV487: «🏠 Bugun» bosh ekrani
+const LazyMen = _samtmLazyRetry(() => import("./workspace/MenSahifa.jsx"));   // REV488: «📊 Men»
+const LazyGuruhlarim = _samtmLazyRetry(() => import("./courses/Guruhlarim.jsx"));   // REV488: «👥 Guruhlarim»
 const LazyHujjatSahifa = _samtmLazyRetry(() => import("./hujjat/HujjatSahifa.jsx"));   // REV439: hujjat ko'ruvchi
 const LazyOyinXona = _samtmLazyRetry(() => import("./kid/oyinXona/OyinXona.jsx"));   // REV379: rivojlantiruvchi o'yinlar
 const LazyChempionat = _samtmLazyRetry(() => import("./chempionat/Chempionat.jsx"));
@@ -13201,6 +13203,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     // Umumiy "Ish maydoni" (to'garak, repetitorlik, AI vositalari) qo'shimcha bo'lib pastda turadi.
     return [
       { kalit: "bugun", nom: "Bugun", ikon: BugunIkon },   // REV487
+      { kalit: "guruhlarim", nom: "Guruhlarim", ikon: Users },   // REV488
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
       ...(qoshimchaBand ? [qoshimchaBand] : []),
       // REV96: to'garak endi aniq nom bilan ko'rinadi; kutubxona va ovoz vositasi alohida band.
@@ -13230,9 +13233,10 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     { kalit: "bugun", nom: "Bugun", ikon: BugunIkon },   // REV487
     // REV301: hamma o'qish (fan, til, erkin til, sertifikat, xalqaro baholash, bolalar kurslari) — «Kurslar» ichida
     { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: GraduationCap },
+    { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
+    { kalit: "men", nom: "Men", ikon: User },   // REV488: baholar, ko'nikmalar, nishonlar, avatar
     { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
     { kalit: "test", nom: "Testlar", ikon: PencilLine },
-    { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
     { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
     { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
     { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
@@ -15213,6 +15217,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli !== "ota-ona" && tab === "fan_oyinlari" && lazyPanel(LazyFanOyinlari, { onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
       {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
+      {tab === "men" && lazyPanel(LazyMen, { apiBase: API_BASE, token, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
+      {tab === "guruhlarim" && lazyPanel(LazyGuruhlarim, { apiBase: API_BASE, token, onTab: tabTanlandi })}
       {tab === "hujjat_ochish" && lazyPanel(LazyHujjatSahifa, {})}
       {korinishRoli !== "ota-ona" && tab === "mantiq" && lazyPanel(LazyOyinXona, { apiBase: API_BASE, token, izoh: String(document.documentElement.lang || "uz").slice(0, 2),
         yosh: (() => { const g = String(foydalanuvchi?.yosh_guruhi || ""); return _kbAccountRole(foydalanuvchi) === "bogcha" && g ? (/2-3|3-4/.test(g) ? "2-3" : /6-7|5-6/.test(g) ? "6-7" : "4-5") : ""; })(),
