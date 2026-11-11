@@ -97,3 +97,15 @@
 .kk-yakuniy-ich div{display:flex;justify-content:space-between}.kk-yakuniy-ich p{color:#5b6573;margin:4px 0 0;font-size:13px}
 .kg-baho{overflow-x:auto;margin-top:8px}.kg-baho table{border-collapse:collapse;width:100%;font-size:14px}
 .kg-baho th,.kg-baho td{padding:6px 8px;border-bottom:1px solid #e3e8ef;text-align:center}.kg-baho td:first-child,.kg-baho th:first-child{text-align:left}
+/* REV485: bog'cha — Kabu bilan bilim o'yini */
+.nz-oyin{max-width:900px;background:linear-gradient(#e8f4ff,#fff7e6);border-radius:24px;padding:16px}
+.nz-oyin-tepa{display:flex;align-items:center;gap:14px}
+.nz-kabu{width:150px;height:190px;flex:0 0 auto}
+.nz-oyin-savol{flex:1;background:#fff;border-radius:22px;padding:18px;font-size:30px;font-weight:800;box-shadow:0 6px 18px rgba(0,0,0,.08);position:relative}
+.nz-tingla{position:absolute;right:10px;top:10px;border:0;background:#fff3c4;border-radius:50%;width:44px;height:44px;font-size:22px;cursor:pointer}
+.nz-vaqt.is-oyin{height:18px}.nz-vaqt.is-oyin b{display:none}
+.nz-var.is-oyin button{min-height:110px;font-size:40px;border-radius:24px;text-align:center}
+.nz-oyin-qadam{display:flex;gap:6px;justify-content:center}.nz-oyin-qadam i{width:14px;height:14px;border-radius:50%;background:#dbe3ec}
+.nz-oyin-qadam i.is-otdi{background:#2e9e5b}.nz-oyin-qadam i.is-hozir{background:#f2b72e}
+.nz-yulduz{font-size:56px;letter-spacing:6px}
+@media (max-width:560px){.nz-kabu{width:100px;height:130px}.nz-oyin-savol{font-size:24px}.nz-var.is-oyin button{min-height:90px;font-size:32px}}

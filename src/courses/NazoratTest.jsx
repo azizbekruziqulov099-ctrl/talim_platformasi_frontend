@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
 import { konikmaYoz } from "../lesson/konikmaYoz.js";   // REV480
+import RobotKabu from "../kid/RobotKabu.jsx";   // REV485: bog'cha — Kabu bilan o'yin tarzida
+import { ovozManbai, KABU_OVOZ } from "../kid/ovozOqi.js";
 
 const vaqtSinf = (g) => { const m = /(\d+)/.exec(String(g || "")); const n = m ? Number(m[1]) : 0; return !n ? 45 : n <= 2 ? 30 : n <= 4 ? 40 : n <= 6 ? 50 : 60; };
 
@@ -11,7 +13,13 @@ export default function NazoratTest({ base, token, kurs, item, onYop }) {
   const [d, setD] = useState(null), [xato, setXato] = useState("");
   const [i, setI] = useState(0), [tanlov, setTanlov] = useState(null), [jav, setJav] = useState([]);
   const [qoldi, setQoldi] = useState(0), [yakun, setYakun] = useState(null);
-  const vaqt = vaqtSinf(item.sinf || (kurs?.sinflar || [])[0]);
+  const oyin = Boolean(item.oyin);   // REV485: bog'cha — yozma test emas, Kabu o'qib beradi, katta rasmli tugmalar, raqamsiz vaqt
+  const vaqt = oyin ? 25 : vaqtSinf(item.sinf || (kurs?.sinflar || [])[0]);
+  const ovoz = useRef(null);
+  if (oyin && !ovoz.current) ovoz.current = ovozManbai(base);
+  const [kabuHol, setKabuHol] = useState("");
+  const ayt = (t) => { if (oyin) try { ovoz.current?.oqi(String(t || "").replace(/\$/g, "").replace(/\[\/?[a-z]{2,3}\]/g, ""), KABU_OVOZ); } catch { /* */ } };
+  useEffect(() => () => { try { ovoz.current?.stop?.(); } catch { /* */ } }, []);
   // REV483: halollik belgilari — avtomatik jazo YO'Q, faqat o'qituvchiga «diqqat» sifatida boradi
   const hal = useRef({ yashirildi: 0, yashirin_s: 0, nusxa: 0, tez_togri: 0, kamera: "" });
   const yashirinBosh = useRef(0);
@@ -54,13 +62,14 @@ export default function NazoratTest({ base, token, kurs, item, onYop }) {
       .catch((e) => setXato(String(e.message || e)));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const S = d?.savollar || [], q = S[i];
-  useEffect(() => { setQoldi(vaqt); }, [i, d]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setQoldi(vaqt); setKabuHol(""); if (oyin && q && boshlandi) ayt(q.savol); }, [i, d, boshlandi]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!q || tanlov !== null || yakun || !boshlandi) return undefined;
     const t = setInterval(() => setQoldi((x) => { if (document.visibilityState !== "visible") return x; if (x <= 0.25) { clearInterval(t); javob(-1); return 0; } return x - 0.25; }), 250);
     return () => clearInterval(t);
   }, [q, tanlov, yakun, boshlandi]); // eslint-disable-line react-hooks/exhaustive-deps
   const javob = (k) => { if (tanlov !== null || !q) return; setTanlov(k);
+    if (oyin) { setKabuHol(k === q.togri ? "xursand" : "oylaydi"); ayt(k === q.togri ? "Barakalla! To‘g‘ri!" : k === -1 ? "Vaqt tugadi. Mana to‘g‘ri javob." : "Yo‘q, mana bu to‘g‘ri."); }
     if (k === q.togri && vaqt - qoldi < 2.5 && String(q.savol || "").length > 25) hal.current.tez_togri += 1;   // REV483
     setJav((o) => [...o, { ok: k === q.togri, dars: q.dars, dars_nomi: q.dars_nomi, soniya: vaqt - qoldi, savol: String(q.savol || "").slice(0, 300) }]); };
   const keyingi = async () => {
@@ -77,6 +86,12 @@ export default function NazoratTest({ base, token, kurs, item, onYop }) {
   if (xato) return <div className="nz"><p className="kk-xato">{xato}</p><button type="button" className="kk-ortga" onClick={onYop}>← {__kbUi("Ortga")}</button></div>;
   if (!d) return <div className="nz"><p className="kk-p">⏳</p></div>;
   if (!S.length) return <div className="nz"><h2>{d.nomi}</h2><p>{__kbUi("Bu darslarda hali test savollari yo‘q.")}</p><button type="button" className="kk-ortga" onClick={onYop}>← {__kbUi("Ortga")}</button></div>;
+  if (yakun && oyin) { const yul = yakun.togri >= yakun.jami * 0.85 ? 3 : yakun.togri >= yakun.jami * 0.6 ? 2 : yakun.togri > 0 ? 1 : 0;
+    return <div className="nz nz-yakun nz-oyin"><div className="nz-kabu"><RobotKabu mood={yakun.otdi ? "happy" : "think"} celebrate={yakun.otdi ? 1 : 0} /></div>
+      <div className="nz-yulduz">{"⭐".repeat(yul)}{"☆".repeat(3 - yul)}</div>
+      <h2>{yakun.otdi ? __kbUi("Zo‘r! Hammasini eslab qolibsan!") : __kbUi("Yaxshi harakat! Keyingi yakshanba yana o‘ynaymiz")}</h2>
+      {yakun.xatoD.length > 0 && <p>{__kbUi("Kabu bilan shu darslarni yana ko‘rib chiqamiz:")} {yakun.xatoD.join(", ")}</p>}
+      <button type="button" className="nz-btn" onClick={onYop}>🏠 {__kbUi("Darslarga")}</button></div>; }
   if (yakun) return <div className="nz nz-yakun">
     <div className="nz-belgi">{yakun.otdi ? "🏆" : "📚"}</div>
     <h2>{yakun.otdi ? __kbUi("Nazoratdan o‘tdingiz!") : __kbUi("Bu safar o‘tmadi")}</h2>
@@ -90,6 +105,16 @@ export default function NazoratTest({ base, token, kurs, item, onYop }) {
     <button type="button" className="nz-btn" onClick={kameraBilanBosh}>✅ {__kbUi("Roziman — boshlash")}</button>
     <button type="button" className="kk-ortga" onClick={onYop}>← {__kbUi("Ortga")}</button></div>;
   const u = qoldi / vaqt;
+  if (oyin) return <div className="nz nz-oyin">
+    <div className="nz-oyin-tepa"><div className="nz-kabu"><RobotKabu mood={kabuHol === "xursand" ? "happy" : kabuHol === "oylaydi" ? "think" : "talk"} celebrate={kabuHol === "xursand" ? i + 1 : 0} /></div>
+      <div className="nz-oyin-savol"><BoardText text={String(q.savol || "").replace(/\[\/?[a-z]{2,3}\]/g, "")} />
+        <button type="button" className="nz-tingla" onClick={() => ayt(q.savol)}>🔊</button></div></div>
+    <div className="nz-vaqt is-oyin"><i style={{ width: `${Math.max(0, u * 100)}%`, background: u > 0.5 ? "#2e9e5b" : u > 0.25 ? "#f2b72e" : "#d9534f" }} /></div>
+    <div className="nz-var is-oyin">{(q.variantlar || []).map((o, k) => <button key={k} type="button" disabled={tanlov !== null} onClick={() => javob(k)}
+      className={tanlov === null ? "" : k === q.togri ? "is-ok" : k === tanlov ? "is-no" : ""}><BoardText text={String(o)} /></button>)}</div>
+    <div className="nz-oyin-qadam">{S.map((_, k) => <i key={k} className={k < i ? "is-otdi" : k === i ? "is-hozir" : ""} />)}</div>
+    {tanlov !== null && <button type="button" className="nz-btn" onClick={keyingi}>{i + 1 < S.length ? __kbUi("Keyingisi") : __kbUi("Tamom!")} ▶</button>}
+  </div>;
   return <div className="nz">
     {hal.current.kamera === "bor" && <video ref={video} className="nz-kamera" muted playsInline aria-label={__kbUi("Kamera")} />}
     {hal.current.kamera === "rad" && <p className="nz-izoh">⚠️ {__kbUi("Kamera yoqilmadi — o‘qituvchingizga shu haqda xabar boradi.")}</p>}
