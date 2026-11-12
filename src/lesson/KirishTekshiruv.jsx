@@ -5,21 +5,36 @@ import { createPortal } from "react-dom";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { BoardText } from "./AmaliyDoska.jsx";
 import "./kirishTekshiruv.css";
+import TezkorChizma from "./TezkorChizma.jsx";   // REV517: «⚡ Kabu tezkor»
+import RobotKabu from "../kid/RobotKabu.jsx";
 
 const yol = (b) => String(b || "").replace(/\/+$/, "");
 
-function Savollar({ savollar, onTugadi, sarlavha }) {
-  const [i, setI] = useState(0), [tanlov, setTanlov] = useState(null), [natija, setNatija] = useState([]);
+const VAQT = 12;   // REV517: tezkor — har savolga 12 soniya
+
+function Savollar({ savollar, onTugadi, sarlavha, tezkor = false }) {
+  const [i, setI] = useState(0), [tanlov, setTanlov] = useState(null), [natija, setNatija] = useState([]), [qoldi, setQoldi] = useState(VAQT);
   const q = savollar[i];
+  useEffect(() => { setQoldi(VAQT); }, [i]);
+  useEffect(() => {
+    if (!tezkor || tanlov !== null || !q) return undefined;
+    if (qoldi <= 0) { setTanlov(-1); setNatija((n) => [...n, false]); return undefined; }
+    const t = setTimeout(() => setQoldi((x) => x - 1), 1000); return () => clearTimeout(t);
+  }, [qoldi, tanlov, tezkor, q]);
   if (!q) return null;
   const javob = (k) => { if (tanlov !== null) return; setTanlov(k); setNatija((n) => [...n, k === q.togri]); };
+  const ok = tanlov !== null && tanlov === q.togri;
   const keyingi = () => { if (i + 1 < savollar.length) { setI(i + 1); setTanlov(null); } else onTugadi(natija); };
   return <div className="bzt-savol">
     <div className="bzt-yuqori"><b>{sarlavha}</b><span>{i + 1} / {savollar.length}</span></div>
-    {q.nom && <small className="bzt-oila">📘 {__kbUi(q.nom)}</small>}
-    <div className="bzt-matn"><BoardText text={q.savol} /></div>
+    {tezkor && <div className="bzt-vaqt"><i style={{ width: `${Math.max(0, (qoldi / VAQT) * 100)}%`, background: qoldi > 6 ? "#2e9e5b" : qoldi > 3 ? "#f2b72e" : "#d9534f" }} /></div>}
+    <div className="bzt-kabu-qator">{tezkor && <div className="bzt-kabu"><RobotKabu mood={tanlov === null ? "talk" : ok ? "happy" : "think"} celebrate={ok ? i + 1 : 0} /></div>}
+      <div style={{ flex: 1, minWidth: 0 }}>{q.nom && <small className="bzt-oila">📘 {__kbUi(q.nom)}</small>}
+        {q.chizma?.tur === "togrimi" ? <TezkorChizma c={q.chizma} savol={q.savol} />
+          : <>{q.chizma && <TezkorChizma c={q.chizma} />}<div className="bzt-matn"><BoardText text={q.savol} /></div></>}</div></div>
     <div className="bzt-var">{q.variantlar.map((v, k) => <button key={k} type="button" disabled={tanlov !== null} onClick={() => javob(k)}
       className={tanlov === null ? "" : k === q.togri ? "is-ok" : k === tanlov ? "is-no" : ""}><BoardText text={/^-?[\d,./]+$/.test(v) ? `$${v}$` : v} /></button>)}</div>
+    {tanlov === -1 && <p className="bzt-yechim">⏰ {__kbUi("Vaqt tugadi")}</p>}
     {tanlov !== null && <>{tanlov !== q.togri && q.yechim && <p className="bzt-yechim">💡 <BoardText text={q.yechim} /></p>}
       <button type="button" className="bzt-btn" onClick={keyingi}>{i + 1 < savollar.length ? __kbUi("Keyingi") : __kbUi("Tayyor")} ▶</button></>}
   </div>;
@@ -35,8 +50,8 @@ export default function KirishTekshiruv({ apiBase, token, topicCode, onYop }) {
   if (!d) return null;
   return createPortal(<div className="bzt-fon" role="dialog" aria-modal="true"><div className="bzt-oyna">
     {bosqich === "kirish" && <>
-      <p className="bzt-izoh">🧩 {__kbUi("Darsdan oldin: bu mavzu uchun kerak bo‘ladigan bilimlarni tekshiramiz")} ({d.savollar.length} {__kbUi("ta savol")})</p>
-      <Savollar sarlavha={__kbUi("Kirish tekshiruvi")} savollar={d.savollar} onTugadi={(n) => {
+      <p className="bzt-izoh">⚡ {__kbUi("Darsdan oldin tezkor savollar — kerakli bilimlarni tekshiramiz. Har biriga 12 soniya!")} ({d.savollar.length} {__kbUi("ta savol")})</p>
+      <Savollar tezkor sarlavha={`⚡ ${__kbUi("Kabu tezkor")}`} savollar={d.savollar} onTugadi={(n) => {
         const xato = d.savollar.filter((_, k) => !n[k]).map((q) => ({ oila: q.oila, nom: q.nom }));
         setXatoOila(xato); setBosqich(xato.length ? "natija" : "tayyor"); }} />
       <button type="button" className="bzt-otkaz" onClick={onYop}>{__kbUi("O‘tkazib yuborish")}</button></>}

@@ -12,3 +12,9 @@
 .bzt-izoh{margin:0;color:#3d4a59;font-size:15px}.bzt-natija{text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
 .bzt-natija ul{text-align:left;margin:0}.bzt-belgi{font-size:46px}.bzt-natija h2{margin:0;color:#13314f}
 .bzt-nazariya{background:#eef6ff;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px}
+/* REV517: Kabu tezkor */
+.bzt-vaqt{height:10px;border-radius:6px;background:#e3eaf2;overflow:hidden}.bzt-vaqt i{display:block;height:100%;transition:width 1s linear,background .3s}
+.bzt-kabu-qator{display:flex;gap:10px;align-items:flex-start}.bzt-kabu{width:90px;height:110px;flex:0 0 auto}
+.bzt-togrimi{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;font-size:24px;font-weight:800;color:#13314f;background:#f4f7fb;border-radius:14px;padding:14px}
+.bzt-togrimi b{color:#1B4B7A;font-size:28px}
+@media (max-width:520px){.bzt-kabu{width:64px;height:80px}.bzt-togrimi{font-size:19px}}
