@@ -42,14 +42,18 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
   const say = (s, d) => { try { onSay?.(s, d); } catch { d?.(); } };
   const [nz, setNz] = useState(null);   // REV481: {ruxsat, sabab, nazoratchi, ...}
   const [nzOyna, setNzOyna] = useState(false);
-  const boshlanganlar = useRef(0);
   const nzYukla = () => (token ? fetch(`${base}/api/nazoratchi/ruxsat?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : null)).then((j) => setNz(j || { ruxsat: true })).catch(() => setNz({ ruxsat: true })) : setNz({ ruxsat: true }));
   useEffect(() => { nzYukla(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {   // har ikkinchi bosqich boshida Nazoratchi chiqadi (kuniga ko'pi bilan 3 marta — server hisoblaydi)
-    if (!oynaydi) return;
-    boshlanganlar.current += 1;
-    if (nz?.nazoratchi && boshlanganlar.current % 2 === 0) setNzOyna(true);
-  }, [oynaydi]); // eslint-disable-line react-hooks/exhaustive-deps
+  // REV521: har 3 ta tugatilgan o'yindan keyin Nazoratchi; kuniga 10 xil o'yin — keyin o'yinlar bugunga tugaydi (server hisoblaydi)
+  const nzKut = useRef(false), nzYangi = useRef(null);
+  const oyinTugadi = (oyinId) => { if (!token) return;
+    fetch(`${base}/api/nazoratchi/oyin_tugadi?${new URLSearchParams({ token, oyin_id: oyinId })}`, { method: "POST" }).then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!j) return; if (j.nazoratchi_hozir) nzKut.current = true; nzYangi.current = j; }).catch(() => {}); };
+  useEffect(() => {   // natija oynasi yopilgach: chegara tugagan bo'lsa — yopiladi; Nazoratchi navbati bo'lsa — keyingi o'yin oldidan chiqadi
+    if (natija) return;
+    if (nzYangi.current && !oynaydi) { const j = nzYangi.current; nzYangi.current = null; setNz((x) => ({ ...x, ...j })); }
+    if (oynaydi && nzKut.current && nz?.nazoratchi) { nzKut.current = false; setNzOyna(true); }
+  }, [oynaydi, natija]); // eslint-disable-line react-hooks/exhaustive-deps
   const yukla = () => fetch(`${base}/api/bola/oyin_xona?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : null)).catch(() => null)
     .then((j) => setH(j || { holat: {}, obuna: false, bugun: new Date().toISOString().slice(0, 10) }));
   useEffect(() => { yukla(); oyinSozlamaYukla(base).then(() => setSoz((x) => x + 1)).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -79,6 +83,7 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
         onNatija={(togri, xatolar) => {
           const xato = Array.isArray(xatolar) ? xatolar.length : Number(xatolar) || 0;
           const yulduz = yulduzHisob(togri, xato);
+          oyinTugadi(tanlangan.id);   // REV521: kunlik hisob (yulduz olmasa ham — o'ynadi)
           if (!yulduz) { setNatija({ yulduz: 0, togri, jami: togri + xato }); say(t("yana", izoh)); return; }
           fetch(`${base}/api/bola/oyin_xona/otdi`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, oyin: tanlangan.id, bosqich: b.i, yulduz }) })
             .then((r) => (r.ok ? r.json() : null)).catch(() => null)

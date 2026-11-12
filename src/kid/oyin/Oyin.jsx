@@ -150,6 +150,31 @@ function OyinIchki({
   }, [demo, holat, kadr, gapirmoqda]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const Komponent = OYIN_KOMPONENTLAR[Number(id)];
+  // REV520: o'yin har qanday ekranga TO'LIQ sig'adi (telefon tik/yotiq, kichik ekran): mazmun ekrandan chiqsa — butun o'yin
+  // mutanosib kichrayadi (kesilib qolmaydi, aylantirish kerak emas). Raund almashganda va ekran burilganda qayta o'lchanadi.
+  const ildizRef = useRef(null);
+  useEffect(() => {
+    const el = ildizRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return undefined;
+    let band = false, t = 0;
+    const olcha = () => {
+      if (band) return; band = true;
+      let z = 1;
+      for (let k = 0; k < 5; k += 1) {   // foizli o'lchamlar kichrayganda qayta joylashadi — bir necha marta o'lchab, aniq sig'diramiz
+        el.style.zoom = z < 0.985 ? String(Math.floor(z * 100) / 100) : "";
+        const r = Math.min(el.clientHeight / Math.max(1, el.scrollHeight), el.clientWidth / Math.max(1, el.scrollWidth));
+        if (r >= 0.995 || z <= 0.45) break;
+        z = Math.max(0.45, z * r * 0.985);
+      }
+      requestAnimationFrame(() => { band = false; });
+    };
+    const rej = () => { clearTimeout(t); t = setTimeout(olcha, 60); };
+    const ro = new ResizeObserver(rej); ro.observe(el.parentElement || el);
+    const mo = new MutationObserver(rej); mo.observe(el, { childList: true, subtree: true });
+    window.addEventListener("orientationchange", rej); rej();
+    return () => { clearTimeout(t); ro.disconnect(); mo.disconnect(); window.removeEventListener("orientationchange", rej); };
+  }, [holat?.id, holat?.raund]);
+
   if (!holat || !Komponent) return null;
 
   const raundIdx = kadr ? kadr.raund : holat.raund;
@@ -173,7 +198,7 @@ function OyinIchki({
   const yashirKabu = ["ketmaKet", "kabuXato"].includes(holat.kalit);   // bu o'yinlarda Kabu sahnaning o'zida
 
   return (
-    <div className={`oy-root oy-oyin-${holat.id} is-${y === "2-3" ? "kichik" : y === "6-7" ? "katta" : "orta"}`}
+    <div ref={ildizRef} className={`oy-root oy-oyin-${holat.id} is-${y === "2-3" ? "kichik" : y === "6-7" ? "katta" : "orta"}`}
       data-oyin={holat.id} aria-label={oyinOl(holat.id)?.nom}>
       <div className="oy-bar">
         {onChiq ? (

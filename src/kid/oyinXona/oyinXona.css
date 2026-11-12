@@ -37,3 +37,5 @@
 .ox-natija-tugmalar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px}
 .ox-tugma{padding:12px 18px;border-radius:16px;border:2px solid #d9dfe8;background:#fff;font:700 16px system-ui,sans-serif;cursor:pointer}
 .ox-tugma.is-asosiy{background:#1B4B7A;border-color:#1B4B7A;color:#fff}
+/* REV520: «← ortga» tugmasi jarayon nuqtalarini yopmasin */
+.ox-oyin .oy-root .oy-bar{padding-left:104px}

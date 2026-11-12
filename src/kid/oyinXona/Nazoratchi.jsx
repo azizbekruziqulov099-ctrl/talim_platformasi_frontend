@@ -86,7 +86,8 @@ export default function Nazoratchi({ base, token, yosh = "", say, onTugadi }) {
 /** O'yin xonasi yopiq: avval bugungi dars, yoki Nazoratchi qulfi. */
 export function OyinYopiq({ r, onClose }) {
   return <div className="nzc nzc-yopiq"><NazoratchiRasm holat={r.sabab === "qulf" ? "qayta" : "oddiy"} />
-    {r.sabab === "dars" ? <><h2>{__kbUi("Avval bugungi dars!")}</h2><p>{__kbUi("Bugungi darsingni tugat — keyin o‘yinlar ochiladi. Kabu seni kutyapti!")}</p></>
+    {r.sabab === "chegara" ? <><h2>🌙 {__kbUi("Bugunga yetarli!")}</h2><p>{__kbUi("Bugun 10 xil o‘yin o‘ynading — barakalla! Endi dam ol, ertaga yangi o‘yinlar kutadi.")}</p></>
+      : r.sabab === "dars" ? <><h2>{__kbUi("Avval bugungi dars!")}</h2><p>{__kbUi("Bugungi darsingni tugat — keyin o‘yinlar ochiladi. Kabu seni kutyapti!")}</p></>
       : <><h2>{__kbUi("O‘yinlar vaqtincha to‘xtatilgan")}</h2><p>{__kbUi(`${String(r.gacha || "").split("-").reverse().join(".")} gacha. Shu darslarni qayta o‘tsang — darhol ochiladi:`)}</p>
         <ul className="nzc-darslar">{(r.darslar || []).map((d) => <li key={d.kod}>📘 {d.nomi || d.kod}</li>)}</ul></>}
     {onClose && <button type="button" className="nzc-btn" onClick={onClose}>← {__kbUi("Darslarga")}</button>}</div>;
