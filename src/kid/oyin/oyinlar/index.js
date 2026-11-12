@@ -58,6 +58,7 @@ export const OYIN_KOMPONENTLAR = {
   59: Masala,
   149: SaralashUlash, 154: SaralashUlash, 161: SaralashUlash, 162: SaralashUlash, 168: SaralashUlash, 150: SaralashUlash, 96: SaralashUlash, 14: SaralashUlash,
   152: HikoyaTartibi, 146: HikoyaTartibi, 29: HikoyaTartibi, 157: HikoyaTartibi, 153: HikoyaTartibi, 15: HikoyaTartibi, 156: HikoyaTartibi, 166: HikoyaTartibi,   // REV349
+  176: HikoyaTartibi,   // REV524: «Qayerdan keladi?» — komponenti ulanmagan edi, o'yin bo'sh ekran bo'lib ochilardi
   119: SirliQutiOch,
   121: EshitishOyin, 123: EshitishOyin, 142: EshitishOyin, 118: EshitishOyin, 120: EshitishOyin,   // REV351
   18: SaralashUlash, 148: SaralashUlash, 94: SaralashUlash, 158: SaralashUlash, 147: SaralashUlash, 95: SaralashUlash, 165: SaralashUlash,

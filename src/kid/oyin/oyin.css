@@ -388,3 +388,5 @@ button.oy-esh-quloq,button.oy-sq-ovoz{border:0;background:none;cursor:pointer;pa
 .oy-sar-narsa>span{display:grid;place-items:center;max-height:112px;overflow:hidden}
 .oy-sar-narsa>b{font-size:15px;line-height:1.15;text-align:center;max-width:150px}
 .oy-sahna:has(.oy-sar-narsa){gap:22px}
+/* REV524: rasmsiz qadam yozuvi */
+.oy-root .oy-qadam-yozuv{font-size:clamp(11px,2.6vmin,15px);font-weight:700;line-height:1.15;max-width:120px;padding:0 4px 6px;animation:none}

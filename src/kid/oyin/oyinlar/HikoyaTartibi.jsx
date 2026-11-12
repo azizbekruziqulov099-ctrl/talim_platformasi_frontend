@@ -17,7 +17,7 @@ export default function HikoyaTartibi(p) {
       <div className="oy-joylar">
         {joylar.map((k, i) => (
           <div key={i} className={`oy-joy ${k ? "is-toldi" : ""} ${!k && i === faolJoy ? "is-faol" : ""}`} data-tushadi={`joy:${i}`}>
-            {k ? <span style={{ display: "grid", placeItems: "center" }}><Rasm el={el(k)} rasm={rasm} />{katta && kadr ? <Soz el={el(k)} /> : null}</span>
+            {k ? <span style={{ display: "grid", placeItems: "center" }}><Rasm el={el(k)} rasm={rasm} korinish={el(k)?.rasmId ? null : "emoji"} />{(katta && kadr) || !el(k)?.rasmId ? <Soz el={el(k)} /> : null}</span>
               : <Son son={i + 1} yosh={yosh} kichik />}
           </div>
         ))}
@@ -28,7 +28,9 @@ export default function HikoyaTartibi(p) {
             holat={xatoK === v.k ? "xato" : null} ishora={ishora && ishora.k === v.k}
             onBos={(k) => qoy(k, faolJoy)}
             onTashla={(k, joy) => { const m = /^joy:(\d+)$/.exec(joy || ""); if (m) qoy(k, raund.savol.bosqichma ? faolJoy === Number(m[1]) ? faolJoy : -1 : Number(m[1])); }}>
-            <Rasm el={v.el} rasm={rasm} />
+            {/* REV524: maxsus rasmi hali chizilmagan qadam — o'xshash buyum rasmi emas (chalg'itadi), belgi + qadam nomi ko'rinadi */}
+            <Rasm el={v.el} rasm={rasm} korinish={v.el.rasmId ? null : "emoji"} />
+            {!v.el.rasmId && <span className="oy-soz oy-qadam-yozuv" dir="auto">{v.el.say || v.el.uz}</span>}
           </Surilma>
         ))}
       </div>

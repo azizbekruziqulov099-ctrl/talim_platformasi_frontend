@@ -9,6 +9,7 @@
 //   qiyinlikMoslash(qiyinlik, xatolar)      — keyingi o'yin qiyinligi
 import { OSISH_TOPLAM, GUL_TOPLAM } from "./osishData.js";   // REV452
 import { TARTIB_TOPLAM, TESKARI_QOSH } from "./rasmliData.js";   // REV459
+import { HAYOT_TOPLAM } from "./hayotData.js";   // REV524
 import { gradeSpeech } from "../../speech/speakRules.js";
 import { OYIN_MATN, oyinMatn, umumiyGap, toza } from "./oyinMatn.js";
 
@@ -510,11 +511,14 @@ const YASOVCHI = {
   ...Object.fromEntries(Object.keys(TARTIB).map((nom) => [nom, ({ y, rnd, R, izoh }) => {
     const d = TARTIB[nom];
     // REV452: «o'sish» o'yinlarida har raund — boshqa tirik narsa (odam, tovuq, daraxt, olma…); 2–3 yoshda faqat 2–3 qadamlilar
-    const TOPLAM = { osish: OSISH_TOPLAM, gulOstir: GUL_TOPLAM, ...TARTIB_TOPLAM }[nom];
+    // REV524: + hayotiy ketma-ketliklar (kunlik yumushlar, fasl ishlari, narsalar qayerdan keladi) — har o'yinda 6–13 xil, 10 raundda takrorsiz
+    const TOPLAM0 = { osish: OSISH_TOPLAM, gulOstir: GUL_TOPLAM, ...TARTIB_TOPLAM }[nom];
+    // o'yinning o'z asosiy ketma-ketligi (d.q) ham to'plamga kiradi — TOPLAM0 bo'lmagan o'yinlarda yo'qolib qolmasin
+    const TOPLAM = (TOPLAM0 || HAYOT_TOPLAM[nom]) ? [...(TOPLAM0 || [{ nom, q: d.q }]), ...(HAYOT_TOPLAM[nom] || [])] : null;
     if (TOPLAM) {
       // 2–3 yoshda 3 qadamgacha: qisqalari bo'lsa o'shalar, bo'lmasa har ketma-ketlikning birinchi 3 qadami (REV459)
-      const qisqa = TOPLAM.filter((t) => t.q.length <= 3);
-      const mos = y === "2-3" ? (qisqa.length ? qisqa : TOPLAM.map((t) => ({ ...t, q: t.q.slice(0, 3) }))) : TOPLAM;
+      // REV524: 2–3 yoshda ham hamma ketma-ketlik (xilma-xillik uchun) — faqat birinchi 3 qadami
+      const mos = y === "2-3" ? TOPLAM.map((t) => (t.q.length <= 3 ? t : { ...t, q: t.q.slice(0, 3) })) : TOPLAM;
       return navbat(mos, R, rnd).map((t, ri) => {
         const qadam = t.q.map((w, i) => sozEl(w, izoh, `q${ri}_${i}`));
         let ar = aralash(qadam, rnd);

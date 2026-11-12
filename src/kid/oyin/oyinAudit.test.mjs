@@ -32,3 +32,11 @@ test("saralash va juftlash so'zlari 5 tilda (nemis/ispan inglizcha qolmagan)", (
   kor(SARALASH); kor(ULASH);
   assert.deepEqual(yomon, []);
 });
+
+test("xonadagi har o'yinning ekrani (komponenti) ulangan — bo'sh ekran bo'lib ochilmaydi", async () => {
+  const fs = await import("node:fs"); const url = await import("node:url");
+  const matn = fs.readFileSync(url.fileURLToPath(new URL("./oyinlar/index.js", import.meta.url)), "utf8");
+  const blok = matn.slice(matn.indexOf("export const OYIN_KOMPONENTLAR"));
+  const bor = new Set([...blok.matchAll(/(?<![\w.])(\d{1,3})\s*:/g)].map((m) => Number(m[1])));
+  assert.deepEqual(XONA_OYINLAR.filter((id) => !bor.has(Number(id))), []);
+});

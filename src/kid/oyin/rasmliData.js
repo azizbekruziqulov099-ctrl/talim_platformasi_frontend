@@ -17,7 +17,6 @@ export const TARTIB_TOPLAM = {
   ],
   tishTozalash: [
     { nom: "tish tozalash", q: [W("🪥", "cho‘tkani olaman", "беру щётку", "I take the brush", "chotka_olish"), W("🧴", "pasta surtaman", "выдавливаю пасту", "I put on toothpaste", "pasta_surtish"), W("😁", "tishimni tozalayman", "чищу зубы", "I brush my teeth", "tish_tozalash"), W("💧", "og‘zimni chayaman", "полощу рот", "I rinse my mouth", "ogiz_chayish")] },
-    { nom: "qo‘l yuvish", q: [W("💧", "qo‘limni ho‘llayman", "мочу руки", "I wet my hands", "qol_holash"), W("🧼", "sovun surtaman", "намыливаю", "I use soap", "sovun_surtish"), W("🚰", "chayaman", "смываю", "I rinse", "chayish"), W("🧻", "artaman", "вытираю", "I dry", "artish")] },
   ],
   fasllar: [
     { nom: "fasllar", q: [{ e: "🌸", s: { uz: "bahor", ru: "весна", en: "spring", de: "Frühling", es: "primavera", r: "spring" } }, { e: "☀️", s: { uz: "yoz", ru: "лето", en: "summer", de: "Sommer", es: "verano", r: "summer" } },
