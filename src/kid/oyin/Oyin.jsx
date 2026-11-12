@@ -3,6 +3,7 @@
 // props.onSay(text) orqali beriladi (o'rganilayotgan so'zlar «[en]cat[/en]» kabi teglangan). Tugaganda —
 // onNatija(togriSoni, xatolar, { id, yulduz, keyingiQiyinlik, soniya }).
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { xotiraliYasa, xatoniQaytar } from "./oyinXotira.js";   // REV522: takrorlanmaslik — yagona xotira
 import {
   javobGapi, maslahat, nomOvoz, oyinOl, oyinYasa, qiyinlikMoslash, raundGapi, tekshir, yulduzlar,
 } from "./oyinRules.js";
@@ -50,7 +51,7 @@ function OyinIchki({
 }) {
   // REV420: har elementga — so'zining o'z rasmi bormi (emojidan taxmin qilingan rasm emas). Nomi aytiladigan o'yinlarda
   // faqat shunday narsalar beriladi: «bo'sh» so'ziga boshini ushlagan bola, «nimadir»ga sutli kosa chiqmasin.
-  const [boshlangich] = useState(() => oyinYasa(id, { elementlar: sozRasmBelgila(elementlar), yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish, izoh, fasl, kirishDaraja, raundSoni, variantSoniMajbur }));
+  const [boshlangich] = useState(() => xotiraliYasa(id, { elementlar: sozRasmBelgila(elementlar), yosh, sonlar, qiyinlik, urug, til, mik: mikBor(onTingla), mavzu, tanish, izoh, fasl, kirishDaraja, raundSoni, variantSoniMajbur }));
   const [holat, setHolat] = useState(boshlangich);
   const holatRef = useRef(boshlangich);
   const [fb, setFb] = useState(null);            // oxirgi javob: { j, togri, n }
@@ -59,6 +60,7 @@ function OyinIchki({
   const [kabu, setKabu] = useState(null);
   const [qayta, setQayta] = useState(0);
   const qulf = useRef(false);
+  const xatoRaund = useRef(new Set());
   const fbSon = useRef(0);
   const tirik = useRef(true);
   const taymerlar = useRef(new Set());
@@ -113,6 +115,10 @@ function OyinIchki({
     if (qulf.current || !eski || eski.tugadi) return null;
     const n = tekshir(eski, j);
     if (n.holat === eski && n.togri === null && !n.voqea) return n;      // befarq (noto'g'ri bosish emas)
+    // REV522: xato qilingan topshiriq 3 tadan keyin bir marta qaytadi (har raund uchun bir marta rejalashtiriladi)
+    if ((n.xato || n.togri === false) && !n.tugadi && !xatoRaund.current.has(eski.raund)) {
+      xatoRaund.current.add(eski.raund); n.holat = xatoniQaytar(n.holat, eski.raund);
+    }
     holatRef.current = n.holat;
     setHolat(n.holat);
     fbSon.current += 1;

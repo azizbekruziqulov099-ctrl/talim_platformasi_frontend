@@ -35,13 +35,21 @@ const yoshNorm = (y) => (["2-3", "4-5", "6-7"].includes(String(y)) ? String(y) :
 /** O‘yin uchun bosqichlar ro‘yxati: [{ i, toplam, belgi, nom, items }] — to‘plamlar har o‘yinda boshqa tartibda. */
 /** REV450: juft topish o'yinlarida (Hayvonni boq, Ona va bola…) bosqichlar o'yinning O'Z juftlaridan:
  *  har bosqichda 3 ta yangi narsa + oldingi bosqichdan 1 tasi takrorlash uchun. Rasmi — shu bosqichning birinchi narsasi. */
+/** REV522: bosqichni `kerak` ta har xil narsagacha to'ldirish — yangi bo'lakdan keyingi narsalar aylana bo'ylab (takrorsiz). */
+function toldir(hamma, bosh, yangiSoni, kerak) {
+  const out = [];
+  for (let k = yangiSoni; out.length + yangiSoni < kerak && k < hamma.length; k += 1) out.push(hamma[(bosh + k) % hamma.length]);
+  return out;
+}
+
 function ulashBosqichlari(nom) {
   const tartib = [];
   for (const [a] of ULASH[nom].juft) if (!tartib.some((x) => x.s.uz === a.s.uz)) tartib.push(a);
   const out = [];
   for (let i = 0; i < tartib.length; i += 3) {
     const yangi = tartib.slice(i, i + 3);
-    const takror = i > 0 ? [tartib[i - 1]] : [];
+    // REV522: bosqichda 10 ta HAR XIL narsa (10 raundda takror bo'lmasin): 3 ta yangi + qolganlari boshqa bosqichlardan navbat bilan
+    const takror = toldir(tartib, i, 3, BOSQICH_RAUND);
     const items = [...yangi, ...takror].map((a) => ({ e: a.e, s: a.s, ulashA: a.s.uz }));
     if (yangi.length) out.push({ toplam: nom, belgi: yangi[0].e, nom: yangi.map((a) => a.s.uz).join(", "), items });
   }
@@ -59,7 +67,7 @@ function saralashBosqichlari(nom) {
   const out = [];
   for (let i = 0; i < navbat.length; i += 4) {
     const yangi = navbat.slice(i, i + 4);
-    const takror = i > 0 ? [navbat[i - 1]] : [];
+    const takror = toldir(navbat, i, 4, BOSQICH_RAUND);   // REV522: 10 ta har xil narsa
     const items = [...yangi, ...takror].map(({ w }) => ({ e: w.e, s: w.s, r: w.s?.r, sarA: w.s.uz }));
     out.push({ toplam: nom, belgi: yangi[0].w.e, nom: yangi.map(({ w }) => w.s.uz).join(", "), items });
   }
