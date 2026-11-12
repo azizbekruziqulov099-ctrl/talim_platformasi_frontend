@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { sudokuYasa, sudokuXatolar, sudokuTugadi, SUDOKU_QUTI, sonYasa, sonTekshir, kodYasa, kodBaho, nonogramYasa, nonogramTogri } from "./mantiqRules.js";
 import { Tarozi, KasrYigish, Koordinata, Funksiya, Sehrli } from "./MatOyin.jsx";   // REV527
+import { Ketma, Jadval, Xanoy, Chiroq } from "./Mantiq2.jsx";   // REV528
 import "./mantiq.css";
 
 const OYINLAR = [
@@ -10,6 +11,10 @@ const OYINLAR = [
   { k: "son", g: "Mantiq", b: "🎯", nom: "Son yasash", izoh: "Berilgan sonlardan amallar bilan nishon sonni hosil qiling" },
   { k: "kod", g: "Mantiq", b: "🔐", nom: "Kod ochish", izoh: "Maxfiy kodni mantiq bilan toping" },
   { k: "nonogram", g: "Mantiq", b: "🖼️", nom: "Nonogramma", izoh: "Sonlar bo‘yicha kataklarni bo‘yab, rasmni oching" },
+  { k: "ketma", g: "Mantiq", b: "🔗", nom: "Ketma-ketlik", izoh: "Qonuniyatni toping va keyingi sonni ayting" },
+  { k: "jadval", g: "Mantiq", b: "🕵️", nom: "Mantiqiy jadval", izoh: "Ishoralar bo‘yicha kim nimani tanlaganini aniqlang" },
+  { k: "xanoy", g: "Mantiq", b: "🗼", nom: "Xanoy minorasi", izoh: "Halqalarni eng kam yurishda ko‘chiring" },
+  { k: "chiroq", g: "Mantiq", b: "💡", nom: "Chiroqlar", izoh: "Hamma chiroqni o‘chiring — har bosish qo‘shnilarni ham almashtiradi" },
   { k: "tarozi", g: "Matematika", b: "⚖️", nom: "Tarozi-tenglama", izoh: "Tarozi muvozanatda — x ni toping (qadamma-qadam yordam bilan)" },
   { k: "kasr", g: "Matematika", b: "🥧", nom: "Kasr yig‘ish", izoh: "Bo‘laklardan nishon kasrni aniq yig‘ing" },
   { k: "koordinata", g: "Matematika", b: "📍", nom: "Koordinata nishoni", izoh: "Nuqtani koordinatasi bo‘yicha toping; simmetriya va siljitish" },
@@ -107,7 +112,7 @@ function Nonogram({ daraja, urug, onYutdi }) {
   </div>;
 }
 
-const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli };
+const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli };
 
 export default function MantiqOyinlari({ sinf = "", onClose }) {
   const s = Number((/\d{1,2}/.exec(String(sinf)) || [0])[0]);

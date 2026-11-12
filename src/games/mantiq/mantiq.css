@@ -42,3 +42,17 @@
 .mq-sehrli button.is-berilgan{background:#eef2f7;color:#13314f;cursor:default}.mq-sehrli button.is-tanlov{border-color:#1B4B7A;background:#cfe6ff}
 .mq-sehrli span{font:700 15px system-ui;color:#8a94a3}.mq-sehrli span.is-ok{color:#1f7a4d}.mq-sehrli span.is-no{color:#b3261e}
 @media (max-width:360px){.mq-sehrli{grid-template-columns:repeat(3,60px) 36px}.mq-sehrli button{width:60px;height:60px;font-size:22px}}
+/* REV528 */
+.mq-ketma{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.mq-ketma span{min-width:52px;padding:10px 8px;border-radius:12px;background:#eef2f7;font:800 22px system-ui;text-align:center}
+.mq-ketma span.is-savol{background:#fff3c4;outline:2px dashed #f2b72e}
+.mq-ishora{margin:0;padding-left:22px;width:100%;display:flex;flex-direction:column;gap:4px;font-size:15px}.mq-ishora li{cursor:pointer}.mq-ishora li.is-chiz{text-decoration:line-through;color:#8a94a3}
+.mq-jadvallar{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+.mq-jadval{border-collapse:collapse;font:700 13px system-ui}.mq-jadval th{padding:3px 5px;color:#13314f;max-width:74px}.mq-jadval thead th{font-size:12px;vertical-align:bottom}
+.mq-jadval td{padding:2px}.mq-jadval td button{width:42px;height:42px;border-radius:10px;border:1.5px solid #b9c6d6;background:#fff;font:800 20px system-ui;cursor:pointer;padding:0}
+.mq-jadval td button.is-ha{background:#bfe6cd;color:#1f7a4d;border-color:#1f7a4d}.mq-jadval td button.is-yoq{background:#f4f6f9;color:#b3261e}
+.mq-xanoy{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:460px}
+.mq-xanoy button{position:relative;height:150px;border:0;border-bottom:8px solid #8B5A2B;background:#f7f9fc;border-radius:12px 12px 0 0;cursor:pointer;padding:0}
+.mq-xanoy button.is-tanlov{background:#e3efff}.mq-xanoy-oq{position:absolute;left:50%;bottom:0;width:8px;height:132px;margin-left:-4px;background:#b9c6d6;border-radius:4px}
+.mq-xanoy span{position:absolute;left:50%;transform:translateX(-50%);height:20px;border-radius:10px;border:2px solid rgba(0,0,0,.2)}
+.mq-chiroq{display:grid;gap:6px;width:100%}.mq-chiroq button{aspect-ratio:1;border-radius:14px;border:2px solid #b9c6d6;background:#2b3452;font-size:24px;cursor:pointer;padding:0}
+.mq-chiroq button.is-yoniq{background:#fff3c4;border-color:#f2b72e}.mq-chiroq button.is-ishora{outline:4px solid #3A86FF;outline-offset:-4px}

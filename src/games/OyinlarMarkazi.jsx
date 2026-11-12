@@ -14,7 +14,7 @@ const GAMES = [
   { key: "shaxmat_maktab", emoji: "🎓", title: "Shaxmat maktabi", text: "Noldan o‘rganish: figuralar, shax, mat, taktika — yulduzchalar bilan", color: "#2f7d3b" },
   { key: "ekspeditsiya", emoji: "🧭", title: "Matematik ekspeditsiya", text: "3–11-sinf: 20 bosqichli xarita, har bosqichda 15 topshiriq — o‘tgan mavzular ham qaytib keladi, har 5-bosqich sinov darvozasi", color: "#B45309", katta: true },   // REV456
   { key: "fan_oyinlari", emoji: "🔬", title: "Fan o‘yinlari", text: "Matematika va ehtimollar: pitsa va kasr, tarozida tenglama, tanga, zar, karta, Galton taxtasi — 15 ta o‘yin", color: "#1B4B7A", katta: true },   // REV437
-  { key: "mantiq_oyinlari", emoji: "🧠", title: "Mantiq va matematika o‘yinlari", text: "1–11-sinf, 9 ta o‘yin: sudoku, son yasash, kod ochish, nonogramma, tarozi-tenglama, kasr yig‘ish, koordinata, funksiya mashinasi, sehrli kvadrat", color: "#4B2A8A", katta: true },   // REV526
+  { key: "mantiq_oyinlari", emoji: "🧠", title: "Mantiq va matematika o‘yinlari", text: "1–11-sinf, 13 ta o‘yin: sudoku, mantiqiy jadval, Xanoy minorasi, chiroqlar, ketma-ketlik, son yasash, kod ochish, nonogramma, tarozi-tenglama, kasr, koordinata, funksiya mashinasi, sehrli kvadrat", color: "#4B2A8A", katta: true },   // REV526
   { key: "mantiq", emoji: "🧩", title: "Rivojlantiruvchi o‘yinlar", text: "57 xil o‘yin, har biri 10–20 bosqich: xotira, mantiq, sanash, ranglar, nutq, atrof-olam (2–7 yosh)", color: "#2f9e54" },
 ];
 
