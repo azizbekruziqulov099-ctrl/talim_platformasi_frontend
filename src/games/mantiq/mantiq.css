@@ -31,3 +31,14 @@
 .mq-nono-qat{display:flex;align-items:center;justify-content:flex-end;padding-right:6px;white-space:nowrap;color:#13314f}
 .mq-nono button{aspect-ratio:1;border:1px solid #b9c6d6;background:#fff;cursor:pointer;padding:0;font:700 14px system-ui;color:#b3261e}.mq-nono button.is-boyoq{background:#13314f}
 .mq-nono-qat{gap:7px}.mq-nono-ust{gap:1px}
+/* REV527: matematika o'yinlari */
+.mq-guruh{margin:6px 0 -4px;font-size:15px;color:#5b6573;text-transform:uppercase;letter-spacing:.5px}
+.mq-mashina{display:flex;flex-direction:column;gap:6px;width:100%;max-width:300px}
+.mq-mashina>div{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;font:800 22px system-ui}
+.mq-mashina span{background:#eef2f7;border-radius:12px;padding:8px;text-align:center}.mq-mashina i{font-style:normal;font-size:16px;color:#5b6573}
+.mq-mashina span.is-chiq{background:#e9f8ef}.mq-mashina span.is-savol{background:#fff3c4;outline:2px dashed #f2b72e}
+.mq-sehrli{display:grid;grid-template-columns:repeat(3,72px) 44px;gap:6px;align-items:center;justify-items:center}
+.mq-sehrli button{width:72px;height:72px;border-radius:14px;border:2px solid #b9c6d6;background:#fff;font:800 26px system-ui;color:#1B4B7A;cursor:pointer}
+.mq-sehrli button.is-berilgan{background:#eef2f7;color:#13314f;cursor:default}.mq-sehrli button.is-tanlov{border-color:#1B4B7A;background:#cfe6ff}
+.mq-sehrli span{font:700 15px system-ui;color:#8a94a3}.mq-sehrli span.is-ok{color:#1f7a4d}.mq-sehrli span.is-no{color:#b3261e}
+@media (max-width:360px){.mq-sehrli{grid-template-columns:repeat(3,60px) 36px}.mq-sehrli button{width:60px;height:60px;font-size:22px}}

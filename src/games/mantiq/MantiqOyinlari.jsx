@@ -2,13 +2,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { sudokuYasa, sudokuXatolar, sudokuTugadi, SUDOKU_QUTI, sonYasa, sonTekshir, kodYasa, kodBaho, nonogramYasa, nonogramTogri } from "./mantiqRules.js";
+import { Tarozi, KasrYigish, Koordinata, Funksiya, Sehrli } from "./MatOyin.jsx";   // REV527
 import "./mantiq.css";
 
 const OYINLAR = [
-  { k: "sudoku", b: "🔢", nom: "Sudoku", izoh: "Har qator, ustun va qutida raqamlar takrorlanmasin" },
-  { k: "son", b: "🎯", nom: "Son yasash", izoh: "Berilgan sonlardan amallar bilan nishon sonni hosil qiling" },
-  { k: "kod", b: "🔐", nom: "Kod ochish", izoh: "Maxfiy kodni mantiq bilan toping" },
-  { k: "nonogram", b: "🖼️", nom: "Nonogramma", izoh: "Sonlar bo‘yicha kataklarni bo‘yab, rasmni oching" },
+  { k: "sudoku", g: "Mantiq", b: "🔢", nom: "Sudoku", izoh: "Har qator, ustun va qutida raqamlar takrorlanmasin" },
+  { k: "son", g: "Mantiq", b: "🎯", nom: "Son yasash", izoh: "Berilgan sonlardan amallar bilan nishon sonni hosil qiling" },
+  { k: "kod", g: "Mantiq", b: "🔐", nom: "Kod ochish", izoh: "Maxfiy kodni mantiq bilan toping" },
+  { k: "nonogram", g: "Mantiq", b: "🖼️", nom: "Nonogramma", izoh: "Sonlar bo‘yicha kataklarni bo‘yab, rasmni oching" },
+  { k: "tarozi", g: "Matematika", b: "⚖️", nom: "Tarozi-tenglama", izoh: "Tarozi muvozanatda — x ni toping (qadamma-qadam yordam bilan)" },
+  { k: "kasr", g: "Matematika", b: "🥧", nom: "Kasr yig‘ish", izoh: "Bo‘laklardan nishon kasrni aniq yig‘ing" },
+  { k: "koordinata", g: "Matematika", b: "📍", nom: "Koordinata nishoni", izoh: "Nuqtani koordinatasi bo‘yicha toping; simmetriya va siljitish" },
+  { k: "funksiya", g: "Matematika", b: "⚙️", nom: "Funksiya mashinasi", izoh: "Kirish va chiqishga qarab qoidani toping" },
+  { k: "sehrli", g: "Matematika", b: "🧮", nom: "Sehrli kvadrat", izoh: "Hamma qator, ustun va diagonal yig‘indisi teng bo‘lsin" },
 ];
 const DARAJA = ["Oson", "O‘rta", "Qiyin"];
 const RANG = ["#E63946", "#FFD23F", "#3A86FF", "#2DBE60", "#FF8C1A", "#9B5DE5", "#FF70A6", "#8B5A2B"];
@@ -101,7 +107,7 @@ function Nonogram({ daraja, urug, onYutdi }) {
   </div>;
 }
 
-const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram };
+const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli };
 
 export default function MantiqOyinlari({ sinf = "", onClose }) {
   const s = Number((/\d{1,2}/.exec(String(sinf)) || [0])[0]);
@@ -117,10 +123,11 @@ export default function MantiqOyinlari({ sinf = "", onClose }) {
         : <button type="button" className="mq-havola" onClick={() => setSoni(soni + 1)}>{__kbUi("Boshqa topshiriq")} ↻</button>}</div>
     </div>; }
   return <div className="mq-sahifa">
-    <div className="mq-bosh"><div><h2>🧠 {__kbUi("Mantiq o‘yinlari")}</h2><small>{__kbUi("Har topshiriq yangi, yechimi bor. Darajani o‘zingiz tanlaysiz.")}</small></div>
+    <div className="mq-bosh"><div><h2>🧠 {__kbUi("Mantiq va matematika o‘yinlari")}</h2><small>{__kbUi("Har topshiriq yangi, yechimi bor. Darajani o‘zingiz tanlaysiz.")}</small></div>
       {onClose && <button type="button" className="mq-ortga" onClick={onClose}>← {__kbUi("O‘yinlar")}</button>}</div>
-    <div className="mq-kartalar">{OYINLAR.map((o) => <button key={o.k} type="button" className="mq-karta" onClick={() => setOyin(o)}>
-      <span aria-hidden="true">{o.b}</span><div><b>{__kbUi(o.nom)}</b><small>{__kbUi(o.izoh)}</small>
-        <em>⭐ {[0, 1, 2].reduce((a, d) => a + xot.ol(o.k, d), 0)}</em></div></button>)}</div>
+    {["Mantiq", "Matematika"].map((gr) => <React.Fragment key={gr}><h3 className="mq-guruh">{__kbUi(gr)}</h3>
+      <div className="mq-kartalar">{OYINLAR.filter((o) => o.g === gr).map((o) => <button key={o.k} type="button" className="mq-karta" onClick={() => setOyin(o)}>
+        <span aria-hidden="true">{o.b}</span><div><b>{__kbUi(o.nom)}</b><small>{__kbUi(o.izoh)}</small>
+          <em>⭐ {[0, 1, 2].reduce((a, d) => a + xot.ol(o.k, d), 0)}</em></div></button>)}</div></React.Fragment>)}
   </div>;
 }
