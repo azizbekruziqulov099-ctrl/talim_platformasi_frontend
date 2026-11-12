@@ -1,6 +1,7 @@
+import { de as _de, es as _es } from "./ozgaTillar.js";   // REV523: nemischa va ispancha tarjimalar
 // REV459: Azizjon yuborgan 140 ta rasm bilan o'yinlar boyitildi — ketma-ketliklar (A), juftlar (C), saralash (D), teskarisi (F).
 // Rasm — OYIN_RASM kaliti «o_<fayl>» (rasm_yangi papkasi). Har so'z 5 tilda.
-const W = (e, uz, ru, en, fayl, qo) => ({ e, s: { uz, ru, en, de: en, es: en, ...(fayl ? { r: `o_${fayl}` } : {}) }, ...(qo || {}) });
+const W = (e, uz, ru, en, fayl, qo) => ({ e, s: { uz, ru, en, de: _de(en), es: _es(en), ...(fayl ? { r: `o_${fayl}` } : {}) }, ...(qo || {}) });
 
 /** A. Ketma-ketliklar: har o'yinda bir nechta xil ketma-ketlik (har raundda boshqasi). */
 export const TARTIB_TOPLAM = {

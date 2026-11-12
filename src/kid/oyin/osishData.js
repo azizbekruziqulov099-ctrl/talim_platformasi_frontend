@@ -1,7 +1,8 @@
+import { de as _de, es as _es } from "./ozgaTillar.js";   // REV523: nemischa va ispancha tarjimalar
 // REV453: «Kim qanday o'sadi?» — faqat HAYVONLAR (har birining o'z rivojlanishi), «Gul o'stiramiz» — faqat O'SIMLIKLAR.
 // Ikki o'yin bir-birini takrorlamaydi; bir ketma-ketlik ichida bir xil rasm (emoji) ikki marta uchramaydi; «odam» olib tashlandi
 // (emoji odamlar bir-biriga o'xshab, bola qaysi biri katta ekanini ajrata olmasdi).
-const W = (e, uz, ru, en, r) => ({ e, s: { uz, ru, en, de: en, es: en, ...(r ? { r } : {}) } });
+const W = (e, uz, ru, en, r) => ({ e, s: { uz, ru, en, de: _de(en), es: _es(en), ...(r ? { r } : {}) } });
 const Y = (nom) => `o_${nom}`;   // o‘yin rasmlari (rasm_yangi, OYIN_RASM kalitlari)
 export const OSISH_TOPLAM = [
   { nom: "tovuq", q: [W("🥚", "tuxum", "яйцо", "egg", Y("tovuq_tuxumi_uyada")), W("🐣", "jo‘ja chiqdi", "цыплёнок вылупился", "chick hatches", Y("tuxumdan_joja")), W("🐤", "jo‘ja", "цыплёнок", "chick", Y("joja")), W("🐔", "tovuq", "курица", "hen", "hen")] },

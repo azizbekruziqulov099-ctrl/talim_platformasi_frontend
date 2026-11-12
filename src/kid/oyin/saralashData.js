@@ -1,3 +1,4 @@
+import { de as _de, es as _es } from "./ozgaTillar.js";   // REV523: nemischa va ispancha tarjimalar
 import { XONA_TOPLAM } from "../oyinXona/xonaData.js";   // REV455
 import { HAYVON_OVQAT_JUFT, HAYVON_HAM } from "./hayvonOvqatData.js";   // REV450
 // REV348: saralash va ulash o'yinlari ma'lumoti (5 tilda). Avtomatik yaratilgan — /tmp/sar/data.py
@@ -2081,10 +2082,21 @@ export const ULASH = {
 
 // REV450: «Hayvonni boq» — 28 ta hayvon, 44 ta to'g'ri juft (eski 6 ta juft o'rniga)
 ULASH.hayvonOvqat = { ...ULASH.hayvonOvqat, juft: HAYVON_OVQAT_JUFT, ham: HAYVON_HAM };
+// REV523: «bu ham to'g'ri» ro'yxatlari — to'g'ri bo'lishi mumkin bo'lgan javob XATO variant bo'lib chiqmasin (tekshiruvda topilgan)
+const _hamQosh = (nom, m) => { if (ULASH[nom]) ULASH[nom].ham = { ...(ULASH[nom].ham || {}), ...m }; };
+export function ulashHamQosh() {
+  _hamQosh("uyiQayerda", { baliq: ["akvarium"], baliqcha: ["suv"], qush: ["daraxt", "daraxt kovagi"], it: ["uy"], olmaxon: ["in"], tulki: ["g‘or"], ayiq: ["daraxt kovagi"],
+    tovuq: ["molxona"], sigir: ["otxona"], ot: ["molxona"], pingvin: ["suv"], odam: [] });
+  _hamQosh("kasbAsbob", { haydovchi: ["traktor", "o‘t o‘chirish mashinasi"], dehqon: ["gul sug‘orgich", "rul"], "o‘t o‘chiruvchi": ["kaska", "rul"], uchuvchi: ["rul"],
+    oshpaz: ["non"], novvoy: ["tova"], "bog‘bon": ["traktor"], quruvchi: ["traktor"], "o‘qituvchi": ["bo‘yoqlar"], rassom: ["kitoblar"] });
+  _hamQosh("nimaBilan", { qoshiq: ["piyola"], choynak: ["kosa"], "tish cho‘tkasi": ["tish", "tish pastasi"], igna: [], paypoq: [] });
+  _hamQosh("sezgi", { "ko‘z": ["yumshoq ayiqcha", "tikanli kaktus", "sovuq muzqaymoq", "nordon limon", "shirinlik"], "qo‘l": ["sovuq muzqaymoq", "kitob o‘qiyman"],
+    til: ["shirinlik", "nordon limon", "sovuq muzqaymoq"], burun: [], quloq: [] });
+}
 
 // REV451: «Fasl kiyimi» — 4 fasl, guruh rasmlari faslning o'zi (qorli daraxt, quyosh, gullagan daraxt, sariq barglar).
 // Bahor va kuz kiyimlari bir xil bo'lishi mumkin — shunday narsa chiqqan raundda ikkinchi fasl variantlarda ko'rsatilmaydi («ham»).
-const F = (e, uz, ru, en, r, qo) => ({ e, s: { uz, ru, en, de: en, es: en, ...(r ? { r } : {}) }, ...(qo || {}) });
+const F = (e, uz, ru, en, r, qo) => ({ e, s: { uz, ru, en, de: _de(en), es: _es(en), ...(r ? { r } : {}) }, ...(qo || {}) });
 SARALASH.faslKiyim = { ...SARALASH.faslKiyim,
   guruh: [F("❄️", "qish", "зима", "winter", "winter"), F("☀️", "yoz", "лето", "summer", "summer"), F("🌸", "bahor", "весна", "spring", "spring"), F("🍂", "kuz", "осень", "autumn", "autumn")],
   narsa: [
@@ -2111,10 +2123,10 @@ const _yangila = (w) => { const r = _YANGI[w?.s?.uz]; if (r) { w.s = { ...w.s, r
 for (const d of Object.values(SARALASH)) { d.guruh.forEach(_yangila); Object.values(d.narsa).flat().forEach(_yangila); }
 for (const d of Object.values(ULASH)) d.juft.forEach(([a, b]) => { _yangila(a); _yangila(b); });
 // «tikan» endi «yantoq» deb ataladi (rasm — yantoq buta)
-for (const [, b] of ULASH.hayvonOvqat.juft) if (b.s.uz === "tikan") b.s = { ...b.s, uz: "yantoq", ru: "верблюжья колючка", en: "camelthorn", de: "camelthorn", es: "camelthorn" };
+for (const [, b] of ULASH.hayvonOvqat.juft) if (b.s.uz === "tikan") b.s = { ...b.s, uz: "yantoq", ru: "верблюжья колючка", en: "camelthorn", de: "Kameldorn", es: "espino de camello" };
 
 // REV452: «Ona va bola» va «Uyi qayerda» — yangi rasmlar bilan kengaytirildi
-const _S = (e, uz, ru, en, r) => ({ e, s: { uz, ru, en, de: en, es: en, ...(r ? { r } : {}) } });
+const _S = (e, uz, ru, en, r) => ({ e, s: { uz, ru, en, de: _de(en), es: _es(en), ...(r ? { r } : {}) } });
 ULASH.onaBola.juft.push(
   [_S("🐎", "ot", "лошадь", "horse"), _S("🐴", "toy", "жеребёнок", "foal", "o_toy")],
   [_S("🐫", "tuya", "верблюд", "camel"), _S("🐪", "bo‘taloq", "верблюжонок", "baby camel", "o_botaloq")],
@@ -2149,3 +2161,14 @@ for (const [k, gi, list] of SARALASH_QOSH) {
   const bor = new Set(d.narsa[i].map((w) => w.s.uz));
   for (const w of list) if (!bor.has(w.s.uz)) d.narsa[i].push(w);
 }
+ulashHamQosh();
+// REV523: bir nechta guruhga to'g'ri keladigan narsalar — boshqa to'g'ri guruh «xato» variant bo'lib ko'rsatilmaydi
+(function hamGuruh() {
+  const belgila = (nom, m) => { const d = SARALASH[nom]; if (!d) return;
+    const gi = (g) => (d.guruh || d.guruhlar || []).findIndex((x) => (x.s?.uz || x.uz) === g);
+    for (const qator of d.narsa) for (const w of qator) { const q = m[w.s?.uz]; if (q) w.ham = [...new Set([...(w.ham || []), ...q.map(gi).filter((x) => x >= 0)])]; } };
+  belgila("harakatTuri", { toshbaqa: ["suzadi", "sudraladi"], kenguru: ["yuradi"], ilon: ["suzadi"], xonqizi: ["yuradi", "sudraladi"], qush: ["yuradi", "sakraydi"],
+    it: ["suzadi", "sakraydi"], ot: ["sakraydi"], mushuk: ["sakraydi"], chumchuq: ["sakraydi", "yuradi"], kaptar: ["yuradi"], ari: ["sudraladi"], kapalak: [] });
+  belgila("transport", { "suv osti kemasi": [], "kosmik kema": [] });
+  belgila("yeyiladi", {});
+})();

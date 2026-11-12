@@ -1749,7 +1749,7 @@ export const XONA_TOPLAM = [
 "ru": "плов",
 "en": "plov",
 "de": "Plov",
-"es": "plov"
+"es": "plov (arroz uzbeko)"
 }
 },
 {
