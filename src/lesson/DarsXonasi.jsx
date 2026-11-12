@@ -1,7 +1,8 @@
 import { useBand } from "../pwa/band.js";
 import { konikmaYoz } from "./konikmaYoz.js";   // REV480
 import { qurilmaKaliti } from "../auth/qurilma.js";   // REV486
-import QurilmaOyna from "../auth/QurilmaOyna.jsx";   // REV466: dars/test o'rtasida yangilanish to'xtatilmaydi
+import QurilmaOyna from "../auth/QurilmaOyna.jsx";
+const KirishTekshiruv = React.lazy(() => import("./KirishTekshiruv.jsx"));   // REV512: bilim zanjiri   // REV466: dars/test o'rtasida yangilanish to'xtatilmaydi
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { fanIzohi } from "../curriculum/izohTanlov.js";
 import { lazyQayta } from "../workspace/lazyQayta.js";
@@ -361,6 +362,14 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh, fan || lesson?.topic?.fan || ""), [lesson, izoh, fan]);
   // REV269: matematika darsi — doska ovoz bilan birga qo'lda yozilayotgandek ochiladi, buyruqli qatorlar chizmaga aylanadi
   const matem = !kid && matRejim(fan || lesson?.topic?.fan);
+  // REV512: matematika darsidan oldin — kunda bir marta kirish tekshiruvi (oldingi mavzular); faqat oddiy dars rejimida
+  const [kirishOchiq, setKirishOchiq] = useState(false);
+  useEffect(() => {
+    if (!matem || faqatTest || !lesson || mode !== "idle") return;   // dars boshlanishidan oldin (ovoz hali yo'q)
+    const k = `kb_kirish:${topicCode}:${new Date().toISOString().slice(0, 10)}`;
+    try { if (localStorage.getItem(k)) return; localStorage.setItem(k, "1"); } catch { /* */ }
+    setKirishOchiq(true);
+  }, [matem, Boolean(lesson), topicCode, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   darsTilRef.current = darsTil || "";
   // REV267: test/ovoz sahnasida til darsi bo'lsa — doim ikki Kabu (izoh tili + o'rganilayotgan til: nemis — Taubi)
   const kabuJuftMuhit = kabuMuhit && Boolean(darsTil);
@@ -1673,6 +1682,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     <p>{__kbUi(kid ? "Ustoz darsni tayyorlayapti…" : "Dars yuklanmoqda…")}</p>
   </div>;
   if (kursQulf) return <KursTolov apiBase={apiBase} token={token} kurs={kursQulf} onClose={onClose} />;
+  const kirishQatlam = kirishOchiq ? <React.Suspense fallback={null}><KirishTekshiruv apiBase={apiBase} token={token} topicCode={topicCode} onYop={() => setKirishOchiq(false)} /></React.Suspense> : null;
   if (qurilmaHol) return <QurilmaOyna apiBase={apiBase} token={token} holat={qurilmaHol} onClose={onClose} onTayyor={() => { setQurilmaHol(null); setQayta((x) => x + 1); }} />;
   if (error) return <div className="dx-empty"><p>{__kbUi(error)}</p>{onChat && <button type="button" className="dx-btn dx-primary" onClick={onChat}>{__kbUi("AI ustoz bilan suhbatda o‘rganish")}</button>}</div>;
 
@@ -1875,6 +1885,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         style={lattaP > 0 && k < och ? { opacity: 1 - lattaP } : undefined}><MatQator qator={x.q} progress={x.p} /></div>)];
   };
   return <section ref={rootRef} className={`dx-root dx-aud-${audience} dx-theme-${theme} ${focus ? "dx-focus" : ""} ${yotiq ? "dx-yotiq" : ""} ${sinfXona ? `dx-sinf dx-ustoz-${joy.ustoz} ${ikkinchi ? "dx-ikki-ustoz" : ""}` : ""} ${kabuMuhit ? `dx-kabu-muhit ${kabuJuftMuhit ? "dx-kabu-juft" : ""}` : ""} ${savolOchiq && !kabuMuhit ? "dx-savol-ochiq" : ""} ${burish ? "dx-burilmoqda" : ""}`} aria-label={__kbUi("Dars xonasi")} data-eski-alifbo="1">
+    {kirishQatlam}
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className={`dx-head ${boshYigiq ? "is-yigiq" : ""}`}>
       {tikHolat && focus && <button type="button" className="dx-burish-fab" onClick={yotiqAlmashtir} aria-label={yotiq ? __kbUi("Tik ko‘rinish") : __kbUi("Yotiq ko‘rinish")} title={yotiq ? __kbUi("Ekranni burmasdan (tik) ko‘rish") : __kbUi("Ekranni yotiq qilib ko‘rish")}>{yotiq ? "📱" : "↻"}</button>}
