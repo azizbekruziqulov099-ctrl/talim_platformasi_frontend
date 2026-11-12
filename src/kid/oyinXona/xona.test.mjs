@@ -7,7 +7,7 @@ import { XONA_TOPLAM } from "./xonaData.js";
 import { oyinYasa } from "../oyin/oyinRules.js";
 test("REV371: to'plamlar — har narsada rasm va 5 tilda nom", () => {
   const hammasi = XONA_TOPLAM.flatMap((p) => p.items);
-  assert.ok(hammasi.length >= 150 && hammasi.length <= 200, String(hammasi.length));
+  assert.ok(hammasi.length >= 280 && hammasi.length <= 1500, String(hammasi.length));
   for (const x of hammasi) { assert.ok(x.r); for (const t of ["uz", "ru", "en", "de", "es"]) assert.ok(x.s[t], `${x.s.uz} ${t}`); }
 });
 test("REV371: har o'yinda 7–20 bosqich, har bosqichda 6–15 narsa, narsa takrorlanmaydi", () => {

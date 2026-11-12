@@ -432,15 +432,46 @@ export const RANGLAR = {
   oq: { hex: "#FFFFFF", s: { uz: "oq", ru: "белый", en: "white", de: "weiß", es: "blanco" } },
   qora: { hex: "#222222", s: { uz: "qora", ru: "чёрный", en: "black", de: "schwarz", es: "negro" } },
   kulrang: { hex: "#9AA0A6", s: { uz: "kulrang", ru: "серый", en: "grey", de: "grau", es: "gris" } },
+  // REV525: ranglar 2 barobar — tuslar (och/to'q) va yangi ranglar
+  moviy: { hex: "#7EC8F2", s: { uz: "moviy", ru: "голубой", en: "light blue", de: "hellblau", es: "celeste" } },
+  toqKok: { hex: "#1D3A8A", s: { uz: "to‘q ko‘k", ru: "тёмно-синий", en: "dark blue", de: "dunkelblau", es: "azul oscuro" } },
+  ochYashil: { hex: "#A8E05F", s: { uz: "och yashil", ru: "салатовый", en: "light green", de: "hellgrün", es: "verde claro" } },
+  toqYashil: { hex: "#1E7A3C", s: { uz: "to‘q yashil", ru: "тёмно-зелёный", en: "dark green", de: "dunkelgrün", es: "verde oscuro" } },
+  firuza: { hex: "#1ABC9C", s: { uz: "firuza", ru: "бирюзовый", en: "turquoise", de: "türkis", es: "turquesa" } },
+  tilla: { hex: "#D4AF37", s: { uz: "tilla rang", ru: "золотой", en: "gold", de: "gold", es: "dorado" } },
+  kumush: { hex: "#C4CAD0", s: { uz: "kumush rang", ru: "серебряный", en: "silver", de: "silber", es: "plateado" } },
+  bej: { hex: "#E8D5B0", s: { uz: "och jigarrang", ru: "бежевый", en: "beige", de: "beige", es: "beis" } },
+  toqQizil: { hex: "#9B1B30", s: { uz: "to‘q qizil", ru: "бордовый", en: "dark red", de: "dunkelrot", es: "granate" } },
+  zaytun: { hex: "#7A8B2A", s: { uz: "zaytun rang", ru: "оливковый", en: "olive", de: "oliv", es: "verde oliva" } },
+  siyohrang: { hex: "#4B2A8A", s: { uz: "siyohrang", ru: "тёмно-фиолетовый", en: "indigo", de: "indigo", es: "añil" } },
 };
-const RANG_HOVUZ = { "2-3": ["qizil", "sariq", "kok", "yashil"], "4-5": ["qizil", "sariq", "kok", "yashil", "toqSariq", "binafsha", "pushti", "jigarrang"],
-  "6-7": ["qizil", "sariq", "kok", "yashil", "toqSariq", "binafsha", "pushti", "jigarrang", "oq", "qora"] };
+const RANG_HOVUZ = { "2-3": ["qizil", "sariq", "kok", "yashil", "toqSariq", "pushti"],
+  "4-5": ["qizil", "sariq", "kok", "yashil", "toqSariq", "binafsha", "pushti", "jigarrang", "oq", "qora", "kulrang", "moviy"],
+  "6-7": ["qizil", "sariq", "kok", "yashil", "toqSariq", "binafsha", "pushti", "jigarrang", "oq", "qora", "kulrang", "moviy", "toqKok", "ochYashil", "toqYashil",
+    "firuza", "tilla", "kumush", "bej", "toqQizil", "zaytun", "siyohrang"] };
 export const RANGLI_NARSA = [
   ["🍎", "qizil"], ["🍓", "qizil"], ["🍒", "qizil"], ["🍌", "sariq"], ["🐥", "sariq"], ["🌻", "sariq"], ["🐳", "kok"], ["💧", "kok"],
   ["🥒", "yashil"], ["🐸", "yashil"], ["🍀", "yashil"], ["🍊", "toqSariq"], ["🥕", "toqSariq"], ["🎃", "toqSariq"], ["🍇", "binafsha"], ["🍆", "binafsha"],
   ["🌸", "pushti"], ["🦩", "pushti"], ["🐻", "jigarrang"], ["🍫", "jigarrang"], ["⛄", "oq"], ["🦢", "oq"], ["🐈‍⬛", "qora"], ["🎩", "qora"],
+  // REV525: rangli narsalar 4 barobar (24 → 100)
+  ["🍅", "qizil"], ["🌹", "qizil"], ["🚒", "qizil"], ["❤️", "qizil"], ["🌶️", "qizil"], ["🐞", "qizil"], ["🎈", "qizil"], ["🦀", "qizil"],
+  ["🍋", "sariq"], ["🌽", "sariq"], ["⭐", "sariq"], ["🧀", "sariq"], ["🌕", "sariq"], ["🚕", "sariq"], ["🌼", "sariq"], ["🐤", "sariq"],
+  ["🫐", "kok"], ["🚙", "kok"], ["🐬", "kok"], ["🧢", "kok"], ["👖", "kok"], ["🌊", "kok"], ["🐟", "kok"], ["📘", "kok"],
+  ["🥦", "yashil"], ["🐢", "yashil"], ["🌲", "yashil"], ["🍏", "yashil"], ["🥬", "yashil"], ["🐊", "yashil"], ["🦖", "yashil"], ["🍃", "yashil"],
+  ["🦊", "toqSariq"], ["🏀", "toqSariq"], ["🐅", "toqSariq"], ["🧡", "toqSariq"], ["🍑", "toqSariq"], ["🦺", "toqSariq"],
+  ["🔮", "binafsha"], ["💜", "binafsha"], ["☂️", "binafsha"], ["🪻", "binafsha"], ["👾", "binafsha"],
+  ["🐷", "pushti"], ["🌷", "pushti"], ["🎀", "pushti"], ["💗", "pushti"], ["🧠", "pushti"], ["🍥", "pushti"],
+  ["🐴", "jigarrang"], ["🪵", "jigarrang"], ["🥥", "jigarrang"], ["🐿️", "jigarrang"], ["🍪", "jigarrang"], ["🥔", "jigarrang"], ["🐒", "jigarrang"], ["☕", "jigarrang"],
+  ["🥛", "oq"], ["🐑", "oq"], ["☁️", "oq"], ["🦷", "oq"], ["🍚", "oq"], ["🐇", "oq"], ["🥚", "oq"], ["🧻", "oq"],
+  ["🐜", "qora"], ["🕷️", "qora"], ["🎱", "qora"], ["🖤", "qora"], ["🕶️", "qora"], ["♟️", "qora"],
+  ["🐘", "kulrang"], ["🐭", "kulrang"], ["🦏", "kulrang"], ["🪨", "kulrang"], ["🐺", "kulrang"], ["🦈", "kulrang"],
+  ["🏆", "tilla"], ["👑", "tilla"], ["🔔", "tilla"], ["🥇", "tilla"], ["🥈", "kumush"], ["🥄", "kumush"], ["🔧", "kumush"],
+  ["🩵", "moviy"], ["🧊", "moviy"], ["🫒", "zaytun"], ["🍷", "toqQizil"], ["🧉", "bej"],
 ];
-export const ARALASH = [["kok", "sariq", "yashil"], ["qizil", "sariq", "toqSariq"], ["qizil", "kok", "binafsha"], ["qizil", "oq", "pushti"], ["qora", "oq", "kulrang"]];
+export const ARALASH = [["kok", "sariq", "yashil"], ["qizil", "sariq", "toqSariq"], ["qizil", "kok", "binafsha"], ["qizil", "oq", "pushti"], ["qora", "oq", "kulrang"],
+  // REV525: rang aralashtirish 5 → 13
+  ["kok", "oq", "moviy"], ["qizil", "qora", "toqQizil"], ["yashil", "oq", "ochYashil"], ["yashil", "qora", "toqYashil"], ["kok", "qora", "toqKok"],
+  ["kok", "yashil", "firuza"], ["qizil", "yashil", "jigarrang"], ["jigarrang", "oq", "bej"]];
 const rangV = (r) => ({ k: r, rang: r });
 function rangVariantlar(togri, hovuz, n, rnd) { return aralash([togri, ...tanla(hovuz.filter((r) => r !== togri), n - 1, rnd)], rnd).map(rangV); }
 function rangliNarsa(y, rnd) { const h = RANG_HOVUZ[y]; return bitta(RANGLI_NARSA.filter(([, r]) => h.includes(r)), rnd); }

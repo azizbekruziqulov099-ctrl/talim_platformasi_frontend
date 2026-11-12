@@ -38,7 +38,7 @@ test('REV337: rang o‘yinlari', () => {
   }
   assert.equal(oyinYasa(64, { elementlar: [], yosh: '4-5' }), null);   // aralashtirish — faqat 6–7 yosh
   const h = oyinYasa(61, { elementlar: [], yosh: '2-3', urug: 1 });
-  assert.ok(h.raundlar.every((r) => ['qizil', 'sariq', 'kok', 'yashil'].includes(r.togri)));   // kichiklarga — asosiy 4 rang
+  assert.ok(h.raundlar.every((r) => ['qizil', 'sariq', 'kok', 'yashil', 'toqSariq', 'pushti'].includes(r.togri)));   // kichiklarga — 6 ta aniq rang (REV525: 4 edi)
 });
 test('REV338: matematika o‘yinlari', () => {
   for (const [id, ys] of [[49, ['4-5', '6-7']], [57, ['6-7']], [43, ['4-5', '6-7']], [59, ['4-5', '6-7']]]) for (const y of ys) {

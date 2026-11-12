@@ -10,8 +10,11 @@ const bugun = () => new Date().toISOString().slice(0, 10);
 /** Topshiriqning aniq imzosi (aynan shu savol). */
 export function raundImzo(r) {
   if (!r) return "";
-  return JSON.stringify([r.tur, r.togri ?? null, r.savol ?? null, r.nishon?.k ?? null,
-    r.togri == null ? (r.variantlar || []).map((v) => v?.k).sort() : null, r.namuna ?? r.ketma ?? r.juftlar?.map((j) => j?.k) ?? null]);
+  // REV525: variantlarning ko'rinadigan mazmuni ham imzoga kiradi (do'kon: pul bir xil bo'lsa ham mahsulot va narxlar boshqa — bu boshqa topshiriq)
+  const bir = (x) => (x ? x.el?.soz?.uz || x.el?.uz || x.el?.emoji || x.rang || (x.son != null ? `${x.son}${x.korinish || ""}` : "") : "");
+  const vk = (r.variantlar || []).map((v) => [bir(v), v?.narx ?? "", bir(v?.chap), bir(v?.ong)].join(":")).sort();
+  return JSON.stringify([r.tur, typeof r.togri === "string" && /^[a-z]\d+$/.test(r.togri) ? null : r.togri ?? null, r.savol ?? null, r.nishon?.k ?? null, vk,
+    r.namuna ?? r.ketma ?? r.juftlar?.map((j) => j?.k) ?? null]);
 }
 
 /** Mazmun kaliti — odam tushunadigan «nima haqida» (o'yin turidan qat'i nazar): «qo'l yuvish», «olma», «5»… */

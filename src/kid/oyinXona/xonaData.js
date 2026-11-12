@@ -400,6 +400,26 @@ export const XONA_TOPLAM = [
 "de": "Krake",
 "es": "pulpo"
 }
+},
+{
+"r": "d_m-gepard",
+"s": {
+"uz": "gepard",
+"ru": "гепард",
+"en": "cheetah",
+"de": "Gepard",
+"es": "guepardo"
+}
+},
+{
+"r": "d_m-hamyak",
+"s": {
+"uz": "hamster",
+"ru": "хомяк",
+"en": "hamster",
+"de": "Hamster",
+"es": "hámster"
+}
 }
 ]
 },
@@ -612,6 +632,16 @@ export const XONA_TOPLAM = [
 "en": "grasshopper",
 "de": "Heuschrecke",
 "es": "saltamontes"
+}
+},
+{
+"r": "d_m-qizilgoz",
+"s": {
+"uz": "flamingo",
+"ru": "фламинго",
+"en": "flamingo",
+"de": "Flamingo",
+"es": "flamenco"
 }
 }
 ]
@@ -929,6 +959,26 @@ export const XONA_TOPLAM = [
 "de": "Spinat",
 "es": "espinaca"
 }
+},
+{
+"r": "d_m-noxat",
+"s": {
+"uz": "no‘xat",
+"ru": "горох",
+"en": "peas",
+"de": "Erbsen",
+"es": "guisantes"
+}
+},
+{
+"r": "d_m-shivit",
+"s": {
+"uz": "shivit",
+"ru": "укроп",
+"en": "dill",
+"de": "Dill",
+"es": "eneldo"
+}
 }
 ]
 },
@@ -1121,6 +1171,36 @@ export const XONA_TOPLAM = [
 "en": "metro",
 "de": "U-Bahn",
 "es": "metro"
+}
+},
+{
+"r": "d_m-kran",
+"s": {
+"uz": "kran",
+"ru": "кран",
+"en": "crane",
+"de": "Kran",
+"es": "grúa"
+}
+},
+{
+"r": "d_m-kombayn",
+"s": {
+"uz": "kombayn",
+"ru": "комбайн",
+"en": "combine harvester",
+"de": "Mähdrescher",
+"es": "cosechadora"
+}
+},
+{
+"r": "d_m-arava",
+"s": {
+"uz": "arava",
+"ru": "телега",
+"en": "cart",
+"de": "Karren",
+"es": "carro"
 }
 }
 ]
@@ -1455,6 +1535,166 @@ export const XONA_TOPLAM = [
 "de": "Tasche",
 "es": "bolso"
 }
+},
+{
+"r": "d_m-javon",
+"s": {
+"uz": "javon",
+"ru": "полка",
+"en": "shelf",
+"de": "Regal",
+"es": "estante"
+}
+},
+{
+"r": "d_m-kiyim-shkafi",
+"s": {
+"uz": "shkaf",
+"ru": "шкаф",
+"en": "wardrobe",
+"de": "Schrank",
+"es": "armario"
+}
+},
+{
+"r": "d_m-dazmol",
+"s": {
+"uz": "dazmol",
+"ru": "утюг",
+"en": "iron",
+"de": "Bügeleisen",
+"es": "plancha"
+}
+},
+{
+"r": "d_m-changyutgich",
+"s": {
+"uz": "changyutgich",
+"ru": "пылесос",
+"en": "vacuum cleaner",
+"de": "Staubsauger",
+"es": "aspiradora"
+}
+},
+{
+"r": "d_y-hammer",
+"s": {
+"uz": "bolg‘a",
+"ru": "молоток",
+"en": "hammer",
+"de": "Hammer",
+"es": "martillo"
+}
+},
+{
+"r": "d_m-kalit",
+"s": {
+"uz": "kalit",
+"ru": "ключ",
+"en": "key",
+"de": "Schlüssel",
+"es": "llave"
+}
+},
+{
+"r": "d_m-kompyuter",
+"s": {
+"uz": "kompyuter",
+"ru": "компьютер",
+"en": "computer",
+"de": "Computer",
+"es": "ordenador"
+}
+},
+{
+"r": "d_m-noutbuk",
+"s": {
+"uz": "noutbuk",
+"ru": "ноутбук",
+"en": "laptop",
+"de": "Laptop",
+"es": "portátil"
+}
+},
+{
+"r": "d_m-kalendar-taqvim",
+"s": {
+"uz": "kalendar",
+"ru": "календарь",
+"en": "calendar",
+"de": "Kalender",
+"es": "calendario"
+}
+},
+{
+"r": "d_m-guldon",
+"s": {
+"uz": "vaza",
+"ru": "ваза",
+"en": "vase",
+"de": "Vase",
+"es": "jarrón"
+}
+},
+{
+"r": "d_m-zina",
+"s": {
+"uz": "zina",
+"ru": "лестница",
+"en": "stairs",
+"de": "Treppe",
+"es": "escalera"
+}
+},
+{
+"r": "d_m-sham",
+"s": {
+"uz": "sham",
+"ru": "свеча",
+"en": "candle",
+"de": "Kerze",
+"es": "vela"
+}
+},
+{
+"r": "d_m-chamadon",
+"s": {
+"uz": "chamadon",
+"ru": "чемодан",
+"en": "suitcase",
+"de": "Koffer",
+"es": "maleta"
+}
+},
+{
+"r": "d_m-banka",
+"s": {
+"uz": "banka",
+"ru": "банка",
+"en": "jar",
+"de": "Glas",
+"es": "tarro"
+}
+},
+{
+"r": "d_m-axlat-chelagi",
+"s": {
+"uz": "axlat chelagi",
+"ru": "мусорное ведро",
+"en": "rubbish bin",
+"de": "Mülleimer",
+"es": "cubo de basura"
+}
+},
+{
+"r": "d_basket",
+"s": {
+"uz": "savat",
+"ru": "корзина",
+"en": "basket",
+"de": "Korb",
+"es": "cesta"
+}
 }
 ]
 },
@@ -1657,6 +1897,96 @@ export const XONA_TOPLAM = [
 "en": "pajamas",
 "de": "Schlafanzug",
 "es": "pijama"
+}
+},
+{
+"r": "d_m-kostyum-milliy-kiyim",
+"s": {
+"uz": "chopon",
+"ru": "чапан",
+"en": "chapan robe",
+"de": "Tschapan",
+"es": "chapán"
+}
+},
+{
+"r": "d_m-kamar",
+"s": {
+"uz": "kamar",
+"ru": "ремень",
+"en": "belt",
+"de": "Gürtel",
+"es": "cinturón"
+}
+},
+{
+"r": "d_m-doppi",
+"s": {
+"uz": "do‘ppi",
+"ru": "тюбетейка",
+"en": "skullcap",
+"de": "Tubeteika",
+"es": "gorro uzbeko"
+}
+},
+{
+"r": "d_m-romol",
+"s": {
+"uz": "ro‘mol",
+"ru": "платок",
+"en": "headscarf",
+"de": "Kopftuch",
+"es": "pañuelo"
+}
+},
+{
+"r": "d_m-xalat",
+"s": {
+"uz": "xalat",
+"ru": "халат",
+"en": "bathrobe",
+"de": "Bademantel",
+"es": "albornoz"
+}
+},
+{
+"r": "d_m-sandal",
+"s": {
+"uz": "sandal",
+"ru": "сандалии",
+"en": "sandals",
+"de": "Sandalen",
+"es": "sandalias"
+}
+},
+{
+"r": "d_m-bilaguzuk",
+"s": {
+"uz": "bilaguzuk",
+"ru": "браслет",
+"en": "bracelet",
+"de": "Armband",
+"es": "pulsera"
+}
+},
+{
+"r": "d_m-marjon-boyinbog",
+"s": {
+"uz": "marjon",
+"ru": "бусы",
+"en": "necklace",
+"de": "Halskette",
+"es": "collar"
+}
+},
+{
+"r": "d_m-maktab-formasi",
+"s": {
+"uz": "forma",
+"ru": "форма",
+"en": "uniform",
+"de": "Uniform",
+"es": "uniforme"
 }
 }
 ]
@@ -1871,6 +2201,106 @@ export const XONA_TOPLAM = [
 "de": "Pizza",
 "es": "pizza"
 }
+},
+{
+"r": "d_m-manti",
+"s": {
+"uz": "manti",
+"ru": "манты",
+"en": "manti dumplings",
+"de": "Manti",
+"es": "manti"
+}
+},
+{
+"r": "d_m-murabbo",
+"s": {
+"uz": "murabbo",
+"ru": "варенье",
+"en": "jam",
+"de": "Marmelade",
+"es": "mermelada"
+}
+},
+{
+"r": "d_m-yog",
+"s": {
+"uz": "yog‘",
+"ru": "масло",
+"en": "oil",
+"de": "Öl",
+"es": "aceite"
+}
+},
+{
+"r": "d_m-bulochka",
+"s": {
+"uz": "bulochka",
+"ru": "булочка",
+"en": "bun",
+"de": "Brötchen",
+"es": "bollo"
+}
+},
+{
+"r": "d_m-buterbrod",
+"s": {
+"uz": "buterbrod",
+"ru": "бутерброд",
+"en": "sandwich",
+"de": "belegtes Brot",
+"es": "bocadillo"
+}
+},
+{
+"r": "d_m-kompot",
+"s": {
+"uz": "kompot",
+"ru": "компот",
+"en": "fruit drink",
+"de": "Kompott",
+"es": "compota"
+}
+},
+{
+"r": "d_m-qahva",
+"s": {
+"uz": "qahva",
+"ru": "кофе",
+"en": "coffee",
+"de": "Kaffee",
+"es": "café"
+}
+},
+{
+"r": "d_m-kakao",
+"s": {
+"uz": "kakao",
+"ru": "какао",
+"en": "cocoa",
+"de": "Kakao",
+"es": "cacao"
+}
+},
+{
+"r": "d_m-un",
+"s": {
+"uz": "un",
+"ru": "мука",
+"en": "flour",
+"de": "Mehl",
+"es": "harina"
+}
+},
+{
+"r": "d_m-popkorn",
+"s": {
+"uz": "popkorn",
+"ru": "попкорн",
+"en": "popcorn",
+"de": "Popcorn",
+"es": "palomitas"
+}
 }
 ]
 },
@@ -2083,6 +2513,522 @@ export const XONA_TOPLAM = [
 "en": "lightning",
 "de": "Blitz",
 "es": "relámpago"
+}
+},
+{
+"r": "d_m-osmon",
+"s": {
+"uz": "osmon",
+"ru": "небо",
+"en": "sky",
+"de": "Himmel",
+"es": "cielo"
+}
+},
+{
+"r": "d_m-boron",
+"s": {
+"uz": "bo‘ron",
+"ru": "буря",
+"en": "storm",
+"de": "Sturm",
+"es": "tormenta"
+}
+},
+{
+"r": "d_m-vulqon",
+"s": {
+"uz": "vulqon",
+"ru": "вулкан",
+"en": "volcano",
+"de": "Vulkan",
+"es": "volcán"
+}
+},
+{
+"r": "d_m-gor",
+"s": {
+"uz": "g‘or",
+"ru": "пещера",
+"en": "cave",
+"de": "Höhle",
+"es": "cueva"
+}
+},
+{
+"r": "d_m-sharshara",
+"s": {
+"uz": "sharshara",
+"ru": "водопад",
+"en": "waterfall",
+"de": "Wasserfall",
+"es": "cascada"
+}
+},
+{
+"r": "d_m-orol",
+"s": {
+"uz": "orol",
+"ru": "остров",
+"en": "island",
+"de": "Insel",
+"es": "isla"
+}
+},
+{
+"r": "d_m-soyabon",
+"s": {
+"uz": "plyaj",
+"ru": "пляж",
+"en": "beach",
+"de": "Strand",
+"es": "playa"
+}
+},
+{
+"r": "d_m-archa",
+"s": {
+"uz": "archa",
+"ru": "ель",
+"en": "fir tree",
+"de": "Tanne",
+"es": "abeto"
+}
+},
+{
+"r": "d_m-buta",
+"s": {
+"uz": "buta",
+"ru": "куст",
+"en": "bush",
+"de": "Busch",
+"es": "arbusto"
+}
+},
+{
+"r": "d_m-dala",
+"s": {
+"uz": "dala",
+"ru": "поле",
+"en": "field",
+"de": "Feld",
+"es": "campo"
+}
+},
+{
+"r": "d_m-chang-boroni",
+"s": {
+"uz": "chang bo‘roni",
+"ru": "пыльная буря",
+"en": "dust storm",
+"de": "Staubsturm",
+"es": "tormenta de polvo"
+}
+},
+{
+"r": "d_am45-u2-ildiz",
+"s": {
+"uz": "ildiz",
+"ru": "корень",
+"en": "root",
+"de": "Wurzel",
+"es": "raíz"
+}
+},
+{
+"r": "d_m-unib-chiqmoq",
+"s": {
+"uz": "urug‘",
+"ru": "семя",
+"en": "seed",
+"de": "Samen",
+"es": "semilla"
+}
+},
+{
+"r": "d_m-bog-park",
+"s": {
+"uz": "bog‘",
+"ru": "сад",
+"en": "garden",
+"de": "Garten",
+"es": "jardín"
+}
+}
+]
+},
+{
+"kalit": "kasblar",
+"belgi": "👩‍⚕️",
+"nom": {
+"uz": "Kasblar",
+"ru": "Профессии",
+"en": "Jobs",
+"de": "Berufe",
+"es": "Profesiones"
+},
+"items": [
+{
+"r": "d_m-shifokor",
+"s": {
+"uz": "shifokor",
+"ru": "врач",
+"en": "doctor",
+"de": "Arzt",
+"es": "médico"
+}
+},
+{
+"r": "d_m-oqituvchi",
+"s": {
+"uz": "o‘qituvchi",
+"ru": "учитель",
+"en": "teacher",
+"de": "Lehrer",
+"es": "maestro"
+}
+},
+{
+"r": "d_m-oshpaz",
+"s": {
+"uz": "oshpaz",
+"ru": "повар",
+"en": "cook",
+"de": "Koch",
+"es": "cocinero"
+}
+},
+{
+"r": "d_m-uchuvchi",
+"s": {
+"uz": "uchuvchi",
+"ru": "пилот",
+"en": "pilot",
+"de": "Pilot",
+"es": "piloto"
+}
+},
+{
+"r": "d_m-politsiyachi",
+"s": {
+"uz": "politsiyachi",
+"ru": "полицейский",
+"en": "police officer",
+"de": "Polizist",
+"es": "policía"
+}
+},
+{
+"r": "d_m-sotuvchi",
+"s": {
+"uz": "sotuvchi",
+"ru": "продавец",
+"en": "shop assistant",
+"de": "Verkäufer",
+"es": "vendedor"
+}
+},
+{
+"r": "d_m-qoshiqchi",
+"s": {
+"uz": "qo‘shiqchi",
+"ru": "певец",
+"en": "singer",
+"de": "Sänger",
+"es": "cantante"
+}
+},
+{
+"r": "d_m-sartarosh",
+"s": {
+"uz": "sartarosh",
+"ru": "парикмахер",
+"en": "hairdresser",
+"de": "Friseur",
+"es": "peluquero"
+}
+},
+{
+"r": "d_m-novvoy",
+"s": {
+"uz": "novvoy",
+"ru": "пекарь",
+"en": "baker",
+"de": "Bäcker",
+"es": "panadero"
+}
+},
+{
+"r": "d_m-muhandis",
+"s": {
+"uz": "muhandis",
+"ru": "инженер",
+"en": "engineer",
+"de": "Ingenieur",
+"es": "ingeniero"
+}
+},
+{
+"r": "d_m-dasturchi",
+"s": {
+"uz": "dasturchi",
+"ru": "программист",
+"en": "programmer",
+"de": "Programmierer",
+"es": "programador"
+}
+},
+{
+"r": "d_m-sportchi",
+"s": {
+"uz": "sportchi",
+"ru": "спортсмен",
+"en": "athlete",
+"de": "Sportler",
+"es": "deportista"
+}
+},
+{
+"r": "d_m-kosmonavt",
+"s": {
+"uz": "kosmonavt",
+"ru": "космонавт",
+"en": "astronaut",
+"de": "Astronaut",
+"es": "astronauta"
+}
+},
+{
+"r": "d_m-baliqchi",
+"s": {
+"uz": "baliqchi",
+"ru": "рыбак",
+"en": "fisherman",
+"de": "Fischer",
+"es": "pescador"
+}
+},
+{
+"r": "d_m-pochtachi",
+"s": {
+"uz": "pochtachi",
+"ru": "почтальон",
+"en": "postman",
+"de": "Briefträger",
+"es": "cartero"
+}
+},
+{
+"r": "d_m-aktyor",
+"s": {
+"uz": "aktyor",
+"ru": "актёр",
+"en": "actor",
+"de": "Schauspieler",
+"es": "actor"
+}
+},
+{
+"r": "d_m-advokat",
+"s": {
+"uz": "advokat",
+"ru": "адвокат",
+"en": "lawyer",
+"de": "Anwalt",
+"es": "abogado"
+}
+},
+{
+"r": "d_m-jurnalist",
+"s": {
+"uz": "jurnalist",
+"ru": "журналист",
+"en": "journalist",
+"de": "Journalist",
+"es": "periodista"
+}
+},
+{
+"r": "d_m-olim",
+"s": {
+"uz": "olim",
+"ru": "учёный",
+"en": "scientist",
+"de": "Wissenschaftler",
+"es": "científico"
+}
+},
+{
+"r": "d_m-ofitsiant",
+"s": {
+"uz": "ofitsiant",
+"ru": "официант",
+"en": "waiter",
+"de": "Kellner",
+"es": "camarero"
+}
+},
+{
+"r": "d_m-tish-shifokori",
+"s": {
+"uz": "tish shifokori",
+"ru": "стоматолог",
+"en": "dentist",
+"de": "Zahnarzt",
+"es": "dentista"
+}
+},
+{
+"r": "d_m-veterinar",
+"s": {
+"uz": "veterinar",
+"ru": "ветеринар",
+"en": "vet",
+"de": "Tierarzt",
+"es": "veterinario"
+}
+},
+{
+"r": "d_m-akrobat-dorboz",
+"s": {
+"uz": "akrobat",
+"ru": "акробат",
+"en": "acrobat",
+"de": "Akrobat",
+"es": "acróbata"
+}
+},
+{
+"r": "d_m-astronom-munajjim",
+"s": {
+"uz": "astronom",
+"ru": "астроном",
+"en": "astronomer",
+"de": "Astronom",
+"es": "astrónomo"
+}
+}
+]
+},
+{
+"kalit": "his_tuygular",
+"belgi": "😊",
+"nom": {
+"uz": "His-tuyg‘ular",
+"ru": "Чувства",
+"en": "Feelings",
+"de": "Gefühle",
+"es": "Sentimientos"
+},
+"items": [
+{
+"r": "d_xursand",
+"s": {
+"uz": "xursand",
+"ru": "весёлый",
+"en": "happy",
+"de": "fröhlich",
+"es": "contento"
+}
+},
+{
+"r": "d_m-jahldor",
+"s": {
+"uz": "jahldor",
+"ru": "сердитый",
+"en": "angry",
+"de": "wütend",
+"es": "enfadado"
+}
+},
+{
+"r": "d_m-qorqqan",
+"s": {
+"uz": "qo‘rqqan",
+"ru": "испуганный",
+"en": "scared",
+"de": "ängstlich",
+"es": "asustado"
+}
+},
+{
+"r": "d_m-hayron-ajablangan",
+"s": {
+"uz": "hayron",
+"ru": "удивлённый",
+"en": "surprised",
+"de": "überrascht",
+"es": "sorprendido"
+}
+},
+{
+"r": "d_m-charchagan",
+"s": {
+"uz": "charchagan",
+"ru": "уставший",
+"en": "tired",
+"de": "müde",
+"es": "cansado"
+}
+},
+{
+"r": "d_m-uyqusi-kelgan",
+"s": {
+"uz": "uyqusiragan",
+"ru": "сонный",
+"en": "sleepy",
+"de": "schläfrig",
+"es": "con sueño"
+}
+},
+{
+"r": "d_m-chanqagan",
+"s": {
+"uz": "chanqagan",
+"ru": "хочет пить",
+"en": "thirsty",
+"de": "durstig",
+"es": "sediento"
+}
+},
+{
+"r": "d_m-kasal",
+"s": {
+"uz": "kasal",
+"ru": "больной",
+"en": "ill",
+"de": "krank",
+"es": "enfermo"
+}
+},
+{
+"r": "d_m-foydali-soglom",
+"s": {
+"uz": "sog‘lom",
+"ru": "здоровый",
+"en": "healthy",
+"de": "gesund",
+"es": "sano"
+}
+},
+{
+"r": "d_m-zerikkan",
+"s": {
+"uz": "zerikkan",
+"ru": "скучающий",
+"en": "bored",
+"de": "gelangweilt",
+"es": "aburrido"
+}
+},
+{
+"r": "d_m-hayajonlangan",
+"s": {
+"uz": "hayajonlangan",
+"ru": "взволнованный",
+"en": "excited",
+"de": "aufgeregt",
+"es": "emocionado"
 }
 }
 ]
