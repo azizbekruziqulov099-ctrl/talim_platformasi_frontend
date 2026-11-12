@@ -1,0 +1,33 @@
+/* REV526: Mantiq o'yinlari */
+.mq-sahifa{max-width:760px;margin:0 auto;padding:14px 12px 90px;display:flex;flex-direction:column;gap:12px;color:#13314f}
+.mq-bosh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.mq-bosh h2{margin:0}.mq-bosh small{color:#5b6573}
+.mq-ortga,.mq-havola{border:0;background:#eef6ff;color:#13314f;border-radius:12px;padding:8px 14px;font:700 14px system-ui;cursor:pointer}
+.mq-havola{background:none;text-decoration:underline;color:#5b6573}.mq-yulduz{font-weight:800}
+.mq-kartalar{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.mq-karta{display:flex;gap:12px;align-items:center;text-align:left;border:1px solid #e3e8ef;background:#fff;border-radius:18px;padding:14px;cursor:pointer;box-shadow:0 3px 12px rgba(16,42,67,.06)}
+.mq-karta>span{font-size:40px}.mq-karta b{display:block;font-size:17px}.mq-karta small{color:#5b6573;display:block}.mq-karta em{font-style:normal;font-weight:700;color:#b8860b}
+.mq-daraja{display:flex;gap:6px}.mq-daraja button{border:1px solid #dbe3ec;background:#fff;border-radius:999px;padding:6px 14px;font:700 14px system-ui;cursor:pointer;color:#13314f}
+.mq-daraja button.is-on{background:#1B4B7A;color:#fff;border-color:#1B4B7A}
+.mq-oyin{background:#fff;border-radius:20px;padding:14px;box-shadow:0 4px 16px rgba(16,42,67,.07);display:flex;flex-direction:column;gap:12px;align-items:center}
+.mq-asosiy{border:0;border-radius:12px;padding:10px 16px;background:#1B4B7A;color:#fff;font:800 15px system-ui;cursor:pointer}.mq-asosiy:disabled{opacity:.5}
+.mq-pastki{display:flex;justify-content:center}.mq-izoh{margin:0;color:#5b6573;font-size:14px;text-align:center}
+.mq-yutdi{margin:0;font-weight:800;color:#1f7a4d;font-size:17px}.mq-xato{margin:0;color:#b3261e;font-weight:700}
+.mq-sudoku{display:grid;width:100%;border:3px solid #13314f;border-radius:6px;overflow:hidden}
+.mq-sudoku button{aspect-ratio:1;border:solid #b9c6d6;border-width:0 1px 1px 0;border-right-color:#13314f;border-bottom-color:#13314f;background:#fff;font:700 clamp(15px,4.4vw,24px) system-ui;color:#1B4B7A;cursor:pointer;padding:0}
+.mq-sudoku button.is-berilgan{background:#eef2f7;color:#13314f;font-weight:800}.mq-sudoku button.is-bir{background:#fff3c4}
+.mq-sudoku button.is-tanlov{background:#cfe6ff}.mq-sudoku button.is-xato{color:#d9534f;background:#fdecea}
+.mq-raqamlar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.mq-raqamlar button,.mq-amallar button,.mq-sonlar button{min-width:44px;height:44px;border-radius:12px;border:0;background:#eef2f7;font:800 18px system-ui;color:#13314f;cursor:pointer;padding:0 10px}
+.mq-nishon{font-size:20px}.mq-nishon b{font-size:34px;color:#1B4B7A}
+.mq-sonlar{display:flex;gap:8px}.mq-sonlar button{background:#fff3c4;min-width:54px;height:54px;font-size:22px}
+.mq-ifoda{min-height:48px;width:100%;border:2px dashed #b9c6d6;border-radius:12px;display:grid;place-items:center;font:800 22px system-ui;padding:4px 8px;word-break:break-all}.mq-ifoda span{font:500 14px system-ui;color:#8a94a3}
+.mq-amallar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.mq-kod-tarix{display:flex;flex-direction:column;gap:6px}.mq-kod-qator{display:flex;gap:6px;align-items:center}.mq-kod-qator small{width:18px;color:#8a94a3}
+.mq-kod-qator.is-joriy .mq-dona{outline:2px dashed #b9c6d6}
+.mq-dona{width:30px;height:30px;border-radius:50%;display:inline-block;border:2px solid rgba(0,0,0,.18)}.mq-baho{margin-left:8px;letter-spacing:2px}
+.mq-palitra{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.mq-palitra button{width:42px;height:42px;border-radius:50%;border:3px solid rgba(0,0,0,.2);cursor:pointer}
+.mq-nono{display:grid;grid-template-columns:auto repeat(var(--n),minmax(0,34px));gap:0;font:700 12px system-ui}
+.mq-nono-ust{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:3px;color:#13314f}
+.mq-nono-qat{display:flex;align-items:center;justify-content:flex-end;padding-right:6px;white-space:nowrap;color:#13314f}
+.mq-nono button{aspect-ratio:1;border:1px solid #b9c6d6;background:#fff;cursor:pointer;padding:0;font:700 14px system-ui;color:#b3261e}.mq-nono button.is-boyoq{background:#13314f}
+.mq-nono-qat{gap:7px}.mq-nono-ust{gap:1px}

@@ -520,6 +520,7 @@ const LazyShashka = _samtmLazyRetry(() => import("./games/Shashka.jsx"));
 const LazyShaxmat = _samtmLazyRetry(() => import("./games/Shaxmat.jsx"));
 const LazyOyinlarMarkazi = _samtmLazyRetry(() => import("./games/OyinlarMarkazi.jsx"));
 const LazyFanOyinlari = _samtmLazyRetry(() => import("./games/FanOyinlari.jsx"));   // REV437
+const LazyMantiqOyinlari = _samtmLazyRetry(() => import("./games/mantiq/MantiqOyinlari.jsx"));   // REV526: 1–11-sinf mantiq o'yinlari
 const LazyEkspeditsiya = _samtmLazyRetry(() => import("./games/Ekspeditsiya.jsx"));   // REV456
 const LazyBugun = _samtmLazyRetry(() => import("./workspace/BugunEkran.jsx"));   // REV487: «🏠 Bugun» bosh ekrani
 const LazyMen = _samtmLazyRetry(() => import("./workspace/MenSahifa.jsx"));   // REV488: «📊 Men»
@@ -618,7 +619,7 @@ function Shashka(props) { return lazyPanel(LazyShashka, props); }
 function Shaxmat(props) { return lazyPanel(LazyShaxmat, props); }
 function OyinlarMarkazi(props) { return lazyPanel(LazyOyinlarMarkazi, props); }
 function Chempionat(props) { return lazyPanel(LazyChempionat, props); }
-const OYIN_TABLARI = new Set(["oyinlar", "ekspeditsiya", "fan_oyinlari", "mantiq", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
+const OYIN_TABLARI = new Set(["oyinlar", "ekspeditsiya", "fan_oyinlari", "mantiq_oyinlari", "mantiq", "bellashuv", "shashka", "shaxmat", "til_xonalari", "til_mashqi", "til_maktab", "chempionat"]);
 const LazyTilTanlov = _samtmLazyRetry(() => import("./til/TilTanlov.jsx"));   // REV128: til o'yin xonalari va kattalar mashqi
 const LazyXalqaroBaholash = _samtmLazyRetry(() => import("./xalqaro/XalqaroBaholash.jsx"));   // REV260: xalqaro baholash
 // REV373: ?xb_sinf=KOD — o'qituvchining sinf taklifi: kodni eslab qolamiz (kirishdan keyin ham), keyin «Xalqaro baholash» ochiladi
@@ -15220,6 +15221,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         }} />
       )}
       {korinishRoli !== "ota-ona" && tab === "fan_oyinlari" && lazyPanel(LazyFanOyinlari, { onClose: () => setTab("oyinlar") })}
+      {korinishRoli !== "ota-ona" && tab === "mantiq_oyinlari" && lazyPanel(LazyMantiqOyinlari, { sinf: foydalanuvchi?.class || "", onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
       {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi, muassasalar: muassasalarim, onMuassasa: muassasaniTanla })}
       {tab === "men" && lazyPanel(LazyMen, { apiBase: API_BASE, token, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
