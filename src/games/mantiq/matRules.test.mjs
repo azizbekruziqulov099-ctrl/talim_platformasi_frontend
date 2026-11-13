@@ -5,7 +5,8 @@ test("tenglama: x haqiqatan yechim, qadamlar oxiri x ga olib keladi", () => {
   for (const d of [0, 1, 2]) for (let u = 1; u <= 40; u += 1) { const t = tenglamaYasa(u, d);
     assert.equal(t.chap.k * t.x + t.chap.o, t.ong.k * t.x + t.ong.o, t.matn);
     assert.ok(Number.isInteger(t.x)); assert.ok(t.qadamlar.length >= 1); assert.ok(/=/.test(t.matn));
-    if (t.chap.k - t.ong.k !== 1) assert.ok(t.qadamlar.at(-1).endsWith(`x = ${t.x}`), t.qadamlar.at(-1)); }
+    assert.ok(t.qadamlar.every((q) => q.m.includes("{v0}") && q.m.includes("{v1}") && q.a.length === 2));
+    assert.ok(String(t.qadamlar.at(-1).a[1]).endsWith(`x = ${t.x}`), JSON.stringify(t.qadamlar.at(-1))); }
 });
 test("kasr yig'ish: yechim nishonga teng, bo'laklar yetarli", () => {
   for (const d of [0, 1, 2]) for (let u = 1; u <= 40; u += 1) { const t = kasrYasa(u, d);

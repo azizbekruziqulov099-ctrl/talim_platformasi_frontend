@@ -24,11 +24,11 @@ export const VILOYATLAR = [
 export function viloyatYasa(urug = 1, d = 0, soni = 8) {
   const r = tasodif(urug * 97 + dar(d) * 2003); const tartib = aralash([...VILOYATLAR.keys()], r).slice(0, soni);
   return tartib.map((i) => { const [k, nom, markaz, , , joy] = VILOYATLAR[i]; const tur = d === 0 ? "xarita" : ["xarita", "markaz", "markazdan", ...(d === 2 ? ["joy", "joy"] : [])][but(r, 0, d === 2 ? 4 : 2)];
-    if (tur === "xarita") return { tur, matn: nom, javob: k, izoh: `${nom} — markazi ${markaz}` };
-    if (tur === "markazdan") return { tur: "xarita", matn: `Markazi ${markaz} bo‘lgan hudud`, javob: k, izoh: `${markaz} — ${nom} markazi` };
-    if (tur === "joy") return { tur: "xarita", matn: `${joy} joylashgan hudud`, javob: k, izoh: `${joy} — ${nom}` };
+    if (tur === "xarita") return { tur, matn: nom, javob: k, izoh: { m: "{v0} — markazi {v1}", a: [{ tr: nom }, { tr: markaz }] } };
+    if (tur === "markazdan") return { tur: "xarita", matn: { m: "Markazi {v0} bo‘lgan hudud", a: [{ tr: markaz }] }, javob: k, izoh: { m: "{v0} — markazi {v1}", a: [{ tr: nom }, { tr: markaz }] } };
+    if (tur === "joy") return { tur: "xarita", matn: { m: "{v0} joylashgan hudud", a: [{ tr: joy }] }, javob: k, izoh: { m: "{v0} — {v1}", a: [{ tr: joy }, { tr: nom }] } };
     const boshqa = aralash(VILOYATLAR.filter((_, x) => x !== i).map((v) => v[2]).filter((m) => m !== markaz), r).slice(0, 3); const v = aralash([markaz, ...boshqa], r);
-    return { tur: "markaz", matn: nom, javob: k, variantlar: v, togri: v.indexOf(markaz), izoh: `${nom} — markazi ${markaz}` }; });
+    return { tur: "markaz", matn: nom, javob: k, variantlar: v, togri: v.indexOf(markaz), izoh: { m: "{v0} — markazi {v1}", a: [{ tr: nom }, { tr: markaz }] } }; });
 }
 
 // [bayroq, davlat, poytaxt, daraja]
@@ -48,7 +48,7 @@ export function davlatYasa(urug = 1, d = 0, soni = 8) {
   const r = tasodif(urug * 101 + dar(d) * 2111); const hovuz = DAVLATLAR.filter((x) => x[3] <= dar(d)); const asosiy = aralash(hovuz.filter((x) => x[3] === dar(d) || r() < 0.3), r).slice(0, soni);
   return asosiy.map((x) => { const tur = ["bayroq", "poytaxt", "davlat"][but(r, 0, 2)]; const boshqa = aralash(hovuz.filter((y) => y !== x), r).slice(0, 3);
     const ol = (y) => (tur === "poytaxt" ? y[2] : y[1]); const v = aralash([x, ...boshqa], r);
-    return { tur, matn: tur === "bayroq" ? x[0] : tur === "poytaxt" ? x[1] : x[2], variantlar: v.map(ol), togri: v.indexOf(x), izoh: `${x[0]} ${x[1]} — poytaxti ${x[2]}` }; });
+    return { tur, matn: tur === "bayroq" ? x[0] : tur === "poytaxt" ? x[1] : x[2], variantlar: v.map(ol), togri: v.indexOf(x), izoh: { m: "{v0} {v1} — poytaxti {v2}", a: [x[0], { tr: x[1] }, { tr: x[2] }] } }; });
 }
 
 // Tabiat zonalari: [zona, [belgi, tavsif]…]
@@ -66,5 +66,5 @@ export function zonaYasa(urug = 1, d = 0, soni = 8) {
   const r = tasodif(urug * 103 + dar(d) * 2203); const zonalar = ZONALAR.slice(0, [5, 7, 8][dar(d)] + (dar(d) === 0 ? 0 : 0));
   const hamma = aralash(zonalar.flatMap(([z, xs], zi) => xs.map((x) => ({ zi, z, x }))), r).slice(0, soni);
   return hamma.map(({ zi, z, x }) => { const boshqa = aralash(zonalar.map((q) => q[0]).filter((_, k) => k !== zi), r).slice(0, d === 0 ? 2 : 3); const v = aralash([z, ...boshqa], r);
-    return { belgi: x[0], matn: x[1], variantlar: v, togri: v.indexOf(z), izoh: `${x[0]} ${x[1]} — ${z}` }; });
+    return { belgi: x[0], matn: x[1], variantlar: v, togri: v.indexOf(z), izoh: { m: "{v0} {v1} — {v2}", a: [x[0], { tr: x[1] }, { tr: z }] } }; });
 }

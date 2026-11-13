@@ -12,11 +12,11 @@ export function tenglamaYasa(urug = 1, d = 0) {
   else if (d === 1) { x = but(r, 1, 12); const a = but(r, 2, 6), b = but(r, 1, 15); chap = { k: a, o: b }; ong = { k: 0, o: a * x + b }; }
   else { x = but(r, -6, 9) || 4; const c = but(r, 1, 4), a = c + but(r, 1, 4), b = but(r, -9, 12); chap = { k: a, o: b }; ong = { k: c, o: (a - c) * x + b }; }
   const yoz = (t) => { const kx = t.k === 0 ? "" : t.k === 1 ? "x" : `${t.k}x`; return !kx ? String(t.o) : t.o === 0 ? kx : `${kx} ${t.o > 0 ? "+" : "−"} ${Math.abs(t.o)}`; };
-  const qadamlar = [];
+  const qadamlar = [];   // REV533: shablon + o'rinbosar ({ m, a }) — 5 tilga tarjima qilinadi
   let L = { ...chap }, R = { ...ong };
-  if (R.k) { qadamlar.push(`Ikkala tomondan ${R.k === 1 ? "x" : `${R.k}x`} ni ayiramiz: ${yoz({ k: L.k - R.k, o: L.o })} = ${R.o}`); L = { k: L.k - R.k, o: L.o }; R = { k: 0, o: R.o }; }
-  if (L.o) { qadamlar.push(`Ikkala tomon${L.o > 0 ? "dan" : "ga"} ${Math.abs(L.o)} ni ${L.o > 0 ? "ayiramiz" : "qo‘shamiz"}: ${yoz({ k: L.k, o: 0 })} = ${R.o - L.o}`); R = { k: 0, o: R.o - L.o }; L = { k: L.k, o: 0 }; }
-  if (L.k !== 1) qadamlar.push(`Ikkala tomonni ${L.k} ga bo‘lamiz: x = ${R.o / L.k}`);
+  if (R.k) { qadamlar.push({ m: "Ikkala tomondan {v0} ni ayiramiz: {v1}", a: [R.k === 1 ? "x" : `${R.k}x`, `${yoz({ k: L.k - R.k, o: L.o })} = ${R.o}`] }); L = { k: L.k - R.k, o: L.o }; R = { k: 0, o: R.o }; }
+  if (L.o) { qadamlar.push({ m: L.o > 0 ? "Ikkala tomondan {v0} ni ayiramiz: {v1}" : "Ikkala tomonga {v0} ni qo‘shamiz: {v1}", a: [Math.abs(L.o), `${yoz({ k: L.k, o: 0 })} = ${R.o - L.o}`] }); R = { k: 0, o: R.o - L.o }; L = { k: L.k, o: 0 }; }
+  if (L.k !== 1) qadamlar.push({ m: "Ikkala tomonni {v0} ga bo‘lamiz: {v1}", a: [L.k, `x = ${R.o / L.k}`] });
   return { chap, ong, x, matn: `${yoz(chap)} = ${yoz(ong)}`, qadamlar };
 }
 

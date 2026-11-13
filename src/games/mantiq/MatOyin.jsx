@@ -1,6 +1,7 @@
 // REV527: matematika o'yinlari — tarozi-tenglama, kasr yig'ish, koordinata nishoni, funksiya mashinasi, sehrli kvadrat.
 import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
+import { fmt } from "./tarjima.js";   // REV533
 import { tenglamaYasa, kasrYasa, kasrYigindi, kasrTeng, koordinataYasa, funksiyaYasa, sehrliYasa, sehrliTogri } from "./matRules.js";
 
 const K = "#13314f", SAR = "#f2b72e", KOK = "#4b8ad6", QIZ = "#d9534f";
@@ -32,7 +33,7 @@ export function Tarozi({ daraja, urug, onYutdi }) {
     <Klaviatura qiymat={q} setQiymat={(f) => { setHol(""); setQ(f); }} manfiy={daraja === 2} />
     <div className="mq-amallar"><button type="button" className="mq-asosiy" onClick={tekshir} disabled={hol === "ok"}>{__kbUi("Tekshirish")}</button>
       {hol !== "ok" && qadam < t.qadamlar.length && <button type="button" className="mq-havola" onClick={() => setQadam(qadam + 1)}>💡 {__kbUi("Bir qadam ko‘rsat")}</button>}</div>
-    {t.qadamlar.slice(0, qadam).map((s, i) => <p key={i} className="mq-izoh" style={{ textAlign: "left", width: "100%" }}>{i + 1}. {__kbUi(s)}</p>)}
+    {t.qadamlar.slice(0, qadam).map((s, i) => <p key={i} className="mq-izoh" style={{ textAlign: "left", width: "100%" }}>{i + 1}. {fmt(s)}</p>)}
     {hol === "ok" && <p className="mq-yutdi">🎉 x = {t.x}</p>}{hol === "xato" && <p className="mq-xato">{__kbUi("Tarozi og‘ib ketdi — yana o‘ylab ko‘ring")}</p>}
   </div>;
 }

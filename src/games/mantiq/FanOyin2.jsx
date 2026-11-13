@@ -101,11 +101,11 @@ export function Davriy({ daraja, urug, onYutdi }) {
   const bos = (k) => { if (tan !== null) return; setTan(k); if (k === q.togri) setTogri(togri + 1); };
   return <div className="mq-oyin">
     <p className="mq-izoh">{i + 1} / {t.length} · {q.savol.tur === "belgi" ? __kbUi("Bu belgi qaysi elementniki?") : q.savol.tur === "nom" ? __kbUi("Bu elementning belgisi qaysi?") : __kbUi("Tartib raqami shu bo‘lgan element belgisi?")}</p>
-    <div className="mq-nishon"><b>{q.savol.tur === "raqam" ? `№ ${q.savol.matn}` : q.savol.matn}</b></div>
+    <div className="mq-nishon"><b>{q.savol.tur === "raqam" ? `№ ${q.savol.matn}` : q.savol.tur === "nom" ? __kbUi(q.savol.matn) : q.savol.matn}</b></div>
     <div className="mq-sonlar" style={{ flexWrap: "wrap", justifyContent: "center" }}>{q.variantlar.map((v, k) => <button key={v} type="button" disabled={tan !== null} onClick={() => bos(k)}
-      style={{ minWidth: 120, fontSize: 18, background: tan === null ? "#fff3c4" : k === q.togri ? "#bfe6cd" : k === tan ? "#fdecea" : "#f4f6f9" }}>{v}</button>)}</div>
+      style={{ minWidth: 120, fontSize: 18, background: tan === null ? "#fff3c4" : k === q.togri ? "#bfe6cd" : k === tan ? "#fdecea" : "#f4f6f9" }}>{q.savol.tur === "belgi" ? __kbUi(v) : v}</button>)}</div>
     {tan !== null && <><div className="mq-davriy">{ELEMENTLAR.slice(0, N).map(([bel, , davr, guruh], z) => <span key={bel} className={z + 1 === q.z ? "is-shu" : ""} style={{ gridRow: davr, gridColumn: guruh }}>{bel}</span>)}</div>
-      <p className={tan === q.togri ? "mq-yutdi" : "mq-xato"} style={{ fontSize: 15 }}>{tan === q.togri ? "✅ " : "❌ "}{q.izoh} · {__kbUi("davr")} {ELEMENTLAR[q.z - 1][2]}, {__kbUi("guruh")} {ELEMENTLAR[q.z - 1][3]}</p>
+      <p className={tan === q.togri ? "mq-yutdi" : "mq-xato"} style={{ fontSize: 15 }}>{tan === q.togri ? "✅ " : "❌ "}{q.z}. {ELEMENTLAR[q.z - 1][0]} — {__kbUi(ELEMENTLAR[q.z - 1][1])} · {__kbUi("davr")} {ELEMENTLAR[q.z - 1][2]}, {__kbUi("guruh")} {ELEMENTLAR[q.z - 1][3]}</p>
       <button type="button" className="mq-asosiy" onClick={() => { if (i + 1 >= t.length && togri >= 6) onYutdi(); setI(i + 1); setTan(null); }}>{__kbUi("Keyingi")} ▶</button></>}
   </div>;
 }

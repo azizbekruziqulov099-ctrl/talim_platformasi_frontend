@@ -1,6 +1,7 @@
 // REV528: mantiq o'yinlari (davomi) — ketma-ketlik, mantiqiy jadval, Xanoy minorasi, chiroqlar.
 import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
+import { fmt } from "./tarjima.js";   // REV533
 import { ketmaYasa, jadvalYasa, jadvalTogri, xanoyBosh, xanoyYur, xanoyTugadi, xanoyEngKam, chiroqYasa, chiroqBos, chiroqTugadi } from "./mantiq2Rules.js";
 
 export function Ketma({ daraja, urug, onYutdi }) {
@@ -13,7 +14,7 @@ export function Ketma({ daraja, urug, onYutdi }) {
     <div className="mq-ketma">{t.hadlar.map((h, i) => <span key={i}>{h}</span>)}<span className="is-savol">{tan !== null ? t.javob : "?"}</span></div>
     <div className="mq-sonlar" style={{ flexWrap: "wrap", justifyContent: "center" }}>{t.variantlar.map((v, k) => <button key={k} type="button" disabled={tan !== null} onClick={() => bos(k)}
       style={{ minWidth: 70, background: tan === null ? "#fff3c4" : k === t.togri ? "#bfe6cd" : k === tan ? "#fdecea" : "#f4f6f9" }}>{v}</button>)}</div>
-    {tan !== null && <p className={tan === t.togri ? "mq-yutdi" : "mq-xato"}>{tan === t.togri ? "🎉 " : ""}{__kbUi("Qoida")}: {__kbUi(t.qoida)}</p>}
+    {tan !== null && <p className={tan === t.togri ? "mq-yutdi" : "mq-xato"}>{tan === t.togri ? "🎉 " : ""}{__kbUi("Qoida")}: {fmt(t.qoida)}</p>}
   </div>;
 }
 
@@ -29,7 +30,7 @@ export function Jadval({ daraja, urug, onYutdi }) {
   const tekshir = () => { const belgi = g.map((a) => a.map((b) => (b.filter((x) => x === 1).length === 1 ? b.indexOf(1) : null)));
     if (jadvalTogri(belgi, t.yechim)) { setHol("ok"); onYutdi(); } else setHol(belgi.flat().includes(null) ? "chala" : "xato"); };
   return <div className="mq-oyin">
-    <ol className="mq-ishora">{t.ishoralar.map((m, i) => <li key={i} className={chizildi.has(i) ? "is-chiz" : ""} onClick={() => setChizildi((s) => { const y = new Set(s); if (y.has(i)) y.delete(i); else y.add(i); return y; })}>{__kbUi(m)}</li>)}</ol>
+    <ol className="mq-ishora">{t.ishoralar.map((m, i) => <li key={i} className={chizildi.has(i) ? "is-chiz" : ""} onClick={() => setChizildi((s) => { const y = new Set(s); if (y.has(i)) y.delete(i); else y.add(i); return y; })}>{fmt(m)}</li>)}</ol>
     <div className="mq-jadvallar">{t.toifa.map((tf, k) => <table key={k} className="mq-jadval"><thead><tr><th />{tf.qiymat.map((q) => <th key={q}>{__kbUi(q)}</th>)}</tr></thead>
       <tbody>{t.odamlar.map((od, o) => <tr key={od}><th>{od}</th>{tf.qiymat.map((_, v) => <td key={v}><button type="button" onClick={() => bos(k, o, v)}
         className={g[k][o][v] === 1 ? "is-ha" : g[k][o][v] === 2 ? "is-yoq" : ""}>{g[k][o][v] === 1 ? "✓" : g[k][o][v] === 2 ? "✗" : ""}</button></td>)}</tr>)}</tbody></table>)}</div>

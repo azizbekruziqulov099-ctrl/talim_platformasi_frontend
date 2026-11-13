@@ -139,7 +139,7 @@ export default function MantiqOyinlari({ sinf = "", onClose, apiBase = "" }) {
   const [avto, setAvto] = useState(() => { try { const v = localStorage.getItem("kabutar:mantiq:ovoz"); return v == null ? (s >= 1 && s <= 4) : v === "1"; } catch { return false; } });
   const oqi = () => { const el = oyinRef.current; if (!el) return;
     const matn = [...el.querySelectorAll(".mq-izoh, .mq-nishon, .mq-ketma, .mq-ishora li")].slice(0, 12).map((x) => x.innerText).join(". ");
-    import("../../speech/yoshOvoz.js").then((m) => m.yoshAyt(apiBase, matn, { sinf, til: oyin?.g === "Til" ? til : "" })).catch(() => {}); };
+    import("../../speech/yoshOvoz.js").then((m) => m.yoshAyt(apiBase, matn, { sinf, til: oyin?.g === "Til" ? til : (() => { const l = String(document.documentElement.lang || "uz").slice(0, 2); return l === "uz" ? "" : l; })() })).catch(() => {}); };
   useEffect(() => { if (!oyin || !avto) return undefined; const t = setTimeout(oqi, 600); return () => clearTimeout(t); }, [oyin, daraja, soni, avto, til]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { import("../../speech/yoshOvoz.js").then((m) => m.yoshJim()).catch(() => {}); }, [oyin]);
   useEffect(() => { if (oyin) { setSoni(xot.ol(xk, daraja)); setYutildi(false); } }, [oyin, daraja, xk]); // eslint-disable-line react-hooks/exhaustive-deps
