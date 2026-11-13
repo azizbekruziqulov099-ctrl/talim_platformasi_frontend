@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { osimlikOs, osimlikHolat, OSIMLIK_MAQSAD, koprikHisob, KOPRIK_MAQSAD, KOD_XARITALAR, kodYurit, kodEngQisqa, NAQSH_NAMUNALAR, naqshXato, BYUDJET, byudjetHisob, PORTFEL_KALIT, yulduzHisob } from "./loyihaRules.js";
 import { LOYIHALAR2 } from "./Loyiha2.jsx";   // REV542: F2 — yana 10 loyiha
+import { QoldaBolim, Tasdiqlash, SinfHisobot, loyihaApi } from "./Qolda.jsx";   // REV543: F3
 import "./loyiha.css";
 
 const __kbM = (x) => x;   // REV541: ma'lumot ichidagi tarjima qilinadigan matn belgisi (skaner shu orqali ro'yxatga oladi)
@@ -133,7 +134,7 @@ const HAMMA = [...LOYIHALAR, ...LOYIHALAR2];
 const YON = { S: [__kbM("Tabiat"), "#2e9e5b"], T: [__kbM("Texnologiya"), "#3A86FF"], E: [__kbM("Muhandislik"), "#FF8C1A"], A: [__kbM("San’at"), "#9B5DE5"], M: [__kbM("Matematika"), "#E63946"] };
 const BOSQICH = [__kbM("Muammo"), __kbM("Faraz"), __kbM("Yasash va sinash"), __kbM("Xulosa"), __kbM("Natija")];
 
-function Loyiha({ l, onYop, onSaqla }) {
+function Loyiha({ l, onYop, onSaqla, apiBase, token }) {
   const [b, setB] = useState(0), [faraz, setFaraz] = useState(null), [sinovlar, setSinovlar] = useState([]), [javob, setJavob] = useState(null);
   const maqsad = sinovlar.some((s) => s.maqsad); const yulduz = yulduzHisob({ maqsad, xulosa: javob === l.jt, urinish: sinovlar.length });
   useEffect(() => { if (b === 4) onSaqla({ yulduz, urinish: sinovlar.length, faraz: faraz === l.togri, xulosa: javob === l.jt, maqsad, vaqt: Date.now() }); }, [b]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -160,21 +161,28 @@ function Loyiha({ l, onYop, onSaqla }) {
         <ul className="lo-4k"><li>{maqsad ? "✅" : "▫️"} {__kbUi("Muammoni yechdi (maqsadga yetdi)")}</li><li>{sinovlar.length >= 2 ? "✅" : "▫️"} {__kbUi("Bir necha marta sinab, yaxshiladi")} ({sinovlar.length})</li>
           <li>{faraz === l.togri ? "✅" : "▫️"} {__kbUi("Farazi tajribada tasdiqlandi")}</li><li>{javob === l.jt ? "✅" : "▫️"} {__kbUi("Sababini to‘g‘ri tushuntirdi")}</li></ul>
         <p className="lo-izoh">{__kbUi("Loyiha portfelingizga saqlandi.")}</p>
+        <QoldaBolim loyiha={l.k} apiBase={apiBase} token={token} />
         <div className="lo-tugmalar"><button type="button" className="lo-asosiy" onClick={onYop}>{__kbUi("Boshqa loyiha")}</button>
           <button type="button" className="lo-ortga" onClick={() => { setB(2); setJavob(null); }}>↻ {__kbUi("Yana sinab ko‘rish")}</button></div></>}
     </div>
   </div>;
 }
 
-export default function KabuLoyiha({ onClose }) {
+export default function KabuLoyiha({ onClose, apiBase = "", token = "" }) {
   const [tan, setTan] = useState(null), [portfel, setPortfel] = useState(portfelOl), [yon, setYon] = useState("");
-  const saqla = (k, n) => { const eski = portfel[k]; const y = { ...portfel, [k]: !eski || n.yulduz >= eski.yulduz ? { ...n, soni: (eski?.soni || 0) + 1 } : { ...eski, soni: (eski.soni || 0) + 1 } }; setPortfel(y); portfelYoz(y); };
-  if (tan) return <Loyiha key={tan.k} l={tan} onYop={() => setTan(null)} onSaqla={(n) => saqla(tan.k, n)} />;
+  // REV543: server bilan sinxron — qurilma almashsa ham portfel yo'qolmaydi (eng yaxshi yulduz olinadi)
+  useEffect(() => { if (!token) return; loyihaApi(apiBase, token, "/api/loyiha/portfel").then((p) => setPortfel((lok) => { const y = { ...lok };
+    for (const [k, v] of Object.entries(p.ekran || {})) if (!y[k] || v.yulduz > (y[k].yulduz || 0)) y[k] = { ...(y[k] || {}), yulduz: v.yulduz, urinish: v.urinish, soni: Math.max(v.soni, y[k]?.soni || 0), faraz: v.faraz, xulosa: v.xulosa, maqsad: v.maqsad };
+    portfelYoz(y); return y; })).catch(() => {}); }, [apiBase, token]);
+  const saqla = (k, n) => {
+    if (token) loyihaApi(apiBase, token, "/api/loyiha/natija", { loyiha: k, yulduz: n.yulduz, urinish: n.urinish, faraz: !!n.faraz, xulosa: !!n.xulosa, maqsad: !!n.maqsad }).catch(() => {}); const eski = portfel[k]; const y = { ...portfel, [k]: !eski || n.yulduz >= eski.yulduz ? { ...n, soni: (eski?.soni || 0) + 1 } : { ...eski, soni: (eski.soni || 0) + 1 } }; setPortfel(y); portfelYoz(y); };
+  if (tan) return <Loyiha key={tan.k} l={tan} onYop={() => setTan(null)} onSaqla={(n) => saqla(tan.k, n)} apiBase={apiBase} token={token} />;
   const jami = Object.values(portfel).reduce((a, x) => a + (x.yulduz || 0), 0);
   const korinadi = HAMMA.filter((l) => !yon || l.yon === yon);
   return <div className="lo-sahifa">
     <div className="lo-bosh"><div><h2>🔬 {__kbUi("Kabu loyiha")}</h2><small>{__kbUi("STEAM laboratoriyasi: muammo → faraz → yasash → sinash → xulosa")}</small></div>
       {onClose && <button type="button" className="lo-ortga" onClick={onClose}>← {__kbUi("O‘yinlar")}</button>}</div>
+    <Tasdiqlash apiBase={apiBase} token={token} /><SinfHisobot apiBase={apiBase} token={token} />
     <p className="lo-izoh">🎒 {__kbUi("Portfel")}: {Object.keys(portfel).length} / {HAMMA.length} {__kbUi("loyiha")} · ⭐ {jami}</p>
     <div className="lo-tanlov" style={{ justifyContent: "flex-start" }}><button type="button" className={!yon ? "is-on" : ""} onClick={() => setYon("")}>{__kbUi("Hammasi")}</button>
       {Object.keys(YON).map((y) => <button key={y} type="button" className={yon === y ? "is-on" : ""} onClick={() => setYon(y)} style={yon === y ? { background: YON[y][1], borderColor: YON[y][1] } : null}>{y} · {__kbUi(YON[y][0])}</button>)}</div>
