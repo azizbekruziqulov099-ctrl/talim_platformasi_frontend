@@ -9,16 +9,16 @@ const YOL = {
   yurak: <path d="M50 88 C10 58 6 30 28 18 C40 12 50 22 50 30 C50 22 60 12 72 18 C94 30 90 58 50 88 Z" />, oval: <ellipse cx="50" cy="50" rx="44" ry="28" />,
   romb: <polygon points="50,6 90,50 50,94 10,50" />, beshburchak: <polygon points="50,6 94,38 77,90 23,90 6,38" />, oltiburchak: <polygon points="28,10 72,10 94,50 72,90 28,90 6,50" />,
 };
-export function Shakl({ sh, rang, kontur = false, olcham = 64 }) {
+export function Shakl({ sh, rang, kontur = false, olcham = 64, yarim = "" }) {   // yarim: "chap" | "ong" — shaklning yarmi (REV537)
   const hex = rang ? RANGLAR[rang]?.hex || "#4b8ad6" : "#4b8ad6";
-  return <svg viewBox="0 0 100 100" width={olcham} height={olcham} aria-hidden="true" style={{ display: "block" }}>
+  return <svg viewBox={yarim === "chap" ? "0 0 50 100" : yarim === "ong" ? "50 0 50 100" : "0 0 100 100"} width={yarim ? olcham / 2 : olcham} height={olcham} aria-hidden="true" style={{ display: "block" }}>
     <g fill={kontur ? "#eef2f7" : hex} stroke="#2b3452" strokeWidth={kontur ? 4 : 3.5} strokeLinejoin="round" strokeDasharray={kontur ? "7 6" : undefined}>{YOL[sh]}</g></svg>;
 }
 const nomi = (sh, izoh) => SHAKLLAR[sh]?.[izoh] || SHAKLLAR[sh]?.uz || "";
 function ShaklTugmalar(p, { kontur = false } = {}) {
   const { raund, joriy, javob, ishora, qulf, izoh } = p;
   return <Variantlar n={raund.variantlar.length}>{raund.variantlar.map((v) => <Tugma key={v.k} label={nomi(v.shakl, izoh)} holat={tugmaHolati(p, v.k)} ishora={ishora === v.k}
-    olingan={joriy.olingan.includes(v.k)} disabled={qulf} onClick={() => javob(v.k)}><Shakl sh={v.shakl} rang={v.rang} kontur={kontur} olcham={v.olcham || 64} /></Tugma>)}</Variantlar>;
+    olingan={joriy.olingan.includes(v.k)} disabled={qulf} onClick={() => javob(v.k)}><Shakl sh={v.shakl} rang={v.rang} kontur={kontur} olcham={v.olcham || 64} yarim={v.yarim || ""} /></Tugma>)}</Variantlar>;
 }
 export function ShaklniTop(p) { return <div className="oy-sahna"><div className="oy-namuna"><span className="oy-rang-sor" aria-hidden="true">🔷</span></div>{ShaklTugmalar(p)}</div>; }
 export function ShaklUyasi(p) { const { shakl, rang } = p.raund.savol; return <div className="oy-sahna"><div className="oy-namuna"><Shakl sh={shakl} rang={rang} olcham={110} /></div>{ShaklTugmalar(p, { kontur: true })}</div>; }
@@ -29,3 +29,19 @@ export function Naqsh(p) {
     <span className="oy-rang-dog is-sor" style={{ width: o, height: o, flex: "0 0 auto", fontSize: o * 0.6 }}>?</span></div>{ShaklTugmalar(p)}</div>;
 }
 export function KattaKichik(p) { return <div className="oy-sahna"><div className="oy-namuna"><span className="oy-rang-sor" aria-hidden="true">{p.raund.savol.soralgan === "katta" ? "🐘" : "🐭"}</span></div>{ShaklTugmalar(p)}</div>; }
+// REV537: mantiq va sanash
+const SonTugmalar = (p) => { const { raund, joriy, javob, ishora, qulf } = p;
+  return <Variantlar n={raund.variantlar.length}>{raund.variantlar.map((v) => <Tugma key={v.k} label={String(v.son)} holat={tugmaHolati(p, v.k)} ishora={ishora === v.k}
+    olingan={joriy.olingan.includes(v.k)} disabled={qulf} onClick={() => javob(v.k)}><span className="oy-mat-son">{v.son}</span></Tugma>)}</Variantlar>; };
+export function Matritsa(p) {
+  return <div className="oy-sahna"><div className="oy-namuna oy-matritsa">{p.raund.savol.katak.map((x, i) => <span key={i} className="oy-matritsa-katak">{x ? <Shakl sh={x.shakl} rang={x.rang} olcham={52} /> : <b>?</b>}</span>)}</div>{ShaklTugmalar(p)}</div>;
+}
+export function Yarmi(p) { const { shakl, rang } = p.raund.savol; return <div className="oy-sahna"><div className="oy-namuna"><Shakl sh={shakl} rang={rang} olcham={120} yarim="chap" /></div>{ShaklTugmalar(p)}</div>; }
+export function SanaShakl(p) {
+  const { narsalar, shakl } = p.raund.savol;
+  return <div className="oy-sahna"><div className="oy-namuna oy-sana-shakl"><span className="oy-sana-nishon"><Shakl sh={shakl} kontur olcham={34} /></span>
+    <div>{narsalar.map((x, i) => <Shakl key={i} sh={x.shakl} rang={x.rang} olcham={40} />)}</div></div><SonTugmalar {...p} /></div>;
+}
+export function KetmaSon(p) {
+  return <div className="oy-sahna"><div className="oy-namuna oy-naqsh">{p.raund.savol.qator.map((x, i) => <span key={i} className="oy-ketma-son">{x}</span>)}<span className="oy-ketma-son is-sor">?</span></div><SonTugmalar {...p} /></div>;
+}

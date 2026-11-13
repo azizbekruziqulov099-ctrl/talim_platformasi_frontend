@@ -392,3 +392,10 @@ button.oy-esh-quloq,button.oy-sq-ovoz{border:0;background:none;cursor:pointer;pa
 .oy-root .oy-qadam-yozuv{font-size:clamp(11px,2.6vmin,15px);font-weight:700;line-height:1.15;max-width:120px;padding:0 4px 6px;animation:none}
 .oy-root .oy-namuna.oy-naqsh{display:flex;flex-wrap:nowrap;gap:4px;align-items:center;justify-content:center;width:auto;min-width:0;max-width:96vw;height:auto;min-height:0;aspect-ratio:auto;padding:12px 10px}
 .oy-root .oy-naqsh svg{flex:0 0 auto}
+/* REV537 */
+.oy-root .oy-namuna.oy-matritsa{display:grid;grid-template-columns:repeat(2,auto);gap:8px;width:auto;height:auto;aspect-ratio:auto;padding:12px}
+.oy-root .oy-matritsa-katak{width:66px;height:66px;display:grid;place-items:center;background:#fff;border:2px solid #b9c6d6;border-radius:12px}.oy-root .oy-matritsa-katak b{font-size:32px;color:#f2a000}
+.oy-root .oy-namuna.oy-sana-shakl{display:flex;flex-direction:column;gap:6px;align-items:center;width:auto;max-width:94vw;height:auto;aspect-ratio:auto;padding:10px}
+.oy-root .oy-sana-shakl>div{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:300px}.oy-root .oy-sana-nishon{background:#fff;border-radius:10px;padding:2px 8px}
+.oy-root .oy-ketma-son{min-width:52px;height:52px;display:grid;place-items:center;background:#fff;border-radius:12px;font:900 26px system-ui;color:#2b3452;border:2px solid #b9c6d6}
+.oy-root .oy-ketma-son.is-sor{background:#fff3c4;border:2px dashed #f2a000;color:#f2a000}

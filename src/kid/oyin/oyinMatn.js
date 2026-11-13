@@ -205,6 +205,27 @@ export const OYIN_MATN = {
     raund: { uz: "Eng kattasini bos!", ru: "Нажми на самый большой!", en: "Tap the biggest one!", de: "Tipp auf das Größte!", es: "¡Toca el más grande!" },
     raundKichik: { uz: "Eng kichigini bos!", ru: "Нажми на самый маленький!", en: "Tap the smallest one!", de: "Tipp auf das Kleinste!", es: "¡Toca el más pequeño!" },
   },
+  // REV537
+  matritsa: {
+    nom: { uz: "Bo‘sh katak", ru: "Пустая клетка", en: "The empty box", de: "Das leere Feld", es: "La casilla vacía" },
+    kirish: { uz: "Bo‘sh katak! Qatorga va ustunga qara: shakl ham, rang ham mos kelsin.", ru: "Пустая клетка! Посмотри на строку и столбец: должны подойти и фигура, и цвет.", en: "The empty box! Look along the row and down the column: the shape and the colour must both fit.", de: "Das leere Feld! Schau auf Zeile und Spalte: Form und Farbe müssen passen.", es: "¡La casilla vacía! Mira la fila y la columna: deben coincidir la figura y el color." },
+    raund: { uz: "Bo‘sh katakka nima tushadi?", ru: "Что должно быть в пустой клетке?", en: "What goes in the empty box?", de: "Was gehört in das leere Feld?", es: "¿Qué va en la casilla vacía?" },
+  },
+  yarmi: {
+    nom: { uz: "Yarmini top", ru: "Найди половинку", en: "Find the other half", de: "Finde die andere Hälfte", es: "Encuentra la otra mitad" },
+    kirish: { uz: "Yarmini top! Shaklning yarmi yo‘qolibdi.", ru: "Найди половинку! У фигуры потерялась половинка.", en: "Find the other half! Half of the shape is missing.", de: "Finde die andere Hälfte! Eine Hälfte der Form fehlt.", es: "¡Encuentra la otra mitad! Falta la mitad de la figura." },
+    raund: { uz: "Ikkinchi yarmi qaysi?", ru: "Где вторая половинка?", en: "Which is the other half?", de: "Welche ist die andere Hälfte?", es: "¿Cuál es la otra mitad?" },
+  },
+  sanaShakl: {
+    nom: { uz: "Shakllarni sana", ru: "Сосчитай фигуры", en: "Count the shapes", de: "Zähle die Formen", es: "Cuenta las figuras" },
+    kirish: { uz: "Shakllarni sana! Faqat men aytgan shaklni sana.", ru: "Сосчитай фигуры! Считай только ту фигуру, которую я назову.", en: "Count the shapes! Count only the shape I say.", de: "Zähle die Formen! Zähle nur die Form, die ich nenne.", es: "¡Cuenta las figuras! Cuenta solo la figura que yo diga." },
+    raund: { uz: "Bu yerda nechta {t} bor?", ru: "Сколько здесь таких фигур: {t}?", en: "How many of this shape are there: {t}?", de: "Wie viele gibt es hier: {t}?", es: "¿Cuántas hay aquí: {t}?" },
+  },
+  ketmaSon: {
+    nom: { uz: "Sonlar qatori", ru: "Числовой ряд", en: "Number line-up", de: "Zahlenreihe", es: "Fila de números" },
+    kirish: { uz: "Sonlar qatori! Sonlar tartib bilan keladi.", ru: "Числовой ряд! Числа идут по порядку.", en: "Number line-up! The numbers go in order.", de: "Zahlenreihe! Die Zahlen kommen der Reihe nach.", es: "¡Fila de números! Los números van en orden." },
+    raund: { uz: "Keyin qaysi son keladi?", ru: "Какое число будет дальше?", en: "Which number comes next?", de: "Welche Zahl kommt als Nächstes?", es: "¿Qué número viene después?" },
+  },
   rangUyi: {
     nom: { uz: "Rang uyi", ru: "Цветной домик", en: "Colour houses", de: "Farbhäuser", es: "Casas de colores" },
     kirish: { uz: "Rang uyi! Har narsa o‘z rangidagi uyda yashaydi.", ru: "Цветной домик! Каждая вещь живёт в домике своего цвета.", en: "Colour houses! Everything lives in the house of its colour.",

@@ -55,7 +55,7 @@ test("REV371: xonadagi har o'yin har bosqichda quriladi (2-3 / 4-5 / 6-7)", () =
 
 test("REV379: hamma 57 o'yin xonada, yo'nalishlarga bo'lingan, takrorlanmaydi", () => {
   assert.equal(new Set(XONA_OYINLAR).size, XONA_OYINLAR.length);
-  assert.equal(XONA_OYINLAR.length, 63);   // REV459: +«Qayerdan keladi?»; REV536: +5 ta shakl o'yini
+  assert.equal(XONA_OYINLAR.length, 67);   // REV537: +4   // REV459: +«Qayerdan keladi?»; REV536: +5 ta shakl o'yini
   assert.ok(xonaOyinlari("6-7").length >= 50);
 });
 
