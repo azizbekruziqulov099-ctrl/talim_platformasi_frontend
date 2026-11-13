@@ -5,6 +5,7 @@ import { sudokuYasa, sudokuXatolar, sudokuTugadi, SUDOKU_QUTI, sonYasa, sonTeksh
 import { Tarozi, KasrYigish, Koordinata, Funksiya, Sehrli } from "./MatOyin.jsx";   // REV527
 import { Ketma, Jadval, Xanoy, Chiroq } from "./Mantiq2.jsx";   // REV528
 import { Anagramma, Zanjir, Imlo, GapTuzish } from "./TilOyin.jsx";   // REV529
+import { Ozuqa, Elektr, Kimyo, Davriy } from "./FanOyin2.jsx";   // REV530
 import "./mantiq.css";
 
 const OYINLAR = [
@@ -25,6 +26,10 @@ const OYINLAR = [
   { k: "zanjir", g: "Til", b: "⛓️", nom: "So‘z zanjiri", izoh: "Har so‘z oldingisining oxirgi harfidan boshlanadi" },
   { k: "imlo", g: "Til", b: "✍️", nom: "Imlo ovchisi", izoh: "To‘g‘ri yozilgan so‘zni toping — qoidasi bilan" },
   { k: "gap", g: "Til", b: "🧱", nom: "Gap tuzish", izoh: "So‘zlarni to‘g‘ri tartibga qo‘ying" },
+  { k: "ozuqa", g: "Tabiiy fan", b: "🕸️", nom: "Ozuqa zanjiri", izoh: "Kim kimni yeydi — o‘simlikdan yirtqichgacha tartiblang" },
+  { k: "elektr", g: "Tabiiy fan", b: "💡", nom: "Elektr zanjiri", izoh: "Lampani eng kam kalit bilan yoqing (ketma-ket va parallel ulanish)" },
+  { k: "kimyo", g: "Tabiiy fan", b: "⚗️", nom: "Kimyoviy tenglama", izoh: "Koeffitsientlarni tanlab, tenglamani tenglang" },
+  { k: "davriy", g: "Tabiiy fan", b: "🧪", nom: "Davriy jadval", izoh: "Elementlar: belgisi, nomi, tartib raqami va jadvaldagi o‘rni" },
 ];
 const TILLAR = [["uz", "O‘zbek tili"], ["ru", "Русский язык"], ["en", "English"]];
 const DARAJA = ["Oson", "O‘rta", "Qiyin"];
@@ -118,7 +123,7 @@ function Nonogram({ daraja, urug, onYutdi }) {
   </div>;
 }
 
-const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli, anagram: Anagramma, zanjir: Zanjir, imlo: Imlo, gap: GapTuzish };
+const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli, ozuqa: Ozuqa, elektr: Elektr, kimyo: Kimyo, davriy: Davriy, anagram: Anagramma, zanjir: Zanjir, imlo: Imlo, gap: GapTuzish };
 
 export default function MantiqOyinlari({ sinf = "", onClose }) {
   const s = Number((/\d{1,2}/.exec(String(sinf)) || [0])[0]);
@@ -138,9 +143,9 @@ export default function MantiqOyinlari({ sinf = "", onClose }) {
         : <button type="button" className="mq-havola" onClick={() => setSoni(soni + 1)}>{__kbUi("Boshqa topshiriq")} ↻</button>}</div>
     </div>; }
   return <div className="mq-sahifa">
-    <div className="mq-bosh"><div><h2>🧠 {__kbUi("Mantiq, matematika va til o‘yinlari")}</h2><small>{__kbUi("Har topshiriq yangi, yechimi bor. Darajani o‘zingiz tanlaysiz.")}</small></div>
+    <div className="mq-bosh"><div><h2>🧠 {__kbUi("Fan va mantiq o‘yinlari")}</h2><small>{__kbUi("Har topshiriq yangi, yechimi bor. Darajani o‘zingiz tanlaysiz.")}</small></div>
       {onClose && <button type="button" className="mq-ortga" onClick={onClose}>← {__kbUi("O‘yinlar")}</button>}</div>
-    {["Mantiq", "Matematika", "Til"].map((gr) => <React.Fragment key={gr}><h3 className="mq-guruh">{__kbUi(gr)}</h3>
+    {["Mantiq", "Matematika", "Til", "Tabiiy fan"].map((gr) => <React.Fragment key={gr}><h3 className="mq-guruh">{__kbUi(gr)}</h3>
       <div className="mq-kartalar">{OYINLAR.filter((o) => o.g === gr).map((o) => <button key={o.k} type="button" className="mq-karta" onClick={() => setOyin(o)}>
         <span aria-hidden="true">{o.b}</span><div><b>{__kbUi(o.nom)}</b><small>{__kbUi(o.izoh)}</small>
           <em>⭐ {(o.g === "Til" ? TILLAR.map(([k]) => `${o.k}-${k}`) : [o.k]).reduce((a, kk) => a + [0, 1, 2].reduce((b, d) => b + xot.ol(kk, d), 0), 0)}</em></div></button>)}</div></React.Fragment>)}
