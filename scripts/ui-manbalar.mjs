@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 const SRC = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../src");
-const PAT = /(?:__kbUi|uiText|\bT|uiSpeech)\(\s*(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\$]|\\.)*)`)\s*[,)]/g;
+const PAT = /(?:(?:__kbUi|__kbM)|uiText|\bT|uiSpeech)\(\s*(?:"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\$]|\\.)*)`)\s*[,)]/g;
 const norm = (x) => String(x).trim().replace(/[‘’ʻʼ`]/g, "'").replace(/\s+/g, " ");
 export function koddagiMatnlar() {
   const out = new Set();

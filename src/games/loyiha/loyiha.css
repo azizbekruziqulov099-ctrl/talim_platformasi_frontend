@@ -1,0 +1,34 @@
+/* REV541: Kabu loyiha */
+.lo-sahifa{max-width:780px;margin:0 auto;padding:14px 12px 90px;display:flex;flex-direction:column;gap:12px;color:#13314f}
+.lo-bosh{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.lo-bosh h2{margin:0}.lo-bosh small{color:#5b6573}
+.lo-ortga{border:0;background:#eef6ff;color:#13314f;border-radius:12px;padding:8px 14px;font:700 14px system-ui;cursor:pointer}
+.lo-asosiy{border:0;border-radius:14px;padding:12px 18px;background:#1B4B7A;color:#fff;font:800 16px system-ui;cursor:pointer;align-self:center}.lo-asosiy:disabled{opacity:.45}
+.lo-royxat{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.lo-loyiha{display:flex;gap:12px;align-items:center;text-align:left;border:1px solid #e3e8ef;background:#fff;border-radius:20px;padding:14px;cursor:pointer;box-shadow:0 3px 12px rgba(16,42,67,.06);color:inherit}
+.lo-belgi{font-size:46px}.lo-loyiha i{font-style:normal;color:#fff;font:800 11px system-ui;border-radius:999px;padding:2px 9px;display:inline-block}
+.lo-loyiha b{display:block;font-size:18px;margin-top:3px}.lo-loyiha small{display:block;color:#5b6573}.lo-loyiha em{font-style:normal;font-weight:700;color:#b8860b}
+.lo-qadamlar{display:flex;gap:4px;list-style:none;margin:0;padding:0;overflow-x:auto}.lo-qadamlar li{flex:1;min-width:64px;text-align:center;font:700 11px system-ui;color:#8a94a3;display:flex;flex-direction:column;align-items:center;gap:3px}
+.lo-qadamlar li span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#e3e8ef;color:#5b6573;font-size:13px}
+.lo-qadamlar li.is-on{color:#1B4B7A}.lo-qadamlar li.is-on span{background:#1B4B7A;color:#fff}.lo-qadamlar li.is-otdi span{background:#bfe6cd;color:#1f7a4d}
+.lo-karta,.lo-sim{background:#fff;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}.lo-karta{box-shadow:0 4px 16px rgba(16,42,67,.07)}.lo-sim{padding:0;align-items:stretch}
+.lo-karta h3{margin:0}.lo-matn{margin:0;font-size:17px;line-height:1.45}.lo-fan{color:#5b6573}.lo-izoh{margin:0;color:#5b6573;font-size:14px}
+.lo-ok{margin:0;font-weight:800;color:#1f7a4d}.lo-xato{margin:0;font-weight:700;color:#b3261e}
+.lo-variant{display:flex;flex-direction:column;gap:8px}.lo-variant button{text-align:left;border:2px solid #dbe3ec;background:#fff;border-radius:14px;padding:12px;font:600 15px system-ui;color:#13314f;cursor:pointer}
+.lo-variant button.is-on{border-color:#1B4B7A;background:#eef6ff}.lo-variant button.is-togri{border-color:#2e9e5b;background:#e9f8ef}.lo-variant button.is-xato{border-color:#d9534f;background:#fdecea}
+.lo-chizma{width:100%;max-width:520px;align-self:center;border-radius:14px;border:1px solid #e3e8ef}
+.lo-sozlama{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}.lo-sozlama label{display:flex;flex-direction:column;gap:4px;font-size:14px}.lo-sozlama input{width:100%;height:28px}
+.lo-tanlov,.lo-tugmalar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.lo-tanlov button,.lo-tugmalar button:not(.lo-asosiy):not(.lo-ortga){min-width:46px;min-height:44px;border-radius:12px;border:1px solid #dbe3ec;background:#fff;font:800 16px system-ui;color:#13314f;cursor:pointer;padding:0 12px}
+.lo-tanlov button.is-on{background:#1B4B7A;color:#fff;border-color:#1B4B7A}
+.lo-jadval{border-collapse:collapse;width:100%;font-size:13px}.lo-jadval th,.lo-jadval td{padding:5px 6px;border-bottom:1px solid #e3e8ef;text-align:left}
+.lo-panjara{display:grid;gap:3px;width:100%;max-width:300px;align-self:center}.lo-panjara span{aspect-ratio:1;border-radius:8px;background:#eef2f7;display:grid;place-items:center;font-size:22px}
+.lo-panjara span.is-devor{background:#2b3452}.lo-panjara span.is-iz{background:#fff3c4}
+.lo-kod{min-height:44px;border:2px dashed #b9c6d6;border-radius:12px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px 8px}
+.lo-kod i{font-style:normal;width:30px;height:30px;border-radius:8px;background:#eef6ff;display:grid;place-items:center;font:800 17px system-ui}.lo-kod i.is-xato{background:#fdecea;color:#b3261e}.lo-kod small{color:#8a94a3}
+.lo-naqsh{display:grid;grid-template-columns:repeat(3,1fr) 6px repeat(3,1fr);gap:3px;width:100%;max-width:300px;align-self:center}
+.lo-naqsh span,.lo-naqsh button{aspect-ratio:1;border-radius:6px;background:#eef2f7;border:0;padding:0}.lo-naqsh button{cursor:pointer;background:#fff;border:1.5px dashed #b9c6d6}
+.lo-naqsh .is-boyoq{background:#1B4B7A;border-color:#1B4B7A}.lo-naqsh button.is-xato{outline:3px solid #d9534f}.lo-naqsh em{background:#d9534f;border-radius:3px}
+.lo-mahsulot{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.lo-mahsulot>div{border:1px solid #e3e8ef;border-radius:14px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.lo-mahsulot span{font-size:28px}.lo-mahsulot b{font-size:13px}.lo-mahsulot small{color:#5b6573;font-size:11px}
+.lo-mahsulot div div{display:flex;gap:8px;align-items:center}.lo-mahsulot button{width:34px;height:34px;border-radius:10px;border:0;background:#eef2f7;font:800 18px system-ui;cursor:pointer}.lo-mahsulot i{font-style:normal;font-weight:800;min-width:18px}
+.lo-yulduz{font-size:42px;text-align:center}.lo-yulduz span{color:#cfd6df}.lo-4k{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:15px}
