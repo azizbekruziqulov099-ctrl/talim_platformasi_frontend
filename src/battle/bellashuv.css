@@ -171,3 +171,9 @@
 }
 /* REV363: bog'cha bellashuvi — kutubxona rasmlari */
 .bs-root.is-kid .bs-pic-img{width:88px;height:88px;object-fit:contain;display:block;margin:0 auto 4px}
+/* REV538: tez bellashuv */
+.bs-mavzular { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; }
+.bs-mavzular button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border-radius: 16px; border: 2px solid #dbe3ec; background: #fff; cursor: pointer; color: inherit; }
+.bs-mavzular button span { font-size: 30px; line-height: 1; } .bs-mavzular button b { font-size: 14px; text-align: center; line-height: 1.2; }
+.bs-mavzular button.is-on { border-color: var(--bs-accent); background: color-mix(in srgb, var(--bs-accent) 12%, #fff); }
+.bs-root.is-kid .bs-mavzular button span { font-size: 40px; }

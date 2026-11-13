@@ -101,6 +101,19 @@ export default function Bellashuv({ apiBase, token, kid = false, initialCode = "
       setCode(data.kod);
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   };
+  // REV538: server bergan yosh guruhi va mavzu nomlari — tarjima ro'yxatiga tushishi uchun shu yerda sanab o'tilgan
+  void (() => [__kbUi("Bog‘cha (4–7 yosh)"), __kbUi("1–4-sinf"), __kbUi("5–8-sinf"), __kbUi("9–11-sinf"), __kbUi("Sanash"), __kbUi("Rasmli qo‘shish"), __kbUi("Keyingi son"), __kbUi("Rang va shakl"),
+    __kbUi("Tez hisob"), __kbUi("Ko‘paytirish jadvali"), __kbUi("Ketma-ketlik"), __kbUi("Imlo"), __kbUi("Poytaxtlar"), __kbUi("Tenglama"), __kbUi("Foiz va kasr"), __kbUi("Kimyoviy elementlar"),
+    __kbUi("Daraja va ildiz"), __kbUi("Tenglamalar"), __kbUi("Aralash")]);
+  // REV538: «⚡ Tez bellashuv» — yosh va mavzu tanlanadi, savollar shu zahoti tuziladi (dars mavzusini qidirish shart emas)
+  const [tez, setTez] = useState(null), [tezBand, setTezBand] = useState(""), [tezMavzu, setTezMavzu] = useState("aralash");
+  useEffect(() => { if (code || createFrom) return; let tirik = true;
+    fetch(`${String(apiBase || "").replace(/\/+$/, "")}/api/bellashuv/tez/mavzular?${new URLSearchParams({ token })}`).then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (tirik && d?.bandlar) { setTez(d); setTezBand((b) => b || d.band); } }).catch(() => {});
+    return () => { tirik = false; }; }, [code, createFrom, apiBase, token]);
+  const tezOch = async () => { setBusy(true); setError("");
+    try { const d = await call(apiBase, "/api/bellashuv/tez/xona", token, { band: tezBand, mavzu: tezMavzu, ...config }); setCode(d.kod); }
+    catch (e) { setError(e.message); } finally { setBusy(false); } };
   const join = async (value) => {
     const kod = normalizeCode(value);
     if (kod.length < 6) { setError("Kod 6 ta belgidan iborat"); return; }
@@ -137,11 +150,22 @@ export default function Bellashuv({ apiBase, token, kid = false, initialCode = "
 </>}
       {createFrom.bogcha && <p className="bs-muted">{__kbUi("Savollar — ikkalang ham o‘tgan darslardan. Kodni do‘stingga ayt, u qo‘shilgach «Boshlash»ni bos.")}</p>}
       <button type="button" className="bs-primary" disabled={busy} onClick={create}>{busy ? "…" : __kbUi("⚔️ Xonani ochish")}</button>
-    </div> : <div className="bs-card">
-      <h3>{__kbUi("Xona ochish")}</h3>
-      <p className="bs-muted">{__kbUi("Mavzuni tanlang — shu mavzudagi testlar bilan bellashuv xonasi ochiladi.")}</p>
-      {onPickTopic && <button type="button" className="bs-primary" onClick={onPickTopic}>{__kbUi("📚 Mavzu tanlash")}</button>}
+    </div> : <>{tez && <div className="bs-card bs-tez">
+      <h3>⚡ {__kbUi("Tez bellashuv")}</h3>
+      <p className="bs-muted">{__kbUi("Yosh va mavzuni tanlang — savollar shu zahoti tayyor bo‘ladi.")}</p>
+      <div className="bs-choices"><span>{__kbUi("Kimlar uchun")}</span>{tez.bandlar.map((b) => <button key={b.k} type="button" className={tezBand === b.k ? "is-on" : ""}
+        onClick={() => { setTezBand(b.k); setTezMavzu("aralash"); }}>{__kbUi(b.nom)}</button>)}</div>
+      <div className="bs-mavzular">{(tez.bandlar.find((b) => b.k === tezBand)?.mavzular || []).map((m) => <button key={m.k} type="button" className={tezMavzu === m.k ? "is-on" : ""} onClick={() => setTezMavzu(m.k)}>
+        <span aria-hidden="true">{m.nom.split(" ")[0]}</span><b>{__kbUi(m.nom.split(" ").slice(1).join(" "))}</b></button>)}</div>
+      <div className="bs-choices"><span>{__kbUi("Savollar")}</span>{[5, 8, 10, 15].map((n) => <button key={n} type="button" className={config.savol_soni === n ? "is-on" : ""} onClick={() => setConfig({ ...config, savol_soni: n })}>{n}</button>)}</div>
+      <div className="bs-choices"><span>{__kbUi("Har savolga")}</span>{[10, 15, 20, 30].map((n) => <button key={n} type="button" className={config.savol_vaqti === n ? "is-on" : ""} onClick={() => setConfig({ ...config, savol_vaqti: n })}>{n} {__kbUi("s")}</button>)}</div>
+      <button type="button" className="bs-primary" disabled={busy} onClick={tezOch}>{busy ? "…" : __kbUi("⚔️ Xonani ochish")}</button>
     </div>}
+    <div className="bs-card">
+      <h3>{__kbUi("Dars mavzusidan bellashuv")}</h3>
+      <p className="bs-muted">{__kbUi("O‘tilgan dars mavzusini tanlang — shu mavzudagi testlar bilan bellashuv xonasi ochiladi.")}</p>
+      {onPickTopic && <button type="button" className="bs-primary" onClick={onPickTopic}>{__kbUi("📚 Mavzu tanlash")}</button>}
+    </div></>}
     <form className="bs-card" onSubmit={(e) => { e.preventDefault(); join(input); }}>
       <h3>{__kbUi("Kod bilan qo‘shilish")}</h3>
       <input value={input} onChange={(e) => setInput(normalizeCode(e.target.value))} placeholder="ABC123" maxLength={6} className="bs-code-input" aria-label={__kbUi("Bellashuv kodi")} />
