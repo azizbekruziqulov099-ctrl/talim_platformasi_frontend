@@ -15221,7 +15221,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         }} />
       )}
       {korinishRoli !== "ota-ona" && tab === "fan_oyinlari" && lazyPanel(LazyFanOyinlari, { onClose: () => setTab("oyinlar") })}
-      {korinishRoli !== "ota-ona" && tab === "mantiq_oyinlari" && lazyPanel(LazyMantiqOyinlari, { sinf: foydalanuvchi?.class || "", onClose: () => setTab("oyinlar") })}
+      {korinishRoli !== "ota-ona" && tab === "mantiq_oyinlari" && lazyPanel(LazyMantiqOyinlari, { sinf: foydalanuvchi?.class || "", apiBase: API_BASE, onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
       {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi, muassasalar: muassasalarim, onMuassasa: muassasaniTanla })}
       {tab === "men" && lazyPanel(LazyMen, { apiBase: API_BASE, token, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
@@ -15229,7 +15229,8 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {tab === "hujjat_ochish" && lazyPanel(LazyHujjatSahifa, {})}
       {korinishRoli !== "ota-ona" && tab === "mantiq" && lazyPanel(LazyOyinXona, { apiBase: API_BASE, token, izoh: String(document.documentElement.lang || "uz").slice(0, 2),
         yosh: (() => { const g = String(foydalanuvchi?.yosh_guruhi || ""); return _kbAccountRole(foydalanuvchi) === "bogcha" && g ? (/2-3|3-4/.test(g) ? "2-3" : /6-7|5-6/.test(g) ? "6-7" : "4-5") : ""; })(),
-        onSay: (t, d) => { import("./kid/kabuOvoz.js").then((m) => m.kabuAyt(API_BASE, t, { izoh: String(document.documentElement.lang || "uz").slice(0, 2), tugadi: d })).catch(() => d?.()); },
+        onSay: (t, d) => { import("./kid/kabuOvoz.js").then((m) => m.kabuAyt(API_BASE, t, { izoh: String(document.documentElement.lang || "uz").slice(0, 2), tugadi: d,
+          yosh: String(foydalanuvchi?.yosh_guruhi || "") })).catch(() => d?.()); },   // REV532: 2–3 yoshga sekinroq
         onClose: () => setTab("oyinlar") })}   {/* REV379 */}
       {korinishRoli !== "ota-ona" && (tab === "til_xonalari" || tab === "til_mashqi" || tab === "til_maktab") && (
         <React.Suspense fallback={<p className="p-6 text-center text-slate-500">⏳</p>}>

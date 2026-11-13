@@ -1,5 +1,5 @@
 // REV526: «🧠 Mantiq o'yinlari» (1–11-sinf): Sudoku, Son yasash, Kod ochish, Nonogramma. Har topshiriq yangi (urug'), yechimi kafolatlangan.
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { sudokuYasa, sudokuXatolar, sudokuTugadi, SUDOKU_QUTI, sonYasa, sonTekshir, kodYasa, kodBaho, nonogramYasa, nonogramTogri } from "./mantiqRules.js";
 import { Tarozi, KasrYigish, Koordinata, Funksiya, Sehrli } from "./MatOyin.jsx";   // REV527
@@ -129,20 +129,31 @@ function Nonogram({ daraja, urug, onYutdi }) {
 
 const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli, ozuqa: Ozuqa, elektr: Elektr, kimyo: Kimyo, davriy: Davriy, viloyat: Viloyatlar, davlat: Davlatlar, zona: Zonalar, anagram: Anagramma, zanjir: Zanjir, imlo: Imlo, gap: GapTuzish };
 
-export default function MantiqOyinlari({ sinf = "", onClose }) {
+export default function MantiqOyinlari({ sinf = "", onClose, apiBase = "" }) {
   const s = Number((/\d{1,2}/.exec(String(sinf)) || [0])[0]);
   const [til, setTil] = useState(() => { try { return localStorage.getItem("kabutar:mantiq:til") || "uz"; } catch { return "uz"; } });
   const [oyin, setOyin] = useState(null), [daraja, setDaraja] = useState(s >= 9 ? 2 : s >= 5 ? 1 : 0), [soni, setSoni] = useState(0), [yutildi, setYutildi] = useState(false);
   const xk = oyin ? (oyin.g === "Til" ? `${oyin.k}-${til}` : oyin.k) : "";
+  // REV532: topshiriqni yoshga mos ovozda o'qib berish — 🔊 tugma; 1–4-sinfda har yangi topshiriq o'zi o'qiladi (o'chirish mumkin)
+  const oyinRef = useRef(null);
+  const [avto, setAvto] = useState(() => { try { const v = localStorage.getItem("kabutar:mantiq:ovoz"); return v == null ? (s >= 1 && s <= 4) : v === "1"; } catch { return false; } });
+  const oqi = () => { const el = oyinRef.current; if (!el) return;
+    const matn = [...el.querySelectorAll(".mq-izoh, .mq-nishon, .mq-ketma, .mq-ishora li")].slice(0, 12).map((x) => x.innerText).join(". ");
+    import("../../speech/yoshOvoz.js").then((m) => m.yoshAyt(apiBase, matn, { sinf, til: oyin?.g === "Til" ? til : "" })).catch(() => {}); };
+  useEffect(() => { if (!oyin || !avto) return undefined; const t = setTimeout(oqi, 600); return () => clearTimeout(t); }, [oyin, daraja, soni, avto, til]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { import("../../speech/yoshOvoz.js").then((m) => m.yoshJim()).catch(() => {}); }, [oyin]);
   useEffect(() => { if (oyin) { setSoni(xot.ol(xk, daraja)); setYutildi(false); } }, [oyin, daraja, xk]); // eslint-disable-line react-hooks/exhaustive-deps
   if (oyin) { const K = KOMP[oyin.k];
     return <div className="mq-sahifa">
       <div className="mq-bosh"><button type="button" className="mq-ortga" onClick={() => setOyin(null)}>← {__kbUi("Mantiq o‘yinlari")}</button>
-        <b>{oyin.b} {__kbUi(oyin.nom)}</b><span className="mq-yulduz">⭐ {soni}</span></div>
+        <b>{oyin.b} {__kbUi(oyin.nom)}</b><span className="mq-yulduz">
+          <button type="button" className="mq-ovoz" onClick={oqi} aria-label={__kbUi("O‘qib berish")}>🔊</button>
+          <button type="button" className={`mq-ovoz ${avto ? "is-on" : ""}`} onClick={() => { const y = !avto; setAvto(y); try { localStorage.setItem("kabutar:mantiq:ovoz", y ? "1" : "0"); } catch { /* */ } }}
+            title={__kbUi("Har topshiriqni o‘zi o‘qib bersin")}>{avto ? __kbUi("ovoz yoniq") : __kbUi("ovoz o‘chiq")}</button> ⭐ {soni}</span></div>
       <div className="mq-daraja">{DARAJA.map((d, i) => <button key={d} type="button" className={i === daraja ? "is-on" : ""} onClick={() => setDaraja(i)}>{__kbUi(d)}</button>)}</div>
       {oyin.g === "Til" && <div className="mq-daraja">{TILLAR.map(([k, n]) => <button key={k} type="button" className={k === til ? "is-on" : ""}
         onClick={() => { setTil(k); try { localStorage.setItem("kabutar:mantiq:til", k); } catch { /* */ } }}>{n}</button>)}</div>}
-      <K key={`${xk}-${daraja}-${soni}`} til={til} daraja={daraja} urug={soni + 1} onYutdi={() => { xot.yoz(xk, daraja, soni + 1); setYutildi(true); }} />
+      <div ref={oyinRef}><K key={`${xk}-${daraja}-${soni}`} til={til} daraja={daraja} urug={soni + 1} onYutdi={() => { xot.yoz(xk, daraja, soni + 1); setYutildi(true); }} /></div>
       <div className="mq-pastki">{yutildi ? <button type="button" className="mq-asosiy" onClick={() => { setSoni(soni + 1); setYutildi(false); }}>{__kbUi("Keyingi topshiriq")} ▶</button>
         : <button type="button" className="mq-havola" onClick={() => setSoni(soni + 1)}>{__kbUi("Boshqa topshiriq")} ↻</button>}</div>
     </div>; }

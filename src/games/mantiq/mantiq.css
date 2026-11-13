@@ -69,3 +69,4 @@
 .mq-davriy{display:grid;grid-template-columns:repeat(18,minmax(0,1fr));gap:2px;width:100%;max-width:520px}
 .mq-davriy span{aspect-ratio:1;display:grid;place-items:center;font:700 clamp(7px,2vw,11px) system-ui;background:#eef2f7;border-radius:3px;color:#5b6573}
 .mq-davriy span.is-shu{background:#f2b72e;color:#13314f;outline:2px solid #13314f}
+.mq-ovoz{border:0;background:#eef6ff;border-radius:10px;padding:5px 8px;font:700 12px system-ui;color:#5b6573;cursor:pointer;margin-right:4px}.mq-ovoz.is-on{background:#bfe6cd;color:#1f7a4d}
