@@ -15,7 +15,7 @@ export const XONA_GURUHLAR = [
   { kalit: "sanash", belgi: "🔢", nom: { uz: "Sanash va matematika", ru: "Счёт и математика", en: "Counting and maths", de: "Zählen und Mathe", es: "Contar y matemáticas" },
     oyinlar: [31, 32, 35, 38, 57, 43, 59, 49] },
   { kalit: "rang", belgi: "🎨", nom: { uz: "Ranglar va shakllar", ru: "Цвета и формы", en: "Colours and shapes", de: "Farben und Formen", es: "Colores y formas" },
-    oyinlar: [61, 62, 63, 64] },
+    oyinlar: [61, 62, 63, 64, 201, 202, 203, 204, 205] },   // REV536: + 5 ta shakl o'yini
   { kalit: "til", belgi: "🗣️", nom: { uz: "Nutq va eshitish", ru: "Речь и слух", en: "Speech and listening", de: "Sprechen und Hören", es: "Habla y escucha" },
     oyinlar: [117, 121, 123, 142, 118] },
   { kalit: "olam", belgi: "🌍", nom: { uz: "Atrof-olam", ru: "Окружающий мир", en: "The world around us", de: "Die Welt um uns", es: "El mundo que nos rodea" },
@@ -135,7 +135,7 @@ export const xonaElementlar = (b, izoh = "uz") => (b?.items || []).map((x, i) =>
 // ───── REV535: bosqich muqovasi o'yin MAZMUNIGA mos ─────
 // Bu o'yinlar bosqichdagi so'z to'plamidan foydalanmaydi (o'z ma'lumoti: ranglar, sonlar, ketma-ketliklar, ovozlar) — ularning
 // bosqichida «non, qulupnay» kabi aloqasiz rasm turardi. Endi muqova — shu o'yinning o'z topshirig'idan namuna.
-export const OZ_MUQOVALI = new Set([114, 106, 103, 57, 43, 59, 49, 61, 62, 63, 64, 121, 123, 142, 118, 18, 152, 146, 29, 157, 153, 15, 156, 166, 176]);
+export const OZ_MUQOVALI = new Set([201, 202, 203, 204, 205, 114, 106, 103, 57, 43, 59, 49, 61, 62, 63, 64, 121, 123, 142, 118, 18, 152, 146, 29, 157, 153, 15, 156, 166, 176]);
 /** → { el } (rasm/emoji elementi) | { rang: "#hex" } | { matn: "12" } | { emoji } — o'yinning shu bosqichidagi birinchi topshiriqdan. */
 const _muqovaKesh = new Map();
 export function bosqichMuqova(oyinId, b, yosh, yasa) {
@@ -150,6 +150,7 @@ function _muqova(oyinId, b, yosh, yasa) {
   const kal = Array.isArray(r.togri) ? r.togri[0] : r.togri; const v = (r.variantlar || []).find((x) => x?.k === kal) || (r.variantlar || [])[0];
   const el = r.nishon || r.savol?.el || v?.el;
   if (el && (el.rasmId || el.soz?.r || el.emoji || el.uz)) return { el };
+  const shakl = r.savol?.shakl || v?.shakl || r.savol?.qator?.[0]?.shakl; if (shakl) return { shakl, shaklRang: v?.rang || r.savol?.rang || r.savol?.qator?.[0]?.rang || "kok" };   // REV536
   const rang = v?.rang || r.savol?.rang; if (rang) return { rang: RANG_HEX[rang] || rang };
   const son = v?.son ?? r.savol?.soni ?? (r.savol?.onlar != null ? r.savol.onlar * 10 + r.savol.birlar : null); if (son != null) return { matn: String(son) };
   return zaxira;

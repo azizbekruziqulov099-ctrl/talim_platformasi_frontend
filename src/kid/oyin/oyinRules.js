@@ -118,6 +118,12 @@ export const OYINLAR = [
     raund: { "2-3": 5, "4-5": 6, "6-7": 6 }, soniya: { "2-3": 10, "4-5": 9, "6-7": 9 } },
   { id: 64, kalit: "aralash", nom: "Rang aralashtir", belgi: "🧪", yosh: ["6-7"], harakat: "bosish", kerak: { min_element: 0 },
     raund: { "6-7": 5 }, soniya: { "6-7": 11 } },
+  // REV536: shakl o'yinlari (chizmalar SVG — rasm kerak emas)
+  { id: 201, kalit: "shaklTop", nom: "Shaklni top", belgi: "🔷", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 }, raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 12, "4-5": 10, "6-7": 9 } },
+  { id: 202, kalit: "shaklJoy", nom: "Shakl uyasi", belgi: "🧩", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 }, raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 12, "4-5": 10, "6-7": 9 } },
+  { id: 203, kalit: "shaklNarsa", nom: "Nimaga o‘xshaydi?", belgi: "⚽", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 }, raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 11, "6-7": 10 } },
+  { id: 204, kalit: "naqsh", nom: "Naqshni davom ettir", belgi: "🔁", yosh: KATTA, harakat: "bosish", kerak: { min_element: 0 }, raund: { "4-5": 5, "6-7": 6 }, soniya: { "4-5": 13, "6-7": 12 } },
+  { id: 205, kalit: "kattaKichik", nom: "Katta va kichik", belgi: "📏", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 }, raund: { "2-3": 4, "4-5": 5, "6-7": 6 }, soniya: { "2-3": 12, "4-5": 10, "6-7": 9 } },
   { id: 93, kalit: "yollar", nom: "Chalkash yo‘llar", belgi: "🦴", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 2 },
     raund: { "2-3": 3, "4-5": 4, "6-7": 5 }, soniya: { "2-3": 14, "4-5": 14, "6-7": 15 } },
   { id: 106, kalit: "tarozi", nom: "Tarozi", belgi: "⚖️", yosh: HAMMA, harakat: "bosish", kerak: { min_element: 0 },
@@ -473,6 +479,32 @@ export const ARALASH = [["kok", "sariq", "yashil"], ["qizil", "sariq", "toqSariq
   ["kok", "oq", "moviy"], ["qizil", "qora", "toqQizil"], ["yashil", "oq", "ochYashil"], ["yashil", "qora", "toqYashil"], ["kok", "qora", "toqKok"],
   ["kok", "yashil", "firuza"], ["qizil", "yashil", "jigarrang"], ["jigarrang", "oq", "bej"]];
 const rangV = (r) => ({ k: r, rang: r });
+// REV536: shakllar (5 tilda) — yoshga qarab hovuz
+export const SHAKLLAR = {
+  doira: { uz: "doira", ru: "круг", en: "circle", de: "Kreis", es: "círculo" }, kvadrat: { uz: "kvadrat", ru: "квадрат", en: "square", de: "Quadrat", es: "cuadrado" },
+  uchburchak: { uz: "uchburchak", ru: "треугольник", en: "triangle", de: "Dreieck", es: "triángulo" }, yulduz: { uz: "yulduz", ru: "звезда", en: "star", de: "Stern", es: "estrella" },
+  tortburchak: { uz: "to‘rtburchak", ru: "прямоугольник", en: "rectangle", de: "Rechteck", es: "rectángulo" }, yurak: { uz: "yurak", ru: "сердце", en: "heart", de: "Herz", es: "corazón" },
+  oval: { uz: "oval", ru: "овал", en: "oval", de: "Oval", es: "óvalo" }, romb: { uz: "romb", ru: "ромб", en: "diamond", de: "Raute", es: "rombo" },
+  beshburchak: { uz: "beshburchak", ru: "пятиугольник", en: "pentagon", de: "Fünfeck", es: "pentágono" }, oltiburchak: { uz: "oltiburchak", ru: "шестиугольник", en: "hexagon", de: "Sechseck", es: "hexágono" },
+};
+const SHAKL_HOVUZ = { "2-3": ["doira", "kvadrat", "uchburchak", "yulduz", "yurak"], "4-5": ["doira", "kvadrat", "uchburchak", "yulduz", "tortburchak", "yurak", "oval"],
+  "6-7": ["doira", "kvadrat", "uchburchak", "yulduz", "tortburchak", "yurak", "oval", "romb", "beshburchak", "oltiburchak"] };
+const SHAKL_RANG = ["qizil", "sariq", "kok", "yashil", "toqSariq", "binafsha"];
+export const SHAKL_NARSA = [["⚽", "doira"], ["🍊", "doira"], ["🕐", "doira"], ["🍪", "doira"], ["🌕", "doira"], ["🎁", "kvadrat"], ["🧊", "kvadrat"], ["🖼️", "kvadrat"], ["🍕", "uchburchak"], ["⛺", "uchburchak"], ["🔺", "uchburchak"],
+  ["📱", "tortburchak"], ["🚪", "tortburchak"], ["📕", "tortburchak"], ["📺", "tortburchak"], ["🥚", "oval"], ["🏉", "oval"], ["🥔", "oval"], ["⭐", "yulduz"], ["🌟", "yulduz"], ["❤️", "yurak"], ["💗", "yurak"], ["🪁", "romb"], ["♦️", "romb"]];
+const shaklV = (sh, rang) => ({ k: `${sh}${rang ? `:${rang}` : ""}`, shakl: sh, ...(rang ? { rang } : {}) });
+function shaklVariantlar(togri, hovuz, n, rnd, rang) { return aralash([togri, ...tanla(hovuz.filter((x) => x !== togri), n - 1, rnd)], rnd).map((x) => shaklV(x, rang)); }
+function naqshRaund(y, n, rnd) {   // AB, AAB, ABB (4-5); + ABC, AABB (6-7) — keyingi element topiladi
+  const h = SHAKL_HOVUZ[y].slice(0, 6); const q = tanla(h, 3, rnd), ra = tanla(SHAKL_RANG, 3, rnd); const el = q.map((sh, i) => shaklV(sh, ra[i]));
+  const turlar = y === "6-7" ? [[0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 2], [0, 0, 1, 1]] : [[0, 1], [0, 0, 1], [0, 1, 1]];
+  const d = bitta(turlar, rnd); const uzun = d.length * 2 + butun(0, d.length - 1, rnd); const qator = Array.from({ length: uzun }, (_, i) => el[d[i % d.length]]);
+  const tog = el[d[uzun % d.length]]; const ishtirok = [...new Set(d)].map((i) => el[i]);
+  const boshqa = el.filter((x) => !ishtirok.includes(x)).concat(shaklV(bitta(h.filter((x) => !q.includes(x)), rnd), bitta(SHAKL_RANG.filter((c) => !ra.includes(c)), rnd)));
+  const variantlar = aralash([...ishtirok, ...boshqa].slice(0, Math.max(2, Math.min(n, 4))).concat([]).filter((x, i, a) => a.findIndex((z) => z.k === x.k) === i), rnd);
+  if (!variantlar.some((x) => x.k === tog.k)) variantlar[0] = tog;
+  return { tur: "tanlov", savol: { qator }, variantlar, togri: tog.k };
+}
+
 function rangVariantlar(togri, hovuz, n, rnd) { return aralash([togri, ...tanla(hovuz.filter((r) => r !== togri), n - 1, rnd)], rnd).map(rangV); }
 function rangliNarsa(y, rnd) { const h = RANG_HOVUZ[y]; return bitta(RANGLI_NARSA.filter(([, r]) => h.includes(r)), rnd); }
 
@@ -646,6 +678,22 @@ const YASOVCHI = {
   // 64 — rang aralashtir (6-7): ikki bo'yoq qo'shilsa qanday rang chiqadi
   aralash: ({ n, rnd, R }) => navbat(ARALASH.map((a) => ({ a })), R, rnd).map(({ a }) => ({ tur: "tanlov", savol: { a: a[0], b: a[1], rang: a[2] },
     variantlar: rangVariantlar(a[2], ["yashil", "toqSariq", "binafsha", "pushti", "kulrang", "jigarrang"], n, rnd), togri: a[2] })),
+  // REV536 — 201 shaklni top: aytilgan shaklni bosish
+  shaklTop: ({ y, n, rnd, R }) => navbat(SHAKL_HOVUZ[y].map((sh) => ({ sh })), R, rnd).map(({ sh }) => { const rang = bitta(SHAKL_RANG, rnd);
+    return { tur: "tanlov", savol: { shakl: sh }, variantlar: shaklVariantlar(sh, SHAKL_HOVUZ[y], n, rnd, rang), togri: `${sh}:${rang}` }; }),
+  // 202 shakl uyasi: rangli shakl qaysi teshikka (kontur) tushadi
+  shaklJoy: ({ y, n, rnd, R }) => navbat(SHAKL_HOVUZ[y].map((sh) => ({ sh })), R, rnd).map(({ sh }) => ({ tur: "tanlov", savol: { shakl: sh, rang: bitta(SHAKL_RANG, rnd) },
+    variantlar: shaklVariantlar(sh, SHAKL_HOVUZ[y], n, rnd), togri: sh })),
+  // 203 nimaga o'xshaydi: narsa (to'p, pitsa, eshik) qaysi shaklda
+  shaklNarsa: ({ y, n, rnd, R }) => navbat(SHAKL_NARSA.filter(([, sh]) => SHAKL_HOVUZ[y].includes(sh)).map((x) => ({ x })), R, rnd).map(({ x }) => ({ tur: "tanlov", savol: { el: { emoji: x[0], faqatEmoji: true }, shakl: x[1] },
+    variantlar: shaklVariantlar(x[1], SHAKL_HOVUZ[y], n, rnd), togri: x[1] })),
+  // 204 naqsh: ketma-ketlikni davom ettirish
+  naqsh: ({ y, n, rnd, R }) => Array.from({ length: R }, () => naqshRaund(y, n, rnd)),
+  // 205 katta-kichik: eng kattasini / eng kichigini topish
+  kattaKichik: ({ y, n, rnd, R }) => Array.from({ length: R }, (_, i) => { const sh = bitta(SHAKL_HOVUZ[y], rnd), rang = bitta(SHAKL_RANG, rnd); const soni = Math.max(2, Math.min(n, y === "2-3" ? 2 : 4));
+    const olcham = aralash([34, 48, 62, 78].slice(0, soni).length === soni ? tanla([34, 48, 62, 78], soni, rnd) : [34, 78], rnd); const katta = y === "2-3" ? true : i % 2 === 0;
+    const variantlar = olcham.map((o, j) => ({ k: `o${j}`, shakl: sh, rang, olcham: o })); const tog = variantlar.reduce((a, b) => ((katta ? b.olcham > a.olcham : b.olcham < a.olcham) ? b : a));
+    return { tur: "tanlov", savol: { shakl: sh, soralgan: katta ? "katta" : "kichik" }, variantlar, togri: tog.k }; }),
   yollar: ({ els, n, rnd, R }) => Array.from({ length: R }, () => yollarRaund(els, n, rnd)),
   // 106 — tarozi: REV347 — haqiqiy og'irligi aniq juftlar (fil > sichqon…), og'iri pastga tushadi; 6-7 yoshda «yengilini top» ham
   tarozi: ({ y, rnd, R }) => navbat(TAROZI_JUFT.map((p) => ({ p })), R, rnd).map(({ p }, i) => {
@@ -1216,6 +1264,8 @@ export function raundGapi(holat, { izoh = "uz", til, birinchi = false } = {}) {
     case "rangTop": gap = M(k, "raund", izoh, { t: RANGLAR[r.savol.rang].s[izoh] || RANGLAR[r.savol.rang].s.uz }, xi); break;
     case "aralash": gap = M(k, "raund", izoh, { a: RANGLAR[r.savol.a].s[izoh] || RANGLAR[r.savol.a].s.uz, b: RANGLAR[r.savol.b].s[izoh] || RANGLAR[r.savol.b].s.uz }, xi); break;
     case "teskari": gap = M(k, "raund", izoh, { t: r.savol.el.soz?.[izoh] || r.savol.el.soz?.uz }, xi); break;
+    case "shaklTop": gap = M(k, "raund", izoh, { t: SHAKLLAR[r.savol.shakl][izoh] || SHAKLLAR[r.savol.shakl].uz }, xi); break;   // REV536
+    case "kattaKichik": gap = M(k, r.savol.soralgan === "katta" ? "raund" : "raundKichik", izoh, {}, xi); break;
     default: gap = M(k, "raund", izoh, {}, xi); break;
   }
   // REV347: o'yin boshi — har safar boshqa «ochilish» gapi (mavzu nomi bilan); shu darsda bo'lgan o'yin — qisqa kirish

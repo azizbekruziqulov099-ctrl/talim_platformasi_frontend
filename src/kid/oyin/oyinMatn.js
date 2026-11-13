@@ -178,6 +178,33 @@ export const OYIN_MATN = {
       de: "Finde die Farbe! Ich sage eine Farbe, du tippst darauf.", es: "¡Encuentra el color! Yo digo un color y tú lo tocas." },
     raund: { uz: "{t} rangni bos!", ru: "Нажми на {t} цвет!", en: "Tap {t}!", de: "Tipp auf {t}!", es: "¡Toca el {t}!" },
   },
+  // REV536: shakl o'yinlari
+  shaklTop: {
+    nom: { uz: "Shaklni top", ru: "Найди фигуру", en: "Find the shape", de: "Finde die Form", es: "Encuentra la figura" },
+    kirish: { uz: "Shaklni top! Men shaklni aytaman, sen bos.", ru: "Найди фигуру! Я назову фигуру, а ты нажми.", en: "Find the shape! I say a shape, you tap it.", de: "Finde die Form! Ich nenne eine Form, du tippst darauf.", es: "¡Encuentra la figura! Yo digo una figura y tú la tocas." },
+    raund: { uz: "Qani, {t} qayerda? Bos!", ru: "Где {t}? Нажми!", en: "Where is the {t}? Tap it!", de: "Wo ist: {t}? Tipp darauf!", es: "¿Dónde está: {t}? ¡Tócalo!" },
+  },
+  shaklJoy: {
+    nom: { uz: "Shakl uyasi", ru: "Домик для фигуры", en: "Shape sorter", de: "Formen-Sortierer", es: "Encaja la figura" },
+    kirish: { uz: "Shakl uyasi! Har shaklning o‘z uyasi bor.", ru: "Домик для фигуры! У каждой фигуры своё место.", en: "Shape sorter! Every shape has its own hole.", de: "Formen-Sortierer! Jede Form hat ihren Platz.", es: "¡Encaja la figura! Cada figura tiene su hueco." },
+    raund: { uz: "Bu shakl qaysi uyaga tushadi?", ru: "В какое окошко подходит эта фигура?", en: "Which hole does this shape fit?", de: "In welche Öffnung passt diese Form?", es: "¿En qué hueco encaja esta figura?" },
+  },
+  shaklNarsa: {
+    nom: { uz: "Nimaga o‘xshaydi?", ru: "На что похоже?", en: "What shape is it?", de: "Welche Form hat es?", es: "¿Qué forma tiene?" },
+    kirish: { uz: "Nimaga o‘xshaydi? Atrofimizdagi narsalar ham shakllarga o‘xshaydi.", ru: "На что похоже? Вещи вокруг нас тоже похожи на фигуры.", en: "What shape is it? Things around us look like shapes too.", de: "Welche Form hat es? Dinge um uns herum sehen aus wie Formen.", es: "¿Qué forma tiene? Las cosas que nos rodean también parecen figuras." },
+    raund: { uz: "Bu narsa qaysi shaklga o‘xshaydi?", ru: "На какую фигуру это похоже?", en: "Which shape does this look like?", de: "Welcher Form sieht das ähnlich?", es: "¿A qué figura se parece esto?" },
+  },
+  naqsh: {
+    nom: { uz: "Naqshni davom ettir", ru: "Продолжи узор", en: "Continue the pattern", de: "Setze das Muster fort", es: "Continúa el patrón" },
+    kirish: { uz: "Naqshni davom ettir! Shakllar navbat bilan keladi.", ru: "Продолжи узор! Фигуры идут по порядку.", en: "Continue the pattern! The shapes take turns.", de: "Setze das Muster fort! Die Formen wechseln sich ab.", es: "¡Continúa el patrón! Las figuras se turnan." },
+    raund: { uz: "Keyin qaysi shakl keladi?", ru: "Какая фигура будет дальше?", en: "Which shape comes next?", de: "Welche Form kommt als Nächstes?", es: "¿Qué figura viene después?" },
+  },
+  kattaKichik: {
+    nom: { uz: "Katta va kichik", ru: "Большой и маленький", en: "Big and small", de: "Groß und klein", es: "Grande y pequeño" },
+    kirish: { uz: "Katta va kichik! Diqqat bilan qara.", ru: "Большой и маленький! Смотри внимательно.", en: "Big and small! Look carefully.", de: "Groß und klein! Schau genau hin.", es: "¡Grande y pequeño! Mira con atención." },
+    raund: { uz: "Eng kattasini bos!", ru: "Нажми на самый большой!", en: "Tap the biggest one!", de: "Tipp auf das Größte!", es: "¡Toca el más grande!" },
+    raundKichik: { uz: "Eng kichigini bos!", ru: "Нажми на самый маленький!", en: "Tap the smallest one!", de: "Tipp auf das Kleinste!", es: "¡Toca el más pequeño!" },
+  },
   rangUyi: {
     nom: { uz: "Rang uyi", ru: "Цветной домик", en: "Colour houses", de: "Farbhäuser", es: "Casas de colores" },
     kirish: { uz: "Rang uyi! Har narsa o‘z rangidagi uyda yashaydi.", ru: "Цветной домик! Каждая вещь живёт в домике своего цвета.", en: "Colour houses! Everything lives in the house of its colour.",

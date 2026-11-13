@@ -21,6 +21,7 @@ import ChalkashYollar from "./ChalkashYollar.jsx";   // REV336
 import Tarozi from "./Tarozi.jsx";
 import Teskari from "./Teskari.jsx";
 import { RangniTop, RangUyi, BoyabChiq, RangAralashtir } from "./RangOyinlari.jsx";   // REV337
+import { ShaklniTop, ShaklUyasi, ShaklNarsa, Naqsh, KattaKichik } from "./ShaklOyinlari.jsx";   // REV536
 import { Dokon, Onlik, Tenglash, Masala } from "./MatOyinlari.jsx";   // REV338
 import SaralashUlash from "./SaralashUlash.jsx";   // REV348
 import EshitishOyin from "./EshitishOyin.jsx";   // REV351
@@ -58,6 +59,7 @@ export const OYIN_KOMPONENTLAR = {
   59: Masala,
   149: SaralashUlash, 154: SaralashUlash, 161: SaralashUlash, 162: SaralashUlash, 168: SaralashUlash, 150: SaralashUlash, 96: SaralashUlash, 14: SaralashUlash,
   152: HikoyaTartibi, 146: HikoyaTartibi, 29: HikoyaTartibi, 157: HikoyaTartibi, 153: HikoyaTartibi, 15: HikoyaTartibi, 156: HikoyaTartibi, 166: HikoyaTartibi,   // REV349
+  201: ShaklniTop, 202: ShaklUyasi, 203: ShaklNarsa, 204: Naqsh, 205: KattaKichik,   // REV536: shakl o'yinlari
   176: HikoyaTartibi,   // REV524: «Qayerdan keladi?» — komponenti ulanmagan edi, o'yin bo'sh ekran bo'lib ochilardi
   119: SirliQutiOch,
   121: EshitishOyin, 123: EshitishOyin, 142: EshitishOyin, 118: EshitishOyin, 120: EshitishOyin,   // REV351

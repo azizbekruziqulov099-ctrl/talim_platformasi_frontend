@@ -390,3 +390,5 @@ button.oy-esh-quloq,button.oy-sq-ovoz{border:0;background:none;cursor:pointer;pa
 .oy-sahna:has(.oy-sar-narsa){gap:22px}
 /* REV524: rasmsiz qadam yozuvi */
 .oy-root .oy-qadam-yozuv{font-size:clamp(11px,2.6vmin,15px);font-weight:700;line-height:1.15;max-width:120px;padding:0 4px 6px;animation:none}
+.oy-root .oy-namuna.oy-naqsh{display:flex;flex-wrap:nowrap;gap:4px;align-items:center;justify-content:center;width:auto;min-width:0;max-width:96vw;height:auto;min-height:0;aspect-ratio:auto;padding:12px 10px}
+.oy-root .oy-naqsh svg{flex:0 0 auto}

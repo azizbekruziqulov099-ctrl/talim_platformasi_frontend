@@ -8,6 +8,7 @@ import { oyinRasmTop } from "../oyin/oyinRasmTop.js";
 import { OYIN_MATN } from "../oyin/oyinMatn.js";
 import { bosqichlar, bosqichHolati, bosqichSozlama, bosqichMuqova, xonaElementlar, xonaOyinlari, yulduzHisob, XONA_GURUHLAR } from "./xonaRules.js";
 import { oyinYasa } from "../oyin/oyinRules.js";   // REV535: bosqich muqovasi uchun
+import { Shakl } from "../oyin/oyinlar/ShaklOyinlari.jsx";   // REV536
 import { oyinSozlamaYukla, oyinYopiqmi } from "../oyin/oyinSozlama.js";
 import "./oyinXona.css";
 
@@ -120,6 +121,7 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
           <span className="ox-bosqich-son">{ochiq ? b.i : "🔒"}</span>
           <span className="ox-bosqich-rasm" aria-hidden="true">{(() => {
             const mq = bosqichMuqova(tanlangan.id, b, yosh, oyinYasa);   // REV535: o'z ma'lumotli o'yinlarda muqova — o'yinning o'z topshirig'idan
+            if (mq?.shakl) return <Shakl sh={mq.shakl} rang={mq.shaklRang} olcham={58} />;
             if (mq?.rang) return <span style={{ width: 54, height: 54, borderRadius: "50%", background: mq.rang, border: "3px solid rgba(0,0,0,.18)", display: "inline-block" }} />;
             if (mq?.matn) return <span style={{ fontSize: 34, fontWeight: 900, color: "#13314f" }}>{mq.matn}</span>;
             if (mq?.emoji) return <span style={{ fontSize: 44 }}>{mq.emoji}</span>;

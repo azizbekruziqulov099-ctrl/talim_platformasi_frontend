@@ -55,13 +55,14 @@ test("REV371: xonadagi har o'yin har bosqichda quriladi (2-3 / 4-5 / 6-7)", () =
 
 test("REV379: hamma 57 o'yin xonada, yo'nalishlarga bo'lingan, takrorlanmaydi", () => {
   assert.equal(new Set(XONA_OYINLAR).size, XONA_OYINLAR.length);
-  assert.equal(XONA_OYINLAR.length, 58);   // REV459: +«Qayerdan keladi?»
+  assert.equal(XONA_OYINLAR.length, 63);   // REV459: +«Qayerdan keladi?»; REV536: +5 ta shakl o'yini
   assert.ok(xonaOyinlari("6-7").length >= 50);
 });
 
 test("REV535: o'z ma'lumotli o'yinlarda bosqich muqovasi o'yinning o'zidan (aloqasiz so'z rasmi emas)", async () => {
   const { oyinYasa } = await import("../oyin/oyinRules.js"); const { bosqichMuqova, OZ_MUQOVALI } = await import("./xonaRules.js");
-  for (const id of OZ_MUQOVALI) for (const b of bosqichlar(id).slice(0, 3)) { const m = bosqichMuqova(id, b, "6-7", oyinYasa); assert.ok(m && (m.el || m.rang || m.matn || m.emoji), `o'yin ${id}`); }
+  for (const id of OZ_MUQOVALI) for (const b of bosqichlar(id).slice(0, 3)) { const m = bosqichMuqova(id, b, "6-7", oyinYasa); assert.ok(m && (m.el || m.rang || m.matn || m.emoji || m.shakl), `o'yin ${id}`); }
+  assert.ok(bosqichMuqova(201, bosqichlar(201)[0], "4-5", oyinYasa).shakl);   // shakl o'yini — shakl chizmasi
   assert.match(bosqichMuqova(61, bosqichlar(61)[0], "4-5", oyinYasa).rang, /^#[0-9A-F]{6}$/i);   // rang o'yini — rang doirasi
   assert.equal(bosqichMuqova(83, bosqichlar(83)[0], "4-5", oyinYasa), null);                        // so'z o'yini — bosqichning o'z rasmi qoladi
   for (let u = 1; u <= 30; u += 1) { const h = oyinYasa(57, { elementlar: [], yosh: "6-7", urug: u, til: "uz", izoh: "uz", raundSoni: 10 }); if (h) for (const r of h.raundlar) assert.ok(Number(r.togri.slice(2)) <= 20, "o'nlik o'yini 20 dan oshmaydi"); }
