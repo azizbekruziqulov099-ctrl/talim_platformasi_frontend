@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { osimlikOs, osimlikHolat, OSIMLIK_MAQSAD, koprikHisob, KOPRIK_MAQSAD, KOD_XARITALAR, kodYurit, kodEngQisqa, NAQSH_NAMUNALAR, naqshXato, BYUDJET, byudjetHisob, PORTFEL_KALIT, yulduzHisob } from "./loyihaRules.js";
+import { LOYIHALAR2 } from "./Loyiha2.jsx";   // REV542: F2 — yana 10 loyiha
 import "./loyiha.css";
 
 const __kbM = (x) => x;   // REV541: ma'lumot ichidagi tarjima qilinadigan matn belgisi (skaner shu orqali ro'yxatga oladi)
@@ -128,6 +129,7 @@ const LOYIHALAR = [
     faraz: [__kbM("Eng qimmat narsalarni olish kerak"), __kbM("Avval zarur narsalarni hisoblab, keyin qolgan pulga qo‘shimcha olish kerak"), __kbM("Hisoblamasdan ham yetadi")], togri: 1,
     savol: __kbM("Tort va sharbat olinsa, mevaga pul yetmaydi. Nima qilish to‘g‘ri?"), javob: [__kbM("Mevasiz qoldirish"), __kbM("Qimmat narsani arzonrog‘iga almashtirib, hamma zarur narsaga yetkazish"), __kbM("Qarz olish")], jt: 1 },
 ];
+const HAMMA = [...LOYIHALAR, ...LOYIHALAR2];
 const YON = { S: [__kbM("Tabiat"), "#2e9e5b"], T: [__kbM("Texnologiya"), "#3A86FF"], E: [__kbM("Muhandislik"), "#FF8C1A"], A: [__kbM("San’at"), "#9B5DE5"], M: [__kbM("Matematika"), "#E63946"] };
 const BOSQICH = [__kbM("Muammo"), __kbM("Faraz"), __kbM("Yasash va sinash"), __kbM("Xulosa"), __kbM("Natija")];
 
@@ -165,15 +167,18 @@ function Loyiha({ l, onYop, onSaqla }) {
 }
 
 export default function KabuLoyiha({ onClose }) {
-  const [tan, setTan] = useState(null), [portfel, setPortfel] = useState(portfelOl);
+  const [tan, setTan] = useState(null), [portfel, setPortfel] = useState(portfelOl), [yon, setYon] = useState("");
   const saqla = (k, n) => { const eski = portfel[k]; const y = { ...portfel, [k]: !eski || n.yulduz >= eski.yulduz ? { ...n, soni: (eski?.soni || 0) + 1 } : { ...eski, soni: (eski.soni || 0) + 1 } }; setPortfel(y); portfelYoz(y); };
   if (tan) return <Loyiha key={tan.k} l={tan} onYop={() => setTan(null)} onSaqla={(n) => saqla(tan.k, n)} />;
   const jami = Object.values(portfel).reduce((a, x) => a + (x.yulduz || 0), 0);
+  const korinadi = HAMMA.filter((l) => !yon || l.yon === yon);
   return <div className="lo-sahifa">
     <div className="lo-bosh"><div><h2>🔬 {__kbUi("Kabu loyiha")}</h2><small>{__kbUi("STEAM laboratoriyasi: muammo → faraz → yasash → sinash → xulosa")}</small></div>
       {onClose && <button type="button" className="lo-ortga" onClick={onClose}>← {__kbUi("O‘yinlar")}</button>}</div>
-    <p className="lo-izoh">🎒 {__kbUi("Portfel")}: {Object.keys(portfel).length} / {LOYIHALAR.length} {__kbUi("loyiha")} · ⭐ {jami}</p>
-    <div className="lo-royxat">{LOYIHALAR.map((l) => { const p = portfel[l.k]; return <button key={l.k} type="button" className="lo-loyiha" onClick={() => setTan(l)}>
+    <p className="lo-izoh">🎒 {__kbUi("Portfel")}: {Object.keys(portfel).length} / {HAMMA.length} {__kbUi("loyiha")} · ⭐ {jami}</p>
+    <div className="lo-tanlov" style={{ justifyContent: "flex-start" }}><button type="button" className={!yon ? "is-on" : ""} onClick={() => setYon("")}>{__kbUi("Hammasi")}</button>
+      {Object.keys(YON).map((y) => <button key={y} type="button" className={yon === y ? "is-on" : ""} onClick={() => setYon(y)} style={yon === y ? { background: YON[y][1], borderColor: YON[y][1] } : null}>{y} · {__kbUi(YON[y][0])}</button>)}</div>
+    <div className="lo-royxat">{korinadi.map((l) => { const p = portfel[l.k]; return <button key={l.k} type="button" className="lo-loyiha" onClick={() => setTan(l)}>
       <span className="lo-belgi">{l.belgi}</span><div><i style={{ background: YON[l.yon][1] }}>{l.yon} · {__kbUi(YON[l.yon][0])}</i><b>{__kbUi(l.nom)}</b><small>{__kbUi(l.fanlar)} · {l.sinf}-{__kbUi("sinf")}</small>
         <em>{p ? "⭐".repeat(p.yulduz) : __kbUi("Boshlanmagan")}</em></div></button>; })}</div>
   </div>;

@@ -32,3 +32,10 @@
 .lo-mahsulot>div{border:1px solid #e3e8ef;border-radius:14px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}.lo-mahsulot span{font-size:28px}.lo-mahsulot b{font-size:13px}.lo-mahsulot small{color:#5b6573;font-size:11px}
 .lo-mahsulot div div{display:flex;gap:8px;align-items:center}.lo-mahsulot button{width:34px;height:34px;border-radius:10px;border:0;background:#eef2f7;font:800 18px system-ui;cursor:pointer}.lo-mahsulot i{font-style:normal;font-weight:800;min-width:18px}
 .lo-yulduz{font-size:42px;text-align:center}.lo-yulduz span{color:#cfd6df}.lo-4k{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:15px}
+/* REV542 */
+.lo-javoblar{display:flex;flex-wrap:wrap;gap:5px;margin:0}.lo-javoblar i{font-style:normal;background:#eef2f7;border-radius:8px;padding:3px 8px;font-size:13px}
+.lo-ustunlar{display:flex;gap:10px;justify-content:center;align-items:flex-end}.lo-ustunlar>div{display:flex;flex-direction:column;align-items:center;gap:3px;width:66px}
+.lo-ustunlar span{height:100px;width:38px;display:flex;align-items:flex-end;border-bottom:3px solid #13314f}.lo-ustunlar em{display:block;width:100%;border-radius:5px 5px 0 0}
+.lo-ustunlar button,.lo-tomchi button{width:36px;height:34px;border-radius:10px;border:0;background:#eef2f7;font:800 18px system-ui;cursor:pointer;color:#13314f}.lo-ustunlar small{font-size:12px;text-align:center}
+.lo-ranglar{display:flex;gap:20px;justify-content:center}.lo-ranglar div{display:flex;flex-direction:column;align-items:center;gap:4px}.lo-ranglar span{width:84px;height:84px;border-radius:50%;border:3px solid rgba(0,0,0,.2)}
+.lo-tomchi{display:flex;gap:18px;justify-content:center}.lo-tomchi div{display:flex;flex-direction:column;align-items:center;gap:4px}.lo-tomchi div button:first-child{width:52px;height:52px;border-radius:50%;color:#fff}
