@@ -56,3 +56,7 @@
 .mq-xanoy span{position:absolute;left:50%;transform:translateX(-50%);height:20px;border-radius:10px;border:2px solid rgba(0,0,0,.2)}
 .mq-chiroq{display:grid;gap:6px;width:100%}.mq-chiroq button{aspect-ratio:1;border-radius:14px;border:2px solid #b9c6d6;background:#2b3452;font-size:24px;cursor:pointer;padding:0}
 .mq-chiroq button.is-yoniq{background:#fff3c4;border-color:#f2b72e}.mq-chiroq button.is-ishora{outline:4px solid #3A86FF;outline-offset:-4px}
+/* REV529: til o'yinlari */
+.mq-zanjir{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;font:700 17px system-ui}
+.mq-zanjir span{background:#eef2f7;border-radius:10px;padding:6px 10px}.mq-zanjir span.is-joriy{background:#cfe6ff}.mq-zanjir span.is-savol{background:#fff3c4;outline:2px dashed #f2b72e}.mq-zanjir i{font-style:normal;color:#8a94a3}
+.mq-sonlar button:disabled{cursor:default}

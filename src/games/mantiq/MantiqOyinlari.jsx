@@ -4,6 +4,7 @@ import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { sudokuYasa, sudokuXatolar, sudokuTugadi, SUDOKU_QUTI, sonYasa, sonTekshir, kodYasa, kodBaho, nonogramYasa, nonogramTogri } from "./mantiqRules.js";
 import { Tarozi, KasrYigish, Koordinata, Funksiya, Sehrli } from "./MatOyin.jsx";   // REV527
 import { Ketma, Jadval, Xanoy, Chiroq } from "./Mantiq2.jsx";   // REV528
+import { Anagramma, Zanjir, Imlo, GapTuzish } from "./TilOyin.jsx";   // REV529
 import "./mantiq.css";
 
 const OYINLAR = [
@@ -20,7 +21,12 @@ const OYINLAR = [
   { k: "koordinata", g: "Matematika", b: "📍", nom: "Koordinata nishoni", izoh: "Nuqtani koordinatasi bo‘yicha toping; simmetriya va siljitish" },
   { k: "funksiya", g: "Matematika", b: "⚙️", nom: "Funksiya mashinasi", izoh: "Kirish va chiqishga qarab qoidani toping" },
   { k: "sehrli", g: "Matematika", b: "🧮", nom: "Sehrli kvadrat", izoh: "Hamma qator, ustun va diagonal yig‘indisi teng bo‘lsin" },
+  { k: "anagram", g: "Til", b: "🔤", nom: "Anagramma", izoh: "Aralashgan harflardan so‘z tuzing" },
+  { k: "zanjir", g: "Til", b: "⛓️", nom: "So‘z zanjiri", izoh: "Har so‘z oldingisining oxirgi harfidan boshlanadi" },
+  { k: "imlo", g: "Til", b: "✍️", nom: "Imlo ovchisi", izoh: "To‘g‘ri yozilgan so‘zni toping — qoidasi bilan" },
+  { k: "gap", g: "Til", b: "🧱", nom: "Gap tuzish", izoh: "So‘zlarni to‘g‘ri tartibga qo‘ying" },
 ];
+const TILLAR = [["uz", "O‘zbek tili"], ["ru", "Русский язык"], ["en", "English"]];
 const DARAJA = ["Oson", "O‘rta", "Qiyin"];
 const RANG = ["#E63946", "#FFD23F", "#3A86FF", "#2DBE60", "#FF8C1A", "#9B5DE5", "#FF70A6", "#8B5A2B"];
 const xot = { ol: (k, d) => { try { return Number(localStorage.getItem(`kabutar:mantiq:${k}:${d}`)) || 0; } catch { return 0; } },
@@ -112,27 +118,31 @@ function Nonogram({ daraja, urug, onYutdi }) {
   </div>;
 }
 
-const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli };
+const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli, anagram: Anagramma, zanjir: Zanjir, imlo: Imlo, gap: GapTuzish };
 
 export default function MantiqOyinlari({ sinf = "", onClose }) {
   const s = Number((/\d{1,2}/.exec(String(sinf)) || [0])[0]);
+  const [til, setTil] = useState(() => { try { return localStorage.getItem("kabutar:mantiq:til") || "uz"; } catch { return "uz"; } });
   const [oyin, setOyin] = useState(null), [daraja, setDaraja] = useState(s >= 9 ? 2 : s >= 5 ? 1 : 0), [soni, setSoni] = useState(0), [yutildi, setYutildi] = useState(false);
-  useEffect(() => { if (oyin) { setSoni(xot.ol(oyin.k, daraja)); setYutildi(false); } }, [oyin, daraja]);
+  const xk = oyin ? (oyin.g === "Til" ? `${oyin.k}-${til}` : oyin.k) : "";
+  useEffect(() => { if (oyin) { setSoni(xot.ol(xk, daraja)); setYutildi(false); } }, [oyin, daraja, xk]); // eslint-disable-line react-hooks/exhaustive-deps
   if (oyin) { const K = KOMP[oyin.k];
     return <div className="mq-sahifa">
       <div className="mq-bosh"><button type="button" className="mq-ortga" onClick={() => setOyin(null)}>← {__kbUi("Mantiq o‘yinlari")}</button>
         <b>{oyin.b} {__kbUi(oyin.nom)}</b><span className="mq-yulduz">⭐ {soni}</span></div>
       <div className="mq-daraja">{DARAJA.map((d, i) => <button key={d} type="button" className={i === daraja ? "is-on" : ""} onClick={() => setDaraja(i)}>{__kbUi(d)}</button>)}</div>
-      <K key={`${oyin.k}-${daraja}-${soni}`} daraja={daraja} urug={soni + 1} onYutdi={() => { xot.yoz(oyin.k, daraja, soni + 1); setYutildi(true); }} />
+      {oyin.g === "Til" && <div className="mq-daraja">{TILLAR.map(([k, n]) => <button key={k} type="button" className={k === til ? "is-on" : ""}
+        onClick={() => { setTil(k); try { localStorage.setItem("kabutar:mantiq:til", k); } catch { /* */ } }}>{n}</button>)}</div>}
+      <K key={`${xk}-${daraja}-${soni}`} til={til} daraja={daraja} urug={soni + 1} onYutdi={() => { xot.yoz(xk, daraja, soni + 1); setYutildi(true); }} />
       <div className="mq-pastki">{yutildi ? <button type="button" className="mq-asosiy" onClick={() => { setSoni(soni + 1); setYutildi(false); }}>{__kbUi("Keyingi topshiriq")} ▶</button>
         : <button type="button" className="mq-havola" onClick={() => setSoni(soni + 1)}>{__kbUi("Boshqa topshiriq")} ↻</button>}</div>
     </div>; }
   return <div className="mq-sahifa">
-    <div className="mq-bosh"><div><h2>🧠 {__kbUi("Mantiq va matematika o‘yinlari")}</h2><small>{__kbUi("Har topshiriq yangi, yechimi bor. Darajani o‘zingiz tanlaysiz.")}</small></div>
+    <div className="mq-bosh"><div><h2>🧠 {__kbUi("Mantiq, matematika va til o‘yinlari")}</h2><small>{__kbUi("Har topshiriq yangi, yechimi bor. Darajani o‘zingiz tanlaysiz.")}</small></div>
       {onClose && <button type="button" className="mq-ortga" onClick={onClose}>← {__kbUi("O‘yinlar")}</button>}</div>
-    {["Mantiq", "Matematika"].map((gr) => <React.Fragment key={gr}><h3 className="mq-guruh">{__kbUi(gr)}</h3>
+    {["Mantiq", "Matematika", "Til"].map((gr) => <React.Fragment key={gr}><h3 className="mq-guruh">{__kbUi(gr)}</h3>
       <div className="mq-kartalar">{OYINLAR.filter((o) => o.g === gr).map((o) => <button key={o.k} type="button" className="mq-karta" onClick={() => setOyin(o)}>
         <span aria-hidden="true">{o.b}</span><div><b>{__kbUi(o.nom)}</b><small>{__kbUi(o.izoh)}</small>
-          <em>⭐ {[0, 1, 2].reduce((a, d) => a + xot.ol(o.k, d), 0)}</em></div></button>)}</div></React.Fragment>)}
+          <em>⭐ {(o.g === "Til" ? TILLAR.map(([k]) => `${o.k}-${k}`) : [o.k]).reduce((a, kk) => a + [0, 1, 2].reduce((b, d) => b + xot.ol(kk, d), 0), 0)}</em></div></button>)}</div></React.Fragment>)}
   </div>;
 }
