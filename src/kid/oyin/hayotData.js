@@ -83,3 +83,11 @@ export const HAYOT_TOPLAM = {
     { nom: "tuxumdan nonushta", q: [Q("🐔", "tovuq tuxum qo‘yadi", "курица несёт яйцо", "the hen lays an egg", "Die Henne legt ein Ei", "la gallina pone un huevo"), Q("🥚", "tuxumni yig‘amiz", "собираем яйца", "we collect the eggs", "Wir sammeln die Eier", "recogemos los huevos"), Q("🍳", "oyim qovuradilar", "мама жарит", "Mum fries them", "Mama brät sie", "mamá los fríe"), Q("🍽️", "nonushta tayyor", "завтрак готов", "breakfast is ready", "Das Frühstück ist fertig", "el desayuno está listo")] },
   ],
 };
+
+// REV534: har qadamga o'z rasmi — kalit ketma-ketlik nomi va qadam raqamidan yasaladi (fayl nomi: h_<nom>_<qadam>.webp)
+export const rasmKalit = (nom, i) => `o_h_${String(nom).toLowerCase().replace(/[‘’']/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 28)}_${i}`;
+for (const qator of Object.values(HAYOT_TOPLAM)) for (const t of qator) t.q.forEach((w, i) => { w.s.r = rasmKalit(t.nom, i + 1); });
+
+// REV534: har qadamga rasm kaliti — «h_<ketma-ketlik>_<tartib raqami>» (Rasm_zakazi_2 dagi fayl nomlari bilan bir xil)
+export const hayotRasmKaliti = (nom, i) => `h_${String(nom).toLowerCase().replace(/[‘’]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 28)}_${i}`;
+for (const royxat of Object.values(HAYOT_TOPLAM)) for (const t of royxat) t.q.forEach((w, i) => { w.s.r = hayotRasmKaliti(t.nom, i + 1); });

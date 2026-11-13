@@ -4,7 +4,7 @@ import React from "react";
 import { Rasm, Son, Soz, Surilma, javobKaliti } from "./umumiy.jsx";
 
 export default function HikoyaTartibi(p) {
-  const { raund, joriy, javob, ishora, qulf, rasm, katta, kadr, fb, yosh } = p;
+  const { raund, joriy, javob, ishora, qulf, rasm, katta, kadr, fb, yosh, say, nom } = p;
   const joylar = kadr ? raund.togri : joriy.joylar;
   const faolJoy = joylar.indexOf(null);
   const qoydi = new Set(joylar.filter(Boolean));
@@ -26,11 +26,11 @@ export default function HikoyaTartibi(p) {
         {raund.variantlar.filter((v) => !qoydi.has(v.k)).map((v) => (
           <Surilma key={`${v.k}-${xatoK === v.k ? fb.n : 0}`} data={v.k} label={v.el.say || v.el.uz} disabled={qulf}
             holat={xatoK === v.k ? "xato" : null} ishora={ishora && ishora.k === v.k}
-            onBos={(k) => qoy(k, faolJoy)}
+            onBos={(k) => { try { say?.(nom?.(v.el) || v.el.say || v.el.uz); } catch { /* */ } qoy(k, faolJoy); }}   // REV534: bosilganda Kabu qadam nomini aytadi (bola o'qiy olmaydi)
             onTashla={(k, joy) => { const m = /^joy:(\d+)$/.exec(joy || ""); if (m) qoy(k, raund.savol.bosqichma ? faolJoy === Number(m[1]) ? faolJoy : -1 : Number(m[1])); }}>
             {/* REV524: maxsus rasmi hali chizilmagan qadam — o'xshash buyum rasmi emas (chalg'itadi), belgi + qadam nomi ko'rinadi */}
             <Rasm el={v.el} rasm={rasm} korinish={v.el.rasmId ? null : "emoji"} />
-            {!v.el.rasmId && <span className="oy-soz oy-qadam-yozuv" dir="auto">{v.el.say || v.el.uz}</span>}
+            {!v.el.rasmId && katta && <span className="oy-soz oy-qadam-yozuv" dir="auto">{v.el.say || v.el.uz}</span>}
           </Surilma>
         ))}
       </div>
