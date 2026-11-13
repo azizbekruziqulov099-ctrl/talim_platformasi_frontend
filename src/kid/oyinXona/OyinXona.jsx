@@ -6,7 +6,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Oyin from "../oyin/index.js";
 import { oyinRasmTop } from "../oyin/oyinRasmTop.js";
 import { OYIN_MATN } from "../oyin/oyinMatn.js";
-import { bosqichlar, bosqichHolati, bosqichSozlama, xonaElementlar, xonaOyinlari, yulduzHisob, XONA_GURUHLAR } from "./xonaRules.js";
+import { bosqichlar, bosqichHolati, bosqichSozlama, bosqichMuqova, xonaElementlar, xonaOyinlari, yulduzHisob, XONA_GURUHLAR } from "./xonaRules.js";
+import { oyinYasa } from "../oyin/oyinRules.js";   // REV535: bosqich muqovasi uchun
 import { oyinSozlamaYukla, oyinYopiqmi } from "../oyin/oyinSozlama.js";
 import "./oyinXona.css";
 
@@ -29,6 +30,7 @@ const nomi = (o, iz) => OYIN_MATN[o.kalit]?.nom?.[iz] || OYIN_MATN[o.kalit]?.nom
 
 export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan = "", izoh = "uz", onSay, onClose }) {
   // REV379: yosh berilmasa (kattalar, o'qituvchi) — tanlanadi va eslab qolinadi
+  const [guruh, setGuruh] = useState("");   // REV535: tanlangan bo'lim
   const [yosh, setYosh] = useState(() => yoshBerilgan || (() => { try { return localStorage.getItem("kabutar:xona:yosh") || "4-5"; } catch { return "4-5"; } })());
   const base = String(apiBase || "").replace(/\/+$/, "");
   const [h, setH] = useState(null);           // { holat, obuna, bugun }
@@ -116,7 +118,13 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
           onClick={() => { if (ochiq) { setXabar(""); setOynaydi(b); } else { const m = t(hol === "ertaga" ? "ertaga" : hol === "obuna" ? "obuna" : "qulf", izoh); setXabar(m); say(m); } }}
           aria-label={`${b.i} ${t("bosqich", izoh)} — ${b.nom[izoh] || b.nom.uz}`}>
           <span className="ox-bosqich-son">{ochiq ? b.i : "🔒"}</span>
-          <span className="ox-bosqich-rasm" aria-hidden="true">{(() => { const x = b.items[0]; const src = oyinRasmTop(x.r ? { rasmId: x.r } : { emoji: x.e, uz: x.s?.uz, soz: x.s });   // REV450: juft o'yinlari — hayvon rasmi
+          <span className="ox-bosqich-rasm" aria-hidden="true">{(() => {
+            const mq = bosqichMuqova(tanlangan.id, b, yosh, oyinYasa);   // REV535: o'z ma'lumotli o'yinlarda muqova — o'yinning o'z topshirig'idan
+            if (mq?.rang) return <span style={{ width: 54, height: 54, borderRadius: "50%", background: mq.rang, border: "3px solid rgba(0,0,0,.18)", display: "inline-block" }} />;
+            if (mq?.matn) return <span style={{ fontSize: 34, fontWeight: 900, color: "#13314f" }}>{mq.matn}</span>;
+            if (mq?.emoji) return <span style={{ fontSize: 44 }}>{mq.emoji}</span>;
+            const x = mq?.el ? { r: mq.el.rasmId || mq.el.soz?.r, e: mq.el.emoji, s: mq.el.soz || { uz: mq.el.uz } } : b.items[0];
+            const src = oyinRasmTop(x.r ? { rasmId: x.r, soz: x.s } : { emoji: x.e, uz: x.s?.uz, soz: x.s });   // REV450: juft o'yinlari — hayvon rasmi
             return src ? <img src={src} alt="" /> : <span style={{ fontSize: 44 }}>{x.e}</span>; })()}</span>
           <span className="ox-yulduz" aria-hidden="true">{hol === "otdi" ? "⭐".repeat(p[b.i]?.yulduz || 1) : hol === "ertaga" ? "🌙" : hol === "obuna" ? "💎" : ""}</span>
         </button>;
@@ -130,8 +138,16 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
     {!yoshBerilgan && <div className="ox-yosh" role="radiogroup" aria-label={t("yosh", izoh)}>{t("yosh", izoh)}:
       {["2-3", "4-5", "6-7"].map((y) => <button key={y} type="button" role="radio" aria-checked={yosh === y} className={yosh === y ? "is-on" : ""}
         onClick={() => { setYosh(y); try { localStorage.setItem("kabutar:xona:yosh", y); } catch { /* */ } }}>{y}</button>)}</div>}
-    {XONA_GURUHLAR.map((g) => { const ro = oyinlar.filter((o) => g.oyinlar.includes(o.id)); if (!ro.length) return null;
-      return <section key={g.kalit} className="ox-guruh"><h3><span aria-hidden="true">{g.belgi}</span> {g.nom[izoh] || g.nom.uz} <small>{ro.length}</small></h3>
+    {/* REV535: avval BO'LIMLAR (katta rasmli kartalar), ichida — o'yinlar, o'yin ichida — bosqichlar. Bola yo'lini oson topadi. */}
+    {!guruh && <div className="ox-bolimlar">{XONA_GURUHLAR.map((g) => { const ro = oyinlar.filter((o) => g.oyinlar.includes(o.id)); if (!ro.length) return null;
+      const jami = ro.reduce((a, o) => a + bosqichlar(o.id).length, 0), otdi = ro.reduce((a, o) => a + Object.keys(prog(o.id)).length, 0);
+      return <button key={g.kalit} type="button" className="ox-bolim" onClick={() => { setGuruh(g.kalit); say(g.nom[izoh] || g.nom.uz); }}>
+        <span className="ox-bolim-belgi" aria-hidden="true">{g.belgi}</span><b>{g.nom[izoh] || g.nom.uz}</b>
+        <span className="ox-bolim-oyinlar" aria-hidden="true">{ro.slice(0, 5).map((o) => <i key={o.id}>{o.belgi}</i>)}{ro.length > 5 ? <i>+{ro.length - 5}</i> : null}</span>
+        <span className="ox-progress"><span style={{ width: `${Math.round((otdi / Math.max(1, jami)) * 100)}%` }} /></span>
+      </button>; })}</div>}
+    {guruh && (() => { const g = XONA_GURUHLAR.find((x) => x.kalit === guruh); const ro = oyinlar.filter((o) => g.oyinlar.includes(o.id));
+      return <section className="ox-guruh"><h3><button type="button" className="ox-orqa" onClick={() => setGuruh("")} aria-label="←">←</button> <span aria-hidden="true">{g.belgi}</span> {g.nom[izoh] || g.nom.uz} <small>{ro.length}</small></h3>
         <div className="ox-oyinlar">{ro.map((o) => {
           const bs = bosqichlar(o.id); const otdi = Object.keys(prog(o.id)).length;
           return <button key={o.id} type="button" className="ox-oyin-karta" onClick={() => { setTanlangan(o); say(nomi(o, izoh)); }}>
@@ -140,6 +156,6 @@ export default function OyinXona({ apiBase = "", token = "", yosh: yoshBerilgan 
             <span className="ox-progress"><span style={{ width: `${Math.round((otdi / bs.length) * 100)}%` }} /></span>
             <small>{otdi}/{bs.length}</small>
           </button>;
-        })}</div></section>; })}
+        })}</div></section>; })()}
   </div>;
 }

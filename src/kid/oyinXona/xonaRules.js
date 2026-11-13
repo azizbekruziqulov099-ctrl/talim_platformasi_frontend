@@ -2,7 +2,8 @@
 // Ochilish: 1-bosqich doim ochiq (obunasiz ham — sinab ko‘rish uchun); keyingisi faqat oldingisi O‘TILGAN va
 // o‘tilgan kundan keyin yangi kun kelganda ochiladi (har kuni bittadan), hamda faqat obunachilarga.
 import { XONA_TOPLAM } from "./xonaData.js";
-import { oyinOl } from "../oyin/oyinRules.js";
+import { oyinOl, RANGLAR } from "../oyin/oyinRules.js";
+const RANG_HEX = new Proxy({}, { get: (_, k) => RANGLAR[k]?.hex });
 import { ULASH, SARALASH } from "../oyin/saralashData.js";   // REV450/REV455
 
 // REV379: «Rivojlantiruvchi o'yinlar» — hamma 57 xil o'yin, yo'nalishlar bo'yicha
@@ -130,3 +131,26 @@ export function yulduzHisob(togri, xato, jami = BOSQICH_RAUND) {
 
 /** Bosqich narsalari o‘yin elementlariga: rasm — kutubxonadan (rasmId), nom — izoh tilida. */
 export const xonaElementlar = (b, izoh = "uz") => (b?.items || []).map((x, i) => ({ k: `${b.toplam}-${b.i}-${i}`, image: x.r, rasmId: x.r, emoji: x.e || "", uz: x.s[izoh] || x.s.uz, soz: x.s, ...(x.ulashA ? { ulashA: x.ulashA } : {}), ...(x.sarA ? { sarA: x.sarA } : {}) }));
+
+// ───── REV535: bosqich muqovasi o'yin MAZMUNIGA mos ─────
+// Bu o'yinlar bosqichdagi so'z to'plamidan foydalanmaydi (o'z ma'lumoti: ranglar, sonlar, ketma-ketliklar, ovozlar) — ularning
+// bosqichida «non, qulupnay» kabi aloqasiz rasm turardi. Endi muqova — shu o'yinning o'z topshirig'idan namuna.
+export const OZ_MUQOVALI = new Set([114, 106, 103, 57, 43, 59, 49, 61, 62, 63, 64, 121, 123, 142, 118, 18, 152, 146, 29, 157, 153, 15, 156, 166, 176]);
+/** → { el } (rasm/emoji elementi) | { rang: "#hex" } | { matn: "12" } | { emoji } — o'yinning shu bosqichidagi birinchi topshiriqdan. */
+const _muqovaKesh = new Map();
+export function bosqichMuqova(oyinId, b, yosh, yasa) {
+  if (!OZ_MUQOVALI.has(Number(oyinId)) || typeof yasa !== "function") return null;
+  const kk = `${oyinId}|${b.i}|${yosh}`; if (_muqovaKesh.has(kk)) return _muqovaKesh.get(kk);
+  const natija = _muqova(oyinId, b, yosh, yasa); _muqovaKesh.set(kk, natija); return natija;
+}
+function _muqova(oyinId, b, yosh, yasa) {
+  const o = oyinOl(Number(oyinId)); const zaxira = { emoji: o?.belgi || "🎮" };
+  let h = null; try { h = yasa(Number(oyinId), { elementlar: xonaElementlar(b, "uz"), yosh, urug: 4000 + Number(oyinId) * 31 + b.i * 7, til: "uz", izoh: "uz", kirishDaraja: "yoq", ...bosqichSozlama(yosh, b.i, oyinId) }); } catch { h = null; }
+  const r = h?.raundlar?.[(b.i - 1) % Math.max(1, h?.raundlar?.length || 1)]; if (!r) return zaxira;
+  const kal = Array.isArray(r.togri) ? r.togri[0] : r.togri; const v = (r.variantlar || []).find((x) => x?.k === kal) || (r.variantlar || [])[0];
+  const el = r.nishon || r.savol?.el || v?.el;
+  if (el && (el.rasmId || el.soz?.r || el.emoji || el.uz)) return { el };
+  const rang = v?.rang || r.savol?.rang; if (rang) return { rang: RANG_HEX[rang] || rang };
+  const son = v?.son ?? r.savol?.soni ?? (r.savol?.onlar != null ? r.savol.onlar * 10 + r.savol.birlar : null); if (son != null) return { matn: String(son) };
+  return zaxira;
+}

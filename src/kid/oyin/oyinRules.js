@@ -618,7 +618,8 @@ const YASOVCHI = {
   }),
   // 57 — o'nlik bog'lami (6-7): bog'lamlar va yakka tayoqchalar — nechta?
   onlik: ({ n, rnd, R }) => Array.from({ length: R }, () => {
-    const onlar = butun(1, 3, rnd), birlar = butun(0, 9, rnd), jami = onlar * 10 + birlar;
+    // REV535: bog'cha yoshi — faqat 10–20 (avval 39 gacha chiqardi: «23 ni top» — bu yoshda erta)
+    const yigirma = rnd() < 0.12; const onlar = yigirma ? 2 : 1, birlar = yigirma ? 0 : butun(0, 9, rnd), jami = onlar * 10 + birlar;
     return { tur: "tanlov", savol: { onlar, birlar }, variantlar: sonVariantlar(jami, n, rnd, [onlar + birlar]), togri: `n:${jami}` };
   }),
   // 43 — tenglashtir: chapda kam, o'ngda ko'p — chapga nechta qo'shsak teng bo'ladi
