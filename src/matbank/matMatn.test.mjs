@@ -1,5 +1,5 @@
 import { test } from "node:test"; import assert from "node:assert/strict"; import fs from "node:fs";
-import { belgiTozala, bloklarga, formulaSoni, mavzuQidir, mavzuUlushi, natijaDarajasi, satrIchi, savolBloklari } from "./matMatn.js";
+import { BAHO_RANGI, QIYINLIK_NOMI, belgiTozala, bloklarga, formulaSoni, mavzuQidir, rasmManzili, mavzuUlushi, natijaDarajasi, satrIchi, savolBloklari } from "./matMatn.js";
 
 test("REV559: satr ichi — formulalar, qalin, kursiv, pandoc belgilari", () => {
   assert.deepEqual(satrIchi("Hisoblang: $a^2$ va $$x$$ **muhim** *eslatma*"),
@@ -52,4 +52,18 @@ test("qidirish, ulush, daraja", () => {
   assert.equal(mavzuQidir(r, "").length, 2); assert.equal(mavzuQidir(r, "yo'q").length, 0);
   assert.equal(mavzuUlushi(r[0], { 31: { oxirgi_togri: 60 } }), 50); assert.equal(mavzuUlushi(r[1], {}), 0);
   assert.deepEqual([95, 75, 55, 20].map(natijaDarajasi), ["a‘lo", "yaxshi", "o‘rtacha", "takrorlash kerak"]);
+});
+
+test("REV561: chizma bloki va rasm manzili (faqat qat'iy nom shabloni)", () => {
+  const b = bloklarga("Savol matni\n\n![chizma](rasm:T100-1.png)\n\n*Chizma tavsifi:* tomon $5$.");
+  assert.deepEqual(b.map((x) => x.t), ["p", "img", "p"]); assert.deepEqual([b[1].alt, b[1].src], ["chizma", "rasm:T100-1.png"]);
+  assert.equal(bloklarga("![](rasm:T001-2.jpg)")[0].t, "img");
+  assert.equal(rasmManzili("rasm:T100-1.png"), "/api/matbank/rasm/T100-1.png"); assert.equal(rasmManzili("rasm:T141-12.webp"), "/api/matbank/rasm/T141-12.webp");
+  for (const yomon of ["rasm:../main.py", "rasm:T100-1.svg", "http://x.uz/a.png", "rasm:t100-1.png", "rasm:T100-1.png/../x", "", null, "T100-1.png", "rasm:T1000-1.png"]) assert.equal(rasmManzili(yomon), null, String(yomon));
+  assert.equal(formulaSoni(b), 1);     // rasm bloki formula sanamaydi, tavsifdagi formula sanaladi
+});
+
+test("qiyinlik nomlari va baho ranglari", () => {
+  assert.deepEqual(["O", "R", "Q"].map((k) => QIYINLIK_NOMI[k]), ["Oson", "O‘rta", "Qiyin"]);
+  assert.deepEqual(Object.keys(BAHO_RANGI), ["A+", "A", "B+", "B", "C+", "C"]);
 });

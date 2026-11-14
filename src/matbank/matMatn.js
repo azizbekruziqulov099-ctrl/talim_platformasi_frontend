@@ -22,6 +22,7 @@ export function satrIchi(s) {
 }
 
 const CHIZIQ = /^-{3,}\s*$/; const USTUN_CHIZIGI = /^-{3,}(\s+-{3,})+\s*$/;
+const RASM = /^!\[([^\]]*)\]\(([^)\s]+)\)(\{[^}]*\})?$/;   // ![chizma](rasm:T100-1.png)
 const RO_YXAT = /^[-*+]\s{1,4}(\S.*)$/; const RAQAMLI = /^(\d+)\\?\.\s+(\S.*)$/; const SARLAVHA = /^(#{1,6})\s+(.+)$/;
 
 /** Pandoc oddiy jadvali: [yuqori chiziq] sarlavha qatori(lari) / ustun chizig'i (bo'shliqli) / qatorlar / [pastki chiziq]. → { head, rows } yoki null. */
@@ -40,7 +41,7 @@ function jadvalOqi(satrlar, i) {
   return { head, rows, keyingi: k };
 }
 
-/** Matn → bloklar: {t:"p",s} · {t:"h",s,lv} · {t:"ul",items} · {t:"ol",items,boshi} · {t:"math",s} · {t:"table",head,rows}. */
+/** Matn → bloklar: {t:"img",alt,src} · {t:"p",s} · {t:"h",s,lv} · {t:"ul",items} · {t:"ol",items,boshi} · {t:"math",s} · {t:"table",head,rows}. */
 export function bloklarga(matn) {
   // formula ichidagi qator uzilishlari bo'shliqqa aylanadi (LaTeX'da ular bir xil) — shunda ko'p qatorli formula bir butun qoladi
   const bir = String(matn ?? "").replace(/\r/g, "").replace(FORMULA, (m) => m.replace(/[ \t]*\n[ \t]*/g, " "));
@@ -55,6 +56,7 @@ export function bloklarga(matn) {
       out.push({ t: "math", s: s.replace(/^\$\$/, "").replace(/\$\$\s*$/, "").trim() }); i = k; continue;
     }
     if (CHIZIQ.test(t)) { yop(); const j = jadvalOqi(satrlar, i); if (j && (j.rows.length || j.head.length)) { out.push({ t: "table", head: j.head, rows: j.rows }); i = j.keyingi - 1; } continue; }
+    const ras = RASM.exec(t); if (ras) { yop(); out.push({ t: "img", alt: ras[1], src: ras[2] }); continue; }
     const sar = SARLAVHA.exec(t); if (sar) { yop(); out.push({ t: "h", s: sar[2].replace(/\*\*/g, ""), lv: Math.min(sar[1].length, 4) }); continue; }
     const ul = RO_YXAT.exec(t); if (ul) { yop(); const last = out[out.length - 1]; if (last && last.t === "ul") last.items.push(ul[1]); else out.push({ t: "ul", items: [ul[1]] }); continue; }
     const ol = RAQAMLI.exec(t); if (ol) { yop(); const last = out[out.length - 1]; if (last && last.t === "ol" && Number(ol[1]) === last.boshi + last.items.length) last.items.push(ol[2]); else out.push({ t: "ol", items: [ol[2]], boshi: Number(ol[1]) }); continue; }
@@ -68,6 +70,12 @@ export function bloklarga(matn) {
 export const savolBloklari = (matn) => bloklarga(matn).map((b) => (b.t === "p" ? { ...b, ichi: satrIchi(b.s) } : b));
 
 export const HARFLAR = ["A", "B", "C", "D", "E"];
+/** Qiyinlik belgisi → nom. */
+export const QIYINLIK_NOMI = { O: "Oson", R: "O‘rta", Q: "Qiyin" };
+/** «rasm:T100-1.png» → server manzili (faqat qat'iy nom shabloni; boshqasi — null). */
+export const rasmManzili = (src) => { const m = /^rasm:(T\d{3}-\d{1,3}\.(?:png|jpe?g|gif|webp))$/.exec(String(src || "")); return m ? `/api/matbank/rasm/${m[1]}` : null; };
+/** Baho harfi → rang. */
+export const BAHO_RANGI = { "A+": "#14803c", A: "#1f8a4c", "B+": "#1b6fd8", B: "#3b82c4", "C+": "#b9831a", C: "#c26a1b" };
 /** Natija foizi → daraja matni (rag'bat, past ball uchun ham mehribon). */
 export const natijaDarajasi = (foiz) => (foiz >= 90 ? "a‘lo" : foiz >= 70 ? "yaxshi" : foiz >= 50 ? "o‘rtacha" : "takrorlash kerak");
 /** Mavzularni qidirish: katta-kichik harf, apostrof va raqam bo'yicha («31», «oraliq», «1.7.3»). */

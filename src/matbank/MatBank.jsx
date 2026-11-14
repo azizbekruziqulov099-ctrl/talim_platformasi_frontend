@@ -3,10 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
-import MatMatn, { SavolMatn, VariantMatn } from "./MatMatn.jsx";
+import MatMatn, { RasmKonteksti, SavolMatn, VariantMatn } from "./MatMatn.jsx";
 import Pasport from "../pasport/Pasport.jsx";   // REV560
 import KabuBot from "../kabubot/KabuBot.jsx";   // REV561
-import { HARFLAR, mavzuQidir, mavzuUlushi, natijaDarajasi } from "./matMatn.js";
+import { BAHO_RANGI, HARFLAR, QIYINLIK_NOMI, mavzuQidir, mavzuUlushi, natijaDarajasi } from "./matMatn.js";
 import { SONLAR, matFetch } from "./matBankApi.js";
 import "./matbank.css";
 
@@ -53,7 +53,7 @@ function Mavzu({ apiBase, token, raqam, onOrqaga, onTest }) {
       <div><h2>{m.raqam}. {m.nom}</h2><small>{m.kitob ? `${__kbUi("Kitob")}: ${m.kitob} · ` : ""}{m.testlar} {__kbUi("test")}</small></div></header>
     <nav className="mb-tablar" role="tablist">{tablar.map(([k, n]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? "is-on" : ""} onClick={() => setTab(k)}>{n}</button>)}</nav>
     {tab === "qoida" && <article className="mb-karta"><MatMatn matn={m.qoida} /></article>}
-    {tab === "misol" && m.namunalar.map((x, i) => <article key={i} className="mb-karta"><h5 className="mb-sar">{__kbUi("Misol")} {i + 1}</h5><MatMatn matn={x} /></article>)}
+    {tab === "misol" && m.namunalar.map((x, i) => <article key={i} className="mb-karta"><h5 className="mb-sar">{__kbUi("Misol")} {i + 1}{m.misollar?.[i] && <small className="mb-tur"> · TUR {m.misollar[i].tur} · {m.misollar[i].tip === "QISQA" ? __kbUi("qisqa") : __kbUi("to‘liq")}</small>}</h5><MatMatn matn={x} /></article>)}
     {tab === "test" && <article className="mb-karta mb-testboshi">
       {m.testlar ? <>
         <p>{m.meniki.ko_rilgan ? <>{__kbUi("Siz")} {m.meniki.ko_rilgan} / {m.testlar} {__kbUi("savolni ko‘rgansiz")}; {__kbUi("oxirgi urinishda to‘g‘ri")}: <b>{m.meniki.oxirgi_togri}</b>.</> : __kbUi("Bu mavzuda hali test yechmagansiz.")}</p>
@@ -116,15 +116,22 @@ function Natija({ sav, jav, r, onYana, onMavzu, onRoyxat }) {
   const javobsiz = sav.filter((s) => !jav[s.id]).length;
   return <section className="mb-root">
     <div className={`mb-ball ${r.foiz >= 70 ? "is-yaxshi" : r.foiz >= 50 ? "is-orta" : "is-past"}`}>
-      <b>{r.togri} / {r.jami}</b><span>{r.foiz}% · {__kbUi(natijaDarajasi(r.foiz))}</span>
-      {javobsiz > 0 && <small>{javobsiz} {__kbUi("ta savolga javob berilmadi")}</small>}</div>
+      <div className="mb-ball-qator">
+        <div className="mb-baho" style={{ "--b": r.baho ? BAHO_RANGI[r.baho] : "#8a94a3" }} role="img" aria-label={`${__kbUi("Baho")}: ${r.baho || __kbUi("yetmadi")}`}><b>{r.baho || "—"}</b><small>{__kbUi("baho")}</small></div>
+        <div className="mb-ball-son"><b>{r.togri} / {r.jami}</b><span>{r.foiz}% · {__kbUi(natijaDarajasi(r.foiz))}</span></div>
+      </div>
+      <small>{r.baho ? __kbUi("Taxminiy baho: test foizi Milliy sertifikat shkalasiga qo‘yildi (rasmiy ball boshqacha hisoblanadi).") : __kbUi("C darajasiga yetmadi (kamida 46% kerak). Yana urinib ko‘ring!")}</small>
+      {r.qiyinlik && <small>{__kbUi("Test qiyinligi")}: <b>{__kbUi(QIYINLIK_NOMI[{ oson: "O", "o'rta": "R", qiyin: "Q" }[r.qiyinlik.daraja]] || r.qiyinlik.daraja)}</b> · {__kbUi("oson")} {r.qiyinlik.taqsimot.O} · {__kbUi("o‘rta")} {r.qiyinlik.taqsimot.R} · {__kbUi("qiyin")} {r.qiyinlik.taqsimot.Q}</small>}
+      {javobsiz > 0 && <small>{javobsiz} {__kbUi("ta savolga javob berilmadi")}</small>}
+      <details className="mb-shkala"><summary>{__kbUi("Baho shkalasi")}</summary><ul>{[["A+", "70"], ["A", "65"], ["B+", "60"], ["B", "55"], ["C+", "50"], ["C", "46"]].map(([h, c]) => <li key={h} className={r.baho === h ? "is-on" : ""}><b style={{ color: BAHO_RANGI[h] }}>{h}</b> — {c}% {__kbUi("va yuqori")}</li>)}</ul></details>
+    </div>
     <h4 className="mb-sar">{__kbUi("Savollar va to‘g‘ri javoblar")}</h4>
     <ol className="mb-nat-royxat">{sav.map((s, k) => { const x = d[s.id]; const holat = !jav[s.id] ? "bosh" : x.togri ? "togri" : "xato";
       return <li key={s.id} className={`mb-nat is-${holat}`}>
         <button type="button" className="mb-nat-bosh" aria-expanded={ochiq === k} onClick={() => setOchiq(ochiq === k ? -1 : k)}>
           <span className="mb-nat-n">{k + 1}</span><span className="mb-nat-belgi" aria-hidden="true">{holat === "togri" ? "✓" : holat === "xato" ? "✗" : "–"}</span>
           <span className="mb-nat-matn">{holat === "bosh" ? __kbUi("Javob berilmadi") : `${__kbUi("Siz")}: ${jav[s.id]}`}{holat !== "togri" && <> · {__kbUi("To‘g‘ri")}: <b>{x.javob}</b></>}</span><span aria-hidden="true">{ochiq === k ? "▾" : "▸"}</span></button>
-        {ochiq === k && <div className="mb-nat-ich"><SavolMatn matn={s.savol} />
+        {ochiq === k && <div className="mb-nat-ich">{(s.manba || x.qiyinlik) && <p className="mb-manba">{s.manba && `(${s.manba})`}{x.qiyinlik && ` · ${__kbUi(QIYINLIK_NOMI[x.qiyinlik])}`}{s.tur ? ` · TUR ${s.tur}` : ""}</p>}<SavolMatn matn={s.savol} />
           <div className="mb-variantlar">{s.variantlar.map((v, q) => <div key={q} className={`mb-variant mb-ko-variant ${HARFLAR[q] === x.javob ? "is-togri" : ""} ${HARFLAR[q] === jav[s.id] && HARFLAR[q] !== x.javob ? "is-xato" : ""}`}>
             <span className="mb-harf">{HARFLAR[q]}</span><VariantMatn matn={v} /></div>)}</div>
           {x.yechim ? <div className="mb-yechim"><h5 className="mb-sar">💡 {__kbUi("Yechim")}</h5><MatMatn matn={x.yechim} /></div> : <p className="mb-muted">{__kbUi("Bu savol uchun yechim yo‘li hali qo‘shilmagan; to‘g‘ri javob yuqorida.")}</p>}</div>}
@@ -137,7 +144,11 @@ function Natija({ sav, jav, r, onYana, onMavzu, onRoyxat }) {
 }
 
 /** Bosh komponent: ro'yxat → mavzu → test → natija. onClose — «O'yinlar» sahifasiga qaytish. */
-export default function MatBank({ apiBase = "", token, onClose }) {
+export default function MatBank(props) {
+  return <RasmKonteksti.Provider value={{ apiBase: props.apiBase || "", token: props.token }}><MatBankIchki {...props} /></RasmKonteksti.Provider>;
+}
+
+function MatBankIchki({ apiBase = "", token, onClose }) {
   useKbInterfaceLocale();
   const [ekran, setEkran] = useState({ t: "royxat" });
   const royxat = () => setEkran({ t: "royxat" });

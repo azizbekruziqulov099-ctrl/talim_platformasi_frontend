@@ -35,7 +35,7 @@
 .mb-test-past{display:flex;gap:10px;justify-content:space-between}.mb-test-past .mb-btn{flex:1;min-height:50px}.mb-tugat-havola{margin:0;text-align:center}
 .mb-link{border:0;background:transparent;color:#3d5a80;text-decoration:underline;font:600 14px system-ui;cursor:pointer;padding:8px}
 /* natija */
-.mb-ball{display:grid;gap:4px;justify-items:center;padding:20px 16px;border-radius:20px;text-align:center}.mb-ball b{font-size:44px;line-height:1}.mb-ball span{font:700 17px system-ui}.mb-ball small{color:#5b6573}
+.mb-ball{display:grid;gap:4px;justify-items:center;padding:20px 16px;border-radius:20px;text-align:center}.mb-ball-son b{font-size:44px;line-height:1}.mb-ball span{font:700 17px system-ui}.mb-ball small{color:#5b6573}
 .mb-ball.is-yaxshi{background:#e9f7ee;color:#14532d}.mb-ball.is-orta{background:#eef5ff;color:#1B4B7A}.mb-ball.is-past{background:#fff6e5;color:#7a4a00}
 .mb-nat-royxat{list-style:none;margin:0;padding:0;display:grid;gap:8px}.mb-nat{border:1px solid #e1e7ef;border-radius:14px;background:#fff;overflow:hidden}
 .mb-nat-bosh{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;min-height:52px;text-align:left}
@@ -46,3 +46,11 @@
 .mb-yechim{padding:10px 12px;border-radius:12px;background:#fffbea;border:1px solid #f1e3a6}
 .mb-natija-tugmalar{display:grid;gap:8px}
 @media (min-width:560px){.mb-natija-tugmalar{grid-template-columns:repeat(3,auto);justify-content:start}}
+/* REV561: baho, qiyinlik, shkala, chizma */
+.mb-ball-qator{display:flex;align-items:center;gap:16px;justify-content:center}.mb-ball-son{display:grid;gap:2px;text-align:left}.mb-ball-son b{font-size:34px}.mb-ball small b{font-size:inherit;line-height:inherit}.mb-shkala b{font-size:15px;line-height:1.3}
+.mb-baho{--b:#8a94a3;width:78px;height:78px;border-radius:50%;border:4px solid var(--b);display:grid;place-content:center;text-align:center;background:#fff;color:var(--b)}.mb-baho b{font-size:30px;line-height:1}.mb-baho small{font-size:11px;color:#5b6573}
+.mb-ball small{max-width:520px;line-height:1.4}.mb-shkala{margin-top:6px;font-size:13px;color:#3d4a57;text-align:left}.mb-shkala summary{cursor:pointer;font-weight:700;text-align:center}
+.mb-shkala ul{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.mb-shkala li{padding:3px 6px;border-radius:8px}.mb-shkala li.is-on{background:#fff;box-shadow:0 0 0 2px #1B4B7A inset}
+.mb-tur{color:#6b7686;font-weight:600;font-size:12.5px}
+.mb-rasm{margin:0;text-align:center}.mb-rasm img{max-width:100%;height:auto;max-height:340px;border-radius:10px;border:1px solid #e1e7ef;background:#fff}.mb-rasm-yoq{margin:0;color:#8a94a3;font-size:13px;text-align:center}
+@media (max-width:420px){.mb-ball-son b{font-size:28px}.mb-baho{width:68px;height:68px}}
