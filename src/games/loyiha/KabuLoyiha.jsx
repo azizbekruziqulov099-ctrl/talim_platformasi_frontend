@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { osimlikOs, osimlikHolat, OSIMLIK_MAQSAD, koprikHisob, KOPRIK_MAQSAD, KOD_XARITALAR, kodYurit, kodEngQisqa, NAQSH_NAMUNALAR, naqshXato, BYUDJET, byudjetHisob, PORTFEL_KALIT, yulduzHisob } from "./loyihaRules.js";
 import { LOYIHALAR2 } from "./Loyiha2.jsx";   // REV542: F2 — yana 10 loyiha
-import { QoldaBolim, Tasdiqlash, SinfHisobot, loyihaApi } from "./Qolda.jsx";   // REV543: F3
+import { QoldaBolim, Tasdiqlash, loyihaApi } from "./Qolda.jsx";   // REV543: F3
+import { SinfTopshiriqlari, Nishonlar, UstozPanel } from "./Guruh.jsx";   // REV544: F4
 import "./loyiha.css";
 
 const __kbM = (x) => x;   // REV541: ma'lumot ichidagi tarjima qilinadigan matn belgisi (skaner shu orqali ro'yxatga oladi)
@@ -169,21 +170,24 @@ function Loyiha({ l, onYop, onSaqla, apiBase, token }) {
 }
 
 export default function KabuLoyiha({ onClose, apiBase = "", token = "" }) {
-  const [tan, setTan] = useState(null), [portfel, setPortfel] = useState(portfelOl), [yon, setYon] = useState("");
+  const [tan, setTan] = useState(null), [portfel, setPortfel] = useState(portfelOl), [yon, setYon] = useState(""), [server, setServer] = useState(null), [bir, setBir] = useState(0);
   // REV543: server bilan sinxron — qurilma almashsa ham portfel yo'qolmaydi (eng yaxshi yulduz olinadi)
-  useEffect(() => { if (!token) return; loyihaApi(apiBase, token, "/api/loyiha/portfel").then((p) => setPortfel((lok) => { const y = { ...lok };
+  useEffect(() => { if (!token) return; loyihaApi(apiBase, token, "/api/loyiha/portfel").then((p) => { setServer(p); setPortfel((lok) => { const y = { ...lok };
     for (const [k, v] of Object.entries(p.ekran || {})) if (!y[k] || v.yulduz > (y[k].yulduz || 0)) y[k] = { ...(y[k] || {}), yulduz: v.yulduz, urinish: v.urinish, soni: Math.max(v.soni, y[k]?.soni || 0), faraz: v.faraz, xulosa: v.xulosa, maqsad: v.maqsad };
-    portfelYoz(y); return y; })).catch(() => {}); }, [apiBase, token]);
+    portfelYoz(y); return y; }); }).catch(() => {}); }, [apiBase, token, tan]);
   const saqla = (k, n) => {
     if (token) loyihaApi(apiBase, token, "/api/loyiha/natija", { loyiha: k, yulduz: n.yulduz, urinish: n.urinish, faraz: !!n.faraz, xulosa: !!n.xulosa, maqsad: !!n.maqsad }).catch(() => {}); const eski = portfel[k]; const y = { ...portfel, [k]: !eski || n.yulduz >= eski.yulduz ? { ...n, soni: (eski?.soni || 0) + 1 } : { ...eski, soni: (eski.soni || 0) + 1 } }; setPortfel(y); portfelYoz(y); };
+  const royxatL = HAMMA.map((l) => ({ k: l.k, nom: l.nom, belgi: l.belgi, sinf: l.sinf }));
   if (tan) return <Loyiha key={tan.k} l={tan} onYop={() => setTan(null)} onSaqla={(n) => saqla(tan.k, n)} apiBase={apiBase} token={token} />;
   const jami = Object.values(portfel).reduce((a, x) => a + (x.yulduz || 0), 0);
   const korinadi = HAMMA.filter((l) => !yon || l.yon === yon);
   return <div className="lo-sahifa">
     <div className="lo-bosh"><div><h2>🔬 {__kbUi("Kabu loyiha")}</h2><small>{__kbUi("STEAM laboratoriyasi: muammo → faraz → yasash → sinash → xulosa")}</small></div>
       {onClose && <button type="button" className="lo-ortga" onClick={onClose}>← {__kbUi("O‘yinlar")}</button>}</div>
-    <Tasdiqlash apiBase={apiBase} token={token} /><SinfHisobot apiBase={apiBase} token={token} />
+    <SinfTopshiriqlari apiBase={apiBase} token={token} loyihalar={royxatL} bir={bir} onBoshla={(k) => setTan(HAMMA.find((l) => l.k === k) || null)} />
+    <Tasdiqlash apiBase={apiBase} token={token} /><UstozPanel apiBase={apiBase} token={token} loyihalar={royxatL} onOzgardi={() => setBir((x) => x + 1)} />
     <p className="lo-izoh">🎒 {__kbUi("Portfel")}: {Object.keys(portfel).length} / {HAMMA.length} {__kbUi("loyiha")} · ⭐ {jami}</p>
+    {Object.keys(portfel).length > 0 && <Nishonlar portfel={portfel} server={server} />}
     <div className="lo-tanlov" style={{ justifyContent: "flex-start" }}><button type="button" className={!yon ? "is-on" : ""} onClick={() => setYon("")}>{__kbUi("Hammasi")}</button>
       {Object.keys(YON).map((y) => <button key={y} type="button" className={yon === y ? "is-on" : ""} onClick={() => setYon(y)} style={yon === y ? { background: YON[y][1], borderColor: YON[y][1] } : null}>{y} · {__kbUi(YON[y][0])}</button>)}</div>
     <div className="lo-royxat">{korinadi.map((l) => { const p = portfel[l.k]; return <button key={l.k} type="button" className="lo-loyiha" onClick={() => setTan(l)}>

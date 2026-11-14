@@ -26,6 +26,7 @@ export default function Guruhlarim({ apiBase, token, onTab }) {
         <button type="button" className={ochiq[g.id] === "baho" ? "is-on" : ""} onClick={() => och(g.id, "baho")}>🎓 {__kbUi("Baholar")}</button>
         <label className="kg-kamera"><input type="checkbox" checked={Boolean(g.kamera)} onChange={(e) => kgFetch(apiBase, `/api/kurs_guruh/${g.id}/kamera`, token, { method: "POST", body: { kamera: e.target.checked } }).then(yukla).catch((x) => setXato(x.message))} /> 📷 {__kbUi("Kamera")}</label>
         <button type="button" onClick={() => onTab("kurslar")}>📚 {__kbUi("Kursda ochish")}</button>
+        <button type="button" onClick={() => onTab("kabu_loyiha")}>🔬 {__kbUi("Kabu loyiha")}</button>   {/* REV544: guruhga STEAM loyiha berish */}
       </div>
       {ochiq[g.id] === "nz" && <Nazoratlar apiBase={apiBase} token={token} g={g} />}
       {ochiq[g.id] === "baho" && <Baholar apiBase={apiBase} token={token} g={g} />}
