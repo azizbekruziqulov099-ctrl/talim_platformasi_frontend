@@ -122,7 +122,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     </div>
     <input type="search" className="kk-qidir" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={__kbUi("Kurs qidirish: matematika, ingliz tili…")} />
     {kat && <p className="kk-izoh">{__kbUi((data?.kategoriyalar || []).find((c) => c.kalit === kat)?.izoh || "")}</p>}
-    {token && (kat === "markaz" || kat === "repetitor") && <React.Suspense fallback={null}><DarajaPanel apiBase={apiBase} token={token} onBank={() => setKat("bank")} onPasport={() => setKat("pasport")} /></React.Suspense>}
+    {token && kat === "repetitor" && <React.Suspense fallback={null}><DarajaPanel apiBase={apiBase} token={token} onBank={() => setKat("bank")} onPasport={() => setKat("pasport")} /></React.Suspense>}
     {xato && <p className="kk-xato" role="alert">{xato} <button type="button" onClick={yukla}>{__kbUi("Qayta")}</button></p>}
     {!data && !xato && <p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}
     <div className="kk-panjara">{kurslar.map((k) => <button type="button" key={k.kalit} className="kk-karta" onClick={() => kursniOch(k)}>

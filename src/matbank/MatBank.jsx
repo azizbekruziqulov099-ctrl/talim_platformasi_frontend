@@ -5,6 +5,7 @@ import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import MatMatn, { RasmKonteksti, SavolMatn, VariantMatn } from "./MatMatn.jsx";
 import Pasport from "../pasport/Pasport.jsx";   // REV560
+import Dars from "./Dars.jsx";   // REV564
 import KabuBot from "../kabubot/KabuBot.jsx";   // REV561
 import { BAHO_RANGI, HARFLAR, QIYINLIK_NOMI, mavzuQidir, mavzuUlushi, natijaDarajasi } from "./matMatn.js";
 import { SONLAR, matFetch } from "./matBankApi.js";
@@ -35,7 +36,7 @@ function Royxat({ apiBase, token, onMavzu, onAralash, onClose, onPasport, onBot 
       {!korinadi.length && <p className="mb-bosh">{__kbUi("Bunday mavzu topilmadi.")}</p>}
       <ul className="mb-royxat">{korinadi.map((m) => { const u = mavzuUlushi(m, men);
         return <li key={m.raqam}><button type="button" className="mb-mavzu" onClick={() => onMavzu(m.raqam)} disabled={!m.testlar && !m.misol}>
-          <span className="mb-raqam">{m.raqam}</span><span className="mb-nom"><b>{m.nom}</b><small>{m.kitob ? `${m.kitob} · ` : ""}{m.testlar ? `${m.testlar} ${__kbUi("test")}` : __kbUi("testlar yo‘q")}</small>
+          <span className="mb-raqam">{m.raqam}</span><span className="mb-nom"><b>{m.nom}</b><small>{m.dars ? "🎓 " : ""}{m.kitob ? `${m.kitob} · ` : ""}{m.testlar ? `${m.testlar} ${__kbUi("test")}` : __kbUi("testlar yo‘q")}</small>
             {m.testlar > 0 && <i className="mb-yolak" aria-hidden="true"><b style={{ width: `${u}%` }} /></i>}</span>
           {men[m.raqam] && <span className="mb-ulush">{u}%</span>}</button></li>; })}</ul></>}
   </section>;
@@ -43,15 +44,18 @@ function Royxat({ apiBase, token, onMavzu, onAralash, onClose, onPasport, onBot 
 
 /* ───────────── mavzu sahifasi ───────────── */
 function Mavzu({ apiBase, token, raqam, onOrqaga, onTest }) {
-  const [m, setM] = useState(null); const [xato, setXato] = useState(""); const [tab, setTab] = useState(""); const [soni, setSoni] = useState(10);
-  useEffect(() => { setM(null); setXato(""); matFetch(apiBase, token, `/api/matbank/mavzu/${raqam}`).then((r) => { setM(r); setTab(r.qoida?.trim() ? "qoida" : r.namunalar?.length ? "misol" : "test"); }).catch((e) => setXato(e.message)); }, [apiBase, token, raqam]);
+  const [m, setM] = useState(null); const [xato, setXato] = useState(""); const [tab, setTab] = useState(""); const [soni, setSoni] = useState(10); const [dars, setDars] = useState(null);
+  useEffect(() => { setM(null); setXato(""); setDars(null);
+    matFetch(apiBase, token, `/api/matbank/mavzu/${raqam}`).then((r) => { setM(r); setTab(r.dars ? "dars" : r.qoida?.trim() ? "qoida" : r.namunalar?.length ? "misol" : "test");
+      if (r.dars) matFetch(apiBase, token, `/api/matbank/dars/${raqam}`).then(setDars).catch(() => setTab(r.qoida?.trim() ? "qoida" : "test")); }).catch((e) => setXato(e.message)); }, [apiBase, token, raqam]);
   if (xato) return <section className="mb-root"><button type="button" className="mb-btn mb-yengil" onClick={onOrqaga}>← {__kbUi("Mavzular")}</button><Xato x={xato} /></section>;
   if (!m) return <section className="mb-root"><Yuklanmoqda /></section>;
-  const tablar = [...(m.qoida?.trim() ? [["qoida", `📖 ${__kbUi("Qoida")}`]] : []), ...(m.namunalar.length ? [["misol", `✏️ ${__kbUi("Misollar")} (${m.namunalar.length})`]] : []), ["test", `📝 ${__kbUi("Test")}`]];
+  const tablar = [...(m.dars ? [["dars", `🎓 ${__kbUi("Dars")}`]] : []), ...(m.qoida?.trim() ? [["qoida", `📖 ${__kbUi("Qoida")}`]] : []), ...(m.namunalar.length ? [["misol", `✏️ ${__kbUi("Misollar")} (${m.namunalar.length})`]] : []), ["test", `📝 ${__kbUi("Test")}`]];
   return <section className="mb-root">
     <header className="mb-bosh-qator"><button type="button" className="mb-btn mb-yengil" onClick={onOrqaga}>← {__kbUi("Mavzular")}</button>
       <div><h2>{m.raqam}. {m.nom}</h2><small>{m.kitob ? `${__kbUi("Kitob")}: ${m.kitob} · ` : ""}{m.testlar} {__kbUi("test")}</small></div></header>
     <nav className="mb-tablar" role="tablist">{tablar.map(([k, n]) => <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? "is-on" : ""} onClick={() => setTab(k)}>{n}</button>)}</nav>
+    {tab === "dars" && (dars ? <Dars d={dars} onTekshir={(ids) => onTest([m.raqam], ids.length, ids)} onTest={() => setTab("test")} /> : <Yuklanmoqda />)}
     {tab === "qoida" && <article className="mb-karta"><MatMatn matn={m.qoida} /></article>}
     {tab === "misol" && m.namunalar.map((x, i) => <article key={i} className="mb-karta"><h5 className="mb-sar">{__kbUi("Misol")} {i + 1}{m.misollar?.[i] && <small className="mb-tur"> · TUR {m.misollar[i].tur} · {m.misollar[i].tip === "QISQA" ? __kbUi("qisqa") : __kbUi("to‘liq")}</small>}</h5><MatMatn matn={x} /></article>)}
     {tab === "test" && <article className="mb-karta mb-testboshi">
@@ -66,10 +70,10 @@ function Mavzu({ apiBase, token, raqam, onOrqaga, onTest }) {
 }
 
 /* ───────────── test yechish ───────────── */
-function TestYechish({ apiBase, token, mavzular, soni, onTugadi, onChiq }) {
+function TestYechish({ apiBase, token, mavzular, soni, ids = null, onTugadi, onChiq }) {
   const [sav, setSav] = useState(null); const [xato, setXato] = useState(""); const [i, setI] = useState(0); const [jav, setJav] = useState({}); const [yub, setYub] = useState(false);
   const yukla = useCallback(() => { setSav(null); setXato(""); setI(0); setJav({});
-    matFetch(apiBase, token, "/api/matbank/test", { params: { soni, ...(mavzular?.length ? { mavzu: mavzular.join(",") } : {}) } }).then((r) => setSav(r.savollar)).catch((e) => setXato(e.message)); }, [apiBase, token, mavzular, soni]);
+    matFetch(apiBase, token, "/api/matbank/test", { params: ids?.length ? { ids: ids.join(",") } : { soni, ...(mavzular?.length ? { mavzu: mavzular.join(",") } : {}) } }).then((r) => setSav(r.savollar)).catch((e) => setXato(e.message)); }, [apiBase, token, mavzular, soni, ids]);
   useEffect(() => { yukla(); }, [yukla]);
   const tanla = useCallback((h) => { if (sav) setJav((j) => ({ ...j, [sav[i].id]: j[sav[i].id] === h ? "" : h })); }, [sav, i]);
   const tugat = async () => {
@@ -155,9 +159,9 @@ function MatBankIchki({ apiBase = "", token, onClose }) {
   if (ekran.t === "bot") return <KabuBot apiBase={apiBase} token={token} rol="oquvchi" onYop={royxat}
     onTest={(mavzular) => setEkran({ t: "test", mavzular, soni: 10, n: Date.now(), kim: mavzular?.[0] || 0 })} onMavzu={(raqam) => setEkran({ t: "mavzu", raqam })} />;
   if (ekran.t === "pasport") return <Pasport apiBase={apiBase} token={token} onYop={royxat} onTest={(raqam) => setEkran({ t: "test", mavzular: [raqam], soni: 10, n: Date.now(), kim: raqam })} />;
-  if (ekran.t === "mavzu") return <Mavzu apiBase={apiBase} token={token} raqam={ekran.raqam} onOrqaga={royxat} onTest={(mavzular, soni) => setEkran({ t: "test", mavzular, soni, n: Date.now(), kim: ekran.raqam })} />;
-  if (ekran.t === "test") return <TestYechish key={ekran.n} apiBase={apiBase} token={token} mavzular={ekran.mavzular} soni={ekran.soni} onChiq={() => (ekran.kim ? setEkran({ t: "mavzu", raqam: ekran.kim }) : royxat())}
-    onTugadi={(sav, jav, r) => setEkran({ t: "natija", sav, jav, r, mavzular: ekran.mavzular, soni: ekran.soni, kim: ekran.kim })} />;
+  if (ekran.t === "mavzu") return <Mavzu apiBase={apiBase} token={token} raqam={ekran.raqam} onOrqaga={royxat} onTest={(mavzular, soni, ids) => setEkran({ t: "test", mavzular, soni, ids: ids || null, n: Date.now(), kim: ekran.raqam })} />;
+  if (ekran.t === "test") return <TestYechish key={ekran.n} apiBase={apiBase} token={token} mavzular={ekran.mavzular} soni={ekran.soni} ids={ekran.ids} onChiq={() => (ekran.kim ? setEkran({ t: "mavzu", raqam: ekran.kim }) : royxat())}
+    onTugadi={(sav, jav, r) => setEkran({ t: "natija", sav, jav, r, mavzular: ekran.mavzular, soni: ekran.ids ? 10 : ekran.soni, kim: ekran.kim })} />;
   if (ekran.t === "natija") return <Natija sav={ekran.sav} jav={ekran.jav} r={ekran.r} onYana={() => setEkran({ t: "test", mavzular: ekran.mavzular, soni: ekran.soni, n: Date.now(), kim: ekran.kim })}
     onMavzu={ekran.kim ? () => setEkran({ t: "mavzu", raqam: ekran.kim }) : null} onRoyxat={royxat} />;
   return <Royxat apiBase={apiBase} token={token} onClose={onClose} onPasport={() => setEkran({ t: "pasport" })} onBot={() => setEkran({ t: "bot" })} onMavzu={(raqam) => setEkran({ t: "mavzu", raqam })} onAralash={(soni) => setEkran({ t: "test", mavzular: [], soni, n: Date.now(), kim: 0 })} />;
