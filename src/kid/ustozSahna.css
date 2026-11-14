@@ -91,7 +91,7 @@
 /* REV164: og'iz yuz qiyaligiga mos buriladi (bosh egilgan pozalarda qiyshiq ko'rinmasin) */
 .us-og{position:absolute;aspect-ratio:1/1;transform:translate(-50%,-50%) rotate(var(--og-r,0deg));pointer-events:none}
 .us-og-teri{position:absolute;left:52%;top:50%;width:185%;height:100%;transform:translate(-50%,-50%);border-radius:50%;
-  background:radial-gradient(closest-side,var(--teri) 62%,transparent 100%)}
+  background:radial-gradient(closest-side,var(--teri) var(--teri-q,62%),transparent 100%)}
 .us-og img{position:absolute;left:50%;height:auto;transform:translate(-50%,-50%);display:block;image-rendering:auto}
 @keyframes us-breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.006,1.012)}}
 @keyframes us-talk{from{transform:translateY(0) rotate(0)}to{transform:translateY(-.3%) rotate(-.3deg)}}

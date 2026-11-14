@@ -125,7 +125,8 @@ export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = fal
       {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
       {p.og && og >= 0 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
         <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin, "--og-r": `${p.og.r || 0}deg` }}>
-          <i className="us-og-teri" style={p.og.tw ? { width: `${p.og.tw}%` } : undefined} />
+          {/* REV552: yamoq o'lchami pozadan (tw — eni, th — bo'yi, tq — to'liq qoplaydigan qismi); berilmasa — eski umumiy o'lcham */}
+          <i className="us-og-teri" style={p.og.tw || p.og.th || p.og.tq ? { ...(p.og.tw ? { width: `${p.og.tw}%` } : null), ...(p.og.th ? { height: `${p.og.th}%` } : null), ...(p.og.tq ? { "--teri-q": `${p.og.tq}%` } : null) } : undefined} />
           <img src={ogRasm[ogYumshoq(og)]} alt="" draggable="false" style={{ width: `${OGIZ[ogYumshoq(og)][0] * 95}%`, top: `${50 + OGIZ[ogYumshoq(og)][2] * 100}%` }} />
         </span>
       </span>}
