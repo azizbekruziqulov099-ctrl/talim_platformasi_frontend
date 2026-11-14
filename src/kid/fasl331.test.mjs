@@ -22,13 +22,17 @@ test.skip('REV332 (REV344 da o‘zgardi): kun poyezdi navbatda', () => {
   assert.ok(h.find((s) => s._ochilish === 'havo').tanlov);
 });
 
-test('REV344: har darsda havo va fasl, 6–7 yoshda kun poyezdi ham', () => {
+test('REV344: har darsda havo va fasl; REV545: kun poyezdi 2–7 yoshning hammasida (avval faqat 6–7 yosh)', () => {
   const sana = new Date('2026-11-05T10:00:00');   // payshanba
   for (const kun of [6, 7]) {
     const o = ochilish({ ustoz: 'nilufar', izoh: 'uz', grade: '4-5 yosh', havo: 'quyosh', vaqt: 'kun', kun, sana });
     assert.ok(o.find((s) => s._ochilish === 'havo').tanlov); assert.ok(o.find((s) => s._ochilish === 'vaqt').tanlov);
-    assert.ok(!o.find((s) => s._ochilish === 'kun'));
+    // REV545: 4–5 yoshda ham kun poyezdi — butun hafta (7 vagon), to'g'risi payshanba (4-vagon), fasldan oldin keladi
+    const kq = o.find((s) => s._ochilish === 'kun'); assert.ok(kq && kq.tanlov); assert.equal(kq.tanlov.variantlar.length, 7); assert.equal(kq.tanlov.variantlar[kq.tanlov.togri], '4️⃣');
+    assert.ok(o.findIndex((s) => s._ochilish === 'kun') < o.findIndex((s) => s._ochilish === 'vaqt'));
   }
+  const ikki = ochilish({ ustoz: 'nilufar', izoh: 'uz', grade: '2-3 yosh', havo: 'quyosh', vaqt: 'kun', kun: 6, sana }).find((s) => s._ochilish === 'kun');
+  assert.ok(ikki && ikki.tanlov.variantlar.length === 7 && /to‘rtinchi kuni/.test(ikki.ovoz), ikki?.ovoz);
   const k = ochilish({ ustoz: 'nilufar', izoh: 'uz', grade: '6-7 yosh', havo: 'quyosh', vaqt: 'kun', kun: 6, sana });
   const q = k.find((s) => s._ochilish === 'kun'); assert.ok(q && q.tanlov); assert.equal(q.tanlov.variantlar[q.tanlov.togri], '4️⃣');
   assert.match(q.tanlov.javob, /payshanba/i);

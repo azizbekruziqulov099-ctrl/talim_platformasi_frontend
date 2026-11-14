@@ -216,6 +216,22 @@ export const KUN_SAVOL = {
   zh: "日子火车来了！今天是星期几？找到它的车厢！", ja: "ひにちの きしゃが きたよ！きょうは しゅうの なんにちめ？ しゃりょうを さがしてね！", ko: "요일 기차가 왔어! 오늘은 일주일 중 몇 번째 날일까? 칸을 찾아 봐!",
 };
 export const VAGON = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣"];
+// REV545: 2–5 yosh — ustoz kunni va uning tartib raqamini O'ZI aytadi, bola shu raqamli vagonni topadi (raqamni tanib olish).
+// {D}/{d} — kun nomi (gap boshida katta harf bilan), {n} — raqam, {o}/{O} — o'zbekcha tartib son («oltinchi»).
+export const KUN_YORDAM = {
+  uz: "Haftada yetti kun bor. Bugun — {d}. {D} — haftaning {o} kuni. {O} vagonni top!",
+  ru: "В неделе семь дней. Сегодня {d}. {D} — вагон номер {n}. Найди вагон номер {n}!",
+  en: "A week has seven days. Today is {D}. {D} is carriage number {n}. Find carriage number {n}!",
+  de: "Die Woche hat sieben Tage. Heute ist {D}. {D} ist Wagen Nummer {n}. Finde Wagen Nummer {n}!",
+  fr: "La semaine a sept jours. Aujourd'hui, c'est {d}. {D}, c'est le wagon numéro {n}. Trouve le wagon numéro {n} !",
+  es: "La semana tiene siete días. Hoy es {d}. {D} es el vagón número {n}. ¡Busca el vagón número {n}!",
+  tr: "Haftada yedi gün var. Bugün {d}. {D}, {n} numaralı vagon. {n} numaralı vagonu bul!",
+  ar: "في الأسبوع سبعة أيام. اليوم {d}. {d} هو العربة رقم {n}. ابحث عن العربة رقم {n}!",
+  zh: "一个星期有七天。今天是{d}。{d}是{n}号车厢。找到{n}号车厢！",
+  ja: "いっしゅうかんは なのか あります。きょうは {d}です。{d}は {n}ばんの しゃりょうです。{n}ばんの しゃりょうを さがしてね！",
+  ko: "일주일은 칠 일이에요. 오늘은 {d}이에요. {d}은 {n}번 칸이에요. {n}번 칸을 찾아 봐!",
+};
+const TARTIB_UZ = ["birinchi", "ikkinchi", "uchinchi", "to‘rtinchi", "beshinchi", "oltinchi", "yettinchi"];
 
 /** Tanlov: to'g'ri belgi + hovuzdan boshqalari (soni — yoshga qarab), joyi kunga qarab almashadi. */
 export function tanlovYasa(togri, hovuz, soni, kun = 0) {
@@ -280,9 +296,15 @@ export function kalendarQadami({ til = null, izoh = "uz", yosh = 4, sana = new D
     // savol tili: 4–7 yoshli til darsida — o'rganilayotgan til, aks holda izoh tili
     const L = T && yosh >= 4 && FASL_SAVOL[T] ? T : FASL_SAVOL[I] ? I : "uz";
     if (tanlov === "kun") {   // REV332: kun poyezdi — bugungi kun vagoni (dushanba = 1)
-      const t = tanlovYasa(VAGON[q.kun], VAGON, 4, kun);
+      // REV545: 2–7 yoshning hammasiga va BUTUN hafta ko'rinadi — 1 dan 7 gacha yettita vagon tartib bilan (avval 4 ta tasodifiy
+      // vagon chiqardi va faqat 6–7 yoshda). Bola haftada 7 kun borligini ko'radi va bugungisini topadi.
       const [, lug, i] = narsalar[0];   // REV344: javob — faqat bugungi kun (fasl va oy keyingi qadamda aytiladi)
-      return { ...step, _ochilish: "kun", doska: `🗓️ ${lug ? lug[L]?.[i] || "" : ""}`, ovoz: tg(L, KUN_SAVOL[L]), tanlov: { ...t, javob: tg(L, bosh(gapi(L, "kun", lug, i))) } };
+      const nom = lug ? lug[L]?.[i] || "" : "";
+      // 2–5 yosh: ustoz kunni va tartib raqamini O'ZI aytadi («Shanba — oltinchi kun. Oltinchi vagonni top!») — bola raqamni
+      // sanab topadi; 6–7 yosh: faqat so'raladi — o'zi hisoblab topadi. Ikki marta adashsa, to'g'ri vagon yonib ko'rsatiladi.
+      const almash = (q0) => q0.split("{D}").join(bosh(nom)).split("{d}").join(nom).split("{n}").join(String(q.kun + 1)).split("{O}").join(bosh(TARTIB_UZ[q.kun])).split("{o}").join(TARTIB_UZ[q.kun]);
+      const savol = yosh < 6 && KUN_YORDAM[L] && nom ? almash(KUN_YORDAM[L]) : KUN_SAVOL[L];
+      return { ...step, _ochilish: "kun", doska: `🗓️ ${nom}`, ovoz: tg(L, savol), tanlov: { variantlar: [...VAGON], togri: q.kun, javob: tg(L, bosh(gapi(L, "kun", lug, i))) } };
     }
     const t = tanlovYasa(FASL_BELGI[q.fasl], FASL_BELGI, yosh < 4 ? 2 : yosh < 6 ? 3 : 4, kun);   // REV368: 2 → 3 → 4
     return { ...step, ovoz: tg(L, FASL_SAVOL[L]), tanlov: { ...t, javob: step.ovoz } };

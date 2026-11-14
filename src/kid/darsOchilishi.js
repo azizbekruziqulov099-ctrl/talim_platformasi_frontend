@@ -2,7 +2,8 @@
 // darsdan so'raydi. Sof funksiyalar (brauzersiz sinaladi). «⏸» — bolaga javob berish uchun jimlik (TTS qo'yadi).
 import { IMMERSIYA } from "./immersiyaTillari.js";
 import { OCHILISH_LUGAT } from "./ochilishLugat.js";
-import { kalendarQadami } from "./kalendar.js";
+import { kalendarQadami, sanaQismlari } from "./kalendar.js";
+import { havoMos, haroratQoshimcha } from "./havoMos.js";   // REV545: ob-havo gapi fasl va haroratga mos
 import { FEL_IZOH, birlashtir, gap, izohTeg } from "./izohTil.js";
 import { iboraNorm, sinfIborasimi } from "./sinfIboralari.js";
 import { ISMLAR, klonla } from "./tilUstozlari.js";
@@ -195,7 +196,13 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
   const hk = tunda && h === "quyosh" && L?.starry ? "starry" : HAVO_KEY[h];
   const belgi = tunda ? (h === "quyosh" ? "🌙" : HAVO_EMOJI[h]) : vaqt === "kech" && h === "quyosh" ? "🌇" : vaqt === "tong" && h === "quyosh" ? "🌅" : HAVO_EMOJI[h];
   const vh = (VAQT_HAVO[izoh] || VAQT_HAVO.uz)[vaqt]?.[h];
-  const havoGapi = vh ? z(vh) : z(fel.havo[h]);
+  // REV545: fasl va haroratga mos gap. Sovuq kunda «quyosh ertakdagidek nur sochyapti» emas — «Quyosh chiqdi, lekin havo sovuq…».
+  // Fasl faqat haqiqiy sana berilganda hisobga olinadi; mos gap bo'lmasa (iliq quyoshli kun, boshqa til) — ustozning o'z gapi.
+  const faslN = sana ? sanaQismlari(sana).fasl : null;
+  const mosGap = havoMos({ h, harorat, fasl: faslN, kun: kun + xil, izoh });
+  // kun vaqtiga oid gapga («Tong otdi! Quyosh endigina chiqib kelyapti.») — sovuq/jazirama bo'lsa qisqa qo'shimcha (til darsida u o'rganilayotgan tilda aytiladi)
+  const hq = vh && !L ? haroratQoshimcha({ harorat, fasl: faslN, izoh }) : "";
+  const havoGapi = vh ? `${z(vh)}${hq ? ` ${z(hq)}` : ""}` : z(mosGap || fel.havo[h]);
   const chiroq = kechki ? ` ${z(CHIROQ[izoh] || CHIROQ.uz)}` : "";
   // REV324: bola havoni O'ZI tanlaydi — ustoz faqat so'raydi, bola derazaga qarab belgini bosadi, keyin ustoz tasdiqlaydi.
   // Tunda (oy va yulduzlar) — tanlov yo'q, avvalgidek aytiladi.
@@ -204,9 +211,9 @@ export function ochilish({ ustoz = "nilufar", til = null, havo = "quyosh", haror
     : `${g("Derazaga qara! Bugun havo qanday? ⏸")} ${havoGapi}${chiroq}`;
   // REV331: tanlovlar kunma-kun almashadi — juft kun havo, toq kun fasl (bola har kuni boshqa narsani o'zi topadi)
   // REV344: har darsda bola o'zi topadi — havoni (kunduzi) va faslni; 6–7 yoshda kun poyezdi ham qo'shiladi
-  const katta = yoshi(grade) >= 6;
   const kalTanlov = !sana ? false : "fasl";
-  const kunTanlovi = Boolean(sana) && katta;
+  // REV545: kun poyezdi endi 2–7 yoshning HAMMASIGA (avval faqat 6–7 yosh): bola haftaning 1–7 kunini ko'rib, bugungisini topadi
+  const kunTanlovi = Boolean(sana);
   const tanlov = !tunda ? havoTanlovi({ togri: belgi, yosh: yoshi(grade), kun }) : null;
   out.push({
     turi: "kirish", _ochilish: "havo", ...(tanlov ? { tanlov: { ...tanlov, javob: havoOvoz.slice(havoOvoz.indexOf("⏸") + 1).trim() } } : {}),

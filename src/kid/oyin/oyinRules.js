@@ -15,6 +15,11 @@ import { OYIN_MATN, oyinMatn, umumiyGap, toza } from "./oyinMatn.js";
 
 export const YOSHLAR = ["2-3", "4-5", "6-7"];
 export const HARAKATLAR = ["bosish", "surish", "aytish", "chizish"];
+// REV545: darslarda ishlatilmaydigan o'yinlar. 117 «Ayt va och» (mikrofon: «rasm nomini aytsang, eshik ochiladi») — Azizjon talabi bilan
+// 2–7 yoshlilar darslaridan olib tashlandi. Miya qadamida shu raqam turgan bo'lsa — o'rniga xuddi shu rasmlar bilan 116 «Eshit va bos»
+// o'ynaladi (ustoz aytadi, bola rasmni bosadi). Dvigatel o'chirilmagan: o'yin xonasida («Nutq va eshitish») o'yin hozircha qolgan.
+export const DARSDA_YOQ = new Set([117]);
+export const DARSDA_ALMASH = { 117: 116 };
 export const KUN_MS = 24 * 60 * 60 * 1000;
 export const TAKRORLANMASLIK_KUN = 7;
 export const QIYINLIK_MIN = -2;
@@ -302,7 +307,7 @@ export function oyinTanla({ elementlar, yosh, tarix = [], sonlar, hozir = Date.n
   // oxirgi o'yin: eng kech vaqtlisi (vaqti yo'q bo'lsa — ro'yxatdagi oxirgisi)
   const oxirgi = [...yozuvlar].sort((a, b) => ((Number.isFinite(a.vaqt) ? a.vaqt : -Infinity) - (Number.isFinite(b.vaqt) ? b.vaqt : -Infinity)) || a.i - b.i).pop();
   const oxirgiHarakat = oxirgi ? (oyinOl(oxirgi.id)?.harakat || oxirgi.harakat || null) : null;
-  const nomzodlar = OYINLAR.filter((o) => !yaqinda.has(o.id)
+  const nomzodlar = OYINLAR.filter((o) => !yaqinda.has(o.id) && !DARSDA_YOQ.has(o.id)
     && o.harakat !== oxirgiHarakat
     && oyinMosmi(o, { elementlar, yosh, sonlar }));
   if (!nomzodlar.length) return null;

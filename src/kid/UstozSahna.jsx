@@ -195,7 +195,7 @@ export default function UstozSahna({ havoYashir = false, ustoz = "nilufar", ikki
     {dz && derazaga && !havoYashir && BELGI[`havo_${havo2}`] && <img className="us-havo-rasm" src={BELGI[`havo_${havo2}`]} alt="" draggable="false" style={havoJoyi(dz, xona.doska)} />}
     <div className="us-lamp-glow" aria-hidden="true" />
     {/* REV121: rasm chiqqanda doska «yaqinlashadi» — telefonda ham rasmlar katta va aniq (ustoz chapda qoladi) */}
-    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(6, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(juft ? torDoska(d) : d)}>
+    <div className={`us-board ${d.panel ? "is-panel" : ""} ${pictures.length ? "is-zoom" : ""} ${doskaYoq && !pictures.length ? "is-yoq" : ""} n${Math.min(7, pictures.length)} ${pictures.some((x) => x.faol) ? "has-faol" : ""}`} style={pictures.length ? undefined : box(juft ? torDoska(d) : d)}>
       {pictures.map((pic, i) => <button key={`${pic.src || pic.emoji}-${pic.rev || 0}-${i}`} type="button"
         className={`us-pic ${pic.emoji && !pic.src ? `is-emoji sz-${cardSize(pic.emoji)}` : ""} ${pic.holat ? `is-${pic.holat}` : ""} ${pic.faol ? "is-faol" : ""}`} style={{ "--i": i }}
         onClick={() => onTap?.(i)} aria-label={pic.label || "rasm"}>

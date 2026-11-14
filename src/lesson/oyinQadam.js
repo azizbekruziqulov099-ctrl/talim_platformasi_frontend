@@ -1,5 +1,5 @@
 // REV325: Miya qadamidagi «O'yin» raqami → o'yin dvigateli uchun ma'lumot (elementlar, sonlar). Sof funksiyalar.
-import { oyinMosmi, oyinOl } from "../kid/oyin/oyinRules.js";   // sof qoidalar (JSX emas — node testida ham ishlaydi)
+import { oyinMosmi, oyinOl, DARSDA_YOQ, DARSDA_ALMASH } from "../kid/oyin/oyinRules.js";   // sof qoidalar (JSX emas — node testida ham ishlaydi)
 
 const EMOJI = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu;
 const TEG = /\[(\w\w)\](.+?)\[\/\1\]/;
@@ -53,7 +53,9 @@ const TEGLAR = /\[(\w\w)\](.+?)\[\/\1\]/g;
 
 /** O'ynaladigan o'yin: Miya'dagi raqam mos kelsa — o'sha; aks holda null (qadam avvalgidek o'tadi). */
 export function qadamOyini(step, { yosh, darsSozlari = [], darsElementlari: hovuz = [] } = {}) {
-  const id = Number(step?.oyin);
+  let id = Number(step?.oyin);
+  // REV545: darsda ishlatilmaydigan o'yin (117 «Ayt va och») — o'rniga almashtiriladi (116 «Eshit va bos»); o'rinbosari bo'lmasa — o'yinsiz
+  if (DARSDA_YOQ.has(id)) id = Number(DARSDA_ALMASH[id]) || 0;
   if (!id || !oyinOl(id)) return null;
   // REV342: qadamning o'z rasmlari → qadam matnida aytilgan so'zlarning rasmlari (dars hovuzidan) → dars hovuzi
   const ozi = qadamElementlari(step, darsSozlari);
