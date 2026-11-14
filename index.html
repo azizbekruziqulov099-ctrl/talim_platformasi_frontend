@@ -18,6 +18,37 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- REV547: ochilish ekrani. Avval ilova yuklanguncha OQ EKRAN turardi. Endi: logotip + nom + yuklanish chizig'i, ilova
+         ochilishi bilan (__kbBootOk) silliq yo'qoladi. Hammasi shu faylning ichida (rasm ham) — internetni kutmasdan darhol chiqadi.
+         Ilova ochilmasa ham ekranni to'sib qolmaydi: 12 soniyadan keyin o'zi yopiladi (qotish himoyasi pastda alohida ishlaydi). -->
+    <style>
+      #kb-ochilish{position:fixed;inset:0;z-index:2147482000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+        background:#f7f8fa;color:#13314f;font:600 17px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;transition:opacity .28s ease;
+        padding:env(safe-area-inset-top,0) 24px env(safe-area-inset-bottom,0)}
+      #kb-ochilish.kb-ketdi{opacity:0;pointer-events:none}
+      #kb-ochilish img{width:76px;height:76px;border-radius:20px;box-shadow:0 8px 24px rgba(13,90,94,.22);display:block}
+      #kb-ochilish b{font-size:20px;letter-spacing:.2px}
+      #kb-ochilish i{display:block;width:min(220px,56vw);height:5px;border-radius:5px;background:#e3e8ef;overflow:hidden;position:relative}
+      #kb-ochilish i::after{content:"";position:absolute;inset:0 auto 0 0;width:40%;border-radius:5px;background:#1B4B7A;animation:kb-och 1.15s ease-in-out infinite}
+      @keyframes kb-och{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+      @media (prefers-color-scheme:dark){#kb-ochilish{background:#0f1720;color:#e8eef5}#kb-ochilish i{background:#22303f}#kb-ochilish i::after{background:#6fb0ee}}
+      @media (prefers-reduced-motion:reduce){#kb-ochilish i::after{animation:none;width:100%;opacity:.5}}
+    </style>
+    <div id="kb-ochilish" role="status" aria-live="polite" aria-label="Kabutar ochilmoqda">
+      <img alt="" width="76" height="76" src="data:image/webp;base64,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" />
+      <b>Kabutar</b>
+      <i></i>
+    </div>
+    <script>
+      (function () {
+        var e = document.getElementById("kb-ochilish"); if (!e) return;
+        var yop = function () { if (!e) return; var x = e; e = null; x.className = "kb-ketdi"; setTimeout(function () { try { x.parentNode.removeChild(x); } catch (z) {} }, 320); };
+        window.__kbOchilishYop = yop;
+        // ilova chizilishi bilan (root ichida narsa paydo bo'ldi) — yopamiz; signal kelmasa ham ekran to'silib qolmasin
+        try { var r = document.getElementById("root"); new MutationObserver(function (_, o) { if (r.children.length) { o.disconnect(); setTimeout(yop, 120); } }).observe(r, { childList: true }); } catch (z) {}
+        setTimeout(yop, 12000);
+      })();
+    </script>
     <!-- REV441: «oq ekranda qotib qolish»dan himoya. Yangilanishdan keyin telefon eski sahifani ochib, uning fayllari
          serverda yo'q bo'lsa — ilova ishga tushmay oq ekran qolardi. Endi: asosiy fayl yuklanmasa yoki fayllar yuklangandan
          keyin 8 soniyada ilova ochilmasa — kesh tozalanadi va sahifa yangidan ochiladi (2 martagacha); 3-marta service worker ham o'chiriladi. -->
@@ -46,7 +77,7 @@
         // vaqt sahifa fayllari to'liq yuklangandan keyin hisoblanadi (sekin internetda yuklanish o'rtasida qayta ochilmasin)
         var soat = 0;
         window.addEventListener("load", function () { soat = setTimeout(function () { var r = document.getElementById("root"); if (!r || !r.children.length) tikla("vaqt"); }, 8000); });
-        window.__kbBootOk = function () { clearTimeout(soat); tugadi = true; try { sessionStorage.removeItem(K); } catch (e) {} };
+        window.__kbBootOk = function () { clearTimeout(soat); tugadi = true; try { sessionStorage.removeItem(K); } catch (e) {} try { window.__kbOchilishYop && window.__kbOchilishYop(); } catch (e) {} };
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
