@@ -67,3 +67,22 @@ html[data-kb-korinish="yangi"] :is(.course-pay-box .course-button:not(.is-second
 html[data-kb-korinish="yangi"] .course-pay-card{color:var(--kb-siyoh)}
 html[data-kb-korinish="yangi"] .bm-order{border:1px solid var(--kb-chiziq);border-radius:14px;background:var(--kb-fon);padding:12px 14px}
 html[data-kb-korinish="yangi"] :is(.course-pay-box .course-button.is-secondary,.bm-order .bm-secondary){min-height:44px;border:1px solid var(--kb-chiziq)!important;border-radius:12px;background:var(--kb-yuza)!important;color:var(--kb-siyoh)!important;font-weight:700}
+
+/* ── REV551: keng ekranda (≥ 1100 px) DOIMIY chap menyu ──
+   Avval «Yangi ko'rinish» deyarli faqat yashirin yon panelni o'zgartirardi — asosiy ekranda farq sezilmasdi. Endi kompyuterda menyu
+   doim chapda turadi (☰ bosish shart emas), kontent o'ngga suriladi. Telefonda o'zgarmaydi: yuqorida ☰, pastda menyu.
+   Dars va test paytida (body.kb-focus-dars / .kb-focus-test) menyu avvalgidek yashirin — o'quvchining ekranini egallamaydi.
+   QATLAM: doimiy menyu ENG PASTDA (z-index 40). Butun ekranli oynalarning hammasi (dars xonasi, o'yinlar xonasi, to'lov, modal
+   oynalar — z-index 50 … 2147483001) uning USTIDA ochiladi. Vaqtincha ochiladigan menyuning baland raqami (2147483080) bu yerda
+   ishlatilmaydi — aks holda menyu o'sha oynalarning chap 264 px ini to'sib qo'yardi. */
+@media (min-width:1100px){
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .premium-app-shell .premium-sidebar{display:flex!important;position:fixed!important;left:0!important;top:0!important;bottom:0!important;
+    width:264px!important;padding-inline:14px!important;z-index:40!important;box-shadow:none!important;animation:none!important;border-right:1px solid var(--kb-chiziq)!important;overflow-y:auto}
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .premium-app-shell :is(.premium-side-brand > div:last-child,.premium-role-card > div,.premium-side-link > span:last-child,.premium-side-nav > p,.premium-side-status > div){display:block!important}
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .premium-app-shell .premium-side-link{display:flex!important;justify-items:start!important}
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .premium-app-shell :is(.premium-side-brand,.premium-role-card){justify-content:flex-start!important}
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .premium-app-shell .premium-app-main{margin-left:264px!important}
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .samtm-yon-fon{display:none!important}
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .samtm-top-switch .samtm-gamburger{display:none!important}
+  html[data-kb-korinish="yangi"] body:not(.kb-focus-dars):not(.kb-focus-test) .samtm-top-switch{left:264px!important}
+}
