@@ -1,0 +1,27 @@
+/* REV557: formulani yozish — doska, klaviatura */
+.fm-mashq{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:560px;margin:0 auto}
+.fm-mavzu{margin:0;font:700 12.5px system-ui;color:#5b6573;text-transform:uppercase;letter-spacing:.04em;text-align:center}
+.fm-savol{font-size:17px!important;color:#13314f!important;font-weight:700}
+.fm-harf-izoh{margin:0;font-size:13.5px;color:#5b6573;text-align:center}
+.fm-doska{width:100%;box-sizing:border-box;min-height:86px;display:flex;align-items:center;justify-content:center;padding:10px 12px;border:2px solid #d5dde7;border-radius:16px;background:#fbfcfe;overflow-x:auto;transition:border-color .15s,background .15s}
+.fm-doska.is-ok{border-color:#1f8a4c;background:#eefaf2}.fm-doska.is-xato{border-color:#d9534f;background:#fff5f4}
+.fm-formula .katex{font-size:1.55em;color:#13314f}.fm-formula .katex-display{margin:0}
+.fm-bosh{color:#8a94a3;font-size:14.5px;text-align:center}.fm-xom{font:600 20px ui-monospace,Menlo,Consolas,monospace;color:#5b6573}
+.fm-javob{width:100%;box-sizing:border-box;display:grid;gap:4px;justify-items:center;padding:10px;border-radius:14px;background:#eef6ff;border:1px solid #cfe0f5}
+.fm-javob small{color:#3d5a80;font-weight:700}
+.fm-klav{width:100%;display:grid;gap:6px}
+/* har qator — teng kenglikdagi kataklar: tugmalar notekis sinib, bittasi alohida qatorga tushib qolmaydi */
+.fm-qator{display:grid;grid-template-columns:repeat(auto-fit,minmax(38px,1fr));gap:6px}
+.fm-qator.fm-raqamlar{grid-template-columns:repeat(6,1fr)}
+.fm-t{min-width:0;width:100%;height:44px;padding:0 4px;border:0;border-radius:12px;background:#eef2f7;color:#13314f;font:700 18px system-ui;cursor:pointer;touch-action:manipulation}
+.fm-t:active{transform:scale(.96)}.fm-t:disabled{opacity:.45;cursor:default}
+.fm-t.is-harf{background:#e6f0fb;font-style:italic;font-family:"Times New Roman",Times,serif;font-size:21px}
+.fm-t.is-maxsus{background:#fff3d6;font-size:16px}.fm-t.is-amal{background:#e9edf3;font-size:20px}.fm-t.is-ochir{background:#fde8e6;color:#b3261e}
+.fm-yordam{width:100%;box-sizing:border-box;border:1px solid #e3e8ef;border-radius:12px;padding:8px 12px;font-size:13.5px;color:#3d4a57;background:#fafbfc}
+.fm-yordam summary{cursor:pointer;font-weight:700}.fm-yordam ul{margin:8px 0 2px;padding-left:18px;display:grid;gap:5px;line-height:1.45}
+.fm-t.is-maxsus{white-space:nowrap}
+/* «Tekshirish» — asosiy tugma (bo'limning umumiy qoidasi uni oddiy tugmadek kulrang qilib qo'yardi) */
+.fm-mashq .mq-amallar .mq-asosiy{min-width:160px;height:48px;background:#1B4B7A;color:#fff;font:800 16px system-ui}
+.fm-mashq .mq-amallar .mq-asosiy:disabled{opacity:.45}
+.fm-mashq .mq-amallar .mq-havola{background:transparent;height:auto;min-width:0;font:600 14px system-ui;color:#3d5a80;text-decoration:underline;padding:6px}
+@media (max-width:380px){.fm-t{height:42px;font-size:17px}.fm-qator{gap:5px}}

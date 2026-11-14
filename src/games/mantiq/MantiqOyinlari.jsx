@@ -7,6 +7,7 @@ import { Ketma, Jadval, Xanoy, Chiroq } from "./Mantiq2.jsx";   // REV528
 import { Anagramma, Zanjir, Imlo, GapTuzish } from "./TilOyin.jsx";   // REV529
 import { Ozuqa, Elektr, Kimyo, Davriy } from "./FanOyin2.jsx";   // REV530
 import { Viloyatlar, Davlatlar, Zonalar } from "./GeoOyin.jsx";   // REV531
+import { FormulaOyin } from "../../formula/FormulaYozish.jsx";   // REV557: formulani yozish va tekshirish
 import "./mantiq.css";
 
 const OYINLAR = [
@@ -23,6 +24,7 @@ const OYINLAR = [
   { k: "koordinata", g: "Matematika", b: "📍", nom: "Koordinata nishoni", izoh: "Nuqtani koordinatasi bo‘yicha toping; simmetriya va siljitish" },
   { k: "funksiya", g: "Matematika", b: "⚙️", nom: "Funksiya mashinasi", izoh: "Kirish va chiqishga qarab qoidani toping" },
   { k: "sehrli", g: "Matematika", b: "🧮", nom: "Sehrli kvadrat", izoh: "Hamma qator, ustun va diagonal yig‘indisi teng bo‘lsin" },
+  { k: "formula", g: "Matematika", b: "✍️", nom: "Formula ustasi", izoh: "Formulani belgilar klaviaturasida yozing: daraja, ildiz, kasr, sin va cos" },
   { k: "anagram", g: "Til", b: "🔤", nom: "Anagramma", izoh: "Aralashgan harflardan so‘z tuzing" },
   { k: "zanjir", g: "Til", b: "⛓️", nom: "So‘z zanjiri", izoh: "Har so‘z oldingisining oxirgi harfidan boshlanadi" },
   { k: "imlo", g: "Til", b: "✍️", nom: "Imlo ovchisi", izoh: "To‘g‘ri yozilgan so‘zni toping — qoidasi bilan" },
@@ -127,7 +129,7 @@ function Nonogram({ daraja, urug, onYutdi }) {
   </div>;
 }
 
-const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli, ozuqa: Ozuqa, elektr: Elektr, kimyo: Kimyo, davriy: Davriy, viloyat: Viloyatlar, davlat: Davlatlar, zona: Zonalar, anagram: Anagramma, zanjir: Zanjir, imlo: Imlo, gap: GapTuzish };
+const KOMP = { sudoku: Sudoku, son: SonYasash, kod: KodOchish, nonogram: Nonogram, ketma: Ketma, jadval: Jadval, xanoy: Xanoy, chiroq: Chiroq, tarozi: Tarozi, kasr: KasrYigish, koordinata: Koordinata, funksiya: Funksiya, sehrli: Sehrli, formula: FormulaOyin, ozuqa: Ozuqa, elektr: Elektr, kimyo: Kimyo, davriy: Davriy, viloyat: Viloyatlar, davlat: Davlatlar, zona: Zonalar, anagram: Anagramma, zanjir: Zanjir, imlo: Imlo, gap: GapTuzish };
 
 export default function MantiqOyinlari({ sinf = "", onClose, apiBase = "" }) {
   const s = Number((/\d{1,2}/.exec(String(sinf)) || [0])[0]);
