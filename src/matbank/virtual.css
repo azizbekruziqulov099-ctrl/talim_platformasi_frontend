@@ -20,3 +20,9 @@
 .fd-sin-nuqta{fill:#1b6fd8}.fd-cos-nuqta{fill:#d9534f}.fd-yozuv{font:700 12.5px system-ui;fill:#13314f}.fd-sin-m{font:700 13.5px system-ui;fill:#1b6fd8}.fd-cos-m{font:700 13.5px system-ui;fill:#d9534f}.fd-tg-m{font:700 13.5px system-ui;fill:#7a4a00}
 .fd-aylana{cursor:default;touch-action:auto}.fd-surgich{width:100%;min-height:40px}
 .fd-doska{display:grid;gap:8px;margin:6px 0}.fd-doska .mb-btn{width:fit-content}
+/* REV566: aniq geometrik chizma */
+.gc-root{margin:6px auto;max-width:380px;text-align:center}.gc-svg{width:100%;height:auto;background:#fbfcfe;border:1px solid #d5dde7;border-radius:14px;display:block}
+.gc-chiziq{stroke:#13314f;stroke-width:2.2;stroke-linecap:round}.gc-uzuq{stroke:#6b7686;stroke-width:1.5;stroke-dasharray:5 4}.gc-aylana{fill:none;stroke:#1b6fd8;stroke-width:2.2}
+.gc-togri{fill:none;stroke:#13314f;stroke-width:1.4}.gc-yoy{fill:none;stroke:#e0743b;stroke-width:1.8}.gc-nuqta{fill:#13314f}
+.gc-ism{font:700 14px "Times New Roman",serif;font-style:italic;fill:#13314f}.gc-son{font:700 13.5px system-ui;fill:#1b6fd8}.gc-son-uzuq{fill:#d9534f}.gc-burchak{font:700 12.5px system-ui;fill:#b9560f}
+.gc-root figcaption{margin-top:4px;color:#6b7686;font-size:12.5px}

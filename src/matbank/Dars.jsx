@@ -4,12 +4,12 @@ import React from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import MatMatn, { SavolMatn, VariantMatn } from "./MatMatn.jsx";
 import { HARFLAR, QIYINLIK_NOMI } from "./matMatn.js";
-import { DoskaTugma } from "./Vidjet.jsx";   // REV565
+import { DoskaTugma, GeoKonteksti } from "./Vidjet.jsx";   // REV565/566
 
 const Bolim = ({ belgi, nom, sinf = "", children }) => <article className={`mb-karta ds-bolim ${sinf}`}><h5 className="mb-sar">{belgi} {__kbUi(nom)}</h5>{children}</article>;
 
 export default function Dars({ d, onTekshir, onTest }) {
-  return <div className="ds-root">
+  return <GeoKonteksti.Provider value={d.geo || {}}><div className="ds-root">
     {d.bob && <p className="ds-bob">{d.bob}</p>}
     <DoskaTugma kalit={`dars-${d.raqam}`} />
     <Bolim belgi="🎯" nom="Maqsad" sinf="ds-maqsad"><MatMatn matn={d.maqsad} /></Bolim>
@@ -29,5 +29,5 @@ export default function Dars({ d, onTekshir, onTest }) {
       <p className="mb-izoh">{__kbUi("Shu mavzudan bir nechta savol: darsni o‘qigach yeching. To‘g‘ri javoblar oxirida ko‘rsatiladi.")}</p>
       <button type="button" className="mb-btn mb-asosiy" onClick={() => onTekshir(d.tekshir_ids)}>▶ {__kbUi("O‘zini tekshirish")} ({d.tekshir_ids.length})</button>
       {onTest && <button type="button" className="mb-btn" onClick={onTest}>📝 {__kbUi("Mavzu bo‘yicha test")}</button>}</article>
-  </div>;
+  </div></GeoKonteksti.Provider>;
 }

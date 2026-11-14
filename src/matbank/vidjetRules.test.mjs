@@ -19,6 +19,7 @@ test("GRAFIK va INTEGRAL: ifoda, parametr, oraliqlar; xatolar aniq", () => {
 test("birlik aylana va doska", () => {
   assert.equal(vidjetTahlil("BIRLIK_AYLANA", "45").burchak, 45); assert.equal(vidjetTahlil("BIRLIK_AYLANA", "").burchak, 30); assert.ok(vidjetTahlil("BIRLIK_AYLANA", "400").xato); assert.ok(vidjetTahlil("BIRLIK_AYLANA", "abc").xato);
   assert.deepEqual(vidjetTahlil("DOSKA"), { tur: "DOSKA" });
+  assert.deepEqual(vidjetTahlil("CHIZMA", "romb   a=5  d1=6 d2=8"), { tur: "CHIZMA", arg: "romb a=5 d1=6 d2=8" }); assert.ok(vidjetTahlil("CHIZMA", "").xato);
 });
 
 // Haqiqiy darslardagi hamma [[…]] qatori tahlildan o'tishi kerak (dars fayli backend repozitoriysida; DARS_FAYL bilan yo'l berish mumkin).
@@ -27,7 +28,8 @@ test("REV565: HAQIQIY darslardagi barcha vidjet qatorlari to'g'ri", { skip: fs.e
   const D = JSON.parse(fs.readFileSync(DARS_YOLI, "utf8")).darslar; let n = 0;
   for (const [raqam, d] of Object.entries(D)) {
     const matnlar = [d.maqsad, d.oldin_bil, d.xatolar, d.esda_tut, d.tarix || "", ...d.tushuncha.map((t) => t.matn), ...d.misollar.map((m) => m.matn)];
-    for (const mt of matnlar) for (const q of String(mt).split("\n")) { const v = vidjetQatori(q); if (!v) continue; n += 1; const r = vidjetTahlil(v.tur, v.arg); assert.ok(!r.xato, `${raqam}-mavzu «${q}»: ${r.xato}`); }
+    for (const mt of matnlar) for (const q of String(mt).split("\n")) { const v = vidjetQatori(q); if (!v) continue; n += 1; const r = vidjetTahlil(v.tur, v.arg); assert.ok(!r.xato, `${raqam}-mavzu «${q}»: ${r.xato}`);
+      if (r.tur === "CHIZMA") assert.ok(d.geo && d.geo[r.arg], `${raqam}-mavzu: «${r.arg}» uchun hisoblangan shakl yo'q`); }
   }
   assert.ok(n >= 0);
 });

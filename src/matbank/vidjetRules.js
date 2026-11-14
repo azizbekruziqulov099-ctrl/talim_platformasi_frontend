@@ -2,7 +2,7 @@
 // Bu qoidalar dars tekshiruvchisi (tools/mat_bank/dars_qosh.py) bilan bir xil: noto'g'ri qator aniq sabab bilan rad etiladi.
 import { ifodaTayyorla } from "./grafikRules.js";
 
-export const VIDJET_TURLARI = ["GRAFIK", "INTEGRAL", "BIRLIK_AYLANA", "DOSKA"];
+export const VIDJET_TURLARI = ["GRAFIK", "INTEGRAL", "BIRLIK_AYLANA", "DOSKA", "CHIZMA"];
 const SON = "-?\\d+(?:[.,]\\d+)?";
 const oraliq = (s) => { const m = new RegExp(`^(${SON})\\s*\\.\\.\\s*(${SON})$`).exec(s.trim()); if (!m) return null; const a = Number(m[1].replace(",", ".")), b = Number(m[2].replace(",", ".")); return a < b ? [a, b] : null; };
 // parametrda o'nli kasr NUQTA bilan (k=0.5): vergul parametrlarni ajratadi
@@ -13,6 +13,7 @@ export function vidjetTahlil(tur, arg = "") {
   const T = String(tur || "").toUpperCase(); if (!VIDJET_TURLARI.includes(T)) return { xato: `noma'lum vidjet: ${tur}` };
   const bo = String(arg || "").split("|").map((x) => x.trim()).filter((x, i) => x !== "" || i === 0);
   if (T === "DOSKA") return { tur: T };
+  if (T === "CHIZMA") { const a = String(arg || "").split(/\s+/).filter(Boolean).join(" "); return a ? { tur: T, arg: a } : { xato: "CHIZMA: shakl nomi kerak" }; }     // sonlar serverda hisoblangan; qiymat — darsning geo xaritasida
   if (T === "BIRLIK_AYLANA") { const v = bo[0] === "" || bo[0] === undefined ? 30 : Number(String(bo[0]).replace(",", ".")); return Number.isFinite(v) && v >= 0 && v <= 360 ? { tur: T, burchak: v } : { xato: "burchak 0–360 gradus bo'lsin" }; }
   const ifoda = bo[0]; const t = ifodaTayyorla(ifoda); if (!t.daraxt) return { xato: `ifoda noto'g'ri («${ifoda}»): ${t.xato}` };
   const r = { tur: T, ifoda, parametrlar: {}, xr: null, yr: null, integral: null }; const oraliqlar = [];
