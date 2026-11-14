@@ -1,0 +1,48 @@
+/* REV559: Matematika banki */
+.mb-root{max-width:760px;margin:0 auto;padding:12px 12px 28px;display:grid;gap:12px;color:#13314f;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.mb-bosh-qator{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.mb-bosh-qator h2{margin:0;font-size:21px;line-height:1.2}.mb-bosh-qator small{color:#5b6573}
+.mb-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:10px 16px;border:1px solid #d5dde7;border-radius:12px;background:#fff;color:#13314f;font:700 15px system-ui;cursor:pointer;touch-action:manipulation}
+.mb-btn:disabled{opacity:.45;cursor:default}.mb-btn.mb-asosiy{background:#1B4B7A;border-color:#1B4B7A;color:#fff}.mb-btn.mb-yengil{background:#f4f6fa;border-color:transparent}
+.mb-bosh,.mb-muted{margin:0;color:#5b6573;font-size:14px}.mb-izoh{margin:0;color:#5b6573;font-size:13.5px;line-height:1.45}
+.mb-xato{display:grid;gap:8px;justify-items:start;padding:12px;border-radius:12px;background:#fdecea;color:#8c1d18}.mb-xato p,.mb-xato-q{margin:0;font-weight:600}.mb-xato-q{color:#b3261e}
+.mb-aralash{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,#eef5ff,#f3f0ff);border:1px solid #d9e4f5}
+.mb-aralash>div{flex:1 1 220px;display:grid;gap:2px}.mb-aralash small{color:#5b6573}.mb-aralash select,.mb-karta select{min-height:40px;border:1px solid #cdd6e2;border-radius:10px;padding:0 8px;font:600 15px system-ui;background:#fff}
+.mb-qidir{width:100%;box-sizing:border-box;min-height:46px;padding:0 14px;border:1px solid #cdd6e2;border-radius:12px;font:500 16px system-ui}
+.mb-royxat{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.mb-mavzu{width:100%;display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e1e7ef;border-radius:14px;background:#fff;text-align:left;cursor:pointer;font:inherit;color:inherit;min-height:60px}
+.mb-mavzu:disabled{opacity:.5;cursor:default}.mb-mavzu:not(:disabled):hover{background:#f7faff;border-color:#c5d5ea}
+.mb-raqam{flex:0 0 auto;min-width:38px;height:38px;border-radius:12px;background:#e9f1fb;color:#1B4B7A;display:grid;place-items:center;font:800 15px system-ui}
+.mb-nom{flex:1;display:grid;gap:3px;min-width:0}.mb-nom b{font-size:15.5px;line-height:1.25}.mb-nom small{color:#6b7686;font-size:12.5px}.mb-ulush{font:800 14px system-ui;color:#1f8a4c}
+.mb-yolak{display:block;height:6px;border-radius:6px;background:#e8edf3;overflow:hidden}.mb-yolak b{display:block;height:100%;border-radius:6px;background:#1f8a4c}.mb-yolak-katta{height:8px}.mb-yolak-katta b{background:#1B4B7A}
+.mb-tablar{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.mb-tablar button{flex:0 0 auto;min-height:44px;padding:0 16px;border:1px solid #d5dde7;border-radius:99px;background:#fff;font:700 15px system-ui;color:#3d4a57;cursor:pointer}
+.mb-tablar button.is-on{background:#1B4B7A;border-color:#1B4B7A;color:#fff}
+.mb-karta{padding:14px 16px;border:1px solid #e1e7ef;border-radius:16px;background:#fff;display:grid;gap:10px;overflow:hidden}.mb-testboshi p{margin:0;line-height:1.5}
+.mb-sar,.mb-h{margin:6px 0 0;font-size:15.5px}
+/* matn: formulalar */
+.mb-matn{display:grid;gap:10px;font-size:16.5px;line-height:1.6;overflow-wrap:anywhere}.mb-matn p{margin:0}.mb-matn ul,.mb-matn ol{margin:0;padding-left:26px}.mb-matn ul{list-style:disc}.mb-matn ol{list-style:decimal}   /* ilovaning umumiy uslubi (Tailwind) ro'yxat belgilarini o'chiradi */.mb-matn li{margin:0 0 8px;padding-left:2px}.mb-matn li:last-child{margin-bottom:0}
+.mb-matn .katex{font-size:1.08em}.mb-ko{overflow-x:auto;overflow-y:hidden;padding:4px 0;text-align:center}.mb-ko .katex-display{margin:0}
+.mb-f{display:inline}.mb-f.is-d{display:block;overflow-x:auto;padding:4px 0}.mb-jadval{overflow-x:auto}.mb-jadval table{border-collapse:collapse;min-width:100%}
+.mb-jadval th,.mb-jadval td{border:1px solid #dbe3ee;padding:6px 10px;text-align:center;white-space:nowrap}.mb-jadval th{background:#f4f7fb}
+/* test */
+.mb-test-bosh{display:flex;align-items:center;gap:10px}.mb-test-bosh b{font-size:17px;margin-left:auto}.mb-test-bosh .mb-muted{min-width:64px;text-align:right}
+.mb-nuqtalar{display:flex;flex-wrap:wrap;gap:6px}.mb-nuqtalar button{width:36px;height:36px;border:1px solid #d5dde7;border-radius:10px;background:#fff;font:700 13px system-ui;color:#5b6573;cursor:pointer}
+.mb-nuqtalar button.is-javob{background:#e6f0fb;border-color:#a9c4e6;color:#1B4B7A}.mb-nuqtalar button.is-hozir{border:2px solid #1B4B7A;color:#1B4B7A}
+.mb-manba{margin:0;color:#8a94a3;font-size:12.5px;min-height:16px}.mb-savol-karta{gap:14px}
+.mb-variantlar{display:grid;gap:8px}
+.mb-variant{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;min-height:54px;padding:8px 12px;border:2px solid #dbe3ee;border-radius:14px;background:#fff;text-align:left;font:inherit;color:inherit;cursor:pointer;overflow-x:auto;touch-action:manipulation}
+.mb-variant.is-on{border-color:#1B4B7A;background:#eef5ff}.mb-harf{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#eef2f7;display:grid;place-items:center;font:800 14px system-ui;color:#3d4a57}.mb-variant.is-on .mb-harf{background:#1B4B7A;color:#fff}
+.mb-var{font-size:16.5px;line-height:1.4}.mb-var .katex{font-size:1.1em}
+.mb-test-past{display:flex;gap:10px;justify-content:space-between}.mb-test-past .mb-btn{flex:1;min-height:50px}.mb-tugat-havola{margin:0;text-align:center}
+.mb-link{border:0;background:transparent;color:#3d5a80;text-decoration:underline;font:600 14px system-ui;cursor:pointer;padding:8px}
+/* natija */
+.mb-ball{display:grid;gap:4px;justify-items:center;padding:20px 16px;border-radius:20px;text-align:center}.mb-ball b{font-size:44px;line-height:1}.mb-ball span{font:700 17px system-ui}.mb-ball small{color:#5b6573}
+.mb-ball.is-yaxshi{background:#e9f7ee;color:#14532d}.mb-ball.is-orta{background:#eef5ff;color:#1B4B7A}.mb-ball.is-past{background:#fff6e5;color:#7a4a00}
+.mb-nat-royxat{list-style:none;margin:0;padding:0;display:grid;gap:8px}.mb-nat{border:1px solid #e1e7ef;border-radius:14px;background:#fff;overflow:hidden}
+.mb-nat-bosh{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;background:transparent;font:inherit;color:inherit;cursor:pointer;min-height:52px;text-align:left}
+.mb-nat-n{flex:0 0 auto;min-width:26px;font-weight:800;color:#5b6573}.mb-nat-belgi{flex:0 0 auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff}
+.mb-nat.is-togri .mb-nat-belgi{background:#1f8a4c}.mb-nat.is-xato .mb-nat-belgi{background:#d9534f}.mb-nat.is-bosh .mb-nat-belgi{background:#9aa5b5}.mb-nat-matn{flex:1;font-size:14.5px}
+.mb-nat-ich{padding:4px 14px 14px;display:grid;gap:12px;border-top:1px solid #eef2f7}.mb-ko-variant{cursor:default;min-height:46px}.mb-ko-variant.is-togri{border-color:#1f8a4c;background:#eaf7ef}.mb-ko-variant.is-togri .mb-harf{background:#1f8a4c;color:#fff}
+.mb-ko-variant.is-xato{border-color:#d9534f;background:#fdeeee}.mb-ko-variant.is-xato .mb-harf{background:#d9534f;color:#fff}
+.mb-yechim{padding:10px 12px;border-radius:12px;background:#fffbea;border:1px solid #f1e3a6}
+.mb-natija-tugmalar{display:grid;gap:8px}
+@media (min-width:560px){.mb-natija-tugmalar{grid-template-columns:repeat(3,auto);justify-content:start}}
