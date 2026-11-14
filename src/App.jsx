@@ -13251,6 +13251,14 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   ];
 }
 
+// REV548: telefondagi pastki menyu uchun qisqa nomlar — bir qatorga sig'adi, panel past bo'ladi (uzun nom ikki qatorga bo'linib,
+// butun panelni 73 px ga ko'tarardi). Yon paneldagi to'liq nomlar o'zgarmaydi. __kbM — tarjima ro'yxatiga tushishi uchun belgi.
+const __kbM = (x) => x;
+const PASTKI_QISQA = {
+  "Kurslar va to‘garaklar": __kbM("Kurslar"), "To‘garak va repetitorlik": __kbM("To‘garak"), "Farzand tahlili": __kbM("Farzand"), "Hujjat ochish": __kbM("Hujjat"),
+  "Mening institutim": __kbM("Institutim"), "O‘yin va testlar": __kbM("Testlar"), "Taqdimot yaratish": __kbM("Taqdimot"), "Xalqaro baholash": __kbM("Xalqaro"),
+  "Profil va sozlamalar": __kbM("Profil"), "Sertifikat guruhlari": __kbM("Sertifikat"), "Bog‘cha o‘yinlari — sinov": __kbM("Sinov"), "Mening tahlilim": __kbM("Tahlilim"),
+};
 function PastkiMenyu({
   faol,
   onTanlash,
@@ -13314,7 +13322,7 @@ function PastkiMenyu({
         <span className={desktop ? "premium-side-icon" : "premium-mobile-icon"}>
           <Ikon size={desktop ? 18 : 21} strokeWidth={aktiv ? 2.5 : 2} />
         </span>
-        <span>{uiT(nom)}</span>
+        <span>{uiT(desktop ? nom : (PASTKI_QISQA[nom] || nom))}</span>
       </button>
     );
   };
@@ -14907,7 +14915,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         /* REV381: ☰ menyu — ustidan ochiladigan panel; asosiy sahifa doim to'liq kenglikda; pastki menyu satri o'rniga ☰ */
         .premium-app-main{margin-left:0 !important}
         .premium-mobile-nav{display:none !important}
-        @media (max-width:820px){.premium-mobile-nav.samtm-pastki-4{display:block !important}.premium-app-main{padding-bottom:calc(76px + env(safe-area-inset-bottom)) !important}}
+        @media (max-width:820px){.premium-mobile-nav.samtm-pastki-4{display:block !important}.premium-app-main{padding-bottom:calc(62px + env(safe-area-inset-bottom)) !important}}
         .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{display:flex !important;width:min(300px,86vw) !important;padding-inline:16px !important;z-index:2147483080 !important;box-shadow:12px 0 40px rgba(10,25,40,.35);animation:samtm-yon-kir .18s ease-out}
         .premium-app-shell:not(.samtm-yon-yopiq) :is(.premium-side-brand > div:last-child,.premium-role-card > div,.premium-side-link > span:last-child,.premium-side-nav > p,.premium-side-status > div){display:block !important}
         .premium-app-shell:not(.samtm-yon-yopiq) .premium-side-link{display:flex !important;justify-items:start !important}
