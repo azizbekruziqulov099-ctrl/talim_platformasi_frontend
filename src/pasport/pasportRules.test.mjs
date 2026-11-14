@@ -1,5 +1,5 @@
 import { test } from "node:test"; import assert from "node:assert/strict";
-import { foizRangi, holatBolaklari, sanaQisqa, xalqaroDaraja } from "./pasportRules.js";
+import { panelHolati, foizRangi, holatBolaklari, sanaQisqa, xalqaroDaraja } from "./pasportRules.js";
 
 test("REV560: holat bo'laklari — foizlar yig'indisi aynan 100, bo'sh holatlar tashlanadi", () => {
   for (const h of [{ mustahkam: 19, takror: 0, unutilgan: 8, xato: 6 }, { mustahkam: 1, takror: 1, unutilgan: 1, xato: 0 }, { mustahkam: 7, takror: 7, unutilgan: 7, xato: 7 }, { mustahkam: 100 }, { xato: 3, mustahkam: 1 }, { mustahkam: 1, takror: 2, unutilgan: 3, xato: 4 }]) {
@@ -13,4 +13,12 @@ test("rang, faollik, sana, daraja", () => {
   assert.deepEqual([80, 60, 40, 10].map(foizRangi), ["#1f8a4c", "#1b6fd8", "#e0a526", "#d9534f"]);
   assert.equal(sanaQisqa("2026-11-14T10:00:00+05:00").length, 10); assert.equal(sanaQisqa(null), ""); assert.equal(sanaQisqa("xato"), "");
   assert.deepEqual([700, 600, 500, 420, 300, null].map(xalqaroDaraja), ["Ilg‘or", "Yuqori", "O‘rta", "Past", "Boshlang‘ich", ""]);
+});
+
+test("REV562: «Mening darajam» paneli — ma'lumot kam bo'lsa daraja va baho aytilmaydi", () => {
+  assert.deepEqual(panelHolati(null), { bor: false }); assert.deepEqual(panelHolati({ matematika: { ko_rilgan: 0 } }), { bor: false });
+  const h = panelHolati({ matematika: { ko_rilgan: 33, hozirgi: 82, daraja: "yuqori", baho: "A+", elementar: { ko_rilgan: 28, hozirgi: 79, daraja: "yaxshi", baho: "A+" }, nozik: [{ raqam: 7, nom: "Oddiy kasrlar", hozirgi: 25, x: 1 }, { raqam: 2, nom: "B", hozirgi: 40 }, { raqam: 3, nom: "C", hozirgi: 45 }] } });
+  assert.equal(h.bor, true); assert.equal(h.baho, "A+"); assert.deepEqual(h.nozik, [{ raqam: 7, nom: "Oddiy kasrlar", hozirgi: 25 }, { raqam: 2, nom: "B", hozirgi: 40 }]);
+  const kam = panelHolati({ matematika: { ko_rilgan: 8, hozirgi: 100, daraja: null, baho: null, elementar: { ko_rilgan: 8, hozirgi: 100, daraja: null, baho: null }, nozik: [] } });
+  assert.equal(kam.daraja, null); assert.equal(kam.baho, null); assert.equal(kam.elementar.baho, null);
 });

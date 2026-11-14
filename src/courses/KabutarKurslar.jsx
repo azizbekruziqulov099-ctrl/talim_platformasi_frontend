@@ -11,6 +11,11 @@ const NazoratTest = lazyQayta(() => import("./NazoratTest.jsx"));   // REV479
 const KonikmaXarita = lazyQayta(() => import("./KonikmaXarita.jsx"));   // REV480
 const MarkazPanel = lazyQayta(() => import("../markaz/MarkazPanel.jsx"));
 const XalqaroBaholash = lazyQayta(() => import("../xalqaro/XalqaroBaholash.jsx"));
+const MatBank = lazyQayta(() => import("../matbank/MatBank.jsx"));   // REV562: matematika banki shu yerda
+const Pasport = lazyQayta(() => import("../pasport/Pasport.jsx"));
+const DarajaPanel = lazyQayta(() => import("../pasport/DarajaPanel.jsx"));
+// «Matematika banki» — server kategoriyalariga tegmasdan, shu sahifaning o'zida qo'shiladigan bo'lim
+const BANK_KATEGORIYA = { kalit: "bank", belgi: "📘", nomi: "Matematika banki", izoh: "Mavzular bo‘yicha qoida, ishlangan misol va testlar; natijada taxminiy baho (C … A+), pasport va Kabu-bot" };
 
 export const sinfYozuv = (s) => (/^\d+$/.test(String(s)) ? `${s}-sinf` : /^\d+-\d+$/.test(String(s)) ? `${String(s).replace("-", "–")}-sinf` : String(s));   // REV419: «5–7-sinf»
 // Bolalar kurslari yoshga bo'linmaydi; faqat matematikada dastur yoshi yoziladi
@@ -78,6 +83,8 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       adminMi={Boolean(user?.is_admin)} apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")}
       jins={user?.jins} learnerRole={user?.role || ""} onClose={() => { setDars(null); if (kurs) kursniOch((data?.kurslar || []).find((x) => x.kalit === kurs.kalit) || kurs); }} /></React.Suspense></div>;
   if (kat === "sertifikat") return <Bolim nom="🎓 Sertifikat" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MarkazPanel apiBase={apiBase} token={token} user={user} /></React.Suspense></Bolim>;
+  if (kat === "bank") return <Bolim nom="📘 Matematika banki" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MatBank apiBase={apiBase} token={token} /></React.Suspense></Bolim>;
+  if (kat === "pasport") return <Bolim nom="📊 Pasport" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><Pasport apiBase={apiBase} token={token} /></React.Suspense></Bolim>;
   if (kat === "xalqaro") return <Bolim nom="🌍 Xalqaro baholash" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={user?.jins} /></React.Suspense></Bolim>;
 
   if (kurs) return <section className="kk" aria-label={kursNomi(kurs)}>
@@ -109,12 +116,13 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {konikmaOchiq && <React.Suspense fallback={null}><KonikmaXarita base={base} token={token} onYop={() => setKonikmaOchiq(false)} /></React.Suspense>}
     <div className="kk-kategoriyalar" role="tablist" aria-label={__kbUi("Yo‘nalishlar")}>
       <button type="button" role="tab" aria-selected={!kat} className={!kat ? "is-faol" : ""} onClick={() => setKat(null)}><b>✨</b><span>{__kbUi("Hammasi")}</span><small>{(data?.kurslar || []).length}</small></button>
-      {(data?.kategoriyalar || []).filter((c) => c.kalit === "sertifikat" || c.kalit === "xalqaro" || soni(c.kalit)).map((c) => (
+      {[...(data?.kategoriyalar || []), ...(token ? [BANK_KATEGORIYA] : [])].filter((c) => c.kalit === "sertifikat" || c.kalit === "xalqaro" || c.kalit === "bank" || soni(c.kalit)).map((c) => (
         <button key={c.kalit} type="button" role="tab" aria-selected={kat === c.kalit} className={kat === c.kalit ? "is-faol" : ""} onClick={() => setKat(c.kalit)} title={__kbUi(c.izoh)}>
-          <b aria-hidden="true">{c.belgi}</b><span>{__kbUi(c.nomi)}</span><small>{c.kalit === "sertifikat" || c.kalit === "xalqaro" ? "→" : soni(c.kalit)}</small></button>))}
+          <b aria-hidden="true">{c.belgi}</b><span>{__kbUi(c.nomi)}</span><small>{c.kalit === "sertifikat" || c.kalit === "xalqaro" || c.kalit === "bank" ? "→" : soni(c.kalit)}</small></button>))}
     </div>
     <input type="search" className="kk-qidir" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={__kbUi("Kurs qidirish: matematika, ingliz tili…")} />
     {kat && <p className="kk-izoh">{__kbUi((data?.kategoriyalar || []).find((c) => c.kalit === kat)?.izoh || "")}</p>}
+    {token && (kat === "markaz" || kat === "repetitor") && <React.Suspense fallback={null}><DarajaPanel apiBase={apiBase} token={token} onBank={() => setKat("bank")} onPasport={() => setKat("pasport")} /></React.Suspense>}
     {xato && <p className="kk-xato" role="alert">{xato} <button type="button" onClick={yukla}>{__kbUi("Qayta")}</button></p>}
     {!data && !xato && <p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}
     <div className="kk-panjara">{kurslar.map((k) => <button type="button" key={k.kalit} className="kk-karta" onClick={() => kursniOch(k)}>

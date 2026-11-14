@@ -3,12 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { matFetch } from "../matbank/matBankApi.js";
+import { BAHO_RANGI } from "../matbank/matMatn.js";
 import { DARAJA_RANGI, HOLAT_NOMI, HOLAT_RANG, foizRangi, holatBolaklari, sanaQisqa, xalqaroDaraja } from "./pasportRules.js";
 import "./pasport.css";
 
 const Yolak = ({ nom, foiz, yon }) => <div className={`ps-yolak ${nom ? "" : "is-bosh"}`}>{nom ? <span>{nom}</span> : null}<i aria-hidden="true"><b style={{ width: `${Math.max(3, foiz)}%`, background: foizRangi(foiz) }} /></i><em>{yon ?? `${foiz}%`}</em></div>;
 const Karta = ({ nom, qiymat, izoh, rang }) => <div className="ps-stat"><small>{nom}</small><b style={rang ? { color: rang } : undefined}>{qiymat}</b>{izoh && <small>{izoh}</small>}</div>;
-const Daraja = ({ d }) => (d ? <span className="ps-daraja" style={{ "--r": DARAJA_RANGI[d] || "#475569" }}>{__kbUi(d.charAt(0).toUpperCase() + d.slice(1))}</span> : <span className="ps-daraja is-yoq">{__kbUi("aniqlanmagan")}</span>);
+const Daraja = ({ d, b = null }) => <span className="ps-belgi">{d ? <span className="ps-daraja" style={{ "--r": DARAJA_RANGI[d] || "#475569" }}>{__kbUi(d.charAt(0).toUpperCase() + d.slice(1))}</span> : <span className="ps-daraja is-yoq">{__kbUi("aniqlanmagan")}</span>}
+  {b && <b className="ps-baho" style={{ borderColor: BAHO_RANGI[b], color: BAHO_RANGI[b] }} title={__kbUi("Taxminiy baho (Milliy sertifikat shkalasi)")}>{b}</b>}</span>;
 
 export default function Pasport({ apiBase = "", token, userId = null, onTest = null, onYop = null }) {
   const [p, setP] = useState(null); const [xato, setXato] = useState("");
@@ -29,10 +31,10 @@ export default function Pasport({ apiBase = "", token, userId = null, onTest = n
         <div className="ps-statlar">
           <Karta nom={__kbUi("Ko‘rilgan savol")} qiymat={m.ko_rilgan} izoh={`${__kbUi("bankning")} ${m.qamrov}%`} />
           <Karta nom={__kbUi("Hozir to‘g‘ri")} qiymat={`${m.hozirgi}%`} izoh={__kbUi("oxirgi urinish bo‘yicha")} rang={foizRangi(m.hozirgi)} />
-          <Karta nom={__kbUi("Umumiy daraja")} qiymat={<Daraja d={m.daraja} />} izoh={m.daraja ? null : `${__kbUi("kamida")} 15 ${__kbUi("savol kerak")}`} />
+          <Karta nom={__kbUi("Umumiy daraja")} qiymat={<Daraja d={m.daraja} b={m.baho} />} izoh={m.daraja ? null : `${__kbUi("kamida")} 15 ${__kbUi("savol kerak")}`} />
         </div>
         <div className="ps-elementar"><b>🔢 {__kbUi("Elementar matematika")}</b><small>{__kbUi("Natural sonlar va kasrlar (1–10-mavzular)")}</small>
-          {m.elementar.ko_rilgan ? <><Daraja d={m.elementar.daraja} /><span>{m.elementar.hozirgi}% · {m.elementar.ko_rilgan} {__kbUi("savol")}</span></> : <span className="ps-muted">{__kbUi("hali yechilmagan")}</span>}
+          {m.elementar.ko_rilgan ? <><Daraja d={m.elementar.daraja} b={m.elementar.baho} /><span>{m.elementar.hozirgi}% · {m.elementar.ko_rilgan} {__kbUi("savol")}</span></> : <span className="ps-muted">{__kbUi("hali yechilmagan")}</span>}
           {m.elementar.ko_rilgan > 0 && !m.elementar.ishonchli && <small className="ps-ogoh">{__kbUi("Daraja aytish uchun savol yetarli emas.")}</small>}</div>
 
         <h4>🧠 {__kbUi("Esdan chiqarish")} <em className="ps-taxmin">{__kbUi("taxminiy")}</em></h4>

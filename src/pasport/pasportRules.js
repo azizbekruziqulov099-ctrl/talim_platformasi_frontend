@@ -19,3 +19,11 @@ export const foizRangi = (f) => (f >= 75 ? "#1f8a4c" : f >= 50 ? "#1b6fd8" : f >
 export const sanaQisqa = (iso) => { if (!iso) return ""; const d = new Date(iso); return Number.isNaN(d.getTime()) ? "" : `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`; };
 /** Ball → xalqaro daraja nomi (400/475/550/625). */
 export const xalqaroDaraja = (ball) => (ball == null ? "" : ball >= 625 ? "Ilg‘or" : ball >= 550 ? "Yuqori" : ball >= 475 ? "O‘rta" : ball >= 400 ? "Past" : "Boshlang‘ich");
+
+/** «Mening darajam» paneli uchun pasportdan qisqa holat. Ma'lumot kam bo'lsa daraja va baho None (aytilmaydi). */
+export function panelHolati(p) {
+  const m = p?.matematika; if (!m || !m.ko_rilgan) return { bor: false };
+  const e = m.elementar || {};
+  return { bor: true, ko_rilgan: m.ko_rilgan, hozirgi: m.hozirgi, daraja: m.daraja ?? null, baho: m.baho ?? null,
+    elementar: { ko_rilgan: e.ko_rilgan || 0, hozirgi: e.hozirgi || 0, daraja: e.daraja ?? null, baho: e.baho ?? null }, nozik: (m.nozik || []).slice(0, 2).map((t) => ({ raqam: t.raqam, nom: t.nom, hozirgi: t.hozirgi })) };
+}
