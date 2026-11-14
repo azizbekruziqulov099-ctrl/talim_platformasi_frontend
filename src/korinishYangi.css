@@ -1,0 +1,47 @@
+/* REV549: «Yangi ko'rinish» — sokin, och qobiq (yon panel, yuqori tugmalar, pastki menyu). FAQAT <html data-kb-korinish="yangi">
+   bo'lganda ishlaydi; aks holda bu fayl hech narsaga ta'sir qilmaydi. Ichki sahifalarga (dars, o'yin, test) tegilmagan.
+   Urg'u rangi — logotipdagi firuza (ilovada «Kabutar» makoni uchun allaqachon ishlatiladigan #0D7A77). */
+html[data-kb-korinish="yangi"]{--kb-urgu:#0D7A77;--kb-urgu-och:#e4f2f1;--kb-siyoh:#17232e;--kb-matn2:#5b6573;--kb-matn3:#8a94a3;--kb-chiziq:#e4e8ed;--kb-yuza:#fff;--kb-fon:#f7f8fa;--kb-bosildi:#eef1f5}
+
+/* ── Yon panel: to'q ko'k gradient o'rniga och fon, qora matn ── */
+html[data-kb-korinish="yangi"] .premium-sidebar{color:var(--kb-siyoh)!important;background:var(--kb-fon)!important;border-right:1px solid var(--kb-chiziq)!important;box-shadow:8px 0 30px rgba(15,23,32,.10)!important}
+html[data-kb-korinish="yangi"] .premium-side-brand{border-bottom-color:var(--kb-chiziq)!important}
+html[data-kb-korinish="yangi"] .premium-side-brand strong{color:var(--kb-siyoh)!important}
+html[data-kb-korinish="yangi"] .premium-side-brand span{color:var(--kb-matn2)!important}
+html[data-kb-korinish="yangi"] .premium-role-card{background:var(--kb-yuza)!important;border-color:var(--kb-chiziq)!important}
+html[data-kb-korinish="yangi"] .premium-role-card strong{color:var(--kb-siyoh)!important}
+html[data-kb-korinish="yangi"] .premium-role-card span:not(.premium-role-avatar){color:var(--kb-matn2)!important}
+html[data-kb-korinish="yangi"] .premium-role-avatar{background:var(--kb-urgu)!important;border-color:transparent!important;color:#fff!important}
+html[data-kb-korinish="yangi"] .premium-side-nav > p{color:var(--kb-matn3)!important}
+html[data-kb-korinish="yangi"] .premium-side-link{color:#3d4a57!important;background:transparent!important;border-color:transparent!important;box-shadow:none!important}
+html[data-kb-korinish="yangi"] .premium-side-link:hover{color:var(--kb-siyoh)!important;background:var(--kb-bosildi)!important}
+html[data-kb-korinish="yangi"] .premium-side-link.active{color:var(--kb-urgu)!important;background:var(--kb-urgu-och)!important;font-weight:700}
+html[data-kb-korinish="yangi"] .premium-side-icon{background:var(--kb-yuza)!important;border-color:var(--kb-chiziq)!important}
+html[data-kb-korinish="yangi"] .premium-side-link.active .premium-side-icon{background:#fff!important;border-color:color-mix(in srgb,var(--kb-urgu) 30%,#fff)!important}
+html[data-kb-korinish="yangi"] .premium-side-profile{border-top-color:var(--kb-chiziq)!important}
+html[data-kb-korinish="yangi"] .premium-side-profile .premium-side-link{color:var(--kb-siyoh)!important;background:var(--kb-yuza)!important;border-color:var(--kb-chiziq)!important}
+html[data-kb-korinish="yangi"] .premium-side-profile .premium-side-link:hover{background:var(--kb-bosildi)!important}
+html[data-kb-korinish="yangi"] .premium-side-status{background:var(--kb-yuza)!important;border-color:var(--kb-chiziq)!important}
+html[data-kb-korinish="yangi"] .premium-side-status strong{color:var(--kb-siyoh)!important}
+html[data-kb-korinish="yangi"] .premium-side-status small{color:var(--kb-matn2)!important}
+html[data-kb-korinish="yangi"] .premium-live-dot{background:var(--kb-urgu)!important;box-shadow:0 0 0 5px color-mix(in srgb,var(--kb-urgu) 14%,transparent)!important}
+html[data-kb-korinish="yangi"] .premium-side-nav::-webkit-scrollbar-thumb{background:rgba(15,23,32,.18)!important}
+
+/* ── Yuqori tugmalar: ☰ och; makon almashtirgichda bitta urg'u rangi ── */
+html[data-kb-korinish="yangi"] .samtm-top-switch .samtm-gamburger{background:var(--kb-yuza)!important;border-color:var(--kb-chiziq)!important;box-shadow:0 1px 4px rgba(15,23,32,.08)!important}
+html[data-kb-korinish="yangi"] .samtm-top-switch .samtm-gamburger span{background:var(--kb-siyoh)!important}
+html[data-kb-korinish="yangi"] .samtm-top-switch .samtm-gamburger svg{color:var(--kb-siyoh)!important;stroke:var(--kb-siyoh)!important}
+html[data-kb-korinish="yangi"] .samtm-top-switch .samtm-gamburger.is-on{background:var(--kb-bosildi)!important}
+html[data-kb-korinish="yangi"] .samtm-top-switch .samtm-makon-t.on{background:var(--kb-urgu)!important;color:#fff!important;box-shadow:0 1px 5px color-mix(in srgb,var(--kb-urgu) 35%,transparent)!important}
+html[data-kb-korinish="yangi"] .samtm-top-switch .samtm-avatar{background:var(--kb-urgu)!important}
+
+/* ── Pastki menyu (telefon): bitta urg'u rangi, yengilroq soya ── */
+html[data-kb-korinish="yangi"] .premium-mobile-nav{background:rgba(255,255,255,.98)!important;border-top-color:var(--kb-chiziq)!important;box-shadow:0 -2px 14px rgba(15,23,32,.05)!important}
+html[data-kb-korinish="yangi"] .premium-mobile-link{color:var(--kb-matn3)!important}
+html[data-kb-korinish="yangi"] .premium-mobile-link.active{color:var(--kb-urgu)!important}
+html[data-kb-korinish="yangi"] .premium-mobile-link.active .premium-mobile-icon{background:var(--kb-urgu-och)!important}
+
+/* ── Admin uchun yoqib-o'chirish tugmasi (yon panelda; ikkala ko'rinishda ham o'qiladi) ── */
+.kb-korinish-tugma{margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;border-radius:12px;border:1px dashed rgba(255,255,255,.35);background:transparent;color:inherit;font:700 12px/1.2 system-ui,sans-serif;cursor:pointer;opacity:.9}
+.kb-korinish-tugma:hover{opacity:1}
+html[data-kb-korinish="yangi"] .kb-korinish-tugma{border-color:var(--kb-chiziq);background:var(--kb-yuza);color:var(--kb-urgu)}

@@ -5,6 +5,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "katex/dist/katex.min.css";
 import "./index.css";
+import "./korinishYangi.css";   // REV549: «Yangi ko'rinish» — faqat <html data-kb-korinish="yangi"> bo'lganda ishlaydi
 import { rasmTiklashniYoq } from "./pwa/rasmTiklash.js";
 import { bittaOvozniYoq } from "./speech/bittaOvoz.js";   // REV492
 bittaOvozniYoq();

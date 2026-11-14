@@ -15,6 +15,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Kabutar" />
     <meta name="format-detection" content="telephone=no" />
+    <!-- REV549: «Yangi ko'rinish» tanlovi sahifa chizilmasdan OLDIN qo'llanadi (aks holda eski ko'rinish bir lahza ko'rinib qolardi).
+         ?korinish=yangi yoki ?korinish=eski — havola orqali yoqish/o'chirish; tanlov qurilmada saqlanadi. -->
+    <script>
+      (function () { try {
+        var k = (/[?&]korinish=(yangi|eski)\b/.exec(location.search) || [])[1];
+        if (k) localStorage.setItem("kb_korinish", k);
+        if (localStorage.getItem("kb_korinish") === "yangi") document.documentElement.setAttribute("data-kb-korinish", "yangi");
+      } catch (e) {} })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

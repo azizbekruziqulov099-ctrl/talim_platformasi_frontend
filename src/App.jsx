@@ -1,5 +1,6 @@
 import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
 import { yuklaQayta as _kbYuklaQayta } from "./workspace/lazyQayta.js";
+import { korinishOl, korinishAlmash } from "./korinish.js";   // REV549
 import __kbEmblema from "./brand/emblema.webp";
 import { lessonDownloadUrl } from "./lesson/darsXonasiRules.js";
 import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent } from "./auth/telegramCodeClient.js";
@@ -13273,6 +13274,7 @@ function PastkiMenyu({
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
   const aktivRang = rang || "#1B4B7A";
+  const [yangiKorinish, setYangiKorinish] = useState(() => korinishOl() === "yangi");   // REV549
   const bandlar = menyuBandlariniOl(rol, qoshimchaBand);
   // REV79: talabaga «Mening institutim» (guruhim, kursim, muhim sanalar).
   const talabaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && (_kbAccountRole(foydalanuvchi) === "talaba" || /kurs/i.test(String(foydalanuvchi?.class || "")));
@@ -13353,6 +13355,9 @@ function PastkiMenyu({
             {__kbUi(bandTugmasi(profilBandi, true))}
           </div>
         )}
+        {/* REV549: «Yangi ko'rinish» — hozircha faqat adminga ko'rinadi (sinov). Yoqilmaguncha hech kimda hech narsa o'zgarmaydi. */}
+        {foydalanuvchi?.is_admin && <button type="button" className="kb-korinish-tugma" onClick={() => setYangiKorinish(korinishAlmash() === "yangi")}>
+          ✨ {uiT(yangiKorinish ? __kbM("Yangi ko‘rinish: yoqilgan") : __kbM("Yangi ko‘rinish: o‘chirilgan"))}</button>}
         <div className="premium-side-status">
           <span className="premium-live-dot" />
           <div><strong>{__kbUi("Kabutar")}</strong><small>{uiT("Suhbat va ta’lim maydoni")}</small></div>
