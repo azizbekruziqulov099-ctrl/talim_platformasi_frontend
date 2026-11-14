@@ -1,0 +1,23 @@
+/* REV560: o'quvchi pasporti */
+.ps-root{max-width:780px;margin:0 auto;padding:12px 12px 28px;display:grid;gap:12px;color:#13314f;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.ps-bosh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.ps-bosh h2{margin:0;font-size:21px}.ps-bosh small{color:#5b6573}
+.ps-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border:1px solid #d5dde7;border-radius:12px;background:#fff;color:#13314f;font:700 14.5px system-ui;cursor:pointer;touch-action:manipulation}.ps-btn.ps-kichik{min-height:38px;padding:4px 12px}
+.ps-muted{margin:0;color:#5b6573;font-size:14px}.ps-xato{margin:0;padding:12px;border-radius:12px;background:#fdecea;color:#8c1d18;font-weight:600}.ps-ogoh{color:#7a4a00;font-size:13px;margin:0}
+.ps-karta{padding:14px 16px;border:1px solid #e1e7ef;border-radius:16px;background:#fff;display:grid;gap:12px;overflow:hidden}.ps-karta h3{margin:0;font-size:17px}.ps-karta h4{margin:6px 0 0;font-size:14.5px}
+.ps-xulosa{background:linear-gradient(135deg,#f3f8ff,#f6f2ff);border-color:#d9e4f5}.ps-xulosa ul{margin:0;padding-left:20px;display:grid;gap:7px;line-height:1.5;font-size:15px}
+.ps-statlar{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.ps-stat{display:grid;gap:3px;padding:10px 12px;border-radius:14px;background:#f5f8fc}.ps-stat small{color:#5b6573;font-size:12.5px}.ps-stat b{font-size:24px;line-height:1.15}
+.ps-daraja{display:inline-block;padding:3px 10px;border-radius:99px;font:700 14px system-ui;color:var(--r);background:color-mix(in srgb,var(--r) 13%,#fff);width:fit-content}.ps-daraja.is-yoq{color:#6b7686;background:#eef1f5;font-weight:600}
+.ps-elementar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 12px;border-radius:14px;border:1px solid #e1e7ef}.ps-elementar>small{flex-basis:100%;color:#5b6573}
+.ps-taxmin{font:600 11.5px system-ui;font-style:normal;background:#fff3d6;color:#7a4a00;border-radius:8px;padding:1px 7px;vertical-align:middle}
+.ps-yig{display:flex;height:16px;border-radius:9px;overflow:hidden;background:#e8edf3}.ps-yig span{display:block;height:100%}
+.ps-legenda{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px}.ps-legenda li{display:flex;align-items:center;gap:6px}.ps-legenda i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.ps-izoh{margin:0;color:#6b7686;font-size:12.5px;line-height:1.45}
+.ps-royxat{list-style:none;margin:0;padding:0;display:grid;gap:8px}.ps-royxat li{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(90px,1fr) auto;align-items:center;gap:8px 12px;padding:8px 10px;border:1px solid #eef2f7;border-radius:12px}
+.ps-royxat li>div{display:grid;gap:2px;min-width:0}.ps-royxat small{color:#6b7686;font-size:12.5px}.ps-royxat.ps-imt li{grid-template-columns:1fr auto}
+.ps-yolak{display:grid;grid-template-columns:minmax(80px,34%) 1fr auto;align-items:center;gap:8px;font-size:13.5px;padding:2px 0}.ps-yolak.is-bosh{grid-template-columns:1fr auto}
+.ps-yolak i{height:9px;border-radius:9px;background:#e8edf3;overflow:hidden;display:block}.ps-yolak i b{display:block;height:100%;border-radius:9px}.ps-yolak em{font-style:normal;color:#5b6573;min-width:36px;text-align:right}
+.ps-ikki{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.ps-sinf{display:grid;gap:8px;padding:10px 12px;border-radius:14px;border:1px solid #e1e7ef}.ps-sinf>small{color:#5b6573}
+.ps-ochiq{border:1px solid #e1e7ef;border-radius:12px;padding:8px 12px}.ps-ochiq summary{cursor:pointer;font-weight:700}.ps-jadval{overflow-x:auto;margin-top:8px}.ps-jadval table{border-collapse:collapse;min-width:100%;font-size:13.5px}.ps-jadval th,.ps-jadval td{border-bottom:1px solid #eef2f7;padding:6px 8px;text-align:left}
+@media (max-width:480px){.ps-royxat li{grid-template-columns:1fr auto}.ps-royxat li .ps-yolak{grid-column:1/-1;order:3}}

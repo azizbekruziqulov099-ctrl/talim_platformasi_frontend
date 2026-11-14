@@ -458,4 +458,7 @@ export default {
   "Imtihon paytida ilovadan bir necha marta chiqilgan": { ru: "Во время экзамена было несколько выходов из приложения", en: "The app was left several times during the exam" },
   "Natija oldingi darajadan keskin yuqori": { ru: "Результат резко выше прежнего уровня", en: "The result is sharply above the previous level" },
   "Oson savollar xato, qiyin savollar to‘g‘ri — odatiy emas": { ru: "Лёгкие вопросы решены неверно, а трудные — верно; это необычно", en: "Easy questions wrong but hard ones right — unusual" },
+  // REV560: o'quvchi pasporti
+  "Pasport": { ru: "Паспорт", en: "Passport" },
+  "O‘quvchi pasporti": { ru: "Паспорт ученика", en: "Student passport" },
 };

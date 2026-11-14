@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { xbFetch } from "./xbOvoz.js";
 import { T, tf } from "./xbTil.js";
 import { DARAJA_RANG } from "./xbRules.js";
+import Pasport from "../pasport/Pasport.jsx";   // REV560: o'quvchi pasporti
 import { azoBelgilari, foizRangi, oquvchiHolati, sana, sinfJamlamasi, xabarShabloni } from "./xbGuruhRules.js";
 
 const Daraja = ({ d }) => (d ? <span className="xg-daraja" style={{ "--r": DARAJA_RANG[d.kalit] || "#475569" }}>{d.nom}</span> : null);
@@ -15,6 +16,7 @@ const Yolak = ({ nom, togri, jami, foiz }) => <div className="xg-yolak"><span>{n
 /* ───────────── o'qituvchi ───────────── */
 export function OqituvchiGuruhlar({ apiBase, token, sinf }) {
   const [d, setD] = useState(null); const [xato, setXato] = useState(""); const [band, setBand] = useState(false); const [ochiq, setOchiq] = useState(1);
+  const [pasport, setPasport] = useState(0);   // REV560: tanlangan o'quvchi pasporti
   const yukla = () => xbFetch(apiBase, `/api/xalqaro/sinflar/${sinf.id}/guruhlar`, token).then((r) => { setD(r); setXato(""); }).catch((e) => setXato(e.message));
   useEffect(() => { setD(null); yukla(); }, [sinf.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const yangila = () => { if (!window.confirm(T("Guruhlar qayta ko‘rib chiqilsinmi? Barqaror natija ko‘rsatgan o‘quvchilar boshqa guruhga o‘tadi, qolganlar joyida qoladi."))) return;
@@ -22,6 +24,7 @@ export function OqituvchiGuruhlar({ apiBase, token, sinf }) {
   if (xato) return <p className="xb-xato" role="alert">{T(xato)}</p>;
   if (!d) return <p className="xb-muted">⏳</p>;
   const j = sinfJamlamasi(d); const testsiz = d.kutayotgan.filter((k) => k.holat === "kirish_testi_yoq"); const tekshiruv = d.kutayotgan.filter((k) => k.holat === "tekshiruvda");
+  if (pasport) return <div className="xg-root"><Pasport apiBase={apiBase} token={token} userId={pasport} onYop={() => setPasport(0)} /></div>;
   return <div className="xg-root">
     <div className="xb-kartalar">
       <div className="xb-karta"><small>{T("Jami qo‘shilgan")}</small><b>{j.jami}</b></div>
@@ -54,10 +57,11 @@ export function OqituvchiGuruhlar({ apiBase, token, sinf }) {
         <b>{tf("{n}-guruh", { n: g.raqam })}</b><span>👥 {g.soni}</span><span>{tf("o‘rtacha {b} ball", { b: Math.round(g.ortacha) })}</span><Daraja d={g.daraja} />
         <small>{g.eng_past}–{g.eng_yuqori}</small><i aria-hidden="true">{ochiq === g.raqam ? "▾" : "▸"}</i></button>
       {ochiq === g.raqam && <div className="xb-jadval-wrap"><table className="xb-jadval xg-jadval">
-        <thead><tr><th>№</th><th>{T("O‘quvchi")}</th><th>{T("Reyting")}</th><th>{T("Daraja")}</th><th title={T("Hisobga olingan imtihonlar soni")}>{T("Imtihonlar")}</th><th>{T("Belgilar")}</th></tr></thead>
+        <thead><tr><th>№</th><th>{T("O‘quvchi")}</th><th>{T("Reyting")}</th><th>{T("Daraja")}</th><th title={T("Hisobga olingan imtihonlar soni")}>{T("Imtihonlar")}</th><th>{T("Belgilar")}</th><th aria-label={T("Pasport")} /></tr></thead>
         <tbody>{g.azolar.map((a, i) => <tr key={a.user_id}><td>{i + 1}</td><td>{a.ism || `#${a.user_id}`}</td><td><b>{a.reyting}</b></td><td><Daraja d={a.daraja} /></td><td>{a.natijalar}</td>
           <td>{azoBelgilari(a).map((b) => <span key={b.tur} className={`xg-belgi is-${b.tur}`} title={b.sabablar.map((s) => T(s)).join("; ")}>
-            {b.belgi} {b.tur === "tekshiruv" ? tf("{b} ball tekshiruvda", { b: b.ball }) : T("javoblar tartibi odatiy emas")}</span>)}</td></tr>)}</tbody>
+            {b.belgi} {b.tur === "tekshiruv" ? tf("{b} ball tekshiruvda", { b: b.ball }) : T("javoblar tartibi odatiy emas")}</span>)}</td>
+          <td><button type="button" className="xb-btn xb-kichik" onClick={() => setPasport(a.user_id)} title={T("O‘quvchi pasporti")}>📊</button></td></tr>)}</tbody>
       </table></div>}
     </section>)}
   </div>;
