@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import katex from "katex";
 import { bloklarga, rasmManzili, satrIchi, savolBloklari } from "./matMatn.js";
+import Vidjet from "./Vidjet.jsx";   // REV565
 
 /** Chizmalar faqat kirgan foydalanuvchiga: so'rov Authorization sarlavhasi bilan, javob blob sifatida ko'rsatiladi. */
 export const RasmKonteksti = createContext({ apiBase: "", token: "" });
@@ -29,6 +30,7 @@ export function Ichi({ s, inline = false }) {
 
 function Blok({ b }) {
   if (b.t === "img") return <Rasm src={b.src} alt={b.alt} />;
+  if (b.t === "vid") return <Vidjet tur={b.tur} arg={b.arg} />;
   if (b.t === "h") return b.lv <= 2 ? <h4 className="mb-h">{b.s}</h4> : <h5 className="mb-h">{b.s}</h5>;
   if (b.t === "p") return <p><Ichi s={b.s} /></p>;
   if (b.t === "math") return <div className="mb-ko" dangerouslySetInnerHTML={{ __html: chiz(b.s, true) }} />;

@@ -22,6 +22,7 @@ export function satrIchi(s) {
 }
 
 const CHIZIQ = /^-{3,}\s*$/; const USTUN_CHIZIGI = /^-{3,}(\s+-{3,})+\s*$/;
+import { vidjetQatori } from "./vidjetRules.js";   // REV565: [[GRAFIK: …]] va boshqa virtual doska qatorlari
 const RASM = /^!\[([^\]]*)\]\(([^)\s]+)\)(\{[^}]*\})?$/;   // ![chizma](rasm:T100-1.png)
 const RO_YXAT = /^[-*+]\s{1,4}(\S.*)$/; const RAQAMLI = /^(\d+)\\?\.\s+(\S.*)$/; const SARLAVHA = /^(#{1,6})\s+(.+)$/;
 
@@ -56,6 +57,7 @@ export function bloklarga(matn) {
       out.push({ t: "math", s: s.replace(/^\$\$/, "").replace(/\$\$\s*$/, "").trim() }); i = k; continue;
     }
     if (CHIZIQ.test(t)) { yop(); const j = jadvalOqi(satrlar, i); if (j && (j.rows.length || j.head.length)) { out.push({ t: "table", head: j.head, rows: j.rows }); i = j.keyingi - 1; } continue; }
+    const vid = vidjetQatori(t); if (vid) { yop(); out.push({ t: "vid", tur: vid.tur, arg: vid.arg }); continue; }
     const ras = RASM.exec(t); if (ras) { yop(); out.push({ t: "img", alt: ras[1], src: ras[2] }); continue; }
     const sar = SARLAVHA.exec(t); if (sar) { yop(); out.push({ t: "h", s: sar[2].replace(/\*\*/g, ""), lv: Math.min(sar[1].length, 4) }); continue; }
     const ul = RO_YXAT.exec(t); if (ul) { yop(); const last = out[out.length - 1]; if (last && last.t === "ul") last.items.push(ul[1]); else out.push({ t: "ul", items: [ul[1]] }); continue; }

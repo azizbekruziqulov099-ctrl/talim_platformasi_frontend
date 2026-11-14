@@ -3,7 +3,7 @@
 // Tekshiruv MATNNI emas, MA'NONI solishtiradi: formula tahlil qilinadi va tasodifiy qiymatlarda hisoblanadi.
 //   «S=a^2» ≡ «S=a·a» ≡ «a^2=S»;  «sin²x+cos²x=1» ≡ «sin²x=1−cos²x»;  lekin «1=1», «S=a^3», «S=2a» — xato.
 
-const FUNKSIYALAR = { sin: Math.sin, cos: Math.cos, tg: Math.tan, tan: Math.tan, ctg: (x) => 1 / Math.tan(x), cot: (x) => 1 / Math.tan(x), ln: Math.log, lg: Math.log10, sqrt: Math.sqrt };
+const FUNKSIYALAR = { sin: Math.sin, cos: Math.cos, tg: Math.tan, tan: Math.tan, ctg: (x) => 1 / Math.tan(x), cot: (x) => 1 / Math.tan(x), ln: Math.log, lg: Math.log10, sqrt: Math.sqrt, abs: Math.abs, exp: Math.exp };   // REV565: abs va exp — grafik doskasi uchun
 const FUNK_NOMI = Object.keys(FUNKSIYALAR).sort((a, b) => b.length - a.length);
 const BELGI = { "·": "*", "×": "*", "∙": "*", "⋅": "*", "−": "-", "–": "-", "—": "-", ":": "/", "÷": "/", "√": "sqrt", "²": "^2", "³": "^3", "⁴": "^4", ",": "." };
 
@@ -83,11 +83,11 @@ export function latex(d) {
     case "/": return `\\frac{${latex(d.a)}}{${latex(d.b)}}`;
     case "^": if (d.a.n === "f" && d.a.v !== "sqrt") return `\\${FN_LATEX[d.a.v]}^{${latex(d.b)}}${argLatex(d.a.a)}`;
       return `${["son", "x", "pi"].includes(d.a.n) ? latex(d.a) : `\\left(${latex(d.a)}\\right)`}^{${latex(d.b)}}`;
-    case "f": return d.v === "sqrt" ? `\\sqrt{${latex(d.a)}}` : `\\${FN_LATEX[d.v]}${argLatex(d.a)}`;
+    case "f": return d.v === "sqrt" ? `\\sqrt{${latex(d.a)}}` : d.v === "abs" ? `\\left|${latex(d.a)}\\right|` : `\\${FN_LATEX[d.v]}${argLatex(d.a)}`;
     default: return "";
   }
 }
-const FN_LATEX = { sin: "sin", cos: "cos", tg: "operatorname{tg}", ctg: "operatorname{ctg}", ln: "ln", lg: "lg" };
+const FN_LATEX = { sin: "sin", cos: "cos", tg: "operatorname{tg}", ctg: "operatorname{ctg}", ln: "ln", lg: "lg", exp: "exp" };
 const argLatex = (a) => (["x", "son", "pi"].includes(a.n) ? ` ${latex(a)}` : `\\left(${latex(a)}\\right)`);
 /** Matn → LaTeX. Tahlil bo'lmasa (hali yozilyapti) — bo'sh satr. */
 export function matnLatex(matn) { const t = tahlil(matn); if (t.xato) return ""; return t.ong ? `${latex(t.chap)}=${latex(t.ong)}` : latex(t.chap); }
