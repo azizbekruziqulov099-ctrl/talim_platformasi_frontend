@@ -1,11 +1,11 @@
 import test from "node:test"; import assert from "node:assert/strict"; import fs from "node:fs";
 import { YON_OF, nishonlarHisobla, NISHONLAR, RUBRIKA, rubrikaOrtacha, ROLLAR } from "./nishonlar.js";
 
-test("yo'nalish ro'yxati loyiha fayllari bilan bir xil (15 ta, S4 E4 T2 A2 M3)", () => {
+test("yo'nalish ro'yxati loyiha fayllari bilan bir xil (20 ta, S5 E5 T3 A3 M4)", () => {
   const f = (n) => [...fs.readFileSync(new URL(n, import.meta.url), "utf8").matchAll(/\{ k: "(\w+)", yon: "([STEAM])"/g)].map((m) => [m[1], m[2]]);
-  const fayl = Object.fromEntries([...f("./KabuLoyiha.jsx"), ...f("./Loyiha2.jsx")]);
+  const fayl = Object.fromEntries([...f("./KabuLoyiha.jsx"), ...f("./Loyiha2.jsx"), ...f("./Loyiha3.jsx")]);
   assert.deepEqual(fayl, YON_OF);
-  const soni = (y) => Object.values(YON_OF).filter((x) => x === y).length; assert.deepEqual(["S", "E", "T", "A", "M"].map(soni), [4, 4, 2, 2, 3]);
+  const soni = (y) => Object.values(YON_OF).filter((x) => x === y).length; assert.deepEqual(["S", "E", "T", "A", "M"].map(soni), [5, 5, 3, 3, 4]);
 });
 test("nishonlar: bo'sh portfelda hech biri yo'q; shartlar to'g'ri hisoblanadi", () => {
   assert.equal(nishonlarHisobla({}).filter((n) => n.olingan).length, 0); assert.equal(nishonlarHisobla({}).length, NISHONLAR.length);

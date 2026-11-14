@@ -1,15 +1,16 @@
 // REV544: Kabu loyiha nishonlari — portfeldan hisoblanadi (alohida saqlanmaydi, shuning uchun hech qachon eskirmaydi).
 const __kbM = (x) => x;
 /** Loyiha → yo'nalish (S tabiat, T texnologiya, E muhandislik, A san'at, M matematika). Fayllardagi ro'yxat bilan test orqali tekshiriladi. */
-export const YON_OF = { osimlik: "S", filtr: "S", qayiq: "S", soya: "S", koprik: "E", richag: "E", parashyut: "E", qiya: "E", kod: "T", kod2: "T", naqsh: "A", rang: "A", byudjet: "M", masshtab: "M", sorov: "M" };
+export const YON_OF = { osimlik: "S", filtr: "S", qayiq: "S", soya: "S", energiya: "S", koprik: "E", richag: "E", parashyut: "E", qiya: "E", shamol: "E", kod: "T", kod2: "T", tahlil: "T",
+  naqsh: "A", rang: "A", fraktal: "A", byudjet: "M", masshtab: "M", sorov: "M", kredit: "M" };   // REV546: + 9–11-sinf (energiya, shamol, tahlil, fraktal, kredit)
 const yonKalitlari = (yon) => Object.keys(YON_OF).filter((k) => YON_OF[k] === yon);
 
 export const NISHONLAR = [
   { k: "birinchi", belgi: "🌟", nom: __kbM("Birinchi qadam"), izoh: __kbM("Birinchi loyihani tugatdingiz"), hisob: (c) => [c.soni, 1] },
   { k: "tadqiqotchi", belgi: "🔬", nom: __kbM("Yosh tadqiqotchi"), izoh: __kbM("Tabiat loyihalaridan 3 tasida kamida 2 ⭐"), hisob: (c) => [c.yon("S"), 3] },
   { k: "muhandis", belgi: "🏗️", nom: __kbM("Yosh muhandis"), izoh: __kbM("Muhandislik loyihalaridan 3 tasida kamida 2 ⭐"), hisob: (c) => [c.yon("E"), 3] },
-  { k: "dasturchi", belgi: "💻", nom: __kbM("Yosh dasturchi"), izoh: __kbM("Ikkala texnologiya loyihasida kamida 2 ⭐"), hisob: (c) => [c.yon("T"), 2] },
-  { k: "rassom", belgi: "🎨", nom: __kbM("Yosh rassom"), izoh: __kbM("Ikkala san’at loyihasida kamida 2 ⭐"), hisob: (c) => [c.yon("A"), 2] },
+  { k: "dasturchi", belgi: "💻", nom: __kbM("Yosh dasturchi"), izoh: __kbM("Texnologiya loyihalaridan 2 tasida kamida 2 ⭐"), hisob: (c) => [c.yon("T"), 2] },
+  { k: "rassom", belgi: "🎨", nom: __kbM("Yosh rassom"), izoh: __kbM("San’at loyihalaridan 2 tasida kamida 2 ⭐"), hisob: (c) => [c.yon("A"), 2] },
   { k: "hisobchi", belgi: "🧮", nom: __kbM("Yosh hisobchi"), izoh: __kbM("Matematika loyihalaridan 3 tasida kamida 2 ⭐"), hisob: (c) => [c.yon("M"), 3] },
   { k: "sinovchi", belgi: "🧪", nom: __kbM("Haqiqiy olim"), izoh: __kbM("5 ta loyihada farazingiz ham, xulosangiz ham to‘g‘ri chiqdi"), hisob: (c) => [c.olim, 5] },
   { k: "oltin", belgi: "✋", nom: __kbM("Qo‘li oltin"), izoh: __kbM("3 ta qo‘lda yasagan loyihangiz tasdiqlandi"), hisob: (c) => [c.qolda, 3] },

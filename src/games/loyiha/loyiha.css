@@ -62,3 +62,8 @@
 .lo-rubrika{display:flex;flex-direction:column;gap:8px;background:#f6f8fb;border-radius:12px;padding:10px}.lo-rub-qator{display:grid;grid-template-columns:150px auto 1fr;gap:8px;align-items:center;font-size:13px}.lo-rub-qator>div{display:flex;gap:4px}
 .lo-rub-qator button{width:34px;height:34px;border-radius:10px;border:1px solid #dbe3ec;background:#fff;font:800 15px system-ui;cursor:pointer}.lo-rub-qator button.is-on{background:#1B4B7A;color:#fff;border-color:#1B4B7A}.lo-rub-qator small{color:#5b6573}
 @media (max-width:520px){.lo-rub-qator{grid-template-columns:1fr}.lo-4kbar>div{grid-template-columns:110px 1fr 28px}}
+/* REV546: 9–11-sinf loyihalari */
+.lo-ulush{display:flex;height:18px;border-radius:9px;overflow:hidden;background:#e3e8ef}.lo-ulush i{display:block;height:100%}
+.lo-ikki{display:grid;grid-template-columns:1fr 1fr;gap:10px}.lo-ikki>div{display:flex;flex-direction:column;align-items:center;gap:2px}.lo-ikki small{color:#5b6573;font-size:12px}
+@keyframes lo-aylan{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.lo-chizma g{animation:none!important}}

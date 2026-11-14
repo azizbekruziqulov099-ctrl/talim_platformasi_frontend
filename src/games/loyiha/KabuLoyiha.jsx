@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
 import { osimlikOs, osimlikHolat, OSIMLIK_MAQSAD, koprikHisob, KOPRIK_MAQSAD, KOD_XARITALAR, kodYurit, kodEngQisqa, NAQSH_NAMUNALAR, naqshXato, BYUDJET, byudjetHisob, PORTFEL_KALIT, yulduzHisob } from "./loyihaRules.js";
 import { LOYIHALAR2 } from "./Loyiha2.jsx";   // REV542: F2 — yana 10 loyiha
+import { LOYIHALAR3 } from "./Loyiha3.jsx";   // REV546: F5 — 9–11-sinf
 import { QoldaBolim, Tasdiqlash, loyihaApi } from "./Qolda.jsx";   // REV543: F3
 import { SinfTopshiriqlari, Nishonlar, UstozPanel } from "./Guruh.jsx";   // REV544: F4
 import "./loyiha.css";
@@ -131,7 +132,7 @@ const LOYIHALAR = [
     faraz: [__kbM("Eng qimmat narsalarni olish kerak"), __kbM("Avval zarur narsalarni hisoblab, keyin qolgan pulga qo‘shimcha olish kerak"), __kbM("Hisoblamasdan ham yetadi")], togri: 1,
     savol: __kbM("Tort va sharbat olinsa, mevaga pul yetmaydi. Nima qilish to‘g‘ri?"), javob: [__kbM("Mevasiz qoldirish"), __kbM("Qimmat narsani arzonrog‘iga almashtirib, hamma zarur narsaga yetkazish"), __kbM("Qarz olish")], jt: 1 },
 ];
-const HAMMA = [...LOYIHALAR, ...LOYIHALAR2];
+const HAMMA = [...LOYIHALAR, ...LOYIHALAR2, ...LOYIHALAR3];
 const YON = { S: [__kbM("Tabiat"), "#2e9e5b"], T: [__kbM("Texnologiya"), "#3A86FF"], E: [__kbM("Muhandislik"), "#FF8C1A"], A: [__kbM("San’at"), "#9B5DE5"], M: [__kbM("Matematika"), "#E63946"] };
 const BOSQICH = [__kbM("Muammo"), __kbM("Faraz"), __kbM("Yasash va sinash"), __kbM("Xulosa"), __kbM("Natija")];
 
