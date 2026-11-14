@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import { OqituvchiSinflar, fanMatn } from "./XbSinflar.jsx";   // REV373
 import XbTopshiriqlar from "./XbTopshiriqlar.jsx";   // REV401
+import { OqituvchiGuruhlar } from "./XbGuruhlar.jsx";   // REV556: reyting bo'yicha guruhlar
 import XbSavol from "./XbSavol.jsx";
 import XbDoska from "./XbDoska.jsx";
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
@@ -184,8 +185,9 @@ export default function XbOqituvchi({ apiBase, token, jins, ustoz, kuzatuv, onDa
       <div className="xb-karta"><small>{T("Bu haftalik nazoratni topshirgan")}</small><b>{j.haftalik}/{j.jami}</b></div>
       <div className="xb-karta">{j.ortacha_ball ? <><small>{T("O‘rtacha rasmiy ball")}</small><b>{j.ortacha_ball}</b></> : <><small>{T("O‘rtacha natija (to‘g‘ri javoblar)")}</small><b>{j.ortacha_foiz != null ? `${j.ortacha_foiz}%` : "—"}</b></>}</div>
     </div>}
-    {(!sn || (d && d.oquvchilar.length > 0)) && <nav className="xb-tablar">{[["oquvchilar", sn ? "📋 Sinf jurnali" : "👥 O‘quvchilar"], ...(sn ? [["topshiriq", "📝 Topshiriqlar"]] : []), ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
+    {(!sn || (d && d.oquvchilar.length > 0)) && <nav className="xb-tablar">{[["oquvchilar", sn ? "📋 Sinf jurnali" : "👥 O‘quvchilar"], ...(sn ? [["guruhlar", "👥 Guruhlar"], ["topshiriq", "📝 Topshiriqlar"]] : []), ["xatolar", "❌ Sinf xatolari"], ["mavzular", "📚 Mavzular bo‘yicha"]].map(([k, n]) =>
       <button key={k} type="button" className={oyna === k ? "is-on" : ""} onClick={() => setOyna(k)}>{T(n)}</button>)}</nav>}
+    {oyna === "guruhlar" && sn && <OqituvchiGuruhlar apiBase={apiBase} token={token} sinf={sn} />}
     {oyna === "topshiriq" && sn && <XbTopshiriqlar apiBase={apiBase} token={token} sinf={sn} til={til} mavzular={(kat?.toplamlar?.find((tp) => tp.kalit === sn.toplam)?.mavzular || x?.mavzular || []).map((m) => ({ kalit: m.kalit, nom: m.nom }))} />}
     {oyna === "oquvchilar" && (!d ? <p className="xb-muted">⏳</p> : d.oquvchilar.length ? <div className="xb-jadval-wrap">
       {sn && <h4>📋 {T("Sinf jurnali")} — {d.oquvchilar.length} {T("o‘quvchi")} <small className="xb-muted">({T("ism bo‘yicha")})</small></h4>}<table className="xb-jadval">

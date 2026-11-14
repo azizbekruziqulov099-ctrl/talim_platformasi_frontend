@@ -1,7 +1,7 @@
 // REV260: «Xalqaro baholash» — sof qoidalar (brauzersiz sinaladi).
 
 export const FIKRLASH = { bilish: "Bilish", qollash: "Qo‘llash", mulohaza: "Mulohaza" };
-export const IMTIHON_BELGI = { haftalik: "📅", oylik: "🗓️", choraklik: "📘", yillik: "🏆" };
+export const IMTIHON_BELGI = { kirish: "🎯", haftalik: "📅", oylik: "🗓️", choraklik: "📘", yillik: "🏆" };
 export const DARAJA_RANG = { ilgor: "#7b3fe4", yuqori: "#1f8a4c", orta: "#1b6fd8", past: "#c77d00", boshlangich: "#b33a3a" };
 export const DARAJALAR = [[625, "Ilg‘or"], [550, "Yuqori"], [475, "O‘rta"], [400, "Past"]];
 

@@ -328,3 +328,30 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .xb-jonli-kuz tr.is-tugatdi{background:rgba(31,138,76,.06)}
 .xb-jonli-q{display:flex;align-items:center;gap:6px;min-width:110px}
 .xb-jonli-q .xb-chiziq{flex:1;height:7px}
+
+/* REV556: reyting bo'yicha guruhlar (o'qituvchi paneli va o'quvchining «Mening guruhim» kartasi) */
+.xg-root{display:grid;gap:12px}
+.xg-daraja{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;color:var(--r);background:color-mix(in srgb,var(--r) 12%,#fff);white-space:nowrap}
+.xg-amal{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.xg-qoida{border:1px solid var(--xb-chiziq);border-radius:12px;padding:8px 12px;background:var(--xb-fon);font-size:13.5px}
+.xg-qoida summary{cursor:pointer;font-weight:700}.xg-qoida ul{margin:8px 0 2px;padding-left:18px;display:grid;gap:5px;line-height:1.45}
+.xg-xabar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.45}
+.xg-xabar.is-ok{background:#eaf7ef;color:#14532d}.xg-xabar.is-ogoh{background:#fff6e5;color:#7a4a00}
+.xg-xabar ul{margin:6px 0 0;padding-left:18px;flex-basis:100%;display:grid;gap:2px;font-size:13px}
+.xg-blok{border:1px solid var(--xb-chiziq);border-radius:12px;padding:10px 12px;display:grid;gap:6px}
+.xg-blok.is-ogoh{border-color:#f0d9a8;background:#fffaf0}.xg-blok h5{margin:0;font-size:14px}.xg-blok p{margin:0;line-height:1.45}
+.xg-royxat{margin:0;padding:0;list-style:none;display:grid;gap:6px}.xg-royxat li{display:grid;gap:2px}.xg-royxat small{color:#7a4a00;font-size:12.5px;line-height:1.35}
+.xg-ismlar{font-size:13.5px;color:#475569}
+.xg-guruh{border:1px solid var(--xb-chiziq);border-radius:14px;overflow:hidden;background:#fff}
+.xg-guruh-bosh{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:11px 12px;border:0;background:var(--xb-fon);font:inherit;text-align:left;cursor:pointer;min-height:48px}
+.xg-guruh-bosh b{font-size:16px}.xg-guruh-bosh small{color:#5d6678}.xg-guruh-bosh i{margin-left:auto;font-style:normal;color:#5d6678}
+.xg-jadval td:nth-child(3),.xg-jadval td:nth-child(5){text-align:center}
+.xg-belgi{display:inline-block;font-size:12px;padding:2px 7px;border-radius:8px;margin:1px 3px 1px 0}.xg-belgi.is-tekshiruv{background:#fff1d6;color:#7a4a00}.xg-belgi.is-eslatma{background:#eef2f7;color:#475569}
+.xg-men-bosh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 10px}.xg-men-bosh h4{margin:0}.xg-men-bosh small{color:#5d6678}
+.xg-men{display:grid;gap:12px}
+.xg-kirish{display:grid;gap:8px;justify-items:start;border:2px dashed color-mix(in srgb,var(--xb-kok,#1b6fd8) 45%,#fff);border-radius:14px;padding:14px;background:#f5f9ff}
+.xg-kirish b{font-size:16px}.xg-kirish p{margin:0;line-height:1.5}.xg-kirish ul{margin:0;padding-left:18px;color:#7a4a00;line-height:1.45}
+.xg-ikki{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.xg-ikki h5{margin:0 0 6px;font-size:14px}
+.xg-yolak{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;align-items:center;gap:8px;font-size:13.5px;padding:3px 0}
+.xg-yolak i{height:9px;border-radius:9px;background:#e8edf3;overflow:hidden;display:block}.xg-yolak i b{display:block;height:100%;border-radius:9px}
+.xg-yolak em{font-style:normal;color:#5d6678;font-size:12.5px;min-width:34px;text-align:right}

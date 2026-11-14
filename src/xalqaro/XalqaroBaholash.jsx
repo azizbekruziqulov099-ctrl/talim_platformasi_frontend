@@ -9,6 +9,7 @@ import XbImtihon, { DavlatDiagramma, XbNatija } from "./XbImtihon.jsx";
 import { XbUstoz } from "./XbDoska.jsx";
 import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
 import { OquvchiSinf } from "./XbSinflar.jsx";   // REV373
+import { MeningGuruhim } from "./XbGuruhlar.jsx";   // REV556
 import XbNatijalarim from "./XbNatijalarim.jsx";   // REV381
 import XbToplamlar, { DARAJA } from "./XbToplamlar.jsx";   // REV399
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
@@ -158,6 +159,10 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         <span className="xb-menyu-belgi" aria-hidden="true">{belgi}</span><b>{nom}</b><small>{izoh}</small>
         {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
+    {/* REV556: guruhim, darajam, nimani o'rganish kerak; kirish testi shu yerdan boshlanadi */}
+    {tab === "sinfim" && kuzatuv && <MeningGuruhim apiBase={apiBase} token={token}
+      onKirish={(t) => { ovoz.hush(); if (t) setToplam(t); setEkran({ tur: "imtihon", info: { tur: "kirish", nom: T("Kirish testi") } }); }}
+      onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
     {tab === "sinfim" && kuzatuv && <OquvchiSinf apiBase={apiBase} token={token} ism={user?.full_name || ""}
       onTopshiriq={(t) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { tur: "topshiriq", kod: t.kod }, sarlavha: `📝 ${t.nom}` }); }} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
     {tab === "natija" && <XbNatijalarim apiBase={apiBase} token={token} kat={kat} toplam={toplam} til={til} onMashq={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} onDars={(m) => ochDars(m)} />}
