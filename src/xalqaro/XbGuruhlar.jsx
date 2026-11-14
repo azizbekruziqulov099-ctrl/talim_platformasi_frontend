@@ -7,6 +7,7 @@ import { xbFetch } from "./xbOvoz.js";
 import { T, tf } from "./xbTil.js";
 import { DARAJA_RANG } from "./xbRules.js";
 import Pasport from "../pasport/Pasport.jsx";   // REV560: o'quvchi pasporti
+import KabuBot from "../kabubot/KabuBot.jsx";   // REV561: o'qituvchi uchun Kabu-bot
 import { azoBelgilari, foizRangi, oquvchiHolati, sana, sinfJamlamasi, xabarShabloni } from "./xbGuruhRules.js";
 
 const Daraja = ({ d }) => (d ? <span className="xg-daraja" style={{ "--r": DARAJA_RANG[d.kalit] || "#475569" }}>{d.nom}</span> : null);
@@ -17,6 +18,7 @@ const Yolak = ({ nom, togri, jami, foiz }) => <div className="xg-yolak"><span>{n
 export function OqituvchiGuruhlar({ apiBase, token, sinf }) {
   const [d, setD] = useState(null); const [xato, setXato] = useState(""); const [band, setBand] = useState(false); const [ochiq, setOchiq] = useState(1);
   const [pasport, setPasport] = useState(0);   // REV560: tanlangan o'quvchi pasporti
+  const [bot, setBot] = useState(false);       // REV561
   const yukla = () => xbFetch(apiBase, `/api/xalqaro/sinflar/${sinf.id}/guruhlar`, token).then((r) => { setD(r); setXato(""); }).catch((e) => setXato(e.message));
   useEffect(() => { setD(null); yukla(); }, [sinf.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const yangila = () => { if (!window.confirm(T("Guruhlar qayta ko‘rib chiqilsinmi? Barqaror natija ko‘rsatgan o‘quvchilar boshqa guruhga o‘tadi, qolganlar joyida qoladi."))) return;
@@ -24,6 +26,7 @@ export function OqituvchiGuruhlar({ apiBase, token, sinf }) {
   if (xato) return <p className="xb-xato" role="alert">{T(xato)}</p>;
   if (!d) return <p className="xb-muted">⏳</p>;
   const j = sinfJamlamasi(d); const testsiz = d.kutayotgan.filter((k) => k.holat === "kirish_testi_yoq"); const tekshiruv = d.kutayotgan.filter((k) => k.holat === "tekshiruvda");
+  if (bot) return <div className="xg-root"><KabuBot apiBase={apiBase} token={token} rol="oqituvchi" onYop={() => setBot(false)} onGuruhlar={() => setBot(false)} /></div>;
   if (pasport) return <div className="xg-root"><Pasport apiBase={apiBase} token={token} userId={pasport} onYop={() => setPasport(0)} /></div>;
   return <div className="xg-root">
     <div className="xb-kartalar">
@@ -35,6 +38,7 @@ export function OqituvchiGuruhlar({ apiBase, token, sinf }) {
     <div className="xg-amal">
       <button type="button" className="xb-btn xb-btn-asosiy" disabled={band} onClick={yangila}>🔄 {T("Guruhlarni yangilash")}</button>
       <button type="button" className="xb-btn" onClick={yukla}>↻ {T("Ro‘yxatni yangilash")}</button>
+      <button type="button" className="xb-btn" onClick={() => setBot(true)}>🕊️ {T("Kabu-bot")}</button>
       <small className="xb-muted">{d.guruhlangan ? tf("Oxirgi guruhlash: {s}. Keyingisi o‘zi: {k}.", { s: sana(d.guruhlangan), k: sana(d.keyingi) }) : T("Guruhlar hali tuzilmagan.")}</small>
     </div>
     <details className="xg-qoida"><summary>ℹ️ {T("Guruhlash qanday ishlaydi")}</summary><ul>

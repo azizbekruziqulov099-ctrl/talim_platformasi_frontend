@@ -461,4 +461,5 @@ export default {
   // REV560: o'quvchi pasporti
   "Pasport": { ru: "Паспорт", en: "Passport" },
   "O‘quvchi pasporti": { ru: "Паспорт ученика", en: "Student passport" },
+  "Kabu-bot": { ru: "Каби-бот", en: "Kabu-bot" },
 };
