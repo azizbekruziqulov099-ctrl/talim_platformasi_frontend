@@ -45,3 +45,25 @@ html[data-kb-korinish="yangi"] .premium-mobile-link.active .premium-mobile-icon{
 .kb-korinish-tugma{margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 10px;border-radius:12px;border:1px dashed rgba(255,255,255,.35);background:transparent;color:inherit;font:700 12px/1.2 system-ui,sans-serif;cursor:pointer;opacity:.9}
 .kb-korinish-tugma:hover{opacity:1}
 html[data-kb-korinish="yangi"] .kb-korinish-tugma{border-color:var(--kb-chiziq);background:var(--kb-yuza);color:var(--kb-urgu)}
+
+/* ── REV550 (D5): to'lov oynalari bir xil ko'rinishda ──
+   Ikki joyda pul to'lanadi: bog'cha obunasi (.bm-…, ota-ona) va kurs to'lovi (.course-pay-…, o'quvchi). Ular ikki xil chizilgan edi
+   (birida rangli yaxlit tugmalar, ikkinchisida punktir quti). Yangi ko'rinishda: bir xil summa qatori, bir xil to'lov tugmalari
+   (oq karta + to'lov tizimining rang belgisi), bir xil asosiy tugma. FAQAT ko'rinish — summa, buyurtma va yo'naltirish mantig'iga tegilmagan. */
+html[data-kb-korinish="yangi"] :is(.bm-total,.course-pay-sum){margin:0;font:500 14px/1.4 system-ui,sans-serif!important;color:var(--kb-matn2)!important}
+html[data-kb-korinish="yangi"] :is(.bm-total,.course-pay-sum) b{display:inline-block;margin:0 4px;font:800 22px/1.2 system-ui,sans-serif;color:var(--kb-siyoh)!important;letter-spacing:-.01em}
+html[data-kb-korinish="yangi"] .bm-pay{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+html[data-kb-korinish="yangi"] :is(.bm-pay-btn,.course-pay-option){display:flex;align-items:center;justify-content:flex-start;gap:10px;min-height:52px;min-width:0;padding:13px 16px;border:1px solid var(--kb-chiziq)!important;border-radius:14px;
+  background:var(--kb-yuza)!important;color:var(--kb-siyoh)!important;font:700 16px/1.1 system-ui,sans-serif;box-shadow:0 1px 3px rgba(15,23,32,.05);transition:background .15s,border-color .15s,box-shadow .15s}
+html[data-kb-korinish="yangi"] :is(.bm-pay-btn,.course-pay-option):not(:disabled):hover{background:var(--kb-bosildi)!important}
+html[data-kb-korinish="yangi"] .bm-pay-btn::before{content:"";flex:0 0 auto;width:12px;height:12px;border-radius:50%;background:var(--kb-tizim,var(--kb-urgu))}
+html[data-kb-korinish="yangi"] .bm-pay-btn.is-click{--kb-tizim:#0a7cff}
+html[data-kb-korinish="yangi"] .bm-pay-btn.is-payme{--kb-tizim:#00b5ad}
+html[data-kb-korinish="yangi"] .bm-pay-btn::after{content:"↗";margin-left:auto;color:var(--kb-matn3);font-weight:600}
+html[data-kb-korinish="yangi"] .course-pay-option.is-on{border-color:var(--kb-urgu)!important;background:var(--kb-urgu-och)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--kb-urgu) 16%,transparent)!important}
+html[data-kb-korinish="yangi"] .course-pay-box{border:1px solid var(--kb-chiziq)!important;border-radius:14px;background:var(--kb-fon);padding:16px}
+html[data-kb-korinish="yangi"] .course-pay-box p{margin:0;color:var(--kb-matn2);font-size:14px;line-height:1.5}
+html[data-kb-korinish="yangi"] :is(.course-pay-box .course-button:not(.is-secondary),.bm-step-body > .bm-primary){min-height:48px;padding:12px 18px;border:0!important;border-radius:12px;background:var(--kb-urgu)!important;color:#fff!important;font:700 15px/1.1 system-ui,sans-serif;box-shadow:0 1px 5px color-mix(in srgb,var(--kb-urgu) 30%,transparent)}
+html[data-kb-korinish="yangi"] .course-pay-card{color:var(--kb-siyoh)}
+html[data-kb-korinish="yangi"] .bm-order{border:1px solid var(--kb-chiziq);border-radius:14px;background:var(--kb-fon);padding:12px 14px}
+html[data-kb-korinish="yangi"] :is(.course-pay-box .course-button.is-secondary,.bm-order .bm-secondary){min-height:44px;border:1px solid var(--kb-chiziq)!important;border-radius:12px;background:var(--kb-yuza)!important;color:var(--kb-siyoh)!important;font-weight:700}
