@@ -2290,3 +2290,13 @@ img, video, canvas, svg { max-width: 100%; }
   .premium-mobile-nav.samtm-pastki-4 .premium-mobile-link > span:last-child{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset;max-width:100%}
   body:has(.premium-mobile-nav.samtm-pastki-4) #samtm-install-app{bottom:calc(68px + env(safe-area-inset-bottom,0px))!important}
 }
+
+/* REV554: RAMKA TO'LIQ EKRANLI OYNALARGA XALAQIT BERMAYDI.
+   Yuqoridagi ☰ / makon almashtirgich / profil tugmalari (z-index 2147483100) har qanday to'liq ekranli oynaning USTIDA suzib turardi:
+   chizma daftarida asboblarni to'sardi (daftar z-index 2147483098 — ikki raqam past), o'yinlar xonasida sarlavha ustiga chiqardi.
+   Endi shunday oyna ochiq bo'lsa, ramka tugmalari, pastki menyu va «Bosh ekranga qo'shish» yashirinadi (dars va testdagi kabi).
+   Ro'yxatga FAQAT o'z yopish/ortga tugmasi borligi tasdiqlangan oynalar kiritiladi — aks holda foydalanuvchi chiqa olmay qoladi.
+   Ramka OSTIDAN boshlanadigan oynalar (top: var(--samtm-portal-top) — «Til xonalari», «Jonli yo'l») ro'yxatda YO'Q: ular ramka bilan
+   kelishib ishlaydi, ramka yashirilsa tepada bo'sh yo'lak qolardi.
+   Yangi to'liq ekranli oyna qo'shilsa: avval unda ✕ borligini tekshiring, so'ng shu ro'yxatga qo'shing (src/ramka.test.mjs). */
+body:has(.cd-root.is-toliq, .ox-root, .bzt-fon, .kb-family-overlay, .kb-family-markaz, .kt-oyna) :is(.samtm-top-switch, #samtm-install-app, .premium-mobile-nav){display:none!important}
