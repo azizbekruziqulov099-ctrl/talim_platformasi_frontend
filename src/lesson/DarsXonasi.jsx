@@ -14,7 +14,7 @@ import { lineProgress } from "./chalkRules.js";
 import DarsIzoh from "./DarsIzoh.jsx";   // REV412: admin izohi
 const QoralamaDaftarLazy = React.lazy(() => import("./QoralamaDaftar.jsx"));   // REV424
 import "./darsIzoh.css";
-import { boardCues, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, variantlarYasa, visibleLines } from "./darsXonasiRules.js";
+import { boardCues, bolimQadamlari, checkAnswer, lessonDownloadUrl, sceneRange, speakableText, variantlarYasa, visibleLines } from "./darsXonasiRules.js";
 import { stripSpeechTags } from "../speech/language.js";
 import { contentLanguage, dropPraiseAny, kidCorrectSpeech, kidOptions, kidPraise } from "../test/kidQuizRules.js";
 import { lessonAudience, audienceLabels } from "./lessonAudience.js";
@@ -179,7 +179,7 @@ export function teglarniAjrat(d) {
 }
 
 import KursTolov from "../courses/KursTolov.jsx";
-export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNatija = null, apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, boshqaTillar = [], cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq }) {
+export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNatija = null, apiBase, token, topicCode, fan = "", grade = "", jins = "qiz", learnerGender = "", learnerRole = "", nextLesson = null, oldingiKod = "", onOpenTest, onOpenTopic, onChat, kidPlan = null, onKidFinished, onClose, boshqaTillar = [], cheklovsiz = false, adminMi = false, faqatTest = 0, onTestYoq, bolim = "" }) {
   const uiLocale = useKbInterfaceLocale()?.locale || "uz";
   // REV177: interfeys gaplari (to'g'ri!, dars tugadi…) — ru / en interfeysda o'sha til talaffuzida o'qiladi (o'zbekcha ovozda emas)
   const uiT = (m) => (m && ["ru", "en"].includes(uiLocale) && !/\[[a-z]{2}\]/.test(m) ? `[${uiLocale}]${m}[/${uiLocale}]` : m);
@@ -788,11 +788,11 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         if (r.status === 402 && d.detail?.kod === "kurs_tolov") { setKursQulf(d.detail); throw new Error(d.detail.xabar || "Kurs yopiq"); }   // REV301
         if (r.status === 423 && d.detail?.kod === "qurilma") { setQurilmaHol(d.detail); throw new Error(d.detail.xabar || "Qurilma"); }   // REV486
         if (!r.ok) { if (faqatTest && r.status === 404) onTestYoq?.(); throw new Error(typeof d.detail === "string" ? d.detail : d.detail?.xabar || "Dars yuklanmadi"); } return d; })
-      .then((d1) => { const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(kabuIsmiQoy(d, uiLocale))); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
+      .then((d9) => { const d1 = bolim && Array.isArray(d9?.steps) ? { ...d9, steps: bolimQadamlari(d9.steps, bolim) } : d9; const d0 = ozbekchaYorliqsiz(d1); const d = String(uiLocale || "uz").startsWith("uz") && alifboTanlov() === "yangi" ? chuqurOgir(d0) : d0; setLesson(teglarniAjrat(kabuIsmiQoy(d, uiLocale))); setBubble(lessonAudience(learnerRole, grade || d?.topic?.sinf) === "bogcha" ? ustozNutqi(__kbUi("Salom, do‘stim! Men robot Kabuman. Qani, boshladik!"), ustozFor(fan || d?.topic?.fan)) : __kbUi("Salom! «Darsni boshlash» tugmasini bosing — birga o‘rganamiz.")); })
       .catch((e) => { if (!controller.signal.aborted) setError(e.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => { controller.abort(); hush(); };
-  }, [apiBase, token, topicCode, hush, uiLocale, faqatTest, qayta]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [apiBase, token, topicCode, hush, uiLocale, faqatTest, qayta, bolim]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // REV297: faqat test rejimi — dars yuklangach darhol test (Kabular muhitida) boshlanadi, dars qadamlari o'tkazib yuboriladi
   const faqatTestBoshlandi = useRef(false);

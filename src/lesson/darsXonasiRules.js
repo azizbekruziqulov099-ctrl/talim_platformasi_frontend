@@ -179,3 +179,27 @@ export function visibleLines(cues, wordIndex, finished) {
   const at = Math.max(0, wordIndex);
   return cues.filter((cue) => cue <= at).length;
 }
+
+// Repetitor kitobi darsi bo'limlari: dars · hayotdan · mashq · test · tarix (har biri alohida ochiladi)
+export const REPETITOR_BOLIMLAR = [
+  { kalit: "dars", belgi: "📖", nomi: "Dars", izoh: "Tushuncha va ishlangan misollar" },
+  { kalit: "hayotdan", belgi: "🌍", nomi: "Hayotdan", izoh: "Hayotiy masalalar" },
+  { kalit: "mashq", belgi: "✏️", nomi: "Mashq", izoh: "O‘zingiz ishlang" },
+  { kalit: "test", belgi: "📝", nomi: "Test", izoh: "Bilimni sinash" },
+  { kalit: "tarix", belgi: "🏛", nomi: "Tarix", izoh: "Mavzu tarixi" },
+];
+export const qadamBolimi = (s) => {
+  const t = String(s?.sarlavha || "").trim();
+  const turi = String(s?.turi || "");
+  if (/^hayotdan\b/i.test(t)) return "hayotdan";
+  if (/^tarixdan\b/i.test(t) || (turi === "xulosa" && /tarix/i.test(t))) return "tarix";
+  if (turi === "test" || /^test\b/i.test(t)) return "test";
+  if (/^mashq\b/i.test(t) || turi === "topshiriq" || turi === "amaliy") return "mashq";
+  return "dars";
+};
+export const bolimQadamlari = (steps, bolim) => {
+  const list = Array.isArray(steps) ? steps : [];
+  if (!bolim) return list;
+  const f = list.filter((s) => qadamBolimi(s) === bolim);
+  return f.length ? f : list;
+};

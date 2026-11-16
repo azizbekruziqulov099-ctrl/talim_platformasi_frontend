@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
+import { REPETITOR_BOLIMLAR } from "../lesson/darsXonasiRules.js";
 import KursTolov, { somFmt } from "./KursTolov.jsx";
 import KursGuruh, { GURUH_KALIT, kgFetch } from "./KursGuruh.jsx";   // REV411
 import "./kabutarKurslar.css";
@@ -73,6 +74,12 @@ export default function KabutarKurslar({ apiBase, token, user }) {
 
   if (dars?.nazorat) return <div className="kk-toliq"><React.Suspense fallback={<p className="kk-p">…</p>}>
     <NazoratTest base={base} token={token} kurs={kurs} item={dars} onYop={() => { setDars(null); if (kurs) kursniOch((data?.kurslar || []).find((x) => x.kalit === kurs.kalit) || kurs); }} /></React.Suspense></div>;
+  const kitobKursi = String(kurs?.kalit || "").endsWith("|148");
+  if (dars && kitobKursi && !dars.nazorat && !dars.bolim) return <section className="kk" aria-label={dars.nomi}>
+    <button type="button" className="kk-ortga" onClick={() => setDars(null)}>← {__kbUi("Darslar")}</button>
+    <header className="kk-kurs-bosh"><h2>{dars.nomi}</h2><p>{__kbUi("Nimani ochamiz?")}</p></header>
+    <div className="kk-panjara">{REPETITOR_BOLIMLAR.map((b) => <button type="button" key={b.kalit} className="kk-karta" onClick={() => setDars({ ...dars, bolim: b.kalit })}>
+      <span className="kk-kat">{b.belgi}</span><b>{__kbUi(b.nomi)}</b><small>{__kbUi(b.izoh)}</small></button>)}</div></section>;
   if (dars) return <div className="kk-toliq">{dars.guruh && <GuruhJonli apiBase={apiBase} token={token} tc={dars.topic_code} />}
     {dars.guruh && <p className="kg-darsda">👥 {dars.guruh.nom} · {__kbUi("javoblaringiz o‘qituvchiga ko‘rinadi")}</p>}
     <React.Suspense fallback={<p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}>
@@ -80,8 +87,8 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       onTugadi={(n) => fetch(`${base}/api/kurslar/dars_tugadi`, { method: "POST", headers: { "Content-Type": "application/json" },   // REV477: kurs tartibi
         body: JSON.stringify({ token, fan: kurs?.fan || "", grade: (kurs?.sinflar || [])[0] || "", topic_code: dars.topic_code, ...(n || {}) }) }).catch(() => {})}
       keyingiDars={(() => { const ds = kurs?.darslar || []; const i = ds.findIndex((x) => x.topic_code === dars.topic_code); const k = i >= 0 ? ds[i + 1] : null;
-        return k ? { nomi: k.nomi || k.topic_code, darhol: Boolean(kurs?.tartib_erkin), och: () => setDars({ ...k }) } : null; })()}
-      adminMi={Boolean(user?.is_admin)} apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")}
+        return k ? { nomi: k.nomi || k.topic_code, darhol: Boolean(kurs?.tartib_erkin), och: () => setDars({ ...k, ...(dars.bolim ? { bolim: dars.bolim } : {}) }) } : null; })()}
+      adminMi={Boolean(user?.is_admin)} apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")} bolim={dars.bolim === "test" ? "" : (dars.bolim || "")} faqatTest={dars.bolim === "test" ? 30 : 0} onTestYoq={dars.bolim === "test" ? () => setDars({ ...dars, bolim: "" }) : null}
       jins={user?.jins} learnerRole={user?.role || ""} onClose={() => { setDars(null); if (kurs) kursniOch((data?.kurslar || []).find((x) => x.kalit === kurs.kalit) || kurs); }} /></React.Suspense></div>;
   if (kat === "sertifikat") return <Bolim nom="🎓 Sertifikat" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MarkazPanel apiBase={apiBase} token={token} user={user} /></React.Suspense></Bolim>;
   if (kat === "bank") return <Bolim nom="📘 Matematika banki" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MatBank apiBase={apiBase} token={token} /></React.Suspense></Bolim>;
