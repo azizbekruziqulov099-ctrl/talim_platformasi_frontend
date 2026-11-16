@@ -17,8 +17,6 @@ const DarajaPanel = lazyQayta(() => import("../pasport/DarajaPanel.jsx"));
 // «Matematika banki» — server kategoriyalariga tegmasdan, shu sahifaning o'zida qo'shiladigan bo'lim
 const BANK_KATEGORIYA = { kalit: "bank", belgi: "📘", nomi: "Matematika banki", izoh: "Mavzular bo‘yicha qoida, ishlangan misol va testlar; natijada taxminiy baho (C … A+), pasport va Kabu-bot" };
 
-// «Repetitor kitobi» (1–148 dars: dars, hayotdan, mashq, test, tarix) — public/kitob/index.html, shu sahifaning ichida ochiladi
-const KITOB_KATEGORIYA = { kalit: "kitob", belgi: "🎯", nomi: "Repetitor: 1–148 dars", izoh: "Boshlang‘ich tushunchalardan stereometriyagacha 148 dars: usul, ishlangan misollar, hayotdan, mashq, test va tarix" };
 
 export const sinfYozuv = (s) => (/^\d+$/.test(String(s)) ? `${s}-sinf` : /^\d+-\d+$/.test(String(s)) ? `${String(s).replace("-", "–")}-sinf` : String(s));   // REV419: «5–7-sinf»
 // Bolalar kurslari yoshga bo'linmaydi; faqat matematikada dastur yoshi yoziladi
@@ -86,7 +84,6 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       adminMi={Boolean(user?.is_admin)} apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")}
       jins={user?.jins} learnerRole={user?.role || ""} onClose={() => { setDars(null); if (kurs) kursniOch((data?.kurslar || []).find((x) => x.kalit === kurs.kalit) || kurs); }} /></React.Suspense></div>;
   if (kat === "sertifikat") return <Bolim nom="🎓 Sertifikat" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MarkazPanel apiBase={apiBase} token={token} user={user} /></React.Suspense></Bolim>;
-  if (kat === "kitob") return <Bolim nom="🎯 Repetitor: 1–148 dars" onOrtga={() => setKat(null)}><iframe title="Repetitor kitobi" src="/kitob/index.html" style={{ width: "100%", height: "80vh", border: 0, borderRadius: 12 }} /></Bolim>;
   if (kat === "bank") return <Bolim nom="📘 Matematika banki" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><MatBank apiBase={apiBase} token={token} /></React.Suspense></Bolim>;
   if (kat === "pasport") return <Bolim nom="📊 Pasport" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><Pasport apiBase={apiBase} token={token} /></React.Suspense></Bolim>;
   if (kat === "xalqaro") return <Bolim nom="🌍 Xalqaro baholash" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={user?.jins} /></React.Suspense></Bolim>;
@@ -105,7 +102,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {!kurs.yuklanmoqda && <KursGuruh apiBase={apiBase} token={token} user={user} kurs={kurs}
       onDars={(tc, g) => { const x = (kurs.darslar || []).find((y) => y.topic_code === tc); if (x?.ochiq) setDars({ ...x, guruh: g }); else if (x) setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }); }} />}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code}>
-      {kurs.kategoriya === "repetitor" && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
+      {kurs.kategoriya === "repetitor" && !String(kurs.kalit || "").endsWith("|148") && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
       <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""} ${d.nazorat ? "is-nazorat" : ""}`}
         onClick={() => (d.ochiq ? setDars(d) : d.holat === "yakshanba" ? alert(__kbUi(d.oyin ? "📅 Kabu bilan bilim o‘yini yakshanba kuni ochiladi!" : "📅 Bu imtihon yakshanba kuni ochiladi. Hafta davomida darslarni davom ettiravering."))
           : d.holat === "qayta_ertaga" ? alert(__kbUi("🌙 Qayta topshirish — ertaga. Bugun xato qilgan darslaringizni takrorlang.")) : d.holat === "ertaga" ? alert(__kbUi("🌙 Bu dars ertaga ochiladi — bugungi darsni yaxshilab o‘rganib oling."))
@@ -120,9 +117,9 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {konikmaOchiq && <React.Suspense fallback={null}><KonikmaXarita base={base} token={token} onYop={() => setKonikmaOchiq(false)} /></React.Suspense>}
     <div className="kk-kategoriyalar" role="tablist" aria-label={__kbUi("Yo‘nalishlar")}>
       <button type="button" role="tab" aria-selected={!kat} className={!kat ? "is-faol" : ""} onClick={() => setKat(null)}><b>✨</b><span>{__kbUi("Hammasi")}</span><small>{(data?.kurslar || []).length}</small></button>
-      {[...(data?.kategoriyalar || []), ...(token ? [BANK_KATEGORIYA, KITOB_KATEGORIYA] : [])].filter((c) => c.kalit === "sertifikat" || c.kalit === "xalqaro" || c.kalit === "bank" || c.kalit === "kitob" || soni(c.kalit)).map((c) => (
+      {[...(data?.kategoriyalar || []), ...(token ? [BANK_KATEGORIYA] : [])].filter((c) => c.kalit === "sertifikat" || c.kalit === "xalqaro" || c.kalit === "bank" || soni(c.kalit)).map((c) => (
         <button key={c.kalit} type="button" role="tab" aria-selected={kat === c.kalit} className={kat === c.kalit ? "is-faol" : ""} onClick={() => setKat(c.kalit)} title={__kbUi(c.izoh)}>
-          <b aria-hidden="true">{c.belgi}</b><span>{__kbUi(c.nomi)}</span><small>{c.kalit === "sertifikat" || c.kalit === "xalqaro" || c.kalit === "bank" || c.kalit === "kitob" ? "→" : soni(c.kalit)}</small></button>))}
+          <b aria-hidden="true">{c.belgi}</b><span>{__kbUi(c.nomi)}</span><small>{c.kalit === "sertifikat" || c.kalit === "xalqaro" || c.kalit === "bank" ? "→" : soni(c.kalit)}</small></button>))}
     </div>
     <input type="search" className="kk-qidir" value={qidir} onChange={(e) => setQidir(e.target.value)} placeholder={__kbUi("Kurs qidirish: matematika, ingliz tili…")} />
     {kat && <p className="kk-izoh">{__kbUi((data?.kategoriyalar || []).find((c) => c.kalit === kat)?.izoh || "")}</p>}
