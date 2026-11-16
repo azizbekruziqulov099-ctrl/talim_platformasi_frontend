@@ -35,7 +35,8 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
   const shriftQoy = (d) => { const i = Math.max(0, Math.min(SHRIFT.length - 1, SHRIFT.indexOf(shrift) + d)); setShrift(SHRIFT[i]); try { localStorage.setItem("kabutar:xb:shrift", String(SHRIFT[i])); } catch { /* */ } };
   React.useEffect(() => { if (!toliq) return undefined; const k = (e) => { if (e.key === "Escape") setToliq(false); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [toliq]);
   if (!savol) return null;
-  const tanlov = savol.turi === "tanlov";
+  const kop = savol.turi === "kop";   // 2–4 ta to'g'ri javobli savol
+  const tanlov = savol.turi === "tanlov" || kop;
   const oqib = () => {
     const variantlar = tanlov ? savol.javoblar.map((v, i) => `${"ABCD"[i]}: ${v}`).join(". ") : "";
     ovoz?.say(`${savol.stimul && !imtihon ? "" : ""}${savol.savol} ${variantlar}`);
@@ -74,13 +75,17 @@ export default function XbSavol({ savol, javob, onJavob, holat = null, ovoz, raq
     {savol.rasm_svg && <img className="xb-savol-rasm" src={svgUrl(savol.rasm_svg)} alt={T("Savol rasmi")} />}
     {mik.tinglash && <p className="xb-mik">🎙️ {T("Tinglayapman… javobni ayting (masalan: «be» yoki «o‘n ikki»)")}</p>}
     {mik.xato && <p className="xb-mik is-xato">{T(mik.xato)}</p>}
-    {tanlov ? <div className="xb-variantlar" role="radiogroup">
+    {kop && <p className="xb-muted xb-kichik">☑️ {T("Bir nechta javob to‘g‘ri bo‘lishi mumkin — hammasini belgilang.")}</p>}
+    {tanlov ? <div className="xb-variantlar" role={kop ? "group" : "radiogroup"}>
       {savol.javoblar.map((v, i) => {
         const h = "ABCD"[i];
-        const tanlandi = berilgan.toUpperCase() === h;
-        const cls = holat === null ? (tanlandi ? "is-tanlandi" : "") : i === holat.togri ? "is-togri" : tanlandi ? "is-xato" : "is-sust";
-        return <button key={i} type="button" role="radio" aria-checked={tanlandi} disabled={holat !== null || !onJavob}
-          className={`xb-variant ${cls}`} onClick={() => onJavob?.(h, "yozib")}>
+        const tanlandi = kop ? berilgan.toUpperCase().includes(h) : berilgan.toUpperCase() === h;
+        const togriMi = Array.isArray(holat?.togri) ? holat.togri.includes(i) : i === holat?.togri;
+        const cls = holat === null ? (tanlandi ? "is-tanlandi" : "") : togriMi ? "is-togri" : tanlandi ? "is-xato" : "is-sust";
+        const bos = () => { if (!kop) { onJavob?.(h, "yozib"); return; }
+          const set = new Set(berilgan.toUpperCase().replace(/[^A-D]/g, "").split("")); set.has(h) ? set.delete(h) : set.add(h); onJavob?.([...set].sort().join(""), "yozib"); };
+        return <button key={i} type="button" role={kop ? "checkbox" : "radio"} aria-checked={tanlandi} disabled={holat !== null || !onJavob}
+          className={`xb-variant ${cls}`} onClick={bos}>
           <b>{h}</b><span><BoardText text={v} /></span>
         </button>;
       })}
