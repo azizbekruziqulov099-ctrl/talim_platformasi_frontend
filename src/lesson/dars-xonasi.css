@@ -1297,3 +1297,5 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-sinf .dx-lines.is-zich .mdx-line{font-size:max(13px,3cqh)}
 .dx-root.dx-sinf .dx-lines.is-juda-zich .mdx-line{font-size:max(12px,2.6cqh)}
 .dx-ustoz-jins{font-size:15px;letter-spacing:1px}
+
+.dx-korish-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#FFF4CC;color:#3A2E00;border-radius:8px;padding:8px 12px;margin-bottom:8px;font:600 14px/1.4 system-ui,sans-serif}

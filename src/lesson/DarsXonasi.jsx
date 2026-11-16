@@ -321,6 +321,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   // REV175: maktabda ham haqiqiy sinfxona — ustoz o'z xonasida (deraza, ob-havo, soat), doska xona o'rtasida katta
   const sinfXona = !kid && Boolean(USTOZLAR[ustozRef.current]);
   const doskaRef = useRef(null);
+  const [korish, setKorish] = useState(false);   // o'quvchi doskani qo'lda tepaga surib ko'ryapti
+  const korishRef = useRef(false);
   // REV313: elektron doska — to'lsa yangi sahifa (eski qatorlar oldingi sahifaga o'tadi), ◀ ▶ bilan ko'rish
   const sahifaRef = useRef(0);
   const [sahifa, setSahifa] = useState({ n: 0, korish: false });
@@ -1563,7 +1565,11 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       }
     };
     let qolT = 0;
-    const qolda = () => { el.dataset.qolda = "1"; clearTimeout(qolT); qolT = setTimeout(() => { delete el.dataset.qolda; }, 6000); };
+    const qolda = () => {
+      el.dataset.qolda = "1"; clearTimeout(qolT); qolT = setTimeout(() => { if (!korishRef.current) delete el.dataset.qolda; }, 6000);
+      // o'quvchi eski yozuvlarni ko'ryapti (pastdan uzoqlashdi) — «Darsni davom ettir» tugmasi chiqadi, qo'lda ko'rishi to'xtatilmaydi
+      setTimeout(() => { const uzoq = el.scrollHeight - el.clientHeight - el.scrollTop > 60; if (uzoq && !korishRef.current) { korishRef.current = true; setKorish(true); } }, 220);
+    };
     el.addEventListener("wheel", qolda, { passive: true }); el.addEventListener("touchmove", qolda, { passive: true });
     sigdir();
     const t = setTimeout(sigdir, 450);   // rasmlar yuklangach qayta o'lchanadi
@@ -1931,6 +1937,14 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
                         <KidStage compact tur={darsTil} bayroq={flagSrc(TIL_BAYROQ[darsTil] || "")} mood={speaking && (kabuKim || "iz") === "til" ? "talk" : speaking ? "" : kidMood || "think"} celebrate={celebrate} speaking={speaking && (kabuKim || "iz") === "til"} /></div>
         </> : <div className="dx-kabu-robot"><KidStage compact tur={String(uiLocale || "uz").slice(0, 2)} mood={kidMood || (speaking ? "talk" : "think")} celebrate={celebrate} aylan={celebrate} speaking={speaking} /></div>}</div>}
       <div className="dx-frame" style={sinfXona ? foiz(kabuMuhit ? kabuJoy.doska : joy.doska) : undefined}>
+        {korish && <div className="dx-korish-bar" role="status">
+          <span>{__kbUi("Tushunmagan joylaringni ko‘ryapsanmi? Tayyor bo‘lsang, darsni davom ettiramiz.")}</span>
+          <button type="button" className="dx-btn dx-primary" onClick={() => {
+            korishRef.current = false; setKorish(false);
+            const el = doskaRef.current;
+            if (el) { delete el.dataset.qolda; el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }
+            if (mode === "lesson") setPlaying(true);   // to'xtab qolgan bo'lsa — qolgan joyidan yozib davom etadi
+          }}>▶ {__kbUi("Darsni davom ettir")}</button></div>}
         <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
         {sanoq?.sanash && sanoq.stepIdx === idx && <div className="dx-sanash">
           <span className="dx-sanash-son">{sanoq.tanlangan.length} / ?</span>
