@@ -25,6 +25,7 @@ function FanTanlov({ sinf, qiymat, onChange, sinfsiz = false }) {
       : <div className="xb-fan-royxat">{boshqa.map((k) => <button key={k} type="button" role="radio" aria-checked={qiymat === k} className={`xb-fan ${qiymat === k ? "is-on" : ""}`} onClick={() => onChange(k)}>{fanMatn(k)}</button>)}</div>}
   </div>;
 }
+const kattaHavola = (kod) => `${window.location.origin}/?katta=${encodeURIComponent(kod)}`;
 const havola = (kod) => `${window.location.origin}/?xb_sinf=${encodeURIComponent(kod)}`;
 const nusxala = async (s) => { try { await navigator.clipboard.writeText(s); return true; } catch { return false; } };
 
@@ -66,6 +67,7 @@ export function OqituvchiSinflar({ apiBase, token, tanlangan, onTanla }) {
         : tf("{a}: «{n}» guruhi ochiladi —", { a: T((AUDITORIYA[yangi.auditoriya] || AUDITORIYA.maktab)[1]) + (yangi.auditoriya === "talaba" ? `, ${T(yangi.kurs)}` : ""), n: yangi.nom.trim() || "…" })} <b>{fanMatn(yangi.toplam)}</b></p>
       <button type="button" className="xb-btn xb-btn-asosiy" disabled={!yangi.nom.trim() || !yangi.toplam} onClick={yarat}>✅ {T("Ochish")}</button>
     </div>}
+    <KattaSinflar apiBase={apiBase} token={token} royxat={d.katta || []} onYangi={yukla} onXabar={setXabar} onXato={setXato} />
     {!d.meniki.length && !ochiq && <p className="xb-muted">{T("Hali sinf ochmagansiz. «Yangi sinf ochish»ni bosing — o‘quvchilaringiz kod yoki havola bilan qo‘shiladi va natijalarini shu yerda ko‘rasiz.")}</p>}
     <div className="xb-sinf-royxat">{d.meniki.map((s) => <div key={s.id} className={`xb-sinf-karta ${tanlangan === s.id ? "is-on" : ""}`}>
       <button type="button" className="xb-sinf-tanla" onClick={() => onTanla?.(tanlangan === s.id ? 0 : s.id, s)}>
@@ -78,6 +80,24 @@ export function OqituvchiSinflar({ apiBase, token, tanlangan, onTanla }) {
       </div>
     </div>)}</div>
     {boshqar && <SinfBoshqaruv b={boshqar} onOzgar={ozgar} onYop={() => setBoshqar(null)} />}
+  </div>;
+}
+
+function KattaSinflar({ apiBase, token, royxat, onYangi, onXabar, onXato }) {
+  const [nom, setNom] = useState(""); const [ochiq, setOchiq] = useState(false); const [band, setBand] = useState(false);
+  const yarat = () => { setBand(true);
+    xbFetch(apiBase, "/api/xalqaro/katta_sinf", token, { method: "POST", body: { nom } })
+      .then(async (r) => { setNom(""); setOchiq(false); const h = kattaHavola(r.katta.kod); onXabar(`🌐 «${r.katta.nom}» ochildi. ${(await nusxala(h)) ? "Havola nusxalandi: " : "Havola: "}${h}`); onYangi(); })
+      .catch((e) => onXato(e.message)).finally(() => setBand(false)); };
+  return <div className="xb-katta-blok">
+    <div className="xb-sinf-bosh"><h5>🌐 {T("Katta sinf")}</h5>
+      <button type="button" className="xb-btn" onClick={() => setOchiq((x) => !x)}>➕ {T("Katta sinf ochish")}</button></div>
+    <p className="xb-muted xb-kichik">{T("Bitta havola — hamma dastur (TIMSS 4-, 8-sinf, PISA). O‘quvchi ism va tug‘ilgan sanasini yozadi, yoshiga mos yo‘nalishlar o‘zi tanlanadi. Pastdagi sinflardan birini bosib, shu yo‘nalish guruhlarini boshqarasiz.")}</p>
+    {ochiq && <div className="xb-sinf-forma"><label>{T("Nomi")}: <input value={nom} maxLength={60} placeholder={T("masalan: Samarqand 2026")} onChange={(e) => setNom(e.target.value)} /></label>
+      <button type="button" className="xb-btn xb-btn-asosiy" disabled={band || !nom.trim()} onClick={yarat}>✅ {T("Ochish")}</button></div>}
+    {royxat.map((k) => <div key={k.kod} className="xb-sinf-karta"><div><b>{k.nom}</b><small>👥 {k.oquvchilar} {T("o‘quvchi")}</small></div>
+      <div className="xb-sinf-kod">{k.kod}</div>
+      <button type="button" className="xb-btn" onClick={async () => onXabar((await nusxala(kattaHavola(k.kod))) ? T("Havola nusxalandi — o‘quvchilarga yuboring.") : kattaHavola(k.kod))}>🔗 {T("Havola")}</button></div>)}
   </div>;
 }
 
