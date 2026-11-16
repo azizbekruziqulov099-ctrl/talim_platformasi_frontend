@@ -5,6 +5,7 @@ import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import { ustozFor } from "../kid/ustozRules.js";
 import XbMavzu from "./XbMavzu.jsx";
 import XbMashq from "./XbMashq.jsx";
+import KirishNavbat from "./KirishNavbat.jsx";
 import XbImtihon, { DavlatDiagramma, XbNatija } from "./XbImtihon.jsx";
 import { XbUstoz } from "./XbDoska.jsx";
 import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
@@ -42,6 +43,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   const [kat, setKat] = useState(null);
   const [xato, setXato] = useState("");
   const [toplam, setToplam] = useState(() => { try { return localStorage.getItem(ESLA) || ""; } catch { return ""; } });
+  const [kirishNavbat, setKirishNavbat] = useState(() => { try { const n = JSON.parse(localStorage.getItem("kabutar:xb:navbat") || "null"); return Boolean(n?.royxat?.length); } catch { return false; } });
   const [ekran, setEkran] = useState(null);   // {tur: mavzu|dars|mashq|imtihon|natija|maktab, ...}
   const [yangila, setYangila] = useState(0);
   const sinf = sinfRaqami(user?.class);
@@ -113,6 +115,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       setEkran({ ...ekran, manba: { ...ekran.manba, toplam_i: i2 }, toplamInfo: { ...ekran.toplamInfo, i: i2, daraja: ekran.toplamInfo.i + 1 === ekran.toplamInfo.jami ? "imtihon" : "orta" },
         sarlavha: `${q.m.nom} · ${tf("{i}-to‘plam", { i: i2 })}`, kalit: Date.now() }); } : null}
     key={ekran.kalit || "m"} onYopish={() => (ekran.qaytish ? setEkran(ekran.qaytish) : orqaga())} /></div>;
+  if (kirishNavbat) return <div className="xb-root"><KirishNavbat apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} onTugadi={() => setKirishNavbat(false)} /></div>;
   if (ekran?.tur === "imtihon") return <div className="xb-root"><XbImtihon apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} tur={ekran.info.tur} toplam={toplam} info={ekran.info} onYopish={orqaga} /></div>;
   if (ekran?.tur === "natija") return <div className="xb-root"><XbNatija apiBase={apiBase} token={token} id={ekran.id} jins={jins} ustoz={ustoz} onYopish={orqaga} /></div>;
 

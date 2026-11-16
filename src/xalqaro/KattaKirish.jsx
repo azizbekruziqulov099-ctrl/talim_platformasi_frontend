@@ -6,6 +6,7 @@ import "./katta-kirish.css";
 
 export const KATTA_KALIT = "kabutar:xb:katta";
 export const KATTA_KIRDI = "kabutar:xb:katta_kirdi";
+export const NAVBAT = "kabutar:xb:navbat";   // ketma-ket kirish testlari: {royxat:[toplam…], natijalar:[{toplam,id}]}
 
 const SALOM = "Assalomu alaykum, xush kelibsiz! Men Kabuman. Bilimingizni sinab ko‘ring — avval bir-ikki savolga javob bering.";
 
@@ -48,7 +49,7 @@ export default function KattaKirish({ apiBase, kod, token = "", onAuthenticated,
         t = d.token;
       }
       await authRequest(apiBase, "/api/xalqaro/katta_qoshil", { body: { token: t, kod, ism: ism.trim(), tugilgan: sana } });
-      try { localStorage.removeItem(KATTA_KALIT); localStorage.setItem(KATTA_KIRDI, kod); } catch { /* */ }
+      try { localStorage.removeItem(KATTA_KALIT); localStorage.setItem(KATTA_KIRDI, kod); localStorage.setItem(NAVBAT, JSON.stringify({ royxat: yon.map((y) => y.toplam), natijalar: [] })); } catch { /* */ }
       onAuthenticated(t);
     } catch (e) { setXato(e.message || "Xatolik. Qayta urinib ko‘ring"); setBand(false); }
   };

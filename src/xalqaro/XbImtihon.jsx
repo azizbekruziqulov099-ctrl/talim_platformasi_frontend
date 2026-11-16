@@ -105,7 +105,7 @@ export function XbNatija({ apiBase, token, id, jins, ustoz, onYopish }) {
  * Haqiqiy imtihon rejimi: qoidalar → server vaqti bilan taymer → savollar (navigatsiya, belgilash) → topshirish.
  * Yillik imtihon 2 qismli (matematika, tanaffus, tabiiy fanlar). Vaqt tugasa avtomatik topshiriladi.
  */
-export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardor", tur, toplam, info, onYopish }) {
+export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardor", tur, toplam, info, onYopish, onNatija }) {
   const ovoz = useUstozOvoz(apiBase, jins, typeof ustoz === "string" ? ustoz : "");
   const [bosqich, setBosqich] = useState("qoida");   // qoida | ish | tanaffus | natija
   const [ses, setSes] = useState(null);
@@ -128,7 +128,7 @@ export default function XbImtihon({ apiBase, token, jins = "qiz", ustoz = "sardo
     try {
       const r = await xbFetch(apiBase, "/api/xalqaro/imtihon/topshir", token, { method: "POST", body: { sessiya: ses.sessiya, javoblar, chiqishlar: chiqish.current, qism: ses.qism } });
       chiqish.current = 0;
-      if (r.tayyor) { try { localStorage.removeItem(`xb:imt:${ses.sessiya}`); } catch { /* */ } setNatijaId(r.id); setBosqich("natija"); }
+      if (r.tayyor) { try { localStorage.removeItem(`xb:imt:${ses.sessiya}`); } catch { /* */ } setNatijaId(r.id); setBosqich("natija"); onNatija?.(r.id); }
       else if (r.savollar) { clientBosh.current = Date.now(); setSes(r); setI(0); setBosqich("tanaffus"); yuborildi.current = false; }
     } catch (e) { setXato(e.message); yuborildi.current = false; }
     finally { setYuklanmoqda(false); }

@@ -11,3 +11,8 @@
 .kk-kichik{margin:0;font-size:13px;color:#667}
 .kk-xato{margin:0;color:#b3261e;font-weight:600}
 @media (prefers-reduced-motion:reduce){.kk-kabu{animation:none;left:16px;top:16px}}
+.kk-qadam{margin:0 0 8px;padding:8px 12px;background:#eaf3ff;border-radius:10px;font-weight:700;font-size:14px;color:#1d4f91}
+.kk-xulosa{display:flex;flex-direction:column;gap:12px}
+.kk-natija-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.kk-natija-list li{display:flex;flex-direction:column;padding:10px 12px;border-radius:12px;background:#f3f8ff}
+.kk-kabu-katta{font-size:40px}
