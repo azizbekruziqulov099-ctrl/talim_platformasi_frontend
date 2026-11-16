@@ -16,3 +16,18 @@
 .kk-natija-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .kk-natija-list li{display:flex;flex-direction:column;padding:10px 12px;border-radius:12px;background:#f3f8ff}
 .kk-kabu-katta{font-size:40px}
+.kk-tur{position:fixed;inset:0;z-index:2147483000;pointer-events:none}
+.kk-tur-chiziq{position:absolute;inset:0;pointer-events:none}
+.kk-tur-chiziq line{stroke:#2f7de1;stroke-width:2.5;stroke-dasharray:6 5;stroke-linecap:round;transition:all .6s ease}
+.kk-tur-chiziq circle{fill:none;stroke:#2f7de1;stroke-width:3}
+.kk-tur-kabu{position:absolute;left:0;top:0;width:min(300px,calc(100vw - 16px));transition:transform .9s cubic-bezier(.4,.1,.2,1);pointer-events:auto}
+.kk-tur-qush{display:block;font-size:30px;animation:kk-qanot .5s ease-in-out infinite alternate}
+@keyframes kk-qanot{from{transform:rotate(-8deg) translateY(0)}to{transform:rotate(8deg) translateY(-4px)}}
+.kk-tur-pufak{background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 8px 28px rgba(20,50,100,.25);border:2px solid #cfe0f3}
+.kk-tur-pufak p{margin:0 0 8px;font-size:14px;line-height:1.45;color:#1d2b3a}
+.kk-tur-tugmalar{display:flex;gap:8px;align-items:center}
+.kk-tur-tugmalar small{margin-right:auto;color:#789}
+.kk-tur-tugmalar button{border:0;background:#eef3f9;border-radius:9px;padding:7px 10px;font-weight:600;cursor:pointer}
+.kk-tur-tugmalar .kk-tur-asosiy{background:#2f7de1;color:#fff}
+.kk-tur-yigilgan{position:fixed;right:14px;bottom:14px;z-index:2147482000;width:46px;height:46px;border-radius:50%;border:2px solid #cfe0f3;background:#fff;font-size:24px;box-shadow:0 4px 14px rgba(20,50,100,.2);cursor:pointer}
+@media (prefers-reduced-motion:reduce){.kk-tur-kabu{transition:none}.kk-tur-qush{animation:none}}
