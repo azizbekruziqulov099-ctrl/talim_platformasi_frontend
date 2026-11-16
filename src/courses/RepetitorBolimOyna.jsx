@@ -26,29 +26,73 @@ function Hayotdan({ steps }) {
     </article>; })}</>;
 }
 
-function Mashq({ steps }) {
-  const list = useMemo(() => { const b = qadamBolimlari(steps); return steps.filter((s, i) => b[i] === "mashq" && s.amaliy_turi !== "misol"); }, [steps]);
-  const [javob, setJavob] = useState({}); const [natija, setNatija] = useState({}); const [yech, setYech] = useState({});
-  if (!list.length) return <p>Bu mavzuda mashq hali yo‘q.</p>;
-  const togri = Object.values(natija).filter(Boolean).length;
+// MASHQ: o'quvchi o'zi, daftarda ishlaydi. Xato javob → 1-yordam → 2-yordam → ustoz yechib ko'rsatadi (yechim ko'rilgan mashq «o'zi yechgan» hisoblanmaydi).
+// O'zi yechganlar 70% dan kam bo'lsa — zapas (yangi) mashqlar chiqadi; ularni ham o'tmaguncha keyingi dars ochilmaydi.
+const API = (b) => String(b || "").replace(/\/+$/, "");
+function MashqToplam({ list, zapas = false, apiBase, token, topicCode, onNatija }) {
+  const [javob, setJavob] = useState({}); const [xato, setXato] = useState({}); const [holat, setHolat] = useState({}); const [yech, setYech] = useState({});
+  const [yuborildi, setYuborildi] = useState(null);
+  const tugadi = list.length > 0 && list.every((_, i) => holat[i]);
+  const oziTogri = Object.values(holat).filter((h) => h === "ozi").length;
+  const yechimKordi = Object.values(holat).filter((h) => h === "yechim").length;
+  const foiz = list.length ? Math.round((100 * oziTogri) / list.length) : 0;
+  useEffect(() => {
+    if (!tugadi || yuborildi) return;
+    const otdi = foiz >= 70; setYuborildi({ otdi });
+    fetch(`${API(apiBase)}/api/kurslar/mashq_natija`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, topic_code: topicCode, togri: oziTogri, jami: list.length, yechim_kordi: yechimKordi, zapas }) }).catch(() => {});
+    onNatija?.(otdi);
+  }, [tugadi]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tekshir = (i, s) => {
+    if (holat[i]) return;
+    if (checkAnswer(javob[i], s.javob)) { setHolat({ ...holat, [i]: yech[i] ? "yechim" : "ozi" }); return; }
+    const n = (xato[i] || 0) + 1; setXato({ ...xato, [i]: n });
+    if (n >= 3) { setYech({ ...yech, [i]: true }); setHolat({ ...holat, [i]: "yechim" }); }   // 3-xato: ustoz yechib ko'rsatadi
+  };
   return <>
-    <p style={{ fontWeight: 700 }}>To‘g‘ri: {togri} / {list.length}</p>
-    {list.map((s, i) => { const r = natija[i]; const y = yechimMatni(s.yechim) || s.javob_izohi || "";
-      return <article key={i} style={{ ...kartaUslub, borderColor: r === true ? "#2f8f6f" : r === false ? "#c0392b" : kartaUslub.border }}>
+    <p style={{ fontWeight: 700 }}>O‘zingiz yechgan: {oziTogri} / {list.length}{tugadi ? ` · ${foiz}%` : ""}</p>
+    {list.map((s, i) => { const h = holat[i]; const n = xato[i] || 0; const mas = Array.isArray(s.maslahat) ? s.maslahat : [];
+      const y = yechimMatni(s.yechim) || s.javob_izohi || ""; const yechOchiq = yech[i] || h === "yechim";
+      return <article key={i} style={{ ...kartaUslub, borderColor: h === "ozi" ? "#2f8f6f" : h === "yechim" ? "#d4a017" : kartaUslub.border }}>
         <b>{String(s.sarlavha || "").replace(/^topshiriq\s*·\s*/i, "") || `Mashq ${i + 1}`}</b>
         <CourseText text={s.doska || s.ovoz} />
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+        {!h && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           <input value={javob[i] || ""} placeholder="Javobingiz" inputMode="text" style={{ flex: "1 1 160px", padding: 9, borderRadius: 9, border: "1px solid #aab" }}
-            onChange={(e) => setJavob({ ...javob, [i]: e.target.value })}
-            onKeyDown={(e) => { if (e.key === "Enter" && s.javob) setNatija({ ...natija, [i]: checkAnswer(javob[i], s.javob) }); }} />
-          <button type="button" style={tugma(true)} onClick={() => setNatija({ ...natija, [i]: checkAnswer(javob[i], s.javob) })}>Tekshirish</button>
-          <button type="button" style={tugma(false)} onClick={() => setYech({ ...yech, [i]: !yech[i] })}>{yech[i] ? "Yopish" : "Yechim"}</button>
-        </div>
-        {r === true && <p style={{ color: "#2f8f6f", fontWeight: 700 }}>✓ To‘g‘ri!</p>}
-        {r === false && <p style={{ color: "#c0392b", fontWeight: 700 }}>✗ Qayta urinib ko‘ring.</p>}
-        {yech[i] && <div style={{ marginTop: 8, background: "rgba(47,143,111,.08)", borderRadius: 10, padding: 10 }}>
-          <b>Javob: </b><CourseText text={String(s.javob || "")} />{y && <CourseText text={y} />}</div>}
+            onChange={(e) => setJavob({ ...javob, [i]: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") tekshir(i, s); }} />
+          <button type="button" style={tugma(true)} disabled={!String(javob[i] || "").trim()} onClick={() => tekshir(i, s)}>Tekshirish</button>
+          {!yechOchiq && <button type="button" style={tugma(false)} onClick={() => setYech({ ...yech, [i]: true })}>Yechimni ko‘rsat</button>}
+        </div>}
+        {n >= 1 && !h && <p style={{ color: "#c0392b", fontWeight: 700, margin: "8px 0 2px" }}>✗ Hali emas. {n < 3 ? "Yordamni o‘qib, qayta urinib ko‘ring." : ""}</p>}
+        {!h && n >= 1 && <p style={{ margin: "4px 0" }}>💡 1-yordam: <CourseText text={mas[0] || "Shartni qayta o‘qing: nima berilgan, nima so‘ralgan? Qaysi amal birinchi?"} /></p>}
+        {!h && n >= 2 && <p style={{ margin: "4px 0" }}>💡 2-yordam: <CourseText text={mas[1] || "Har qatorga bitta amal yozing va natijani joyiga qo‘yib tekshiring."} /></p>}
+        {h === "ozi" && <p style={{ color: "#2f8f6f", fontWeight: 700 }}>✓ To‘g‘ri! O‘zingiz yechdingiz.</p>}
+        {h === "yechim" && <p style={{ color: "#8a6d00", fontWeight: 700 }}>Yechim ko‘rsatildi: bu mashq «o‘zi yechgan»ga qo‘shilmaydi. Quyidagi yechimni diqqat bilan o‘qing.</p>}
+        {yechOchiq && <div style={{ marginTop: 8, background: "rgba(47,143,111,.08)", borderRadius: 10, padding: 10 }}>
+          <b>Javob: </b><CourseText text={String(s.javob || "")} />{y && <CourseText text={y} />}
+          {!h && <button type="button" style={{ ...tugma(true), marginTop: 8 }} onClick={() => setHolat({ ...holat, [i]: "yechim" })}>Tushundim, keyingisi</button>}</div>}
       </article>; })}
+    {tugadi && <div style={{ ...kartaUslub, borderColor: foiz >= 70 ? "#2f8f6f" : "#c0392b" }}>
+      {foiz >= 70 ? <b style={{ color: "#2f8f6f" }}>✓ Mashq o‘tdi: {foiz}%. Endi Test bo‘limini ishlang, ikkalasi ham 70% dan o‘tsa keyingi dars ochiladi.</b>
+        : <b style={{ color: "#c0392b" }}>O‘zingiz yechgan {foiz}%: 70% kerak. {zapas ? "Darsni qayta ko‘rib chiqing va yana urinib ko‘ring." : "Yangi mashqlar chiqdi: ularni o‘zingiz ishlasangiz keyingi darslar ochiladi. Yechimga qarab o‘qisangiz, foydasi yo‘q."}</b>}
+    </div>}
+  </>;
+}
+
+function Mashq({ steps, apiBase, token, topicCode }) {
+  const hammasi = useMemo(() => { const b = qadamBolimlari(steps); return steps.filter((s, i) => b[i] === "mashq" && s.amaliy_turi !== "misol"); }, [steps]);
+  const asosiy = useMemo(() => hammasi.filter((s) => !/zapas/i.test(String(s.sarlavha || ""))), [hammasi]);
+  const zapas = useMemo(() => hammasi.filter((s) => /zapas/i.test(String(s.sarlavha || ""))), [hammasi]);
+  const [zapasKerak, setZapasKerak] = useState(false);
+  useEffect(() => {   // oldin asosiy mashq o'tmagan bo'lsa — zapas darhol chiqadi
+    if (!token || !topicCode) return;
+    fetch(`${API(apiBase)}/api/kurslar/mashq_holat?${new URLSearchParams({ token, topic_code: topicCode })}`).then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.zapas_kerak) setZapasKerak(true); }).catch(() => {});
+  }, [apiBase, token, topicCode]);
+  if (!hammasi.length) return <p>Bu mavzuda mashq hali yo‘q.</p>;
+  return <>
+    <MashqToplam key="asosiy" list={asosiy.length ? asosiy : hammasi} apiBase={apiBase} token={token} topicCode={topicCode} onNatija={(ok) => { if (!ok) setZapasKerak(true); }} />
+    {zapasKerak && zapas.length > 0 && <><h3 style={{ margin: "18px 0 6px" }}>🔁 Yangi mashqlar</h3>
+      <MashqToplam key="zapas" list={zapas} zapas apiBase={apiBase} token={token} topicCode={topicCode} /></>}
   </>;
 }
 
@@ -79,7 +123,7 @@ export default function RepetitorBolimOyna({ apiBase, token, dars, bolim, bolimN
     <header className="kk-kurs-bosh"><h2>{belgi} {bolimNomi}</h2><p>{dars.nomi}</p></header>
     {yuk && <p>Yuklanmoqda…</p>}{xato && <p role="alert" style={{ color: "#c0392b" }}>{xato}</p>}
     {lesson && bolim === "hayotdan" && <Hayotdan steps={steps} />}
-    {lesson && bolim === "mashq" && <Mashq steps={steps} />}
+    {lesson && bolim === "mashq" && <Mashq steps={steps} apiBase={apiBase} token={token} topicCode={dars.topic_code} />}
     {lesson && bolim === "tarix" && <Tarix steps={steps} />}
   </section>;
 }
