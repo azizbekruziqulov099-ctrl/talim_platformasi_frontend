@@ -4,6 +4,7 @@ import "./katta-kirish.css";
 import React, { useEffect, useState } from "react";
 import XbImtihon from "./XbImtihon.jsx";
 import { xbFetch } from "./xbOvoz.js";
+import { navbatHolati, navbatNatijaQosh } from "./kattaRules.js";
 
 const KALIT = "kabutar:xb:navbat";
 const NOM = { T11_G4_M: "Matematika (4-sinf)", T11_G4_S: "Tabiiy fan (4-sinf)", T11_G8_M: "Matematika (8-sinf)", T11_G8_S: "Tabiiy fan (8-sinf)",
@@ -36,17 +37,16 @@ function Xulosa({ apiBase, token, natijalar, onYop }) {
 export default function KirishNavbat({ apiBase, token, jins, ustoz, onTugadi }) {
   const [n, setN] = useState(oqi);
   const [tugadi, setTugadi] = useState(false);   // joriy test topshirildi (natija ko'rsatilmoqda)
-  const jami = n.royxat.length;
-  const joriy = n.royxat[n.natijalar.length];
+  const { joriy, jami, raqam } = navbatHolati(n);
 
   const yop = () => { try { localStorage.removeItem(KALIT); } catch { /* */ } onTugadi(); };
 
   if (!joriy) return <Xulosa apiBase={apiBase} token={token} natijalar={n.natijalar} onYop={yop} />;
   return <>
-    <p className="kk-qadam" role="status">Test {n.natijalar.length + 1}/{jami} · {NOM[joriy] || joriy}</p>
+    <p className="kk-qadam" role="status">Test {raqam}/{jami} · {NOM[joriy] || joriy}</p>
     <XbImtihon key={joriy} apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} tur="kirish" toplam={joriy}
       info={{ tur: "kirish", nom: `Kirish testi — ${NOM[joriy] || joriy}`, savollar: 15, daqiqa: DAQIQA[joriy] || 30 }}
-      onNatija={(id) => { const yangi = { ...n, natijalar: [...n.natijalar, { toplam: joriy, id }] }; yoz(yangi); setTugadi(true); setN((eski) => ({ ...eski, _kutish: yangi })); }}
+      onNatija={(id) => { const yangi = navbatNatijaQosh(n, joriy, id); yoz(yangi); setTugadi(true); setN((eski) => ({ ...eski, _kutish: yangi })); }}
       onYopish={() => { if (tugadi) { setTugadi(false); setN((eski) => eski._kutish || oqi()); } else onTugadi(); }} />
   </>;
 }

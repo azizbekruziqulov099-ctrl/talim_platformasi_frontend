@@ -2,6 +2,7 @@
 // yoshiga mos yo'nalishlar o'zi tanlanadi, qurilmada «mehmon» hisob ochiladi (Telegram/Gmail keyin ulanadi).
 import React, { useEffect, useState } from "react";
 import { authRequest } from "../auth/authClient.js";
+import { ismOk, sanaOk } from "./kattaRules.js";
 import "./katta-kirish.css";
 
 export const KATTA_KALIT = "kabutar:xb:katta";
@@ -10,7 +11,6 @@ export const NAVBAT = "kabutar:xb:navbat";   // ketma-ket kirish testlari: {royx
 
 const SALOM = "Assalomu alaykum, xush kelibsiz! Men Kabuman. Bilimingizni sinab ko‘ring — avval bir-ikki savolga javob bering.";
 
-function sanaOk(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && s < new Date().toISOString().slice(0, 10) && s > "1950-01-01"; }
 
 export default function KattaKirish({ apiBase, kod, token = "", onAuthenticated, onBekor }) {
   const [info, setInfo] = useState(null);
@@ -67,8 +67,8 @@ export default function KattaKirish({ apiBase, kod, token = "", onAuthenticated,
       {info && qadam === 1 && <>
         <p className="kk-nutq">Ismingiz va familiyangiz nima?</p>
         <input className="kk-input" value={ism} maxLength={80} autoFocus placeholder="Masalan: Dilnoza Karimova" onChange={(e) => setIsm(e.target.value)} />
-        <button type="button" className="kk-tugma" disabled={ism.trim().split(" ").filter(Boolean).length < 2} onClick={() => { setXato(""); setQadam(2); }}>Davom etish</button>
-        {ism.trim() && ism.trim().split(" ").filter(Boolean).length < 2 && <small>Ism va familiyani birga yozing</small>}
+        <button type="button" className="kk-tugma" disabled={!ismOk(ism)} onClick={() => { setXato(""); setQadam(2); }}>Davom etish</button>
+        {ism.trim() && !ismOk(ism) && <small>Ism va familiyani birga yozing</small>}
       </>}
       {info && qadam === 2 && <>
         <p className="kk-nutq">Rahmat, {ism.trim().split(" ")[0]}! Tug‘ilgan sanangiz qachon?</p>

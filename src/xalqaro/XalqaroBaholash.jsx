@@ -7,6 +7,7 @@ import XbMavzu from "./XbMavzu.jsx";
 import XbMashq from "./XbMashq.jsx";
 import KirishNavbat from "./KirishNavbat.jsx";
 import KabuTur from "./KabuTur.jsx";
+import { menyuFiltri } from "./kattaRules.js";
 import XbImtihon, { DavlatDiagramma, XbNatija } from "./XbImtihon.jsx";
 import { XbUstoz } from "./XbDoska.jsx";
 import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
@@ -171,7 +172,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         ["reyting", "🏅", T("Reyting"), T("Sinf, maktab va platformada o‘rningiz")],
         ["dunyo", "🌍", T("Dunyo natijalari"), T("Davlatlar natijasi bilan solishtiring")],
         ["qollanma", "📖", T("Qo‘llanma"), T("Bo‘lim qanday ishlaydi")],
-      ].filter(([k]) => !kattaRejim || !["dunyo", "qollanma", "metod"].includes(k)).map(([k, belgi, nom, izoh]) => <button key={k} type="button" className={`xb-menyu-karta is-${k}`} onClick={() => { ovoz.hush(); setTab(k); }}>
+      ].filter(([k]) => menyuFiltri(kattaRejim, k)).map(([k, belgi, nom, izoh]) => <button key={k} type="button" className={`xb-menyu-karta is-${k}`} onClick={() => { ovoz.hush(); setTab(k); }}>
         <span className="xb-menyu-belgi" aria-hidden="true">{belgi}</span><b>{nom}</b><small>{izoh}</small>
         {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
