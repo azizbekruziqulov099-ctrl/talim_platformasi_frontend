@@ -95,9 +95,22 @@ function KattaSinflar({ apiBase, token, royxat, onYangi, onXabar, onXato }) {
     <p className="xb-muted xb-kichik">{T("Bitta havola — hamma dastur (TIMSS 4-, 8-sinf, PISA). O‘quvchi ism va tug‘ilgan sanasini yozadi, yoshiga mos yo‘nalishlar o‘zi tanlanadi. Pastdagi sinflardan birini bosib, shu yo‘nalish guruhlarini boshqarasiz.")}</p>
     {ochiq && <div className="xb-sinf-forma"><label>{T("Nomi")}: <input value={nom} maxLength={60} placeholder={T("masalan: Samarqand 2026")} onChange={(e) => setNom(e.target.value)} /></label>
       <button type="button" className="xb-btn xb-btn-asosiy" disabled={band || !nom.trim()} onClick={yarat}>✅ {T("Ochish")}</button></div>}
-    {royxat.map((k) => <div key={k.kod} className="xb-sinf-karta"><div><b>{k.nom}</b><small>👥 {k.oquvchilar} {T("o‘quvchi")}</small></div>
-      <div className="xb-sinf-kod">{k.kod}</div>
-      <button type="button" className="xb-btn" onClick={async () => onXabar((await nusxala(kattaHavola(k.kod))) ? T("Havola nusxalandi — o‘quvchilarga yuboring.") : kattaHavola(k.kod))}>🔗 {T("Havola")}</button></div>)}
+    {royxat.map((k) => <KattaKarta key={k.kod} k={k} apiBase={apiBase} token={token} onXabar={onXabar} onXato={onXato} />)}
+  </div>;
+}
+
+function KattaKarta({ k, apiBase, token, onXabar, onXato }) {
+  const [h, setH] = useState(null); const [band, setBand] = useState(false);
+  useEffect(() => { xbFetch(apiBase, `/api/xalqaro/katta/${k.kod}/holat`, token).then(setH).catch(() => {}); }, [k.kod, k.oquvchilar]); // eslint-disable-line react-hooks/exhaustive-deps
+  const guruhla = () => { if (!window.confirm(T("Hamma yo‘nalishlar reyting bo‘yicha guruhlarga ajratilsinmi? Natijasi hali yo‘q o‘quvchilar kutish ro‘yxatida qoladi."))) return; setBand(true);
+    xbFetch(apiBase, `/api/xalqaro/katta/${k.kod}/guruhla`, token, { method: "POST" }).then((r) => { setH(r); onXabar(T("Guruhlar tuzildi.")); }).catch((e) => onXato(e.message)).finally(() => setBand(false)); };
+  return <div className="xb-sinf-karta"><div><b>{k.nom}</b><small>👥 {k.oquvchilar} {T("o‘quvchi")}</small></div>
+    <div className="xb-sinf-kod">{k.kod}</div>
+    {h && <ul className="xb-katta-xulosa">{h.toplamlar.map((t) => <li key={t.toplam}><b>{t.nomi}</b>: {t.jami} {T("o‘quvchi")}
+      {t.guruhlar.length ? ` · ${t.guruhlar.length} ${T("guruh")} (${t.guruhlar.map((g) => g.soni).join("+")})` : ""}{t.kutayotgan ? ` · ⏳ ${t.kutayotgan} ${T("kutmoqda")}` : ""}</li>)}</ul>}
+    <div className="xb-sinf-tugmalar">
+      <button type="button" className="xb-btn" onClick={async () => onXabar((await nusxala(kattaHavola(k.kod))) ? T("Havola nusxalandi — o‘quvchilarga yuboring.") : kattaHavola(k.kod))}>🔗 {T("Havola")}</button>
+      <button type="button" className="xb-btn xb-btn-asosiy" disabled={band} onClick={guruhla}>👥 {T("Guruhlarga ajratish")}</button></div>
   </div>;
 }
 
