@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import CourseText from "./CourseText.jsx";
-import { checkAnswer, qadamBolimi } from "../lesson/darsXonasiRules.js";
+import { checkAnswer, qadamBolimlari, hayotMasalalari } from "../lesson/darsXonasiRules.js";
 import { qurilmaKaliti } from "../auth/qurilma.js";
 
 // Repetitor darsining Hayotdan · Mashq · Tarix bo'limlari: har biri o'z oynasida, o'z mantig'i bilan
@@ -9,27 +9,6 @@ const kartaUslub = { background: "var(--card, #fff)", border: "1px solid rgba(0,
 const tugma = (asosiy) => ({ border: 0, borderRadius: 10, padding: "9px 16px", fontWeight: 700, cursor: "pointer", background: asosiy ? "#1f4e79" : "#e6ebf2", color: asosiy ? "#fff" : "#1f2d3d" });
 
 export const yechimMatni = (y) => (Array.isArray(y) ? y.map((x) => (typeof x === "string" ? x : x?.doska || x?.ovoz || "")).filter(Boolean).join("\n") : String(y || ""));
-// «[1]», «[2]» belgilari bo'yicha ovozni qadamlarga bo'ladi (belgi bo'lmasa — butun matn bitta qadam)
-export const ovozQadamlari = (ovoz) => {
-  const p = String(ovoz || "").split(/\s*\[\d+\]\s*/).map((x) => x.trim()).filter(Boolean);
-  return p.length ? p : [String(ovoz || "").trim()].filter(Boolean);
-};
-export const hayotMasalalari = (steps) => {
-  const map = new Map();
-  for (const s of steps.filter((x) => qadamBolimi(x) === "hayotdan")) {
-    const nom = String(s.sarlavha || "").replace(/^hayotdan:\s*/i, "").trim();
-    const m = map.get(nom) || { nom, shart: "", qadamlar: [] };
-    if (s.turi === "kirish") m.shart = s.doska || s.ovoz || "";
-    else {
-      const say = ovozQadamlari(s.ovoz); const lines = String(s.doska || "").split("\n").filter(Boolean);
-      const n = Math.max(say.length, lines.length);
-      m.qadamlar = Array.from({ length: n }, (_, i) => ({ say: say[i] || "", line: lines[i] || "" }));
-    }
-    map.set(nom, m);
-  }
-  return [...map.values()].filter((m) => m.shart || m.qadamlar.length);
-};
-
 function Hayotdan({ steps }) {
   const masalalar = useMemo(() => hayotMasalalari(steps), [steps]);
   const [ochiq, setOchiq] = useState({});
@@ -37,6 +16,7 @@ function Hayotdan({ steps }) {
   return <>{masalalar.map((m, i) => { const k = ochiq[i] || 0; const korinadi = m.qadamlar.slice(0, k);
     return <article key={i} style={kartaUslub}>
       <h3 style={{ margin: "0 0 6px" }}>{i + 1}. {m.nom}</h3>
+      {m.rasm && <img src={m.rasm} alt="" loading="lazy" style={{ width: "100%", borderRadius: 12, margin: "4px 0 10px" }} />}
       {m.shart && <CourseText text={m.shart} />}
       {korinadi.map((q, j) => <div key={j} style={{ borderLeft: "3px solid #2f8f6f", paddingLeft: 10, margin: "10px 0" }}>
         {q.say && <CourseText text={q.say} />}{q.line && <CourseText text={q.line} />}</div>)}
@@ -47,7 +27,7 @@ function Hayotdan({ steps }) {
 }
 
 function Mashq({ steps }) {
-  const list = useMemo(() => steps.filter((s) => qadamBolimi(s) === "mashq" && s.amaliy_turi !== "misol"), [steps]);
+  const list = useMemo(() => { const b = qadamBolimlari(steps); return steps.filter((s, i) => b[i] === "mashq" && s.amaliy_turi !== "misol"); }, [steps]);
   const [javob, setJavob] = useState({}); const [natija, setNatija] = useState({}); const [yech, setYech] = useState({});
   if (!list.length) return <p>Bu mavzuda mashq hali yo‘q.</p>;
   const togri = Object.values(natija).filter(Boolean).length;
@@ -73,11 +53,13 @@ function Mashq({ steps }) {
 }
 
 function Tarix({ steps }) {
-  const list = steps.filter((s) => qadamBolimi(s) === "tarix");
+  const b = qadamBolimlari(steps); const list = steps.filter((s, i) => b[i] === "tarix");
   if (!list.length) return <p>Bu mavzuning tarixi hali qo‘shilmagan.</p>;
   return <>{list.map((s, i) => <article key={i} style={kartaUslub}>
     <h3 style={{ margin: "0 0 6px" }}>🏛 {String(s.sarlavha || "").replace(/^tarixdan:\s*/i, "")}</h3>
-    {s.doska && <CourseText text={s.doska} />}{s.ovoz && s.ovoz !== s.doska && <CourseText text={s.ovoz} />}</article>)}</>;
+    {s.rasm && <img src={s.rasm} alt="Rassom tasavvuri" loading="lazy" style={{ width: "100%", borderRadius: 12, margin: "4px 0 2px" }} />}
+    {s.rasm && <small style={{ opacity: .7 }}>Rassom tasavvuri</small>}
+    {s.doska && <CourseText text={s.doska} />}{s.ovoz && s.ovoz !== s.doska && <CourseText text={String(s.ovoz).replace(/^esda tut:\s*/i, "")} />}</article>)}</>;
 }
 
 export default function RepetitorBolimOyna({ apiBase, token, dars, bolim, bolimNomi = "", belgi = "", onOrtga }) {

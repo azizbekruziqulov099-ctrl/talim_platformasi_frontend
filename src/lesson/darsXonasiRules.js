@@ -198,9 +198,49 @@ export const qadamBolimi = (s) => {
   if (/^(topshiriq\s*·\s*)?mashq\b/i.test(t) || turi === "topshiriq" || turi === "amaliy") return "mashq";
   return "dars";
 };
+// Bir tushuncha bir necha qadamga bo'linadi (faqat birinchisida sarlavha bor) — qolganlari shu sahna bo'limini oladi
+export const qadamBolimlari = (steps) => {
+  const list = Array.isArray(steps) ? steps : [];
+  const sahna = new Map();
+  return list.map((s) => {
+    const own = String(s?.sarlavha || "").trim();
+    const key = s?.sahna;
+    if (own || !key || !sahna.has(key)) { const b = qadamBolimi(s); if (key && !sahna.has(key)) sahna.set(key, b); return b; }
+    return sahna.get(key);
+  });
+};
 export const bolimQadamlari = (steps, bolim) => {
   const list = Array.isArray(steps) ? steps : [];
   if (!bolim) return list;
-  const f = list.filter((s) => qadamBolimi(s) === bolim);
+  const b = qadamBolimlari(list);
+  const f = list.filter((_, i) => b[i] === bolim);
   return f.length ? f : list;
 };
+
+// «[1]», «[2]» belgilari bo'yicha ovozni qadamlarga bo'ladi (belgi bo'lmasa — butun matn bitta qadam)
+export const ovozQadamlari = (ovoz) => {
+  const p = String(ovoz || "").split(/\s*\[\d+\]\s*/).map((x) => x.trim()).filter(Boolean);
+  return p.length ? p : [String(ovoz || "").trim()].filter(Boolean);
+};
+// Hayotdan masalalari: bir masala = bir sahna (tushuncha bir necha qadamga bo'lingan bo'lishi mumkin); kirish qadami — masala sharti
+export const hayotMasalalari = (steps) => {
+  const bol = qadamBolimlari(steps);
+  const map = new Map();
+  steps.forEach((s, i) => {
+    if (bol[i] !== "hayotdan") return;
+    const sarl = String(s.sarlavha || "").replace(/^hayotdan:\s*/i, "").trim();
+    const nom = sarl || [...map.keys()].find((k) => map.get(k).sahnalar.has(s.sahna)) || "";
+    const m = map.get(nom) || { nom, shart: "", rasm: "", qadamlar: [], sahnalar: new Set() };
+    m.sahnalar.add(s.sahna);
+    if (s.turi === "kirish") m.shart = s.doska || s.ovoz || "";
+    else {
+      if (s.rasm && !m.rasm) m.rasm = s.rasm;
+      const say = ovozQadamlari(s.ovoz); const lines = String(s.doska || "").split("\n").filter(Boolean);
+      const n = Math.max(say.length, lines.length, 1);
+      for (let k = 0; k < n; k += 1) if (say[k] || lines[k]) m.qadamlar.push({ say: say[k] || "", line: lines[k] || "" });
+    }
+    map.set(nom, m);
+  });
+  return [...map.values()].filter((m) => m.shart || m.qadamlar.length);
+};
+
