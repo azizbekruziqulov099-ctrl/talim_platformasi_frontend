@@ -107,7 +107,7 @@ function sonliTanlov(item, kutilgan) {
   return { togri: n, hammasi };
 }
 
-export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false, jonli = false, soz = -1, sozSoni = 0, onNatija = null, yozmasdan = false }) {
+export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, autoStart = false, onSolved, kid = false, jonli = false, soz = -1, sozSoni = 0, onNatija = null, yozmasdan = false, yordamTez = false }) {
   useKbInterfaceLocale();
   const steps = item?.yechim || [];
   const options = item?.variantlar || [];
@@ -117,6 +117,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState(null);
   const [maslahatN, setMaslahatN] = useState(0);   // REV269: nechta maslahat ochilgan
+  const [xatoN, setXatoN] = useState(0);   // yordam zinapoyasi: nechta xato javob berildi
   const [klav, setKlav] = useState(false);   // REV312: matematik klaviatura ochiqmi
   const [daftar, setDaftar] = useState(false);   // REV385: qoralama daftar ochiqmi
   const kutilgan = item?.javob || javobYechimdan(steps);
@@ -140,7 +141,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
   const stop = useCallback(() => { runRef.current += 1; setRunning(false); hush?.(); }, [hush]);
   // REV93: yangi topshiriq ochilganda o'qituvchi ovozini O'CHIRMAYMIZ (dars xonasi shu payt shartni o'qiyapti) —
   // faqat o'zimizning yechim ko'rsatishni to'xtatamiz. Oldin bu ovozni kesib, dars shu qadamda to'xtab qolardi.
-  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); setMaslahatN(0); setKlav(false); setBelgilangan([]); setSonliTanlandi(null); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { runRef.current += 1; setRunning(false); setShown(0); setPicked(null); setAnswer(""); setFeedback(null); setMaslahatN(0); setXatoN(0); setKlav(false); setBelgilangan([]); setSonliTanlandi(null); }, [item?.kod, item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { runRef.current += 1; }, []);
 
   const reveal = useCallback((from = 0) => {
@@ -166,6 +167,23 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
     return () => clearTimeout(timer);
   }, [autoStart, item?.kod]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // YORDAM ZINAPOYASI: xato javobda o'quvchini tupikda qoldirmaymiz.
+  // 1-xato: 1-yordam (nima qilish kerak). 2-xato: 2-yordam (aniqroq). 3-xato: ustoz birga yechib ko'rsatadi.
+  // Yangi o'quvchida (yordamTez) yechim 2-xatodan keyin ochiladi.
+  const yordamBer = useCallback(() => {
+    const n = xatoN + 1; setXatoN(n);
+    const mas = item?.maslahat || [];
+    const limit = yordamTez ? 2 : 3;
+    if (n >= limit && steps.length) {
+      say(`${__kbUi("Xato qilish o‘rganishning bir qismi. Keling, birga yechamiz, diqqat bilan qarang.")}`, () => reveal(0));
+      return;
+    }
+    const umumiy = [__kbUi("Shartni qayta o‘qing: nima berilgan, nima so‘ralgan? Qaysi amalni birinchi bajarish kerak?"), __kbUi("Har qatorga bitta amal yozing va natijani joyiga qo‘yib tekshiring.")];
+    const m = mas.length ? mas[Math.min(n - 1, mas.length - 1)] : umumiy[Math.min(n - 1, umumiy.length - 1)];
+    setMaslahatN(Math.max(maslahatN, Math.min(n, mas.length)));
+    setFeedback({ ok: false, text: `💡 ${n}-${__kbUi("yordam")}: ${stripSpeechTags(m)}` });
+    say(`${__kbUi("Hali emas, urinib ko‘ring.")} ${m}`);
+  }, [xatoN, item, steps.length, yordamTez, maslahatN, say, reveal]);
   const pick = (k) => {
     if (picked !== null) return;
     setPicked(k);
@@ -179,7 +197,7 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
     event?.preventDefault?.();
     if (!answer.trim()) return;
     if (checkAnswer(answer, kutilgan)) { setFeedback({ ok: true, text: __kbUi("✅ To‘g‘ri!") }); setKlav(false); say(__kbUi("Barakalla, to‘g‘ri!")); onNatija?.(true); }
-    else { setFeedback({ ok: false, text: __kbUi("Yana bir bor urinib ko‘ring yoki yechimni oching.") }); say(__kbUi("Deyarli! Yana bir bor o‘ylab ko‘ring.")); onNatija?.(false); }
+    else { onNatija?.(false); yordamBer(); }
   };
 
   if (!item) return null;
@@ -211,11 +229,11 @@ export default function AmaliyDoska({ item, say, hush, mediaUrl = (u) => u, auto
         {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}</div>
     </div>}
     {sonli && <div className="dx-opts dx-sonli">{sonli.hammasi.map((x) => {
-      const holat = sonliTanlandi === null ? "" : x === sonli.togri ? "is-ok" : x === sonliTanlandi ? "is-no" : "";
+      const holat = sonliTanlandi === null ? "" : x === sonliTanlandi ? (x === sonli.togri ? "is-ok" : "is-no") : (shown > 0 && x === sonli.togri ? "is-ok" : "");
       return <button key={x} type="button" className={holat} disabled={sonliTanlandi !== null && sonliTanlandi === sonli.togri}
         onClick={() => { setSonliTanlandi(x); const ok = x === sonli.togri;
-          setFeedback(ok ? { ok: true, text: __kbUi("✅ To‘g‘ri!") } : { ok: false, text: __kbUi("Yana bir o‘ylab ko‘r — yashili to‘g‘ri javob.") });
-          say(ok ? __kbUi("Barakalla, to‘g‘ri!") : __kbUi("Deyarli! To‘g‘ri javobga qara.")); onNatija?.(ok); if (ok) onSolved?.(); }}>{String(x).replace(".", ",")}</button>; })}
+          if (ok) { setFeedback({ ok: true, text: __kbUi("✅ To‘g‘ri!") }); say(__kbUi("Barakalla, to‘g‘ri!")); } else yordamBer();
+          onNatija?.(ok); if (ok) onSolved?.(); }}>{String(x).replace(".", ",")}</button>; })}
       {feedback && <span className={`dx-javob-natija ${feedback.ok ? "is-ok" : "is-no"}`}>{feedback.text}</span>}</div>}
     {/* REV312: javob — doskadagi quti (telefon klaviaturasi chiqmaydi), bosilsa pastda matematik klaviatura */}
     {!options.length && kutilgan && !kid && !kop && !sonli && <div className="dx-javob-maydon">
