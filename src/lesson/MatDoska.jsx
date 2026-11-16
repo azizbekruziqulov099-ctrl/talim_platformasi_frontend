@@ -4,7 +4,7 @@
 import BoardOyin from "./BoardOyin.jsx";   // REV429
 import React, { useMemo } from "react";
 import katex from "katex";
-import { orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, HARFLAR } from "./matDoska.js";   // REV425
+import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, HARFLAR } from "./matDoska.js";   // REV425
 import { BoardText } from "./AmaliyDoska.jsx";
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { stripSpeechTags } from "../speech/language.js";
@@ -146,6 +146,24 @@ function SonOqi({ arg, progress }) {
       <path d={`M${X(v)} 28 V40`} stroke={CHALK} strokeWidth="2" /><text x={X(v)} y="60" textAnchor="middle" fill={CHALK} fontSize="16">{v}</text></g>; })}
     {t.nuqtalar.map((n, i) => <g key={i} style={kor(progress, 0.75 + (i / Math.max(1, t.nuqtalar.length)) * 0.2)}>
       <circle cx={X(n.x)} cy="34" r="6" fill={SARIQ} /><text x={X(n.x)} y="18" textAnchor="middle" fill={SARIQ} fontSize="17" fontWeight="700">{n.yorliq}</text></g>)}
+  </svg>;
+}
+
+function Tarozi({ arg, progress }) {
+  const t = taroziTahlil(arg);
+  if (!t) return <JonliMatn text={arg} progress={progress} />;
+  // 0–0.3 tarozi chiziladi; keyin olinadigan har bir narsa ikkala pallada ham birdan o'chadi; tarozi har doim muvozanatda
+  const olib = t.olib, W = 420;
+  const holat = (x, tomon) => { const i = olib.indexOf(x); if (i < 0) return 1; const at = 0.4 + (i / Math.max(1, olib.length)) * 0.5; return progress >= at ? 0.12 : 1; };
+  const pal = (items, cx, tomon) => items.map((x, i) => <g key={`${tomon}${i}`} style={{ opacity: progress >= 0.2 ? holat(x, tomon) : 0, transition: "opacity .6s" }}>
+    <rect x={cx - 62 + i * 38} y="74" width="34" height="34" rx="8" fill={x === "□" ? SARIQ : "#7FB7E6"} /><text x={cx - 45 + i * 38} y="97" textAnchor="middle" fontSize="18" fontWeight="700" fill="#1C2926">{x}</text></g>);
+  return <svg className="mdx-svg" viewBox={`0 0 ${W} 160`} role="img" aria-label="tarozi">
+    <path pathLength="1" d="M60 40 H360" stroke={CHALK} strokeWidth="4" fill="none" style={chiz(progress, 0, 0.15)} />
+    <path pathLength="1" d="M210 40 V140 M170 140 H250" stroke={CHALK} strokeWidth="4" fill="none" style={chiz(progress, 0.05, 0.2)} />
+    <path pathLength="1" d="M60 40 V70 H160 M160 70 V40" stroke={CHALK} strokeWidth="2.5" fill="none" style={chiz(progress, 0.1, 0.25)} />
+    <path pathLength="1" d="M360 40 V70 H260 M260 70 V40" stroke={CHALK} strokeWidth="2.5" fill="none" style={chiz(progress, 0.1, 0.25)} />
+    {pal(t.chap, 110, "c")}{pal(t.ong, 310, "o")}
+    <text x="210" y="24" textAnchor="middle" fill={YASHIL} fontSize="20" fontWeight="700" style={kor(progress, 0.95)}>teng</text>
   </svg>;
 }
 
@@ -412,6 +430,7 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
     case "bolish": return <Bolish arg={b.arg} progress={p} />;
     case "qisqart": return <Qisqart arg={b.arg} progress={p} />;
     case "son_oqi": return <SonOqi arg={b.arg} progress={p} />;
+    case "tarozi": return <Tarozi arg={b.arg} progress={p} />;
     case "grafik": return <Grafik arg={b.arg} progress={p} />;
     case "chiz": return <Chizma arg={b.arg} progress={p} />;
     case "kasr_model": return <KasrModel arg={b.arg} progress={p} />;

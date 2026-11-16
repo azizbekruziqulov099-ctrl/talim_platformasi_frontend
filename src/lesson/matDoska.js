@@ -8,7 +8,7 @@ export const MATEM_RE = /matem|algebr|geometr|математ|алгебр|гео
 export const matRejim = (fan) => MATEM_RE.test(String(fan || ""));
 
 const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
-  "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
+  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
 const BUYRUQ_RE = new RegExp(`^\\s*(${BUYRUQLAR.join("|")})\\s*(?::|$)\\s*([\\s\\S]*)$`, "i");
 
 const MATN_BUYRUQ = new Set(["yoz", "davom", "qoida", "belgila"]);
@@ -337,4 +337,16 @@ export function vennTahlil(arg) {
 export function daraxtTahlil(arg) {
   const bosqich = String(arg || "").split("/").map((b) => b.split("|").map((x) => x.trim()).filter(Boolean));
   return bosqich[0]?.length >= 2 ? bosqich.slice(0, 2) : null;
+}
+
+/** «chap: □ 5 4 | ong: 5 12 | olib: 5 4» → {chap:[..], ong:[..], olib:[..]} (tarozi: teng narsa ikki pallada ham olinadi). */
+export function taroziTahlil(arg) {
+  const out = { chap: [], ong: [], olib: [] };
+  for (const q of String(arg || "").split("|")) {
+    const m = q.trim().match(/^(chap|ong|o'ng|olib)\s*:\s*(.+)$/i);
+    if (!m) continue;
+    const k = /^o/i.test(m[1]) && m[1].toLowerCase() !== "olib" ? "ong" : m[1].toLowerCase();
+    out[k] = m[2].trim().split(/\s+/);
+  }
+  return out.chap.length && out.ong.length ? out : null;
 }
