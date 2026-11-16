@@ -647,8 +647,17 @@ try {   // REV411: ?kurs_guruh=KOD — o'qituvchi yuborgan kurs guruhi havolasi
     const _u3 = new URL(window.location.href); _u3.searchParams.delete("kurs_guruh"); window.history.replaceState(null, "", _u3.toString());
   }
 } catch { /* */ }
+try {   // ?katta=KOD — Xalqaro baholash katta sinf havolasi (ro'yxatdan o'tishsiz kirish)
+  const _kt = new URLSearchParams(window.location.search).get("katta");
+  if (_kt && /^[A-Za-z0-9]{4,12}$/.test(_kt)) {
+    window.localStorage.setItem("kabutar:xb:katta", _kt.toUpperCase());
+    const _u4 = new URL(window.location.href); _u4.searchParams.delete("katta"); window.history.replaceState(null, "", _u4.toString());
+  }
+} catch { /* */ }
+const LazyKattaKirish = _samtmLazyRetry(() => import("./xalqaro/KattaKirish.jsx"));
+const _kattaKod = () => { try { return window.localStorage.getItem("kabutar:xb:katta") || ""; } catch { return ""; } };
 const _kursGuruhBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:kurs_guruh")); } catch { return false; } };
-const _xbTaklifBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:xb:taklif") || window.localStorage.getItem("kabutar:xb:topshiriq")); } catch { return false; } };
+const _xbTaklifBor = () => { try { return Boolean(window.localStorage.getItem("kabutar:xb:taklif") || window.localStorage.getItem("kabutar:xb:katta_kirdi") || window.localStorage.getItem("kabutar:xb:topshiriq")); } catch { return false; } };
 function DtsNomTahrirlash({ token }) {
   useKbInterfaceLocale();
   const { fetch: scopedFetch, scope } = useCurriculum();
@@ -15427,6 +15436,7 @@ function AppAsosiy() {
   const [yol] = useState(_boshlangichYolniOl);
   const [courseReturn, setCourseReturn] = useState(() => yol.courses ? { courseId: yol.courseId, at: Date.now() } : readCourseReturn());
   const [publicCourses, setPublicCourses] = useState(Boolean(yol.courses));
+  const [kattaYopiq, setKattaYopiq] = useState(false);
   const courseLogin = (courseId) => {
     const intent = { courseId: Number.isSafeInteger(Number(courseId)) && Number(courseId) > 0 ? Number(courseId) : null, at: Date.now() };
     setCourseReturn(intent); setPublicCourses(false);
@@ -15647,6 +15657,7 @@ function AppAsosiy() {
   if (token) return <><React.Suspense fallback={null}><OchirishOgohi apiBase={API_BASE} token={token} /></React.Suspense>{pinSorov && <React.Suspense fallback={null}><PinOyna apiBase={API_BASE} ownerToken={pinSorov.ownerToken}
       onOk={() => { pinSorov.resolve(true); setPinSorov(null); }} onYop={() => { pinSorov.resolve(false); setPinSorov(null); }} /></React.Suspense>}{notice && <div className="kb-app-notice" role="status"><span>{__kbUi(notice)}</span><button aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice("")}>×</button></div>}{telegramLinkOpen && <AccountSecurity apiBase={API_BASE} token={token} onToken={kirildi} onLogout={chiqish} onClose={closeTelegramLink} initialTelegramOpen/>}<Kabinet key={token} token={token} initialCourses={Boolean(courseReturn)} initialCourseId={courseReturn?.courseId} onSessionExpired={sessiyaniTozala} onLogout={chiqish} onToken={kirildi} onProfiles={profillarniOch} />{familyOpen && readFamily() && <React.Suspense fallback={null}><FamilyProfiles apiBase={API_BASE} ownerToken={readFamily().ownerToken} egaMi={readFamily().ownerToken === token} closable={familyFromProfile || readFamily().ownerToken === token} onEnter={profilgaKir} onOwner={egagaQayt} onLogout={egaChiqsin} onClose={() => setFamilyOpen(false)} /></React.Suspense>}</>;
   if (publicCourses) return <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}><CourseWorkspace apiBase={API_BASE} token={null} user={null} initialCourseId={courseReturn?.courseId ?? yol.courseId} onLogin={courseLogin} onClose={() => { setPublicCourses(false); setCourseReturn(null); }} /></React.Suspense>;
+  if (!token && _kattaKod() && !kattaYopiq) return <React.Suspense fallback={null}><LazyKattaKirish apiBase={API_BASE} kod={_kattaKod()} onAuthenticated={kirildi} onBekor={() => { try { window.localStorage.removeItem("kabutar:xb:katta"); } catch { /* */ } setKattaYopiq(true); }} /></React.Suspense>;
   return <KabutarLogin apiBase={API_BASE} onAuthenticated={kirildi} initialError={loginError} onCourses={() => setPublicCourses(true)} />;
 }
 
