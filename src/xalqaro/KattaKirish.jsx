@@ -1,6 +1,8 @@
 // Katta sinf havolasi (?katta=KOD): ro'yxatdan o'tishsiz — Kabu kutib oladi, ism-familiya va tug'ilgan sana so'raladi,
 // yoshiga mos yo'nalishlar o'zi tanlanadi, qurilmada «mehmon» hisob ochiladi (Telegram/Gmail keyin ulanadi).
 import React, { useEffect, useState } from "react";
+import { UstozFigura } from "../kid/UstozSahna.jsx";
+import { ustozFor } from "../kid/ustozRules.js";
 import { authRequest } from "../auth/authClient.js";
 import { ismOk, sanaOk } from "./kattaRules.js";
 import "./katta-kirish.css";
@@ -13,6 +15,7 @@ const SALOM = "Assalomu alaykum, xush kelibsiz! Men Kabuman. Bilimingizni sinab 
 
 
 export default function KattaKirish({ apiBase, kod, token = "", onAuthenticated, onBekor }) {
+  const ustoz = ustozFor("Matematika");
   const [info, setInfo] = useState(null);
   const [qadam, setQadam] = useState(0);        // 0 salom, 1 ism, 2 sana, 3 yo'nalishlar
   const [ism, setIsm] = useState("");
@@ -56,7 +59,7 @@ export default function KattaKirish({ apiBase, kod, token = "", onAuthenticated,
 
   const nom = info?.nom || "";
   return <main className="kk-sahifa">
-    <div className="kk-kabu" aria-hidden="true">🕊️</div>
+    <div className="kk-kabu xb-ustoz xb-ustoz-jonli" aria-hidden="true"><UstozFigura ustoz={ustoz} mood="wave" speaking={qadam === 0} /></div>
     <section className="kk-karta">
       {nom && <p className="kk-sinf">{nom}{info?.oqituvchi ? ` · ${info.oqituvchi}` : ""}</p>}
       {xato && !info && <><p className="kk-xato" role="alert">{xato}</p><button type="button" className="kk-tugma" onClick={onBekor}>Kirish sahifasiga o‘tish</button></>}

@@ -1,5 +1,5 @@
 import { test } from "node:test"; import assert from "node:assert/strict"; import fs from "node:fs";
-import { KATTADA_YASHIRIN, ismOk, menyuFiltri, navbatHolati, navbatNatijaQosh, sanaOk } from "./kattaRules.js";
+import { KABU_QADAMLAR, KATTADA_YASHIRIN, ismOk, menyuFiltri, navbatHolati, navbatNatijaQosh, sanaOk } from "./kattaRules.js";
 
 test("katta sinf: tug'ilgan sana tekshiruvi", () => {
   const bugun = "2026-11-17";
@@ -38,14 +38,36 @@ test("katta sinf o'quvchisi menyusi: dunyo, qo'llanma, metod yashirin; oddiy foy
 });
 
 test("Kabu tanishtiruvi: ko'rsatiladigan elementlar menyuda haqiqatan bor", () => {
-  const tur = fs.readFileSync(new URL("./KabuTur.jsx", import.meta.url), "utf8");
   const bolim = fs.readFileSync(new URL("./XalqaroBaholash.jsx", import.meta.url), "utf8");
-  const sel = [...tur.matchAll(/sel: "\.xb-menyu-karta\.is-(\w+)"/g)].map((m) => m[1]);
+  const sel = KABU_QADAMLAR.map((q) => (q.sel.match(/is-(\w+)$/) || [])[1]).filter(Boolean);
   assert.ok(sel.length >= 4);
-  for (const k of sel) assert.ok(bolim.includes(`["${k}",`), `menyuda "${k}" bo'limi yo'q`);          // masalan ["kurs", "📚", …]
+  for (const k of sel) assert.ok(bolim.includes(`["${k}",`), `menyuda "${k}" bo'limi yo'q`);
   assert.ok(bolim.includes("`xb-menyu-karta is-${k}`"));
-  assert.ok(tur.includes(".kb-account-notice"));                                                      // Telegram/Gmail ulash eslatmasi
+  assert.ok(KABU_QADAMLAR.some((q) => q.sel === ".kb-account-notice"));                              // Telegram/Gmail ulash eslatmasi
   assert.ok(fs.readFileSync(new URL("../auth/AccountNotice.jsx", import.meta.url), "utf8").includes("kb-account-notice"));
+  for (const q of KABU_QADAMLAR) assert.ok(q.matn.length > 30 && q.matn.length < 260);
+});
+
+test("Kabu tanishtiruvi saytni qotirmaydi: qatlam bosishni to'smaydi, aylantirish faqat bir marta, xato himoyalangan", () => {
+  const tur = fs.readFileSync(new URL("./KabuTur.jsx", import.meta.url), "utf8");
+  const css = fs.readFileSync(new URL("./katta-kirish.css", import.meta.url), "utf8");
+  assert.match(css, /\.kk-tur\{[^}]*pointer-events:none/);          // butun qatlam sahifani to'smaydi
+  assert.match(css, /\.kk-tur-chiziq\{[^}]*pointer-events:none/);
+  assert.equal((tur.match(/scrollIntoView/g) || []).length, 1);       // skroll hodisasi ichida qayta aylantirish yo'q
+  assert.ok(tur.includes("requestAnimationFrame") && tur.includes("passive: true"));
+  assert.ok(tur.includes("getDerivedStateFromError"));                // Kabu buzilsa ham sayt ishlaydi
+  assert.ok(tur.includes("clearTimeout(taymer.current)") && tur.includes("removeEventListener"));   // tozalash
+  assert.ok(css.includes("prefers-reduced-motion"));
+});
+
+test("Kabu — testlarda chiqadigan jonli ustoz figurasi ishlatiladi (emoji ham, robot rasmi ham emas)", () => {
+  for (const f of ["KabuTur.jsx", "KattaKirish.jsx", "KirishNavbat.jsx"]) {
+    const t = fs.readFileSync(new URL(`./${f}`, import.meta.url), "utf8");
+    assert.ok(t.includes("UstozFigura") || t.includes("XbUstoz"), `${f}: jonli ustoz yo'q`);
+    assert.ok(!t.includes("🕊") && !/kabu_\w+\.webp/.test(t), `${f}: boshqa Kabu rasmi qolgan`);
+  }
+  const bolim = fs.readFileSync(new URL("./XalqaroBaholash.jsx", import.meta.url), "utf8");
+  assert.ok(bolim.includes("<KabuTur ovoz={ovoz} ustoz={ustoz} />"));   // sinov imtihonidagi ustozning o'zi
 });
 
 test("katta havola: ?katta=KOD saqlanadi, o'quvchi uchun ro'yxatdan o'tish talab qilinmaydi", () => {

@@ -200,7 +200,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     {tab === "xato" && <Xatolarim apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} toplam={toplam}
       onMashq={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Xatolar ustida ishlash") })} />}
     <p className="xb-muted xb-kichik">ℹ️ {T(kat.manba)}</p>
-    {kattaRejim && !tab && <KabuTur ovoz={ovoz} />}
+    {kattaRejim && !tab && <KabuTur ovoz={ovoz} ustoz={ustoz} />}
   </div>;
 }
 

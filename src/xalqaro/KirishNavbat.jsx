@@ -2,6 +2,7 @@
 import "./katta-kirish.css";
 // oxirida Kabu natijani ko'rsatadi. Navbat qurilmada saqlanadi — sahifa yangilansa ham davom etadi.
 import React, { useEffect, useState } from "react";
+import { XbUstoz } from "./XbDoska.jsx";
 import XbImtihon from "./XbImtihon.jsx";
 import { xbFetch } from "./xbOvoz.js";
 import { navbatHolati, navbatNatijaQosh } from "./kattaRules.js";
@@ -13,7 +14,7 @@ const DAQIQA = { T11_G4_M: 25, T11_G4_S: 25, T11_G8_M: 30, T11_G8_S: 30, P_M: 35
 const oqi = () => { try { return JSON.parse(localStorage.getItem(KALIT) || "null") || { royxat: [], natijalar: [] }; } catch { return { royxat: [], natijalar: [] }; } };
 const yoz = (n) => { try { localStorage.setItem(KALIT, JSON.stringify(n)); } catch { /* */ } };
 
-function Xulosa({ apiBase, token, natijalar, onYop }) {
+function Xulosa({ apiBase, token, natijalar, onYop, ustoz }) {
   const [qator, setQator] = useState(null);
   useEffect(() => {
     let tirik = true;
@@ -22,7 +23,7 @@ function Xulosa({ apiBase, token, natijalar, onYop }) {
     return () => { tirik = false; };
   }, [apiBase, token, natijalar]);
   return <div className="xb-panel kk-xulosa">
-    <div className="kk-kabu-katta" aria-hidden="true">🕊️</div>
+    <XbUstoz ustoz={ustoz} mood="happy" />
     <h3>Barakalla! Barcha testlar topshirildi</h3>
     <p className="xb-muted">Mana natijalaringiz. Kirish testi bahoga ta’sir qilmaydi — u darajangizni aniqlaydi va sizni mos guruhga qo‘shadi.</p>
     {!qator ? <p className="xb-muted">⏳ Hisoblanmoqda…</p> : <ul className="kk-natija-list">{qator.map(({ nom, r }) => <li key={nom}>
@@ -41,7 +42,7 @@ export default function KirishNavbat({ apiBase, token, jins, ustoz, onTugadi }) 
 
   const yop = () => { try { localStorage.removeItem(KALIT); } catch { /* */ } onTugadi(); };
 
-  if (!joriy) return <Xulosa apiBase={apiBase} token={token} natijalar={n.natijalar} onYop={yop} />;
+  if (!joriy) return <Xulosa apiBase={apiBase} token={token} natijalar={n.natijalar} onYop={yop} ustoz={ustoz} />;
   return <>
     <p className="kk-qadam" role="status">Test {raqam}/{jami} · {NOM[joriy] || joriy}</p>
     <XbImtihon key={joriy} apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} tur="kirish" toplam={joriy}

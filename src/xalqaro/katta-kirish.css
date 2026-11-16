@@ -1,6 +1,6 @@
 .kk-sahifa{min-height:100vh;display:grid;place-items:center;padding:16px;background:linear-gradient(160deg,#e8f3ff,#fdf6e3);position:relative;overflow:hidden}
-.kk-kabu{position:absolute;top:10%;left:-60px;font-size:34px;animation:kk-uch 6s ease-in-out forwards}
-@keyframes kk-uch{0%{transform:translate(0,0)}35%{transform:translate(45vw,12vh) rotate(8deg)}70%{transform:translate(30vw,40vh) rotate(-6deg)}100%{transform:translate(max(8vw,16px),calc(50vh - 150px)) rotate(0)}}
+.kk-kabu{position:absolute !important;top:0;left:0;z-index:2;width:96px !important;height:150px !important;animation:kk-uch 6s ease-in-out forwards}
+@keyframes kk-uch{0%{transform:translate(-130px,8vh)}35%{transform:translate(55vw,14vh) rotate(6deg)}70%{transform:translate(30vw,32vh) rotate(-5deg)}100%{transform:translate(max(12px,calc(50vw - 214px)),max(8px,calc(50vh - 270px)))}}
 .kk-karta{width:min(440px,100%);background:#fff;border-radius:18px;padding:22px 18px;box-shadow:0 8px 30px rgba(40,70,120,.15);display:flex;flex-direction:column;gap:12px;z-index:1}
 .kk-sinf{margin:0;font-size:13px;color:#587}
 .kk-nutq{margin:0;font-size:18px;line-height:1.45;font-weight:600;color:#1d2b3a}
@@ -15,19 +15,20 @@
 .kk-xulosa{display:flex;flex-direction:column;gap:12px}
 .kk-natija-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .kk-natija-list li{display:flex;flex-direction:column;padding:10px 12px;border-radius:12px;background:#f3f8ff}
-.kk-kabu-katta{font-size:40px}
 .kk-tur{position:fixed;inset:0;z-index:2147483000;pointer-events:none}
 .kk-tur-chiziq{position:absolute;inset:0;pointer-events:none}
-.kk-tur-chiziq line{stroke:#2f7de1;stroke-width:2.5;stroke-dasharray:6 5;stroke-linecap:round;transition:all .6s ease}
+.kk-tur-chiziq line{stroke:#2f7de1;stroke-width:2.5;stroke-dasharray:6 5;stroke-linecap:round}
 .kk-tur-chiziq circle{fill:none;stroke:#2f7de1;stroke-width:3}
-.kk-tur-kabu{position:absolute;left:0;top:0;width:min(300px,calc(100vw - 16px));transition:transform .9s cubic-bezier(.4,.1,.2,1);pointer-events:auto}
-.kk-tur-qush{display:block;font-size:30px;animation:kk-qanot .5s ease-in-out infinite alternate}
-@keyframes kk-qanot{from{transform:rotate(-8deg) translateY(0)}to{transform:rotate(8deg) translateY(-4px)}}
+.kk-tur-kabu{position:absolute;left:0;top:0;transition:transform .9s cubic-bezier(.4,.1,.2,1);pointer-events:auto;will-change:transform}
+.kk-tur-ustoz{width:84px !important;height:130px !important}
+.kk-tur-ustoz.is-chap{margin-left:auto}
 .kk-tur-pufak{background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 8px 28px rgba(20,50,100,.25);border:2px solid #cfe0f3}
 .kk-tur-pufak p{margin:0 0 8px;font-size:14px;line-height:1.45;color:#1d2b3a}
 .kk-tur-tugmalar{display:flex;gap:8px;align-items:center}
 .kk-tur-tugmalar small{margin-right:auto;color:#789}
 .kk-tur-tugmalar button{border:0;background:#eef3f9;border-radius:9px;padding:7px 10px;font-weight:600;cursor:pointer}
 .kk-tur-tugmalar .kk-tur-asosiy{background:#2f7de1;color:#fff}
-.kk-tur-yigilgan{position:fixed;right:14px;bottom:14px;z-index:2147482000;width:46px;height:46px;border-radius:50%;border:2px solid #cfe0f3;background:#fff;font-size:24px;box-shadow:0 4px 14px rgba(20,50,100,.2);cursor:pointer}
-@media (prefers-reduced-motion:reduce){.kk-tur-kabu{transition:none}.kk-tur-qush{animation:none}}
+.kk-tur-yigilgan{position:fixed;right:14px;bottom:14px;z-index:2147482000;width:56px;height:56px;border-radius:50%;border:2px solid #cfe0f3;background:#fff;box-shadow:0 4px 14px rgba(20,50,100,.2);cursor:pointer;padding:0;overflow:hidden;position:fixed}
+.kk-tur-bosh{position:absolute;left:50%;top:4px;width:64px;height:100px;transform:translateX(-50%) scale(1.15);transform-origin:top center;pointer-events:none}
+.kk-tur-bosh .us-teacher{position:absolute !important;left:50% !important;top:0 !important;bottom:auto !important;height:100% !important;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){.kk-tur-kabu{transition:none}}
