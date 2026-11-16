@@ -194,7 +194,8 @@ export const qadamBolimi = (s) => {
   if (/^hayotdan\b/i.test(t)) return "hayotdan";
   if (/^tarixdan\b/i.test(t) || (turi === "xulosa" && /tarix/i.test(t))) return "tarix";
   if (turi === "test" || /^test\b/i.test(t)) return "test";
-  if (/^mashq\b/i.test(t) || turi === "topshiriq" || turi === "amaliy") return "mashq";
+  if (String(s?.amaliy_turi || "") === "misol" || /^misol\b/i.test(t)) return "dars";   // ishlangan misol — dars qismi
+  if (/^(topshiriq\s*·\s*)?mashq\b/i.test(t) || turi === "topshiriq" || turi === "amaliy") return "mashq";
   return "dars";
 };
 export const bolimQadamlari = (steps, bolim) => {

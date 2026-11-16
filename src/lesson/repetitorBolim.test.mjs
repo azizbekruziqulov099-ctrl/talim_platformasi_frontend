@@ -5,9 +5,9 @@ import { qadamBolimi, bolimQadamlari, REPETITOR_BOLIMLAR } from "./darsXonasiRul
 const steps = [
   { sarlavha: "Hayotdan: Do'kondagi qarz", turi: "kirish" },
   { sarlavha: "Natural sonlar", turi: "tushuntirish" },
-  { sarlavha: "Misol 1", turi: "misol" },
+  { sarlavha: "Misol · Misol 1", turi: "amaliy", amaliy_turi: "misol" },
   { sarlavha: "Hayotdan: Kitob", turi: "tushuntirish" },
-  { sarlavha: "Mashq 3", turi: "amaliy" },
+  { sarlavha: "Topshiriq · Mashq 3", turi: "amaliy", amaliy_turi: "topshiriq" },
   { sarlavha: "Tarixdan: Xorazmiy", turi: "xulosa" },
 ];
 

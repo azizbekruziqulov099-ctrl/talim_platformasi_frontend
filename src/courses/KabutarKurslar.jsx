@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
+import RepetitorBolimOyna from "./RepetitorBolimOyna.jsx";
 import { REPETITOR_BOLIMLAR } from "../lesson/darsXonasiRules.js";
 import KursTolov, { somFmt } from "./KursTolov.jsx";
 import KursGuruh, { GURUH_KALIT, kgFetch } from "./KursGuruh.jsx";   // REV411
@@ -80,6 +81,8 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     <header className="kk-kurs-bosh"><h2>{dars.nomi}</h2><p>{__kbUi("Nimani ochamiz?")}</p></header>
     <div className="kk-panjara">{REPETITOR_BOLIMLAR.map((b) => <button type="button" key={b.kalit} className="kk-karta" onClick={() => setDars({ ...dars, bolim: b.kalit })}>
       <span className="kk-kat">{b.belgi}</span><b>{__kbUi(b.nomi)}</b><small>{__kbUi(b.izoh)}</small></button>)}</div></section>;
+  if (dars && kitobKursi && ["hayotdan", "mashq", "tarix"].includes(dars.bolim)) { const b = REPETITOR_BOLIMLAR.find((x) => x.kalit === dars.bolim);
+    return <RepetitorBolimOyna apiBase={apiBase} token={token} dars={dars} bolim={dars.bolim} bolimNomi={__kbUi(b.nomi)} belgi={b.belgi} onOrtga={() => setDars({ ...dars, bolim: "" })} />; }
   if (dars) return <div className="kk-toliq">{dars.guruh && <GuruhJonli apiBase={apiBase} token={token} tc={dars.topic_code} />}
     {dars.guruh && <p className="kg-darsda">👥 {dars.guruh.nom} · {__kbUi("javoblaringiz o‘qituvchiga ko‘rinadi")}</p>}
     <React.Suspense fallback={<p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}>
