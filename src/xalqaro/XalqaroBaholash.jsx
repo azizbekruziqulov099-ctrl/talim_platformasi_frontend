@@ -44,6 +44,9 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   const [xato, setXato] = useState("");
   const [toplam, setToplam] = useState(() => { try { return localStorage.getItem(ESLA) || ""; } catch { return ""; } });
   const [kirishNavbat, setKirishNavbat] = useState(() => { try { const n = JSON.parse(localStorage.getItem("kabutar:xb:navbat") || "null"); return Boolean(n?.royxat?.length); } catch { return false; } });
+  // Katta sinf havolasi bilan kirgan o'quvchi: faqat o'z yo'nalishlari va kursi ko'rinadi (butun Xalqaro menyu emas)
+  const [meniki, setMeniki] = useState(null);
+  const [kattaKirgan] = useState(() => { try { return Boolean(localStorage.getItem("kabutar:xb:katta_kirdi")); } catch { return false; } });
   const [ekran, setEkran] = useState(null);   // {tur: mavzu|dars|mashq|imtihon|natija|maktab, ...}
   const [yangila, setYangila] = useState(0);
   const sinf = sinfRaqami(user?.class);
@@ -59,6 +62,15 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     return () => { tirik = false; };
   }, [rejim]); // eslint-disable-line react-hooks/exhaustive-deps
   const panel = kuzatuv && kuzatuv.rol !== "oquvchi";
+  const kattaRejim = kattaKirgan && !panel && rejim !== "oquvchi";
+  useEffect(() => {
+    if (!kattaRejim) return undefined;
+    let tirik = true;
+    xbFetch(apiBase, "/api/xalqaro/sinflar", token).then((r) => { if (tirik) setMeniki((r.azolik || []).map((x) => x.toplam)); }).catch(() => {});
+    return () => { tirik = false; };
+  }, [kattaRejim, kirishNavbat]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (kattaRejim && meniki?.length && !meniki.includes(toplam)) setToplam(meniki[0]); }, [kattaRejim, meniki, toplam]);
+  const mosToplam = (t) => !kattaRejim || !meniki?.length || meniki.includes(t.kalit);
 
   useEffect(() => {
     let tirik = true;
@@ -137,11 +149,11 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     {tp && <div className="xb-joriy-fan">
       <span>{T("Joriy dastur")}:</span>
       <b>{tp.dastur === "PISA" ? `PISA · ${tp.fan_nomi}` : `TIMSS · ${tf("{n}-sinf", { n: tp.sinf })} · ${tp.fan_nomi}`}</b>
-      <button type="button" className="xb-btn xb-btn-yengil" aria-expanded={fanOchiq} onClick={() => setFanOchiq((x) => !x)}>{fanOchiq ? "✕" : `🔄 ${T("Almashtirish")}`}</button>
+      {!(kattaRejim && (meniki?.length || 0) <= 1) && <button type="button" className="xb-btn xb-btn-yengil" aria-expanded={fanOchiq} onClick={() => setFanOchiq((x) => !x)}>{fanOchiq ? "✕" : `🔄 ${T("Almashtirish")}`}</button>}
     </div>}
     {fanOchiq && ["TIMSS", "PISA"].map((dastur) => <div key={dastur} className="xb-toplam-guruh">
       <h4>{dastur === "TIMSS" ? T("TIMSS — 4- va 8-sinf: matematika va tabiiy fanlar") : T("PISA — 15 yosh (9–10-sinf): bilimni hayotda qo‘llash")}</h4>
-      <div className="xb-toplamlar" role="tablist" aria-label={dastur}>{kat.toplamlar.filter((t) => t.dastur === dastur).map((t) => <button key={t.kalit} type="button" role="tab" aria-selected={t.kalit === toplam}
+      <div className="xb-toplamlar" role="tablist" aria-label={dastur}>{kat.toplamlar.filter((t) => t.dastur === dastur && mosToplam(t)).map((t) => <button key={t.kalit} type="button" role="tab" aria-selected={t.kalit === toplam}
         className={t.kalit === toplam ? "is-on" : ""} onClick={() => { ovoz.hush(); setToplam(t.kalit); setFanOchiq(false); }}>
         <b>{t.dastur === "PISA" ? `PISA · ${t.fan_nomi}` : `TIMSS · ${tf("{n}-sinf", { n: t.sinf })}`}</b>
         <small>{t.dastur === "PISA" ? T("15 yosh") : t.fan_nomi}{t.tavsiya ? ` · ⭐ ${T("sizga mos")}` : ""}</small></button>)}</div>
@@ -151,14 +163,14 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
           ["metod", "🎓", T("O‘qitish metodlari"), T("TIMSS va PISA bo‘yicha dars berish usullari")]] : []),
         ...(kuzatuv ? [["sinfim", "🏫", kuzatuv.rol === "oquvchi" ? T("Sinfim") : T("Men a’zo bo‘lgan sinflar"), T("Sinfingiz, topshiriqlar; kod yoki parol bilan qo‘shilish")]] : []),
         ["natija", "📊", T("Natijalarim"), T("Har mavzu bo‘yicha foizlar, imtihonlar va ballar")],
-        ["kurs", "📚", T("Kurs: mavzular va testlar"), tf("{m} mavzu · {s} ta test · har mavzuda dars", { m: tp?.mavzular?.length || 0, s: (tp?.mavzular || []).reduce((a, x) => a + (x.savollar || 0), 0) })],
-        ["imtihon", "📝", T("Imtihonlar"), T("Haftalik, oylik, choraklik va yillik sinov")],
+        ["kurs", "📚", kattaRejim ? T("Darslar") : T("Kurs: mavzular va testlar"), tf("{m} mavzu · {s} ta test · har mavzuda dars", { m: tp?.mavzular?.length || 0, s: (tp?.mavzular || []).reduce((a, x) => a + (x.savollar || 0), 0) })],
+        ["imtihon", "📝", kattaRejim ? T("Testlar va imtihonlar") : T("Imtihonlar"), T("Haftalik, oylik, choraklik va yillik sinov")],
         ["takror", "🔁", T("Takrorlash"), kat.takror ? tf("Bugun {n} ta savol kutyapti", { n: kat.takror }) : T("Xato qilingan savollar qayta so‘raladi")],
         ["xato", "❌", T("Xatolarim"), T("Qayerda adashgansiz va nega")],
         ["reyting", "🏅", T("Reyting"), T("Sinf, maktab va platformada o‘rningiz")],
         ["dunyo", "🌍", T("Dunyo natijalari"), T("Davlatlar natijasi bilan solishtiring")],
         ["qollanma", "📖", T("Qo‘llanma"), T("Bo‘lim qanday ishlaydi")],
-      ].map(([k, belgi, nom, izoh]) => <button key={k} type="button" className={`xb-menyu-karta is-${k}`} onClick={() => { ovoz.hush(); setTab(k); }}>
+      ].filter(([k]) => !kattaRejim || !["dunyo", "qollanma", "metod"].includes(k)).map(([k, belgi, nom, izoh]) => <button key={k} type="button" className={`xb-menyu-karta is-${k}`} onClick={() => { ovoz.hush(); setTab(k); }}>
         <span className="xb-menyu-belgi" aria-hidden="true">{belgi}</span><b>{nom}</b><small>{izoh}</small>
         {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
