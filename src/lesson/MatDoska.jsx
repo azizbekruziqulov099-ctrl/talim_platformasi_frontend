@@ -437,14 +437,14 @@ function Ish({ arg, progress }) {
       const c = ref.current.getBoundingClientRect(), out = [];
       for (let i = 0; i < n; i++) {
         const f = natRef.current[i]?.getBoundingClientRect(), to = yangiRef.current[i]?.getBoundingClientRect();
-        out.push(f && to ? { fx: f.left - c.left, fy: f.top - c.top, dx: to.left - f.left, dy: to.top - f.top } : null);
+        out.push(f && to && f.width > 0 && to.width > 0 ? { fx: Math.round(f.left - c.left), fy: Math.round(f.top - c.top), dx: Math.round(to.left - f.left), dy: Math.round(to.top - f.top) } : null);
       }
-      setPos(out);
+      setPos((old) => (JSON.stringify(old) === JSON.stringify(out) ? old : out));
     };
-    olch(); const t1 = setTimeout(olch, 350), t2 = setTimeout(olch, 1200);
+    olch();   // REV595: har chizishda o'lchanadi (qatorlar paydo bo'lgan sari joylar o'zgaradi); o'zgarmasa — qayta chizilmaydi
     window.addEventListener("resize", olch);
-    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener("resize", olch); };
-  }, [arg]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => window.removeEventListener("resize", olch);
+  });
   if (!t) return <JonliMatn text={arg} progress={progress} />;
   const bosh = 0.3, seg = (0.95 - bosh) / n;
   const at = (i) => bosh + i * seg, qo = (i) => at(i) + seg * 0.62, ucha = (i) => at(i) + seg * 0.9;
@@ -454,7 +454,7 @@ function Ish({ arg, progress }) {
   const uchish = (i) => Math.min(1, Math.max(0, (progress - qo(i)) / (ucha(i) - qo(i))));
   return <span className="mdx-ish" ref={ref} role="img" aria-label={`${t.boshlang} = ${t.javob}`}>
     <span className="mdx-ish-yuqori">
-      {t.holatlar.map((h, si) => <span key={si} className="mdx-ish-ifoda" style={{ opacity: si <= hol ? 1 : 0, transition: "opacity .35s" }}>
+      {t.holatlar.map((h, si) => <span key={si} className="mdx-ish-ifoda" style={{ display: si <= hol + 1 ? "flex" : "none", opacity: si <= hol ? 1 : 0, transition: "opacity .35s" }}>
         {si > 0 && <i className="mdx-ish-teng">=</i>}
         {h.map((x, i) => {
           const bel = x.t === "(" ? "is-och" : x.t === ")" ? "is-yop" : "";
@@ -470,11 +470,11 @@ function Ish({ arg, progress }) {
         return p && f > 0 && f < 1 ? <span key={i} className="mdx-ish-uchadi" style={{ left: p.fx, top: p.fy, transform: `translate(${p.dx * f}px, ${p.dy * f}px) scale(${0.82 + 0.18 * f})` }}>{q.natija}</span> : null; })}
     </span>
     <span className="mdx-ish-qadamlar">
-      {t.qadamlar.map((q, i) => <span key={i} className="mdx-ish-qadam" style={kor(progress, at(i))}>
+      {t.qadamlar.map((q, i) => <span key={i} className="mdx-ish-qadam" style={{ ...kor(progress, at(i)), display: progress >= at(i) ? undefined : "none" }}>
         <b>{i + 1}-ish:</b> {q.qism} = <em className="mdx-ish-natija" ref={(el) => { natRef.current[i] = el; }} style={kor(progress, at(i) + seg * 0.4)}>{q.natija}</em>
         <i className="mdx-ish-yoq" style={kor(progress, qo(i))}>↑</i></span>)}
     </span>
-    <span className="mdx-ish-yakun" style={kor(progress, 0.96)}>{t.boshlang} <b>=</b> <em>{t.javob}</em></span>
+    <span className="mdx-ish-yakun" style={{ ...kor(progress, 0.96), display: progress >= 0.96 ? undefined : "none" }}>{t.boshlang} <b>=</b> <em>{t.javob}</em></span>
   </span>;
 }
 
@@ -550,4 +550,15 @@ export function Latta({ progress = 1 }) {
   const p = kesim(progress);
   if (p >= 1 || p <= 0) return null;
   return <span className="mdx-latta" style={{ left: `${p * 100}%` }} aria-hidden="true" />;
+}
+
+
+/** REV595: variant matni — amal belgisi yonidagi kichik raqam (¹²³…) belgi TEPASIDA chiqadi: «200 −⁴ (4 ·¹ 9 +³ 3 ·² 6)» → ④ ① ③ ② tepada. */
+const SUP = { "¹": 1, "²": 2, "³": 3, "⁴": 4, "⁵": 5, "⁶": 6, "⁷": 7, "⁸": 8, "⁹": 9 };
+export function ishRaqamliMi(t) { return /[−\-·:×*+/][¹²³⁴⁵⁶⁷⁸⁹]/.test(String(t || "")); }
+export function IshVariant({ text }) {
+  const q = String(text || "").split(/([−\-·:×*+/][¹²³⁴⁵⁶⁷⁸⁹])/g);
+  return <span className="mdx-iv">{q.map((x, i) => (x.length === 2 && SUP[x[1]]
+    ? <span key={i} className="mdx-iv-op"><i>{ROQAM[SUP[x[1]]] || SUP[x[1]]}</i>{x[0]}</span>
+    : <React.Fragment key={i}>{x}</React.Fragment>))}</span>;
 }

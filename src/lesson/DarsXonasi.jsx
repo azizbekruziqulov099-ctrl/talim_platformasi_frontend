@@ -145,7 +145,7 @@ import { IkkiUstozTaglavha, SozIzohi } from "../til/IkkiUstozTaglavha.jsx";
 import { GapTuzish, qisqaGaplar } from "../til/GapTuzish.jsx";
 const jwtProfil = (t) => { try { const p = JSON.parse(atob(String(t || "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return String(p.sub || p.user_id || p.uid || p.id || "_"); } catch { return "_"; } };
 import { B, belgiSrc } from "../kid/Belgi.jsx";
-import { EsdaTut, Latta, MatQator } from "./MatDoska.jsx";   // REV269: matematika jonli doskasi
+import { EsdaTut, Latta, MatQator, IshVariant, ishRaqamliMi } from "./MatDoska.jsx";   // REV269: matematika jonli doskasi
 import { doskaQatorlari, esdaTut, matRejim, qatorProgress, yozishSozlari } from "./matDoska.js";
 
 /** REV90: bog'cha boshqaruv tugmasi — katta belgi, ostida kichik yozuv (o'qiy olmaydigan bola belgidan taniydi). */
@@ -2126,7 +2126,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
               className={picked === null ? `${hot === k ? "is-hot" : ""} ${waiting ? "is-waiting" : ""}` : k === q.togri ? "is-ok" : k === picked ? "is-no" : "is-dim"} style={{ "--i": k }}>{kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar) ? <img className="dx-kid-img" src={kidOptionPic(o, lesson?.rasmlar, mediaUrl, lesson?.rasm_sozlar)} alt="" draggable="false" /> : kidOptionQator(o.picture) ? <span className={`kb-qator ${qatorNaqshmi(kidOptionQator(o.picture)) ? "is-satr" : ""}`} aria-hidden="true">{kidOptionQator(o.picture).map((x, j) => x.src ? <img key={j} src={x.src} alt="" draggable="false" /> : <b key={j}>{x.t}</b>)}</span> : (keycapNumber(o.picture) ? <span className="dx-kid-pic kb-num">{keycapNumber(o.picture)}</span> : <span className={`dx-kid-pic sz-${cardSize(o.picture || "x")} ${!o.picture && (o.oqiladi || !o.listen) && o.word ? "is-soz" : ""}`}>{o.picture || (o.oqiladi ? <>🔊 {o.word}</> : o.listen ? k + 1 : (o.word || o.letter))}</span>)}</button>
 </div>)}</div>
             : <div className="dx-opts">{q.variantlar.map((o, k) => <button key={k} type="button" onClick={() => pick(k)}
-              className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCDEF"[k]}) <BoardText text={stripSpeechTags(o)} /></button>)}</div>}
+              className={picked === null ? "" : k === q.togri ? "is-ok" : k === picked ? "is-no" : ""}>{"ABCDEF"[k]}) {ishRaqamliMi(o) ? <IshVariant text={stripSpeechTags(o)} /> : <BoardText text={stripSpeechTags(o)} />}</button>)}</div>}
             {picked !== null && !kid && picked !== q.togri && <div className="dx-why">{q.xatolar?.[String(picked)] && <p className="mdx-xato">⚠ <BoardText text={stripSpeechTags(q.xatolar[String(picked)])} /></p>}{!kid && <p><BoardText text={stripSpeechTags(q.izoh || "")} /></p>}<button type="button" className="dx-btn dx-primary" onClick={nextQuestion}>{__kbUi(testIndex + 1 >= questions.length ? (kid ? "Yulduzlarni ko‘rish ⭐" : "Natija") : (kid ? "Keyingisi ➜" : "Keyingi savol"))}</button></div>}
           </div>}
           {mode === "end" && <div className="dx-test">
