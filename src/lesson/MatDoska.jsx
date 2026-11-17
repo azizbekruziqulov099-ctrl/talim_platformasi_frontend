@@ -4,7 +4,7 @@
 import BoardOyin from "./BoardOyin.jsx";   // REV429
 import React, { useMemo } from "react";
 import katex from "katex";
-import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, amalTahlil, HARFLAR } from "./matDoska.js";   // REV425
+import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, amalTahlil, amalIzoh, HARFLAR } from "./matDoska.js";   // REV425
 import { BoardText } from "./AmaliyDoska.jsx";
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { stripSpeechTags } from "../speech/language.js";
@@ -102,7 +102,9 @@ function Amal({ arg, progress, qismProgress }) {
   const cols = Array.from({ length: W }, (_, j) => W - 1 - j);   // chapdan o'ngga: eng katta xona birinchi
   const faol = t.qadamlar.findIndex((q, i) => sp(i + 1) > 0 && sp(i + 1) < 1);
   const mod = (col) => { for (let i = 0; i < n; i++) { const m = t.qadamlar[i].mods.find((x) => x.col === col); if (m && sp(i + 1) > 0.05) return m; } return null; };
+  const sQ = (() => { let k = -1; t.qadamlar.forEach((q, i) => { if (sp(i + 1) > 0.05) k = i; }); return k; })();
   return <span className="mdx-amal" role="img" aria-label={`${t.a} ${t.op} ${t.b} = ${t.natija}`} style={{ gridTemplateColumns: `1ch repeat(${W}, 1.6ch)` }}>
+    <span className="mdx-amal-izoh" style={{ gridColumn: `1 / span ${W + 1}` }}>{sQ >= 0 ? amalIzoh(t, t.qadamlar[sQ]) : " "}</span>
     {/* 1-qator: yodda (+) yoki yangi raqam (−) */}
     <i />{cols.map((c) => {
       let v = "", cls = "mdx-amal-eslab";
@@ -139,6 +141,7 @@ function AmalKop({ t, progress, qismProgress }) {
     : eq.tur === "oxir" ? <>yodda <b className="ky">{eq.res}</b> → <b className="kn">{eq.res}</b> yozamiz</>
     : <>qatorlarni qo'shamiz = <b className="kn">{t.natija}</b></>;
   return <span className="mdx-amal mdx-amal-kop" role="img" aria-label={`${t.a} × ${t.b} = ${t.natija}`} style={grid}>
+    <span className="mdx-amal-izoh" style={{ gridColumn: `1 / span ${W + 1}` }}>{last >= 0 ? amalIzoh(t, t.qadamlar[last]) : " "}</span>
     <i />{cols.map((c) => <i key={c} className="mdx-amal-eslab" style={{ opacity: c === yoddaCol ? 1 : 0 }}>{c === yoddaCol ? "↖" + eq.carry : " "}</i>)}
     <i />{cols.map((c) => <i key={c} className={`mdx-amal-a ${eq && eq.tur === "xona" && eq.i === c ? "is-fa" : ""}`}>{cell(t.a, c) || " "}</i>)}
     <i className="mdx-amal-op">×</i>{cols.map((c) => <i key={c} className={`mdx-amal-b ${eq && eq.tur !== "yig" && eq.r === c ? "is-fb" : ""}`}>{cell(t.b, c) || " "}</i>)}

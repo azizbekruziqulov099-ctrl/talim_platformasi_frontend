@@ -498,3 +498,20 @@ function amalKopaytirish(a, b) {
   if (kop) qadamlar.push({ tur: "yig", col: 0, res: 0 });
   return { op: "×", a, b, natija, W: Math.max(natija.length, a.length + b.length - 1), qadamlar, qatorlar, kop };
 }
+
+/** Qadam izohi (doskada ko'rinadigan qisqa hisob): «6 × 4 = 24 → 4 yoz, 2 yodda». */
+export function amalIzoh(t, q) {
+  if (!t || !q) return "";
+  if (t.op === "×") {
+    if (q.tur === "yig") return `qatorlarni qo'sh = ${t.natija}`;
+    if (q.tur === "nol") return `× 0 = 0 → joyni saqlab 0 yoz`;
+    if (q.tur === "oxir") return `yodda ${q.res} → ${q.res} yoz`;
+    return `${q.da} × ${q.mb} = ${q.da * q.mb}${q.kirdi ? ` + ${q.kirdi} (yodda) = ${q.x}` : ""} → ${q.res} yoz${q.carry ? `, ${q.carry} yodda` : ""}`;
+  }
+  if (t.op === "+") {
+    if (q.oxirgi) return `yodda ${q.res} → ${q.res} yoz`;
+    const parts = [q.da, q.db].filter((x) => x !== null).join(" + ") + (q.kirdi ? ` + ${q.kirdi} (yodda)` : "");
+    return `${parts} = ${q.sum} → ${q.res} yoz${q.yodda ? ", 1 yodda" : ""}`;
+  }
+  return q.qarz ? `${q.da} kichik → 1 qarz: ${q.top} − ${q.db || 0} = ${q.res}` : `${q.top} − ${q.db || 0} = ${q.res}`;
+}
