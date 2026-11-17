@@ -2301,7 +2301,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         : <span className="dx-keyingi-ertaga">🌙 {__kbUi("Keyingi dars ertaga ochiladi:")} <b>{keyingiDars.nomi}</b></span>}
     </div>}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
-      {matBosqichUstoz && <button type="button" className="dx-btn dx-ustoz-jins" onClick={ustozniAlmashtir}
+      {matBosqichUstoz && mode === "idle" && <button type="button" className="dx-btn dx-ustoz-jins" onClick={ustozniAlmashtir}
         title={__kbUi("Ustozni almashtirish")} aria-label={__kbUi("Ustozni almashtirish")}>{USTOZLAR[ustozRef.current]?.lab === "ayol" ? "👩‍🏫 ⇄ 👨‍🏫" : "👨‍🏫 ⇄ 👩‍🏫"}</button>}
       {darsTil && qisqa.length > 0 && mode === "end" && <button type="button" className="dx-btn iu-gaptuz" onClick={() => { if (playing) pauzaQil(); setGapTuz(true); }}>🧩 {__kbUi("Gap tuz")}</button>}
       <button type="button" className={`dx-btn dx-primary ${pauza && mode === "lesson" ? "is-davom-kut" : ""}`} disabled={mode === "test"} onClick={() => {
