@@ -25,3 +25,10 @@ test("ELAK: 50 gacha 15 ta tub son; KETMA: zanjir", () => {
   assert.deepEqual(ketmaTahlil("a | b | c"), ["a", "b", "c"]);
   assert.equal(ketmaTahlil("a"), null);
 });
+test("ISH: holatlar — natija tushadigan joy va ishlatilgan tokenlar", () => {
+  const t = ishTahlil("72:(2+4)*3-5");
+  assert.equal(t.holatlar.length, 5);
+  assert.deepEqual(t.holatlar.map((h) => h.map((x) => x.s).join(" ")), ["72 : ( 2 + 4 ) · 3 − 5", "72 : 6 · 3 − 5", "12 · 3 − 5", "36 − 5", "31"]);
+  assert.deepEqual(t.qadamlar[0].ishlatilgan, [3, 4, 5]);
+  assert.equal(t.holatlar[1][t.qadamlar[0].yangiIndeks].s, "6");
+});

@@ -397,12 +397,25 @@ export function ishTahlil(arg) {
     if (r < 0n) return null;
     const qism = `${x} ${o} ${y}`;
     tartib[seg[k].id] = qadamlar.length + 1;
-    a.splice(lo + k - 1, 3, { t: "n", v: r, id: id++, yangi: true });
+    const oldin = a.map((x) => ({ ...x })), ishl = [seg[k - 1].id, seg[k].id, seg[k + 1].id];
+    const yangiId = id++;
+    a.splice(lo + k - 1, 3, { t: "n", v: r, id: yangiId, yangi: true });
     qavsTozala();
-    qadamlar.push({ qism, natija: String(r), ifoda: yoz(a), orin: qadamlar.length + 1 });
+    qadamlar.push({ qism, natija: String(r), ifoda: yoz(a), orin: qadamlar.length + 1, _oldin: oldin, _ishl: ishl, _keyin: a.map((x) => ({ ...x })), _yangi: yangiId });
   }
   if (!(a.length === 1 && a[0].t === "n") || !qadamlar.length) return null;
-  return { boshlang: yoz(boshlang), tokenlar: boshlang.map((x) => ({ t: x.t, s: x.t === "n" ? String(x.v) : x.v, k: x.t === "o" ? tartib[x.id] || 0 : 0 })), qadamlar, javob: String(a[0].v) };
+  const kor = (x) => ({ t: x.t, s: x.t === "n" ? String(x.v) : x.v, k: x.t === "o" ? tartib[x.id] || 0 : 0, id: x.id });
+  // holatlar[0] — boshlang'ich misol; holatlar[i] — i-ishdan keyin. Har qadamda: qaysi tokenlar ishlatildi (oldingi holatda), yangi natija qaerga tushdi (keyingi holatda).
+  const holatlar = [boshlang.map(kor)];
+  qadamlar.forEach((q) => {
+    const oldHolat = holatlar[holatlar.length - 1];
+    q.ishlatilgan = oldHolat.map((x, i) => (q._ishl.includes(x.id) ? i : -1)).filter((i) => i >= 0);
+    const yangi = q._keyin.map(kor);
+    q.yangiIndeks = yangi.findIndex((x) => x.id === q._yangi);
+    holatlar.push(yangi);
+    delete q._oldin; delete q._ishl; delete q._keyin; delete q._yangi;
+  });
+  return { boshlang: yoz(boshlang), tokenlar: holatlar[0], holatlar, qadamlar, javob: String(a[0].v) };
 }
 
 // ── KETMA: tenglik zanjiri — «21·18 − 19·18 | [18]·(21 − 19) | [18]·2 | 36» (qavs [..] ichi rang bilan ajratiladi) ──

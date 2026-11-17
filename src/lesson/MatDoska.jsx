@@ -423,22 +423,58 @@ function Daraxt({ arg, progress }) {
 
 
 const ROQAM = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
-/** ISH — tartibli hisob: amallar raqamlanadi; har «ish» hisoblanadi va natija o'rniga qo'yilib misol qayta yoziladi. */
+/** ISH — tartibli hisob: amallar raqamlanadi; har «ish» pastda hisoblanadi, natijasi tepadagi misolga uchib borib o'z o'rniga tushadi (misol qisqaradi);
+ *  oxirida «misol = javob». Tepadagi misol — «jonli»: har ishdan keyin yangi holatga o'tadi. */
 function Ish({ arg, progress }) {
   const t = ishTahlil(arg);
+  const ref = React.useRef(null);
+  const natRef = React.useRef([]), yangiRef = React.useRef([]);
+  const [pos, setPos] = React.useState([]);
+  const n = t ? t.qadamlar.length : 0;
+  React.useLayoutEffect(() => {
+    if (!t || !ref.current) return undefined;
+    const olch = () => {
+      const c = ref.current.getBoundingClientRect(), out = [];
+      for (let i = 0; i < n; i++) {
+        const f = natRef.current[i]?.getBoundingClientRect(), to = yangiRef.current[i]?.getBoundingClientRect();
+        out.push(f && to ? { fx: f.left - c.left, fy: f.top - c.top, dx: to.left - f.left, dy: to.top - f.top } : null);
+      }
+      setPos(out);
+    };
+    olch(); const t1 = setTimeout(olch, 350), t2 = setTimeout(olch, 1200);
+    window.addEventListener("resize", olch);
+    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener("resize", olch); };
+  }, [arg]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!t) return <JonliMatn text={arg} progress={progress} />;
-  const n = t.qadamlar.length, bosh = 0.34, seg = (1 - bosh) / n;
-  return <span className="mdx-ish" role="img" aria-label={`${t.boshlang} = ${t.javob}`}>
-    <span className="mdx-ish-ifoda" style={kor(progress, 0)}>
-      {t.tokenlar.map((x, i) => x.t === "o"
-        ? <span key={i} className="mdx-ish-op"><i className="mdx-ish-raqam" style={kor(progress, 0.06 + (x.k / (n + 1)) * 0.24)}>{ROQAM[x.k] || x.k}</i>{x.s}</span>
-        : <span key={i} className="mdx-ish-t">{x.s}</span>)}
+  const bosh = 0.3, seg = (0.95 - bosh) / n;
+  const at = (i) => bosh + i * seg, qo = (i) => at(i) + seg * 0.62, ucha = (i) => at(i) + seg * 0.9;
+  let hol = 0; for (let i = 0; i < n; i++) if (progress >= ucha(i)) hol = i + 1;
+  const kutilgan = hol < n ? t.qadamlar[hol] : null;
+  const ishlatilmoqda = kutilgan && progress >= at(hol) + seg * 0.05;
+  const uchish = (i) => Math.min(1, Math.max(0, (progress - qo(i)) / (ucha(i) - qo(i))));
+  const oxirgiYangi = hol > 0 ? t.qadamlar[hol - 1].yangiIndeks : -1;
+  return <span className="mdx-ish" ref={ref} role="img" aria-label={`${t.boshlang} = ${t.javob}`}>
+    <span className="mdx-ish-yuqori">
+      {t.holatlar.map((h, si) => <span key={si} className="mdx-ish-ifoda" style={{ opacity: si === hol ? 1 : 0, transition: "opacity .2s" }}>
+        {h.map((x, i) => {
+          const bel = x.t === "(" ? "is-och" : x.t === ")" ? "is-yop" : "";
+          const ishl = si === hol && ishlatilmoqda && kutilgan.ishlatilgan.includes(i) ? "is-ishl" : "";
+          const yangi = si === hol && si > 0 && i === oxirgiYangi ? "is-yangi" : "";
+          const refYangi = si > 0 && i === t.qadamlar[si - 1].yangiIndeks ? (el) => { yangiRef.current[si - 1] = el; } : undefined;
+          return x.t === "o"
+            ? <span key={i} className={`mdx-ish-op ${ishl}`}><i className="mdx-ish-raqam" style={kor(progress, 0.06 + (x.k / (n + 1)) * 0.22)}>{ROQAM[x.k] || x.k}</i>{x.s}</span>
+            : <span key={i} ref={refYangi} className={`mdx-ish-t ${bel} ${ishl} ${yangi}`}>{x.s}</span>;
+        })}
+      </span>)}
+      {t.qadamlar.map((q, i) => { const p = pos[i], f = uchish(i);
+        return p && f > 0 && f < 1 ? <span key={i} className="mdx-ish-uchadi" style={{ left: p.fx, top: p.fy, transform: `translate(${p.dx * f}px, ${p.dy * f}px) scale(${0.82 + 0.18 * f})` }}>{q.natija}</span> : null; })}
     </span>
-    {t.qadamlar.map((q, i) => { const at = bosh + i * seg, oxirgi = i === n - 1;
-      return <React.Fragment key={i}>
-        <span className="mdx-ish-qadam" style={kor(progress, at)}><b>{i + 1}-ish:</b> {q.qism} = <em className="mdx-ish-natija">{q.natija}</em></span>
-        <span className={`mdx-ish-yangi ${oxirgi ? "is-javob" : ""}`} style={kor(progress, at + seg * 0.55)}>{oxirgi ? <>Javob: {q.natija}</> : q.ifoda}</span>
-      </React.Fragment>; })}
+    <span className="mdx-ish-qadamlar">
+      {t.qadamlar.map((q, i) => <span key={i} className="mdx-ish-qadam" style={kor(progress, at(i))}>
+        <b>{i + 1}-ish:</b> {q.qism} = <em className="mdx-ish-natija" ref={(el) => { natRef.current[i] = el; }} style={kor(progress, at(i) + seg * 0.4)}>{q.natija}</em>
+        <i className="mdx-ish-yoq" style={kor(progress, qo(i))}>↑</i></span>)}
+    </span>
+    <span className="mdx-ish-yakun" style={kor(progress, 0.96)}>{t.boshlang} <b>=</b> <em>{t.javob}</em></span>
   </span>;
 }
 
@@ -497,7 +533,8 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
         const ps = qator.qismProgress || qismlar.map(() => p);
         return <span className="mdx-davom">{qismlar.map((q, i) => ps[i] > 0 && <JonliMatn key={i} text={q.matn} progress={ps[i]} rang={b.tur === "qoida" ? SARIQ : undefined} />)}</span>;
       }
-      return Matn === BoardText ? <JonliMatn text={b.arg} progress={p} rang={b.tur === "qoida" ? SARIQ : undefined} /> : <JonliYoz progress={p}><Matn text={b.arg} /></JonliYoz>;
+      const ichi = Matn === BoardText ? <JonliMatn text={b.arg} progress={p} rang={b.tur === "qoida" ? SARIQ : undefined} /> : <JonliYoz progress={p}><Matn text={b.arg} /></JonliYoz>;
+      return b.tur === "qoida" ? <span className="mdx-qoida-kart">{ichi}</span> : ichi;   // QOIDA — ★ kartochka, ko'ringanda porlaydi
     }
   }
 }

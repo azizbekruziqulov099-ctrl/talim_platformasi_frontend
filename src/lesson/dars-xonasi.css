@@ -1301,15 +1301,23 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-korish-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#FFF4CC;color:#3A2E00;border-radius:8px;padding:8px 12px;margin-bottom:8px;font:600 14px/1.4 system-ui,sans-serif}
 
 /* REV587: ISH (tartibli hisob), KETMA (tenglik zanjiri), ELAK (Eratosfen g'alviri) */
-.mdx-ish{display:inline-flex;flex-direction:column;gap:6px;margin:4px 0 6px 12px;font:600 30px/1.2 "Caveat","Comic Sans MS",cursive}
-.mdx-ish-ifoda{display:flex;flex-wrap:wrap;gap:.35em;align-items:flex-end;padding-top:.9em}
-.mdx-ish-op{position:relative;display:inline-block}
+.mdx-ish{position:relative;display:inline-flex;flex-direction:column;gap:10px;margin:4px 0 6px 12px;font:600 30px/1.2 "Caveat","Comic Sans MS",cursive}
+.mdx-ish-yuqori{position:relative;display:grid;padding-top:1em}
+.mdx-ish-ifoda{grid-area:1/1;display:flex;flex-wrap:wrap;gap:.32em;align-items:flex-end}
+.mdx-ish-t.is-och{margin-right:-.3em}.mdx-ish-t.is-yop{margin-left:-.3em}
+.mdx-ish-op,.mdx-ish-t{position:relative;display:inline-block;border-radius:6px;transition:background .25s,color .25s}
 .mdx-ish-raqam{position:absolute;left:50%;top:-1em;transform:translateX(-50%);font:700 .8em/1 system-ui;font-style:normal;color:var(--dx-yellow)}
+.mdx-ish-ishl{background:rgba(247,201,72,.3)}
+.is-ishl{background:rgba(247,201,72,.32);box-shadow:0 0 0 3px rgba(247,201,72,.32)}
+.mdx-ish-t.is-yangi{color:#A8E6A1;background:rgba(168,230,161,.18);box-shadow:0 0 0 3px rgba(168,230,161,.18)}
+.mdx-ish-uchadi{position:absolute;z-index:3;color:#A8E6A1;font-weight:700;transform-origin:left top;pointer-events:none;text-shadow:0 0 8px rgba(168,230,161,.6)}
+.mdx-ish-qadamlar{display:flex;flex-direction:column;gap:4px}
 .mdx-ish-qadam{font-size:.82em;color:var(--dx-blue)}
 .mdx-ish-qadam b{color:var(--dx-yellow);font-weight:700}
 .mdx-ish-natija{font-style:normal;color:#A8E6A1;border-bottom:2px solid #A8E6A1}
-.mdx-ish-yangi{padding-left:.6em;border-left:3px solid rgba(255,255,255,.25)}
-.mdx-ish-yangi.is-javob{display:inline-block;border:2px solid #A8E6A1;border-radius:10px;padding:2px 12px;color:#A8E6A1;align-self:flex-start}
+.mdx-ish-yoq{margin-left:.3em;font-style:normal;color:#A8E6A1;font-family:system-ui}
+.mdx-ish-yakun{align-self:flex-start;border:2px solid #A8E6A1;border-radius:10px;padding:2px 12px;color:var(--dx-chalk)}
+.mdx-ish-yakun em{font-style:normal;color:#A8E6A1;font-weight:700}
 .mdx-ketma{display:inline-flex;flex-direction:column;gap:4px;margin:4px 0 6px 12px;font:600 28px/1.25 "Caveat","Comic Sans MS",cursive}
 .mdx-ketma-q i{font-style:normal;opacity:.7}
 .mdx-ketma-q.is-oxir{color:#A8E6A1}
@@ -1318,3 +1326,14 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .mdx-elak-h{display:flex;align-items:center;justify-content:center;aspect-ratio:1.2;border-radius:6px;font-style:normal;background:rgba(255,255,255,.08);transition:all .4s}
 .mdx-elak-h.is-och{opacity:.18;text-decoration:line-through}
 .mdx-elak-h.is-tub{background:#2e9e5b;color:#fff}
+/* QOIDA — «Esda tut»: kartochka, ★, ko'rinishda yorqin porlaydi */
+.mdx-qoida-kart{display:inline-block;padding:4px 14px 4px 12px;border-left:5px solid var(--dx-yellow);border-radius:4px 10px 10px 4px;background:rgba(247,201,72,.13);animation:mdx-qoida-chiq .7s ease-out both}
+.mdx-qoida-kart::before{content:"★ ";color:var(--dx-yellow)}
+@keyframes mdx-qoida-chiq{0%{opacity:0;transform:translateX(-18px) scale(.96);box-shadow:0 0 0 rgba(247,201,72,0)}55%{opacity:1;transform:none;box-shadow:0 0 22px rgba(247,201,72,.75)}100%{opacity:1;transform:none;box-shadow:0 0 0 rgba(247,201,72,0)}}
+.mdx-esda>div:last-child{animation:mdx-esda-yangi 1.4s ease-out both}
+@keyframes mdx-esda-yangi{0%{background:rgba(247,201,72,.55);transform:scale(1.04)}100%{background:transparent;transform:none}}
+
+/* REV588: ustoz chapda bo'lganda qo'li doskani to'smasin — ustoz biroz chapga, doska biroz o'ngga */
+.dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-frame{left:35%;width:52%}
+.dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-teacher{left:35%;width:52%}
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher{left:-7%}
