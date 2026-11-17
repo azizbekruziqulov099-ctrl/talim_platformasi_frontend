@@ -1391,3 +1391,31 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .mdx-amal i.is-faol{background:rgba(255,235,59,.22);border-radius:.2em}
 .mdx-amal-n{color:#69f0ae;font-weight:700}
 .mdx-amal-chiziq{height:.1em;background:currentColor;transform-origin:left;grid-column:1/-1}
+
+/* REV599: ustoz HECH QACHON kesilmaydi (chap ham, o'ng ham) — to'liq ko'rinadi, doska esa unga qaramaydi (doska joyi maktabMashqRules.SINF_JOY) */
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher{left:.5%;right:auto;height:74%;bottom:2%}
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-ong .dx-sinf-fon .us-teacher{right:.5%;left:auto;height:74%;bottom:2%}
+
+/* REV599: sarlavha kartasi ixcham — doskani to'smaydi (uzun nom bitta qatorda «…», tugmalar kichik) */
+.dx-root.dx-root.dx-sinf>.dx-head{max-width:clamp(150px,21vw,290px)!important;flex-direction:column!important;align-items:flex-start!important;gap:3px!important;padding:4px 8px!important}
+.dx-root.dx-root.dx-sinf>.dx-head h2{font-size:13px!important;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.dx-root.dx-root.dx-sinf>.dx-head>div:not(.dx-head-actions){max-width:100%;min-width:0}
+.dx-root.dx-root.dx-sinf>.dx-head p{font-size:10.5px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dx-root.dx-root.dx-sinf>.dx-head .dx-head-actions{justify-content:flex-start;gap:3px}
+.dx-root.dx-root.dx-sinf>.dx-head .dx-btn,.dx-root.dx-root.dx-sinf>.dx-head .dx-chip{font-size:10.5px!important;padding:2px 6px!important;min-height:0!important;line-height:1.3}
+
+/* REV599: telefon tik holatida tugmalar chap-o'ng qator bo'lib pastda — kichik doskani to'smaydi */
+@media (max-width:700px) and (orientation:portrait){
+  .dx-root.dx-root .dx-controls{left:6px!important;right:6px!important;width:auto!important;max-width:none!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto;gap:5px!important;padding:5px!important;border-radius:14px!important}
+  .dx-root.dx-root .dx-controls .dx-btn{flex:0 0 auto;width:auto!important;min-width:0;padding:6px 9px!important;font-size:12px!important;white-space:nowrap}
+  .dx-root.dx-root .dx-controls :is(label,select){flex:0 0 auto;font-size:11px}
+}
+
+/* REV599: arxiv doska — oddiy doska bilan bir xil yorqin yozuv; raqamlar doim ko'rinadi */
+.dx-arxiv-ich.dx-board{min-height:0;flex:1;overflow:auto;background:transparent!important;border-radius:0!important;box-shadow:none}
+.dx-arxiv-raqam{display:flex;gap:4px;flex-wrap:wrap;margin-left:6px}
+.dx-arxiv-raqam button{min-width:2em;padding:5px 8px!important}
+.dx-arxiv-raqam button.is-hozir{background:var(--dx-yellow,#f7c948)!important;color:#10243f!important}
+.dx-arxiv-bosh{flex-wrap:wrap;row-gap:6px}
+.mdx-amal-n.is-oraliq{opacity:.95}
+.mdx-amal-kop .mdx-amal-n{color:#9be7b0}

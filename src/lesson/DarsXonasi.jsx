@@ -328,7 +328,10 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   // REV313: elektron doska — to'lsa yangi sahifa (eski qatorlar oldingi sahifaga o'tadi), ◀ ▶ bilan ko'rish
   const sahifaRef = useRef(0);
   const [sahifa, setSahifa] = useState({ n: 0, korish: false });
-  const [arxiv, setArxiv] = useState(null);   // REV597: oldingi doskani to'liq yozilgan holda qayta ochish (doska indeksi)
+  const [arxiv, setArxiv] = useState(null);
+  const [arxivP, setArxivP] = useState(null);   // REV599: doskani qayta o'ynatish (0..1), null = to'liq yozilgan
+  const arxivRef = useRef(null); const arxivRaf = useRef(0);
+  useEffect(() => { const el = arxivRef.current; if (el) el.scrollTo({ top: arxivP == null ? el.scrollHeight : el.scrollHeight, behavior: arxivP == null ? "auto" : "smooth" }); }, [arxiv, arxivP]);   // REV599: oxirgi yozuvlar ko'rinadigan joyga   // REV597: oldingi doskani to'liq yozilgan holda qayta ochish (doska indeksi)
   const [doskaSon, setDoskaSon] = useState({ n: 1, jami: 1 });   // REV590: «1-doska / 2» — uzun yozuv bir necha doskaga bo'linib ko'rinadi
   // REV177: test, ovozli tekshiruv va natija — sinfxonadan chiqib, robot Kabuning o'z muhitida (ustoz yo'q, faqat Kabu)
   const darsTilRef = useRef("");   // REV180: o'rganilayotgan til (ikki Kabu va ovoz uchun)
@@ -1916,8 +1919,9 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     for (let i = d.first; i <= d.last; i++) { const cue = boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska);
       for (const q of doskaQatorlari(cue.lines)) q2.push({ key: `${steps[i].id}-${q.n}`, q: { ...q, qismProgress: q.qismlar.map(() => 1) } }); }
     const och = q2.map((x) => x.q.tur).lastIndexOf("ochir"); return (och < 0 ? q2 : q2.slice(och + 1)).filter((x) => x.q.tur !== "ochir"); };
-  const arxivOch = (k) => { setArxiv(k); korishRef.current = true; setKorish(true); };
-  const arxivYop = () => { setArxiv(null); korishRef.current = false; setKorish(false);
+  const arxivQaytaYoz = (n) => { const D = Math.max(3500, n * 2600), t0 = performance.now(); const tick = () => { const v = (performance.now() - t0) / D; if (v >= 1) { setArxivP(null); return; } setArxivP(v); arxivRaf.current = requestAnimationFrame(tick); }; cancelAnimationFrame(arxivRaf.current); setArxivP(0); arxivRaf.current = requestAnimationFrame(tick); };
+  const arxivOch = (k) => { cancelAnimationFrame(arxivRaf.current); setArxivP(null); setArxiv(k); korishRef.current = true; setKorish(true); };
+  const arxivYop = () => { cancelAnimationFrame(arxivRaf.current); setArxivP(null); setArxiv(null); korishRef.current = false; setKorish(false);
     if (pauzaRef.current && korishPauzaRef.current) { korishPauzaRef.current = false; davomQil(); }
     const el = doskaRef.current; if (el) { delete el.dataset.qolda; el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }
     if (mode === "lesson") setPlaying(true); };
@@ -2238,21 +2242,26 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
           <span>{doskaSon.n}-{__kbUi("doska")} / {doskaSon.jami}</span>
           <button type="button" aria-label={__kbUi("Keyingi doska")} disabled={doskaSon.n >= doskaSon.jami} onClick={() => { const el = doskaRef.current; if (!el) return; el.scrollTo({ top: el.scrollTop + el.clientHeight - 24, behavior: "smooth" }); }}>▼</button>
         </div>}
-        {sinfXona && !kid && mode === "lesson" && doskalar.length > 1 && !arxiv && <div className="dx-doskalar" role="toolbar" aria-label={__kbUi("Doskalar")}>
+        {sinfXona && !kid && mode === "lesson" && doskalar.length > 1 && arxiv === null && <div className="dx-doskalar" role="toolbar" aria-label={__kbUi("Doskalar")}>
           <span>{__kbUi("Doskalar")}:</span>
           {doskalar.map((d, k) => (doskalar.length > 9 && k < doskalar.length - 8 && k > 0 ? (k === 1 ? <span key={k}>…</span> : null)
             : <button key={k} type="button" className={k === doskalar.length - 1 ? "is-hozir" : ""} aria-label={`${k + 1}-${__kbUi("doska")}`} onClick={() => (k === doskalar.length - 1 ? undefined : arxivOch(k))}>{k + 1}</button>))}
         </div>}
-        {arxiv !== null && doskalar[arxiv] && <div className="dx-arxiv" role="dialog" aria-label={`${arxiv + 1}-${__kbUi("doska")}`}>
+        {arxiv !== null && doskalar[arxiv] && (() => { const aq = arxivQatorlari(doskalar[arxiv]); const n = Math.max(1, aq.length);
+          const cl = (v) => Math.max(0, Math.min(1, v));
+          const lp = (k) => (arxivP == null ? 1 : cl(arxivP * n - k));
+          return <div className="dx-arxiv" role="dialog" aria-label={`${arxiv + 1}-${__kbUi("doska")}`}>
           <div className="dx-arxiv-bosh">
-            <button type="button" disabled={arxiv <= 0} onClick={() => setArxiv(arxiv - 1)} aria-label={__kbUi("Oldingi doska")}>◀</button>
+            <button type="button" disabled={arxiv <= 0} onClick={() => arxivOch(arxiv - 1)} aria-label={__kbUi("Oldingi doska")}>◀</button>
             <b>{arxiv + 1}-{__kbUi("doska")} / {doskalar.length}</b>
-            <button type="button" disabled={arxiv >= doskalar.length - 2} onClick={() => setArxiv(arxiv + 1)} aria-label={__kbUi("Keyingi doska")}>▶</button>
+            <button type="button" disabled={arxiv >= doskalar.length - 2} onClick={() => arxivOch(arxiv + 1)} aria-label={__kbUi("Keyingi doska")}>▶</button>
+            <span className="dx-arxiv-raqam">{doskalar.map((d, k) => <button key={k} type="button" className={k === arxiv ? "is-hozir" : ""} onClick={() => (k === doskalar.length - 1 ? arxivYop() : arxivOch(k))} aria-label={`${k + 1}-${__kbUi("doska")}`}>{k + 1}</button>)}</span>
             <span className="dx-arxiv-bosh-bosh" />
+            <button type="button" onClick={() => (arxivP == null ? arxivQaytaYoz(aq.length) : setArxivP(null))}>{arxivP == null ? "↻ " + __kbUi("Qayta o‘yna") : "⏭ " + __kbUi("Oxirigacha")}</button>
             <button type="button" className="dx-arxiv-davom" onClick={arxivYop}>▶ {__kbUi("Darsni davom ettir")}</button>
           </div>
-          <div className="dx-arxiv-ich mdx-board">{arxivQatorlari(doskalar[arxiv]).map((x) => <div key={x.key} className="dx-line mdx-line"><MatQator qator={x.q} progress={1} /></div>)}</div>
-        </div>}
+          <div className="dx-arxiv-ich dx-board mdx-board" ref={arxivRef}>{aq.map((x, k) => <div key={x.key} className="dx-line mdx-line"><MatQator qator={{ ...x.q, qismProgress: x.q.qismlar.map((_, j) => (arxivP == null ? 1 : cl(lp(k) * x.q.qismlar.length - j))) }} progress={lp(k)} /></div>)}</div>
+        </div>; })()}
         <div className="dx-ledge" aria-hidden="true" />
         {sinfXona && !kid && !kabuMuhit && <><PanelSoat /><div className="dx-tayanch" aria-hidden="true"><i /><i /><u /><b /><s /><s /></div></>}
       </div>
@@ -2354,6 +2363,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       {!kid && mode !== "test" && <button type="button" className="dx-btn" disabled={idx <= 0 || mode !== "lesson"} onClick={() => { setPlaying(false); go(idx - 1, false); }}>{__kbUi("‹ Oldingi")}</button>}
       {/* REV469: qadam tugab, o'zi davom etmasa — «Keyingi» yonib turadi */}
       {!kid && mode !== "test" && <button type="button" className={`dx-btn ${mode === "lesson" && stepFinished && !speaking ? "is-keyingi-tayyor" : ""}`} disabled={mode !== "lesson"} onClick={() => go(idx + 1)}>{__kbUi("Keyingi ›")}</button>}
+      {!kid && mode === "lesson" && matem && (() => { const j = (steps || []).findIndex((x, i) => i > idx && /^bilim:/i.test(String(x.sarlavha || ""))); const hozir = (steps || []).slice(0, idx + 1).some((x) => /^bilim\+?:/i.test(String(x.sarlavha || "")));
+        return hozir && j > idx ? <button type="button" className="dx-btn dx-otkaz" title={__kbUi("Bu bilimni bilsangiz — keyingisiga o‘tasiz")} onClick={() => { hush(); go(j); }}>{__kbUi("⏭ Bilaman, keyingi bilim")}</button> : null; })()}
       <button type="button" className="dx-btn" disabled={!step && !variant} onClick={() => { if (variant) { say(variant.ovoz); return; } if (step) { setStepFinished(false); say(boardCues(step.doska, step.ovoz || step.doska).spoken || step.doska, () => setStepFinished(true)); } }}>{kid ? <KidIcon icon="🔁" label="Yana ayt" /> : __kbUi("↻ Qayta ayt")}</button>
       {mode !== "test" && <button type="button" className="dx-btn dx-help" disabled={mode !== "lesson"} onClick={dunno}>{kid ? <KidIcon icon="🙋" label="Tushuntir" /> : __kbUi("Tushunmadim")}</button>}
       {sinfXona && !kabuMuhit && <button type="button" className={`dx-btn dx-savol-btn ${savolOchiq ? "is-on" : ""}`} aria-pressed={savolOchiq} onClick={() => setSavolOchiq((x) => !x)}>❓ {__kbUi("Savol berish")}</button>}

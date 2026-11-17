@@ -94,6 +94,7 @@ function Ustun({ arg, progress }) {
 function Amal({ arg, progress, qismProgress }) {
   const t = amalTahlil(arg);
   if (!t) return <JonliMatn text={arg} progress={progress} />;
+  if (t.op === "×") return <AmalKop t={t} progress={progress} qismProgress={qismProgress} />;
   const W = t.W, n = t.qadamlar.length;
   const ps = qismProgress && qismProgress.length ? qismProgress : null;
   const sp = (k) => (ps ? (ps[k] ?? 0) : kesim((progress - k / (n + 1)) * (n + 1)));   // k-qism progressi
@@ -116,6 +117,37 @@ function Amal({ arg, progress, qismProgress }) {
     <span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}`, transform: `scaleX(${kesim(sp(0) * 1.2 - 0.2)})` }} />
     {/* natija */}
     <i />{cols.map((c) => { const q = t.qadamlar[c]; const v = cell(t.natija, c); const ko = q && sp(c + 1) >= 0.6; return <i key={c} className={`mdx-amal-n ${faol === c ? "is-faol" : ""}`} style={{ opacity: ko ? 1 : 0, transition: "opacity .25s" }}>{v || " "}</i>; })}
+  </span>;
+}
+
+function AmalKop({ t, progress, qismProgress }) {
+  const n = t.qadamlar.length, W = t.W;
+  const ps = qismProgress && qismProgress.length ? qismProgress : null;
+  const sp = (k) => (ps ? (ps[k] ?? 0) : kesim((progress - k / (n + 1)) * (n + 1)));
+  const cols = Array.from({ length: W }, (_, j) => W - 1 - j);
+  const cell = (str, c) => str[str.length - 1 - c] ?? "";
+  const faolI = t.qadamlar.findIndex((q, i) => sp(i + 1) > 0 && sp(i + 1) < 1);
+  const last = (() => { let k = -1; t.qadamlar.forEach((q, i) => { if (sp(i + 1) > 0.05) k = i; }); return k; })();
+  const fq = faolI >= 0 ? t.qadamlar[faolI] : null;
+  // yodda raqami: oxirgi boshlangan xona qadamining ko'chishi, keyingi xona tepasida
+  const eq = last >= 0 ? t.qadamlar[last] : null;
+  const yoddaCol = eq && eq.tur === "xona" && eq.carry && sp(last + 1) >= 0.5 ? eq.i + 1 : -1;
+  const yoddaV = yoddaCol >= 0 ? String(eq.carry) : "";
+  const qatorQadam = (r) => t.qadamlar.map((q, i) => ({ q, i })).filter((x) => x.q.r === r && x.q.tur !== "yig");
+  const grid = { gridTemplateColumns: `1ch repeat(${W}, 1.6ch)` };
+  const yigOch = t.kop && sp(n) >= 0.5;
+  return <span className="mdx-amal mdx-amal-kop" role="img" aria-label={`${t.a} × ${t.b} = ${t.natija}`} style={grid}>
+    <i />{cols.map((c) => <i key={c} className="mdx-amal-eslab" style={{ opacity: c === yoddaCol ? 1 : 0 }}>{c === yoddaCol ? yoddaV : " "}</i>)}
+    <i />{cols.map((c) => <i key={c} className={`mdx-amal-a ${fq && fq.tur !== "yig" && fq.i === c ? "is-faol" : ""}`}>{cell(t.a, c) || " "}</i>)}
+    <i className="mdx-amal-op">×</i>{cols.map((c) => <i key={c} className={`mdx-amal-b ${fq && fq.r === c ? "is-faol" : ""}`}>{cell(t.b, c) || " "}</i>)}
+    <span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}` }} />
+    {t.qatorlar.map((row) => { const qs = qatorQadam(row.r);
+      return <React.Fragment key={row.r}><i />{cols.map((c) => { const raq = row.raq.find((x) => x.col === c); const q = qs.find((x) => x.q.col === c);
+        const sur = qs.length && c < row.r && sp(qs[0].i + 1) > 0.05 && row.mb !== 0;   // surilgan nollar
+        const ko = (raq && q && sp(q.i + 1) >= 0.6) || sur;
+        return <i key={c} className={`mdx-amal-n ${q && faolI === q.i ? "is-faol" : ""} ${t.kop ? "is-oraliq" : ""}`} style={{ opacity: ko ? 1 : 0, transition: "opacity .25s" }}>{sur && !raq ? "0" : raq ? raq.v : " "}</i>; })}</React.Fragment>; })}
+    {t.kop && <><span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}`, transform: `scaleX(${kesim(sp(n) * 2)})` }} />
+      <i />{cols.map((c) => <i key={c} className="mdx-amal-n" style={{ opacity: yigOch ? 1 : 0, transition: "opacity .25s" }}>{cell(t.natija, c) || " "}</i>)}</>}
   </span>;
 }
 
@@ -537,7 +569,9 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
   const p = kesim(progress);
   switch (b.tur) {
     case "ustun": return <Ustun arg={b.arg} progress={p} />;
-    case "amal": return <Amal arg={qator.qismlar?.[0]?.matn ?? b.arg} progress={p} qismProgress={qator.qismProgress} />;
+    case "amal": { const ar = qator.qismlar?.[0]?.matn ?? b.arg; const ps = qator.qismProgress;
+      if (/[:÷]/.test(ar)) { const bt = bolishTahlil(ar); const nb = Math.max(1, bt ? bt.qadamlar.length : 1); const sum = ps ? ps.slice(1).reduce((x, y) => x + y, 0) : p * nb; return <Bolish arg={ar} progress={ps ? (ps[0] < 1 ? ps[0] * 0.15 : Math.min(1, 0.15 + 0.8 * sum / nb)) : p} />; }
+      return <Amal arg={ar} progress={p} qismProgress={ps} />; }
     case "ish": return <Ish arg={b.arg} progress={p} />;
     case "ketma": return <Ketma arg={b.arg} progress={p} />;
     case "elak": return <Elak arg={b.arg} progress={p} />;

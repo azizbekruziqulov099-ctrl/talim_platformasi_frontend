@@ -450,6 +450,8 @@ export function elakTahlil(arg) {
 // ── AMAL: qo'shish / ayirish — xona-xona (qadam-baqadam, ovozga mos); ayirishda qarz olingan raqam o'chiriladi, yangisi yoziladi ──
 /** «25+27» / «6240-3857» → {a, b, op, W, qadamlar:[{col, da, db, res, yodda, mods:[{col, eski, yangi}], qarz}], natija}. Boshqa amal — null. */
 export function amalTahlil(arg) {
+  const mm = String(arg || "").replace(/\s+/g, "").match(/^(\d{1,9})[×x*·](\d{1,9})$/);
+  if (mm) return amalKopaytirish(mm[1], mm[2]);
   const m = String(arg || "").replace(/\s+/g, "").match(/^(\d{1,9})([+\-−])(\d{1,9})$/);
   if (!m) return null;
   const a = m[1], b = m[3], op = m[2] === "+" ? "+" : "−";
@@ -475,4 +477,24 @@ export function amalTahlil(arg) {
   const natija = (op === "+" ? BigInt(a) + BigInt(b) : BigInt(a) - BigInt(b)).toString();
   if (op === "−") qadamlar.length = Math.min(qadamlar.length, natija.length);   // bosh nollar uchun qadam yo'q
   return { a, b, op, W: Math.max(n, natija.length), qadamlar, natija };
+}
+
+/** Ko'paytirish: ko'paytuvchining har raqami (o'ngdan) uchun alohida qator; har xona — alohida qadam. */
+function amalKopaytirish(a, b) {
+  const natija = (BigInt(a) * BigInt(b)).toString();
+  const qadamlar = []; const qatorlar = [];
+  [...b].reverse().forEach((ch, r) => {
+    const mb = Number(ch); const row = { r, mb, raq: [] }; let c = 0;
+    if (mb === 0) { row.raq.push({ col: r, v: "0" }); qadamlar.push({ tur: "nol", r, mb, col: r, res: 0, kirdi: 0, carry: 0, sur: r }); qatorlar.push(row); return; }
+    for (let i = 0; i < a.length; i++) {
+      const da = Number(a[a.length - 1 - i]); const x = da * mb + c; const res = x % 10; const carry = Math.floor(x / 10);
+      qadamlar.push({ tur: "xona", r, mb, i, da, kirdi: c, x, res, carry, col: i + r, sur: i === 0 ? r : 0 });
+      row.raq.push({ col: i + r, v: String(res) }); c = carry;
+    }
+    if (c) { qadamlar.push({ tur: "oxir", r, mb, i: a.length, kirdi: c, x: c, res: c, carry: 0, col: a.length + r, sur: 0 }); row.raq.push({ col: a.length + r, v: String(c) }); }
+    qatorlar.push(row);
+  });
+  const kop = qatorlar.length > 1;
+  if (kop) qadamlar.push({ tur: "yig", col: 0, res: 0 });
+  return { op: "×", a, b, natija, W: Math.max(natija.length, a.length + b.length - 1), qadamlar, qatorlar, kop };
 }

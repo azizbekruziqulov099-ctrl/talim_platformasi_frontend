@@ -89,9 +89,9 @@ export const SINF_JOY = {
   // REV386: soat — elektron panelning burchagida (raqamli), devor soati to'silsa ham bo'ladi; deraza ochiq qoladi.
   // Doska kattaroq: chapga, o'ngga, pastga; tagida oyoqli tayanch.
   til: { ustoz: "ong", doska: { l: 34, t: 3, w: 46, h: 76 } },          // deraza chapda (ochiq), ustoz o'ngda
-  onatili: { ustoz: "chap", doska: { l: 20, t: 2, w: 49, h: 77 } },     // deraza o'ngda (ochiq)
-  atrofolam: { ustoz: "chap", doska: { l: 20, t: 2, w: 68.5, h: 77 } },   // deraza o'ng chekkada (ochiq)
-  matematika: { ustoz: "chap", doska: { l: 20, t: 2, w: 70, h: 77 } },    // deraza chap chekkada (ochiq)
+  onatili: { ustoz: "chap", doska: { l: 24, t: 2, w: 47, h: 77 } },     // deraza o'ngda (ochiq)
+  atrofolam: { ustoz: "chap", doska: { l: 24, t: 2, w: 64.5, h: 77 } },   // deraza o'ng chekkada (ochiq)
+  matematika: { ustoz: "chap", doska: { l: 24, t: 2, w: 66, h: 77 } },    // deraza chap chekkada (ochiq)
 };
 /** REV181: juft — ikki ustoz (doskaning ikki yonida): doska ular orasidagi butun joyni egallaydi (19%–81%). */
 export function sinfJoyi(xonaKey = "", { juft = false } = {}) {
