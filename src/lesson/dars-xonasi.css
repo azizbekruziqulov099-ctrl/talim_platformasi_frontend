@@ -1337,3 +1337,8 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-frame{left:35%;width:52%}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-teacher{left:35%;width:52%}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher{left:-7%}
+
+/* REV589: ustoz qo'li doskaga tegmasin — doska yana o'ngga */
+.dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-frame{left:39%;width:50%}
+.dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-teacher{left:39%;width:50%}
+.dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher{left:-10%}

@@ -1927,7 +1927,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
 
     <div className="dx-room">
       {sinfXona && !kabuMuhit && <div className="dx-sinf-fon" aria-hidden="true">
-        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={!kid && (doskaYoz || yozVaqt) && !ikkinchi ? "yozadi" : kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
+        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
       </div>}
       {kabuMuhit && <div className={`dx-kabu-fon ${kabuJuftMuhit ? "is-juft" : ""}`} aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
         {kabuJuftMuhit ? <>

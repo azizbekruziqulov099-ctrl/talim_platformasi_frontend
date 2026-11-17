@@ -143,7 +143,7 @@ function SonOqi({ arg, progress }) {
     <path pathLength="1" d={`M${x0 - 14} 34 H${x1 + 16}`} stroke={CHALK} strokeWidth="2.4" fill="none" style={chiz(progress, 0, 0.35)} />
     <path pathLength="1" d={`M${x1 + 6} 28 L${x1 + 16} 34 L${x1 + 6} 40`} stroke={CHALK} strokeWidth="2.4" fill="none" style={chiz(progress, 0.33, 0.38)} />
     {belgilar.map((v, i) => { const at = 0.35 + (i / belgilar.length) * 0.35; return <g key={v} style={kor(progress, at)}>
-      <path d={`M${X(v)} 28 V40`} stroke={CHALK} strokeWidth="2" /><text x={X(v)} y="60" textAnchor="middle" fill={CHALK} fontSize="16">{v}</text></g>; })}
+      <path d={`M${X(v)} 28 V40`} stroke={CHALK} strokeWidth="2" />{(i % Math.max(1, Math.ceil(belgilar.length / 12)) === 0 || t.nuqtalar.some((n) => n.x === v)) && <text x={X(v)} y="60" textAnchor="middle" fill={CHALK} fontSize="16">{v}</text>}</g>; })}
     {t.nuqtalar.map((n, i) => <g key={i} style={kor(progress, 0.75 + (i / Math.max(1, t.nuqtalar.length)) * 0.2)}>
       <circle cx={X(n.x)} cy="34" r="6" fill={SARIQ} /><text x={X(n.x)} y="18" textAnchor="middle" fill={SARIQ} fontSize="17" fontWeight="700">{n.yorliq}</text></g>)}
   </svg>;
