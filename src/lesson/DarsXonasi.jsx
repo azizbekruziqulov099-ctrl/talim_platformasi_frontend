@@ -327,6 +327,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   // REV313: elektron doska — to'lsa yangi sahifa (eski qatorlar oldingi sahifaga o'tadi), ◀ ▶ bilan ko'rish
   const sahifaRef = useRef(0);
   const [sahifa, setSahifa] = useState({ n: 0, korish: false });
+  const [doskaSon, setDoskaSon] = useState({ n: 1, jami: 1 });   // REV590: «1-doska / 2» — uzun yozuv bir necha doskaga bo'linib ko'rinadi
   // REV177: test, ovozli tekshiruv va natija — sinfxonadan chiqib, robot Kabuning o'z muhitida (ustoz yo'q, faqat Kabu)
   const darsTilRef = useRef("");   // REV180: o'rganilayotgan til (ikki Kabu va ovoz uchun)
   const kabuMuhit = sinfXona && ["test", "ovoz", "result"].includes(mode);
@@ -1572,17 +1573,26 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       setTimeout(() => { const uzoq = el.scrollHeight - el.clientHeight - el.scrollTop > 60; if (uzoq && !korishRef.current) { korishRef.current = true; setKorish(true); } }, 220);
     };
     el.addEventListener("wheel", qolda, { passive: true }); el.addEventListener("touchmove", qolda, { passive: true });
+    const doskaHisob = () => {
+      const h = Math.max(1, el.clientHeight);
+      const jami = Math.max(1, Math.ceil((el.scrollHeight - 8) / h));
+      const n = Math.min(jami, Math.max(1, Math.round(el.scrollTop / h) + 1));
+      setDoskaSon((x) => (x.n === n && x.jami === jami ? x : { n, jami }));
+    };
+    el.addEventListener("scroll", doskaHisob, { passive: true });
+    const sigdir0 = sigdir; // eslint-disable-line no-unused-vars
     sigdir();
+    doskaHisob();
     const t = setTimeout(sigdir, 450);   // rasmlar yuklangach qayta o'lchanadi
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(sigdir) : null;
     ro?.observe(el);
     // REV177: doska ichi o'zgarsa ham (ovozli tekshiruvda keyingi so'z, test javobi, yozuv animatsiyasi) — qayta sig'diriladi;
     // doska hech qachon pastga cho'zilmaydi va aylantirish (scroll) chiqmaydi
     let kut = 0;
-    const mo = typeof MutationObserver !== "undefined" ? new MutationObserver(() => { cancelAnimationFrame(kut); kut = requestAnimationFrame(sigdir); }) : null;
+    const mo = typeof MutationObserver !== "undefined" ? new MutationObserver(() => { cancelAnimationFrame(kut); kut = requestAnimationFrame(() => { sigdir(); doskaHisob(); }); }) : null;
     mo?.observe(el, { childList: true, subtree: true, characterData: true });
     el.querySelectorAll("img").forEach((im) => { if (!im.complete) im.addEventListener("load", sigdir, { once: true }); });
-    return () => { clearTimeout(t); clearTimeout(qolT); el.removeEventListener("wheel", qolda); el.removeEventListener("touchmove", qolda); ro?.disconnect(); mo?.disconnect(); cancelAnimationFrame(kut); };
+    return () => { clearTimeout(t); clearTimeout(qolT); el.removeEventListener("scroll", doskaHisob); el.removeEventListener("wheel", qolda); el.removeEventListener("touchmove", qolda); ro?.disconnect(); mo?.disconnect(); cancelAnimationFrame(kut); };
   }, [sinfXona, idx, mode, testIndex, picked, variant, yotiq, tanlov]); // eslint-disable-line react-hooks/exhaustive-deps
   // REV415: dars sahifasi ko'rinmay qolsa (boshqa bo'limga o'tilgan, lekin dars yopilmagan) — saytning menyu va tugmalari
   // yashirin qolib ketmasin: «butun ekran» belgisi faqat dars haqiqatan ko'rinib turganda qo'yiladi.
@@ -2201,6 +2211,11 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
           <span className="dx-pa-bosh" />
           <button type="button" className="dx-pa-t dx-pa-yoz" aria-label={__kbUi("Javob yozish")} title={__kbUi("Javob yozish")} onClick={() => doskaRef.current?.querySelector(".dx-javob-quti")?.click()}
             hidden={!(step && step.turi === "amaliy")}>✏️ {__kbUi("Yozish")}</button>
+        </div>}
+        {sinfXona && !kid && mode === "lesson" && doskaSon.jami > 1 && <div className="dx-doska-son" role="toolbar" aria-label={__kbUi("Doskalar")}>
+          <button type="button" aria-label={__kbUi("Oldingi doska")} disabled={doskaSon.n <= 1} onClick={() => { const el = doskaRef.current; if (!el) return; el.dataset.qolda = "1"; korishRef.current = true; setKorish(true); el.scrollTo({ top: Math.max(0, el.scrollTop - el.clientHeight + 24), behavior: "smooth" }); }}>▲</button>
+          <span>{doskaSon.n}-{__kbUi("doska")} / {doskaSon.jami}</span>
+          <button type="button" aria-label={__kbUi("Keyingi doska")} disabled={doskaSon.n >= doskaSon.jami} onClick={() => { const el = doskaRef.current; if (!el) return; el.scrollTo({ top: el.scrollTop + el.clientHeight - 24, behavior: "smooth" }); }}>▼</button>
         </div>}
         <div className="dx-ledge" aria-hidden="true" />
         {sinfXona && !kid && !kabuMuhit && <><PanelSoat /><div className="dx-tayanch" aria-hidden="true"><i /><i /><u /><b /><s /><s /></div></>}

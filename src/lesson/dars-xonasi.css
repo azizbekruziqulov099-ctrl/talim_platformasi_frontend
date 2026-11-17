@@ -1342,3 +1342,8 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-frame{left:39%;width:50%}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz):not(.dx-ustoz-ong) .dx-teacher{left:39%;width:50%}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher{left:-10%}
+
+/* REV590: «1-doska / 2» — uzun yozuv doskalarga bo'lingan, ▲▼ bilan orqaga/oldinga */
+.dx-doska-son{position:absolute;right:2.2%;top:1.6%;z-index:6;display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;background:rgba(10,24,48,.82);border:1px solid rgba(247,201,72,.6);color:#fff;font:700 clamp(10px,1.5cqw,14px)/1 system-ui,sans-serif}
+.dx-doska-son button{border:0;background:rgba(247,201,72,.9);color:#10243f;border-radius:50%;width:2.2em;height:2.2em;cursor:pointer;font-size:.9em;line-height:1}
+.dx-doska-son button:disabled{opacity:.35;cursor:default}
