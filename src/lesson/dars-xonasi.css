@@ -1302,8 +1302,10 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 
 /* REV587: ISH (tartibli hisob), KETMA (tenglik zanjiri), ELAK (Eratosfen g'alviri) */
 .mdx-ish{position:relative;display:inline-flex;flex-direction:column;gap:10px;margin:4px 0 6px 12px;font:600 30px/1.2 "Caveat","Comic Sans MS",cursive}
-.mdx-ish-yuqori{position:relative;display:grid;padding-top:1em}
-.mdx-ish-ifoda{grid-area:1/1;display:flex;flex-wrap:wrap;gap:.32em;align-items:flex-end}
+.mdx-ish-yuqori{position:relative;display:flex;flex-direction:column;gap:.15em;padding-top:.2em}
+.mdx-ish-ifoda{display:flex;flex-wrap:wrap;gap:.32em;align-items:flex-end;padding-top:1em}
+.mdx-ish-teng{font-style:normal;color:var(--dx-yellow);margin-right:.1em}
+.mdx-ish-raqam.is-nat{color:#A8E6A1}
 .mdx-ish-t.is-och{margin-right:-.3em}.mdx-ish-t.is-yop{margin-left:-.3em}
 .mdx-ish-op,.mdx-ish-t{position:relative;display:inline-block;border-radius:6px;transition:background .25s,color .25s}
 .mdx-ish-raqam{position:absolute;left:50%;top:-1em;transform:translateX(-50%);font:700 .8em/1 system-ui;font-style:normal;color:var(--dx-yellow)}
@@ -1347,3 +1349,6 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-doska-son{position:absolute;right:2.2%;top:1.6%;z-index:6;display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;background:rgba(10,24,48,.82);border:1px solid rgba(247,201,72,.6);color:#fff;font:700 clamp(10px,1.5cqw,14px)/1 system-ui,sans-serif}
 .dx-doska-son button{border:0;background:rgba(247,201,72,.9);color:#10243f;border-radius:50%;width:2.2em;height:2.2em;cursor:pointer;font-size:.9em;line-height:1}
 .dx-doska-son button:disabled{opacity:.35;cursor:default}
+
+/* REV591: savol chiqqanda «Esda tut» qutisi variantlarni to'smasin — yuqorida oddiy qator bo'lib turadi */
+.mdx-board:has(.dx-opts) .mdx-esda{position:static;max-width:none;margin:0 0 8px;font-size:17px;max-height:6.5em;overflow:auto}

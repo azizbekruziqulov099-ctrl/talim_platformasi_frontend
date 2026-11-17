@@ -452,18 +452,18 @@ function Ish({ arg, progress }) {
   const kutilgan = hol < n ? t.qadamlar[hol] : null;
   const ishlatilmoqda = kutilgan && progress >= at(hol) + seg * 0.05;
   const uchish = (i) => Math.min(1, Math.max(0, (progress - qo(i)) / (ucha(i) - qo(i))));
-  const oxirgiYangi = hol > 0 ? t.qadamlar[hol - 1].yangiIndeks : -1;
   return <span className="mdx-ish" ref={ref} role="img" aria-label={`${t.boshlang} = ${t.javob}`}>
     <span className="mdx-ish-yuqori">
-      {t.holatlar.map((h, si) => <span key={si} className="mdx-ish-ifoda" style={{ opacity: si === hol ? 1 : 0, transition: "opacity .2s" }}>
+      {t.holatlar.map((h, si) => <span key={si} className="mdx-ish-ifoda" style={{ opacity: si <= hol ? 1 : 0, transition: "opacity .35s" }}>
+        {si > 0 && <i className="mdx-ish-teng">=</i>}
         {h.map((x, i) => {
           const bel = x.t === "(" ? "is-och" : x.t === ")" ? "is-yop" : "";
           const ishl = si === hol && ishlatilmoqda && kutilgan.ishlatilgan.includes(i) ? "is-ishl" : "";
-          const yangi = si === hol && si > 0 && i === oxirgiYangi ? "is-yangi" : "";
+          const yangi = si > 0 && i === t.qadamlar[si - 1].yangiIndeks ? "is-yangi" : "";
           const refYangi = si > 0 && i === t.qadamlar[si - 1].yangiIndeks ? (el) => { yangiRef.current[si - 1] = el; } : undefined;
           return x.t === "o"
             ? <span key={i} className={`mdx-ish-op ${ishl}`}><i className="mdx-ish-raqam" style={kor(progress, 0.06 + (x.k / (n + 1)) * 0.22)}>{ROQAM[x.k] || x.k}</i>{x.s}</span>
-            : <span key={i} ref={refYangi} className={`mdx-ish-t ${bel} ${ishl} ${yangi}`}>{x.s}</span>;
+            : <span key={i} ref={refYangi} className={`mdx-ish-t ${bel} ${ishl} ${yangi}`}>{yangi && <i className="mdx-ish-raqam is-nat">{ROQAM[si] || si}</i>}{x.s}</span>;
         })}
       </span>)}
       {t.qadamlar.map((q, i) => { const p = pos[i], f = uchish(i);
