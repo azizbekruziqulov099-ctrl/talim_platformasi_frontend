@@ -540,9 +540,15 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
 }
 
 /** «Esda tut» burchagi — darsdagi QOIDA qatorlari doskada o'chmay turadi. */
-export function EsdaTut({ qoidalar, sarlavha = "Esda tut" }) {
-  if (!qoidalar?.length) return null;
-  return <aside className="mdx-esda" aria-label={sarlavha}><b>{sarlavha}</b>{qoidalar.map((q, i) => <div key={i}><BoardText text={q} /></div>)}</aside>;
+export function EsdaTut({ qoidalar, eski = [], sarlavha = "Esda tut" }) {
+  const [och, setOch] = React.useState(false);
+  if (!qoidalar?.length && !eski?.length) return null;
+  return <aside className="mdx-esda" aria-label={sarlavha}><b>{sarlavha}</b>
+    {qoidalar?.map((q, i) => <div key={i}><BoardText text={q} /></div>)}
+    {eski?.length > 0 && <>
+      <button type="button" className="mdx-esda-eski" onClick={() => setOch((x) => !x)} aria-expanded={och}>{och ? "▾" : "▸"} Oldingi bilimlar ({eski.length})</button>
+      {och && eski.map((q, i) => <div key={`e${i}`} className="mdx-esda-e"><BoardText text={q} /></div>)}</>}
+  </aside>;
 }
 
 /** Latta bilan o'chirish — OCHIR qatoriga yetganda doska tozalanadi. */

@@ -324,6 +324,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const doskaRef = useRef(null);
   const [korish, setKorish] = useState(false);   // o'quvchi doskani qo'lda tepaga surib ko'ryapti
   const korishRef = useRef(false);
+  const pauzaRef = useRef(false), korishPauzaRef = useRef(false);   // REV596: qorovul pauzada dars o'zi davom etmasin; eski doskani ko'rganda dars to'xtaydi
   // REV313: elektron doska — to'lsa yangi sahifa (eski qatorlar oldingi sahifaga o'tadi), ◀ ▶ bilan ko'rish
   const sahifaRef = useRef(0);
   const [sahifa, setSahifa] = useState({ n: 0, korish: false });
@@ -622,8 +623,9 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     setSpeaking(true);
     // REV292: qorovul — telefon ovoz tugaganini bildirmay qolsa ham (avtoplay bloki, uzilgan tarmoq) dars TO'XTAB QOLMAYDI
     let bitdi = false;
-    let qorovul = setTimeout(() => { if (!bitdi && my === tokenRef.current && playingRef.current) finish(); },
-      Math.min(60000, 6000 + clean.length * 110 / Math.max(0.5, rateRef.current || 1)));
+    // REV596: pauzada (yoki eski doska ko'rilayotganda) qorovul gapni «tugatmaydi» — pauza bosilsa dars o'zi davom etib ketmasin
+    const qorovulKut = () => { if (bitdi || my !== tokenRef.current || !playingRef.current) return; if (pauzaRef.current) { qorovul = setTimeout(qorovulKut, 4000); return; } finish(); };
+    let qorovul = setTimeout(qorovulKut, Math.min(60000, 6000 + clean.length * 110 / Math.max(0.5, rateRef.current || 1)));
     const finish = () => { if (my !== tokenRef.current || bitdi) return; bitdi = true; clearTimeout(qorovul); clearTimeout(sozTimer.current); aralashRef.current = null; setSpeaking(false); setWord(-1); audioRef.current = null; lipRef.current = null; fallbackTalk.current = false; done?.(); };
     // REV180: Kabu muhitida (test, ovozli tekshiruv) — ikki Kabu: izoh qismi birinchi Kabu ovozida, o'rganilayotgan til qismi —
     // ikkinchi Kabu (o'sha til egasi) ovozida; kim gapirsa o'sha kattalashadi
@@ -1069,13 +1071,18 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const pauzaQil = () => {
     const c = aralashRef.current;
     if (c?.pause) c.pause(); else { try { audioRef.current?.pause(); } catch { /* */ } }
-    setPauza(true);
+    pauzaRef.current = true; setPauza(true);
   };
   const davomQil = () => {
     const c = aralashRef.current;
     if (c?.resume) c.resume(); else { try { audioRef.current?.play()?.catch?.(() => {}); } catch { /* */ } }
-    setPauza(false);
+    pauzaRef.current = false; setPauza(false);
   };
+  // REV596: o'quvchi oldingi doskani ko'rayotganda dars to'xtaydi — joyiga qaytmaguncha davom etmaydi
+  useEffect(() => {
+    if (korish && playingRef.current && !pauzaRef.current && mode === "lesson") { korishPauzaRef.current = true; pauzaQil(); }
+    if (!korish && korishPauzaRef.current) { korishPauzaRef.current = false; if (pauzaRef.current) davomQil(); }
+  }, [korish]); // eslint-disable-line react-hooks/exhaustive-deps
   const izohTili = () => [...new Set([izTilU, darsTil, "uz"])];
   const izohAyt = (e) => {
     try { izohCtl.current?.stop(); } catch { /* */ }
@@ -1952,6 +1959,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
           <span>{__kbUi("Tushunmagan joylaringni ko‘ryapsanmi? Tayyor bo‘lsang, darsni davom ettiramiz.")}</span>
           <button type="button" className="dx-btn dx-primary" onClick={() => {
             korishRef.current = false; setKorish(false);
+            if (pauzaRef.current && korishPauzaRef.current) { korishPauzaRef.current = false; davomQil(); }
             const el = doskaRef.current;
             if (el) { delete el.dataset.qolda; el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }
             if (mode === "lesson") setPlaying(true);   // to'xtab qolgan bo'lsa — qolgan joyidan yozib davom etadi
@@ -1978,7 +1986,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
               onSay={(t) => say(t)}
               onNatija={() => { const my = oyinQ.stepIdx; setOyinQ(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }} />
           </div>}
-          {matem && mode === "lesson" && <EsdaTut qoidalar={esdaTut(steps, stepFinished || !speaking ? idx : idx - 1)} sarlavha={__kbUi("Esda tut")} />}
+          {matem && mode === "lesson" && <EsdaTut {...esdaTut(steps, stepFinished || !speaking ? idx : idx - 1)} sarlavha={__kbUi("Esda tut")} />}
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan, uiLocale)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havoYashir={Boolean(tanlov && tanlov.stepIdx === idx && !tanlov.tugadi)} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish) && !(tanlov && tanlov.stepIdx === idx)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
             onDetal={(d) => { if (speakingRef.current) return; const m = d.matn?.[tIzoh] || d.matn?.uz || ""; if (m) say(tIzoh === "uz" ? m : izohTeg(m, tIzoh)); }} />

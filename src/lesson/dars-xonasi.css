@@ -1360,3 +1360,12 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .mdx-iv-op i{position:absolute;top:0;left:50%;transform:translateX(-50%);font:700 .8em/1 system-ui,sans-serif;font-style:normal;color:var(--dx-yellow)}
 .mdx-ish-ifoda{gap:.62em}
 .mdx-ish-raqam{font-size:.62em}
+
+/* REV596: Esda tut — oldingi bilimlar yig'ilgan, qayta ochiladi */
+.mdx-esda-eski{display:block;margin:6px 0 2px;padding:3px 8px;border:1px solid rgba(247,201,72,.5);border-radius:999px;background:transparent;color:var(--dx-yellow);font:700 14px system-ui,sans-serif;cursor:pointer}
+.mdx-esda-e{opacity:.75;font-size:.85em}
+/* Qoralama tugmasi doska aylanganda qotib turadi (doskaning pastki burchagida, matn bilan birga siljimaydi) */
+.dx-root .dx-frame>.dx-burchak-daftar{position:absolute}
+/* REV596: doska oxiriga yetganda sahifa o'zi siljimasin (Qoralama va doska joyida qotib turadi) */
+.dx-board{overscroll-behavior:contain}
+.dx-root{overflow-anchor:none}

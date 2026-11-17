@@ -290,14 +290,16 @@ export function doiraKasrTahlil(arg) {
 
 /** Darsdagi barcha QOIDA qatorlari (shu qadamgacha) — «Esda tut» burchagi uchun. */
 export function esdaTut(steps, idx) {
-  const out = [];
+  // REV596: «Esda tut» faqat JORIY bilimning qoidalarini ko'rsatadi; yangi bilim boshlansa oldingilari «eski» ro'yxatga yig'iladi (qayta ochsa bo'ladi)
+  let joriy = []; let eski = [];
   for (const s of (steps || []).slice(0, Math.max(0, idx) + 1)) {
+    if ((s?.bilim || /^bilim:/i.test(String(s?.sarlavha || ""))) && joriy.length) { eski = [...eski, ...joriy.filter((x) => !eski.includes(x))]; joriy = []; }
     for (const line of String(s?.doska || "").split(/\n+/)) {
       const b = buyruq(line);
-      if (b.tur === "qoida" && b.arg && !out.includes(b.arg)) out.push(b.arg);
+      if (b.tur === "qoida" && b.arg && !joriy.includes(b.arg) && !eski.includes(b.arg)) joriy.push(b.arg);
     }
   }
-  return out.slice(-4);
+  return { qoidalar: joriy.slice(-4), eski: eski.slice(-12) };
 }
 
 
