@@ -90,9 +90,10 @@ async function tekshir() {
 export function versiyaTekshirishniBoshla() {
   if (ishga || typeof window === "undefined" || import.meta.env?.DEV) return;
   ishga = true;
+  // REV594: xabar kelganda sahifa serverdagi versiya bilan solishtiradi — allaqachon yangi bo'lsa, qayta «Yangilash» chiqmaydi
   // REV466: service worker yangi versiyani xabar qiladi — dars/o'yin bo'lmasa, sahifa ko'rinmay turgan paytda jimgina yangilanadi,
   // aks holda faqat lavha (bola uloqtirilmaydi); dars tugagach (band tugadi) va sahifa fonda bo'lsa — yangilanadi
-  try { navigator.serviceWorker?.addEventListener?.("message", (e) => { if (e?.data?.tur === "yangi_versiya") { yangi = yangi || "sw"; lavhaKorsat(); } }); } catch { /* */ }
+  try { navigator.serviceWorker?.addEventListener?.("message", async (e) => { if (e?.data?.tur === "yangi_versiya") { const v = await yangiVersiya(); if (v) { yangi = v; lavhaKorsat(); } } }); } catch { /* */ }
   window.addEventListener("kb-band-tugadi", () => { if (yangi && !bandmi() && document.visibilityState === "hidden") yangila({ oyna: false }); });
   setTimeout(tekshir, 30 * 1000);
   setInterval(() => { if (document.visibilityState === "visible") tekshir(); }, TEKSHIR_MS);
