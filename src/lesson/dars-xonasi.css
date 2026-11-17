@@ -1346,7 +1346,7 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-sinf:not(.dx-ikki-ustoz).dx-ustoz-chap .dx-sinf-fon .us-teacher{left:-10%}
 
 /* REV590: «1-doska / 2» — uzun yozuv doskalarga bo'lingan, ▲▼ bilan orqaga/oldinga */
-.dx-doska-son{position:absolute;left:2.2%;bottom:5%;z-index:6;display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;background:rgba(10,24,48,.82);border:1px solid rgba(247,201,72,.6);color:#fff;font:700 clamp(10px,1.5cqw,14px)/1 system-ui,sans-serif}
+.dx-doska-son{position:absolute;left:2.2%;top:1.6%;z-index:6;display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;background:rgba(10,24,48,.82);border:1px solid rgba(247,201,72,.6);color:#fff;font:700 clamp(10px,1.5cqw,14px)/1 system-ui,sans-serif}
 .dx-doska-son button{border:0;background:rgba(247,201,72,.9);color:#10243f;border-radius:50%;width:2.2em;height:2.2em;cursor:pointer;font-size:.9em;line-height:1}
 .dx-doska-son button:disabled{opacity:.35;cursor:default}
 
@@ -1369,3 +1369,15 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 /* REV596: doska oxiriga yetganda sahifa o'zi siljimasin (Qoralama va doska joyida qotib turadi) */
 .dx-board{overscroll-behavior:contain}
 .dx-root{overflow-anchor:none}
+
+/* REV597: doskalar tarixi — raqamni bossang, shu doska to'liq yozilgan holda qayta ochiladi */
+.dx-doskalar{position:absolute;left:2.2%;bottom:4%;z-index:6;display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:rgba(10,24,48,.82);border:1px solid rgba(247,201,72,.6);color:#fff;font:700 clamp(10px,1.5cqw,14px)/1 system-ui,sans-serif}
+.dx-doskalar button{min-width:2.1em;height:2.1em;border:0;border-radius:999px;background:rgba(255,255,255,.18);color:#fff;font:inherit;cursor:pointer}
+.dx-doskalar button.is-hozir{background:var(--dx-yellow,#f7c948);color:#10243f;cursor:default}
+.dx-arxiv{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;background:#0c2a4a;border-radius:inherit;overflow:hidden}
+.dx-arxiv-bosh{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(0,0,0,.3);color:#fff;font:700 clamp(12px,1.8cqw,16px)/1 system-ui,sans-serif}
+.dx-arxiv-bosh button{border:0;border-radius:999px;padding:6px 12px;background:rgba(255,255,255,.2);color:#fff;font:inherit;cursor:pointer}
+.dx-arxiv-bosh button:disabled{opacity:.35;cursor:default}
+.dx-arxiv-bosh-bosh{flex:1}
+.dx-arxiv-bosh .dx-arxiv-davom{background:var(--dx-yellow,#f7c948);color:#10243f}
+.dx-arxiv-ich{flex:1;overflow:auto;padding:10px 16px;position:relative}
