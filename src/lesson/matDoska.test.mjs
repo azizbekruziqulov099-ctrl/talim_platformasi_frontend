@@ -100,5 +100,5 @@ test("ovoz va «Esda tut»", () => {
   assert.equal(ovozMatni("GRAFIK: y=x^2"), "");
   assert.equal(ovozMatni("BELGILA: javob 5 aylana"), "javob 5");
   const steps = [{ doska: "QOIDA: $a\\cdot b$\nmatn" }, { doska: "QOIDA: ikkinchi" }, { doska: "QOIDA: uchinchi" }];
-  assert.deepEqual(esdaTut(steps, 1), ["$a\\cdot b$", "ikkinchi"]);
+  assert.deepEqual(esdaTut(steps, 1), { qoidalar: ["$a\\cdot b$", "ikkinchi"], eski: [] });
 });
