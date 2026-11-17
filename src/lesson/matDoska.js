@@ -8,7 +8,7 @@ export const MATEM_RE = /matem|algebr|geometr|математ|алгебр|гео
 export const matRejim = (fan) => MATEM_RE.test(String(fan || ""));
 
 const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
-  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
+  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
 const BUYRUQ_RE = new RegExp(`^\\s*(${BUYRUQLAR.join("|")})\\s*(?::|$)\\s*([\\s\\S]*)$`, "i");
 
 const MATN_BUYRUQ = new Set(["yoz", "davom", "qoida", "belgila"]);
@@ -60,6 +60,9 @@ export function qatorProgress(cues, n, word, total, finished, uzunlik = Infinity
 /** Qatorni yozish uchun ketadigan so'zlar soni (taxminan): oddiy yozuv — ko'rinadigan harflarga qarab, chizma — ko'proq. */
 export function yozishSozlari(qator) {
   const tur = qator?.tur || "yoz";
+  if (tur === "ish") { const t = ishTahlil(qator.arg); return t ? 18 + t.qadamlar.length * 24 : 14; }
+  if (tur === "ketma") return 10 + String(qator.arg || "").split("|").length * 24;
+  if (tur === "elak") return 60;
   if (!["yoz", "qoida", "belgila"].includes(tur)) return tur === "ustun" || tur === "bolish" ? 18 : 14;
   const matn = (qator.qismlar || [{ matn: qator.arg }]).map((q) => q.matn).join(" ");
   const korinadi = matn.replace(/\\(frac|cdot|cancel|sqrt|left|right|text|mathrm|quad|,)/g, " ").replace(/[{}$^_\\]/g, "").replace(/\s+/g, " ").trim();
@@ -349,4 +352,76 @@ export function taroziTahlil(arg) {
     out[k] = m[2].trim().split(/\s+/);
   }
   return out.chap.length && out.ong.length ? out : null;
+}
+
+
+// ── ISH: tartibli hisob (REV587) ──────────────────────────────────
+// «72 : (2 + 4) · 3 − 5» → amallar bajarilish tartibida raqamlanadi; har «ish»: qismi hisoblanadi va natija o'rniga qo'yilib misol qayta yoziladi.
+// Qoida: eng ichki (chapdagi) qavs → ko'paytirish/bo'lish (chapdan o'ngga) → qo'shish/ayirish (chapdan o'ngga). Faqat butun sonlar; bo'linmasa — null.
+const OP_BELGI = { "+": "+", "-": "−", "−": "−", "*": "·", "×": "·", "·": "·", "x": "·", ":": ":", "÷": ":", "/": ":" };
+const QAVS_OCH = { "(": ")", "[": "]", "{": "}" };
+const QAVS_YOP = new Set([")", "]", "}"]);
+export function ishTahlil(arg) {
+  const src = String(arg || "").replace(/\s+/g, "");
+  if (!src || src.length > 80) return null;
+  let id = 0; const tok = [];
+  for (let i = 0; i < src.length;) {
+    const c = src[i];
+    if (/\d/.test(c)) { let j = i; while (j < src.length && /\d/.test(src[j])) j++; tok.push({ t: "n", v: BigInt(src.slice(i, j)), id: id++ }); i = j; }
+    else if (OP_BELGI[c]) { tok.push({ t: "o", v: OP_BELGI[c], id: id++ }); i++; }
+    else if (QAVS_OCH[c]) { tok.push({ t: "(", v: c, id: id++ }); i++; }
+    else if (QAVS_YOP.has(c)) { tok.push({ t: ")", v: c, id: id++ }); i++; }
+    else return null;
+  }
+  const yoz = (a) => a.map((x) => (x.t === "n" ? String(x.v) : x.v)).join(" ").replace(/\( /g, "(").replace(/ \)/g, ")").replace(/\[ /g, "[").replace(/ \]/g, "]").replace(/\{ /g, "{").replace(/ \}/g, "}");
+  const boshlang = tok.map((x) => ({ ...x }));
+  let a = tok.map((x) => ({ ...x }));
+  const qadamlar = []; const tartib = {};
+  const qavsTozala = () => { let oz = true; while (oz) { oz = false; for (let i = 0; i + 2 < a.length; i++) if (a[i].t === "(" && a[i + 1].t === "n" && a[i + 2].t === ")") { a.splice(i + 2, 1); a.splice(i, 1); oz = true; break; } } };
+  for (let guard = 0; guard < 40; guard++) {
+    qavsTozala();
+    if (a.length === 1 && a[0].t === "n") break;
+    // eng ichki chap qavs oralig'i
+    let lo = 0, hi = a.length, ichki = false;
+    for (let i = 0; i < a.length; i++) if (a[i].t === "(") { lo = i + 1; ichki = true; }
+    if (ichki) { hi = a.findIndex((x, i) => i >= lo && x.t === ")"); if (hi < 0) return null; }
+    const seg = a.slice(lo, hi);
+    if (seg.some((x) => x.t === "(" || x.t === ")")) return null;
+    let k = seg.findIndex((x) => x.t === "o" && (x.v === "·" || x.v === ":"));
+    if (k < 0) k = seg.findIndex((x) => x.t === "o");
+    if (k < 1 || k + 1 >= seg.length || seg[k - 1].t !== "n" || seg[k + 1].t !== "n") return null;
+    const x = seg[k - 1].v, y = seg[k + 1].v, o = seg[k].v;
+    let r;
+    if (o === "+") r = x + y; else if (o === "−") r = x - y; else if (o === "·") r = x * y;
+    else { if (y === 0n || x % y !== 0n) return null; r = x / y; }
+    if (r < 0n) return null;
+    const qism = `${x} ${o} ${y}`;
+    tartib[seg[k].id] = qadamlar.length + 1;
+    a.splice(lo + k - 1, 3, { t: "n", v: r, id: id++, yangi: true });
+    qavsTozala();
+    qadamlar.push({ qism, natija: String(r), ifoda: yoz(a), orin: qadamlar.length + 1 });
+  }
+  if (!(a.length === 1 && a[0].t === "n") || !qadamlar.length) return null;
+  return { boshlang: yoz(boshlang), tokenlar: boshlang.map((x) => ({ t: x.t, s: x.t === "n" ? String(x.v) : x.v, k: x.t === "o" ? tartib[x.id] || 0 : 0 })), qadamlar, javob: String(a[0].v) };
+}
+
+// ── KETMA: tenglik zanjiri — «21·18 − 19·18 | [18]·(21 − 19) | [18]·2 | 36» (qavs [..] ichi rang bilan ajratiladi) ──
+export function ketmaTahlil(arg) {
+  const q = String(arg || "").split("|").map((x) => x.trim()).filter(Boolean);
+  return q.length >= 2 ? q : null;
+}
+
+// ── ELAK: Eratosfen g'alviri — «50» → 2..n jadvali, tub sonlar ketma-ket ajratilib, murakkablari o'chiriladi ──
+export function elakTahlil(arg) {
+  const n = Math.round(Number(String(arg || "").replace(/[^\d]/g, "")));
+  if (!(n >= 10 && n <= 100)) return null;
+  const tub = []; const ochgan = {};
+  const bor = Array(n + 1).fill(true);
+  for (let i = 2; i <= n; i++) {
+    if (!bor[i]) continue;
+    tub.push(i);
+    for (let j = i * i; j <= n; j += i) if (bor[j]) { bor[j] = false; ochgan[j] = i; }
+  }
+  const asosiy = tub.filter((p) => p * p <= n);
+  return { n, tub, ochgan, asosiy };
 }

@@ -9,7 +9,7 @@ import { BoardText } from "./AmaliyDoska.jsx";
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { stripSpeechTags } from "../speech/language.js";
 import {
-  bolishTahlil, buyruq, chizTahlil, doiraKasrTahlil, grafikTahlil, kasrModelTahlil, qisqartTahlil, sonOqiTahlil, ustunTahlil,
+  bolishTahlil, buyruq, elakTahlil, ishTahlil, ketmaTahlil, chizTahlil, doiraKasrTahlil, grafikTahlil, kasrModelTahlil, qisqartTahlil, sonOqiTahlil, ustunTahlil,
 } from "./matDoska.js";
 
 const CHALK = "var(--dx-chalk)", SARIQ = "var(--dx-yellow)", KOK = "var(--dx-blue)", PUSHTI = "#F4A6A6", YASHIL = "#A8E6A1";
@@ -421,12 +421,59 @@ function Daraxt({ arg, progress }) {
   </svg>;
 }
 
+
+const ROQAM = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+/** ISH — tartibli hisob: amallar raqamlanadi; har «ish» hisoblanadi va natija o'rniga qo'yilib misol qayta yoziladi. */
+function Ish({ arg, progress }) {
+  const t = ishTahlil(arg);
+  if (!t) return <JonliMatn text={arg} progress={progress} />;
+  const n = t.qadamlar.length, bosh = 0.34, seg = (1 - bosh) / n;
+  return <span className="mdx-ish" role="img" aria-label={`${t.boshlang} = ${t.javob}`}>
+    <span className="mdx-ish-ifoda" style={kor(progress, 0)}>
+      {t.tokenlar.map((x, i) => x.t === "o"
+        ? <span key={i} className="mdx-ish-op"><i className="mdx-ish-raqam" style={kor(progress, 0.06 + (x.k / (n + 1)) * 0.24)}>{ROQAM[x.k] || x.k}</i>{x.s}</span>
+        : <span key={i} className="mdx-ish-t">{x.s}</span>)}
+    </span>
+    {t.qadamlar.map((q, i) => { const at = bosh + i * seg, oxirgi = i === n - 1;
+      return <React.Fragment key={i}>
+        <span className="mdx-ish-qadam" style={kor(progress, at)}><b>{i + 1}-ish:</b> {q.qism} = <em className="mdx-ish-natija">{q.natija}</em></span>
+        <span className={`mdx-ish-yangi ${oxirgi ? "is-javob" : ""}`} style={kor(progress, at + seg * 0.55)}>{oxirgi ? <>Javob: {q.natija}</> : q.ifoda}</span>
+      </React.Fragment>; })}
+  </span>;
+}
+
+/** KETMA — tenglik zanjiri: [..] ichi ajratiladi (umumiy ko'paytuvchi, qulay juftlar). */
+function Ketma({ arg, progress }) {
+  const q = ketmaTahlil(arg);
+  if (!q) return <JonliMatn text={arg} progress={progress} />;
+  const parcha = (m) => String(m).split(/(\[[^\]]+\])/).map((x, i) => /^\[[^\]]+\]$/.test(x) ? <mark key={i} className="mdx-ketma-ajr">{x.slice(1, -1)}</mark> : <React.Fragment key={i}>{x}</React.Fragment>);
+  return <span className="mdx-ketma" role="img" aria-label={q.join(" = ")}>
+    {q.map((m, i) => <span key={i} className={`mdx-ketma-q ${i === q.length - 1 ? "is-oxir" : ""}`} style={kor(progress, i / q.length * 0.9)}>{i > 0 && <i>= </i>}{parcha(m)}</span>)}
+  </span>;
+}
+
+/** ELAK — Eratosfen g'alviri: 2 ning, 3 ning … karralari ketma-ket o'chadi, tub sonlar qoladi. */
+function Elak({ arg, progress }) {
+  const t = elakTahlil(arg);
+  if (!t) return <JonliMatn text={arg} progress={progress} />;
+  const k = t.asosiy.length, bosh = 0.12, seg = 0.76 / k;
+  const bosqich = (m) => { const p = t.ochgan[m]; return p ? bosh + t.asosiy.indexOf(p) * seg + 0.1 * seg : 0; };
+  const tubAt = (m) => { const i = t.asosiy.indexOf(m); return i >= 0 ? bosh + i * seg : 0.9; };
+  return <span className="mdx-elak" role="img" aria-label={`${t.n} gacha tub sonlar: ${t.tub.join(", ")}`}>
+    {Array.from({ length: t.n - 1 }, (_, i) => { const m = i + 2, ochdi = t.ochgan[m] && progress >= bosqich(m), tub = !t.ochgan[m] && progress >= (t.asosiy.includes(m) ? tubAt(m) : 0.9);
+      return <i key={m} className={`mdx-elak-h ${ochdi ? "is-och" : ""} ${tub ? "is-tub" : ""}`} style={kor(progress, 0.02 + i / t.n * 0.1)}>{m}</i>; })}
+  </span>;
+}
+
 /** Bitta doska qatori (buyruqli yoki oddiy). */
 export function MatQator({ qator, progress = 1, Matn = BoardText }) {
   const b = qator.tur ? qator : { ...buyruq(qator.matn ?? qator), qismlar: null };
   const p = kesim(progress);
   switch (b.tur) {
     case "ustun": return <Ustun arg={b.arg} progress={p} />;
+    case "ish": return <Ish arg={b.arg} progress={p} />;
+    case "ketma": return <Ketma arg={b.arg} progress={p} />;
+    case "elak": return <Elak arg={b.arg} progress={p} />;
     case "bolish": return <Bolish arg={b.arg} progress={p} />;
     case "qisqart": return <Qisqart arg={b.arg} progress={p} />;
     case "son_oqi": return <SonOqi arg={b.arg} progress={p} />;

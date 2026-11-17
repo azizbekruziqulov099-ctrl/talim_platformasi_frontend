@@ -1299,3 +1299,22 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-ustoz-jins{font-size:15px;letter-spacing:1px}
 
 .dx-korish-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#FFF4CC;color:#3A2E00;border-radius:8px;padding:8px 12px;margin-bottom:8px;font:600 14px/1.4 system-ui,sans-serif}
+
+/* REV587: ISH (tartibli hisob), KETMA (tenglik zanjiri), ELAK (Eratosfen g'alviri) */
+.mdx-ish{display:inline-flex;flex-direction:column;gap:6px;margin:4px 0 6px 12px;font:600 30px/1.2 "Caveat","Comic Sans MS",cursive}
+.mdx-ish-ifoda{display:flex;flex-wrap:wrap;gap:.35em;align-items:flex-end;padding-top:.9em}
+.mdx-ish-op{position:relative;display:inline-block}
+.mdx-ish-raqam{position:absolute;left:50%;top:-1em;transform:translateX(-50%);font:700 .8em/1 system-ui;font-style:normal;color:var(--dx-yellow)}
+.mdx-ish-qadam{font-size:.82em;color:var(--dx-blue)}
+.mdx-ish-qadam b{color:var(--dx-yellow);font-weight:700}
+.mdx-ish-natija{font-style:normal;color:#A8E6A1;border-bottom:2px solid #A8E6A1}
+.mdx-ish-yangi{padding-left:.6em;border-left:3px solid rgba(255,255,255,.25)}
+.mdx-ish-yangi.is-javob{display:inline-block;border:2px solid #A8E6A1;border-radius:10px;padding:2px 12px;color:#A8E6A1;align-self:flex-start}
+.mdx-ketma{display:inline-flex;flex-direction:column;gap:4px;margin:4px 0 6px 12px;font:600 28px/1.25 "Caveat","Comic Sans MS",cursive}
+.mdx-ketma-q i{font-style:normal;opacity:.7}
+.mdx-ketma-q.is-oxir{color:#A8E6A1}
+.mdx-ketma-ajr{background:rgba(247,201,72,.25);color:var(--dx-yellow);border-radius:6px;padding:0 4px}
+.mdx-elak{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;width:min(100%,360px);margin:4px 0 6px 12px;font:700 15px/1 system-ui}
+.mdx-elak-h{display:flex;align-items:center;justify-content:center;aspect-ratio:1.2;border-radius:6px;font-style:normal;background:rgba(255,255,255,.08);transition:all .4s}
+.mdx-elak-h.is-och{opacity:.18;text-decoration:line-through}
+.mdx-elak-h.is-tub{background:#2e9e5b;color:#fff}
