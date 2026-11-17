@@ -130,7 +130,8 @@ function AmalKop({ t, progress, qismProgress }) {
   const cell = (str, c) => str[str.length - 1 - c] ?? "";
   const last = (() => { let k = -1; t.qadamlar.forEach((q, i) => { if (sp(i + 1) > 0.05) k = i; }); return k; })();
   const eq = last >= 0 ? t.qadamlar[last] : null;
-  const yoddaCol = eq && eq.tur === "xona" && eq.carry && sp(last + 1) >= 0.5 ? eq.i + 1 : -1;
+  const fp = last >= 0 ? sp(last + 1) : 0;   // qadam ichida: ko'payuvchi → ko'paytuvchi → yodda → natija ketma-ket yonadi (ovoz bilan)
+  const yoddaCol = eq && eq.tur === "xona" && eq.carry && fp >= 0.78 ? eq.i + 1 : -1;
   const qatorQadam = (r) => t.qadamlar.map((q, i) => ({ q, i })).filter((x) => x.q.r === r && x.q.tur !== "yig");
   const grid = { gridTemplateColumns: `1ch repeat(${W}, 1.6ch)` };
   const yigOch = t.kop && sp(n) >= 0.5;
@@ -141,19 +142,55 @@ function AmalKop({ t, progress, qismProgress }) {
     : eq.tur === "oxir" ? <>yodda <b className="ky">{eq.res}</b> → <b className="kn">{eq.res}</b> yozamiz</>
     : <>qatorlarni qo'shamiz = <b className="kn">{t.natija}</b></>;
   return <span className="mdx-amal mdx-amal-kop" role="img" aria-label={`${t.a} × ${t.b} = ${t.natija}`} style={grid}>
-    <span className="mdx-amal-izoh" style={{ gridColumn: `1 / span ${W + 1}` }}>{last >= 0 ? amalIzoh(t, t.qadamlar[last]) : " "}</span>
-    <i />{cols.map((c) => <i key={c} className="mdx-amal-eslab" style={{ opacity: c === yoddaCol ? 1 : 0 }}>{c === yoddaCol ? "↖" + eq.carry : " "}</i>)}
-    <i />{cols.map((c) => <i key={c} className={`mdx-amal-a ${eq && eq.tur === "xona" && eq.i === c ? "is-fa" : ""}`}>{cell(t.a, c) || " "}</i>)}
-    <i className="mdx-amal-op">×</i>{cols.map((c) => <i key={c} className={`mdx-amal-b ${eq && eq.tur !== "yig" && eq.r === c ? "is-fb" : ""}`}>{cell(t.b, c) || " "}</i>)}
+    <i />{cols.map((c) => { const kirYod = eq && eq.tur === "xona" && eq.kirdi && c === eq.i; return <i key={c} className={`mdx-amal-eslab ${kirYod && fp >= 0.4 && fp < 0.78 ? "is-yod-on" : ""}`} style={{ opacity: c === yoddaCol || kirYod ? 1 : 0 }}>{c === yoddaCol ? "↖" + eq.carry : kirYod ? "↖" + eq.kirdi : " "}</i>; })}
+    <i />{cols.map((c) => <i key={c} className={`mdx-amal-a ${eq && eq.tur === "xona" && eq.i === c ? "is-fa" : ""} ${eq && eq.tur === "xona" && eq.i === c && fp < 0.5 ? "is-a-on" : ""}`}>{cell(t.a, c) || " "}</i>)}
+    <i className="mdx-amal-op">×</i>{cols.map((c) => <i key={c} className={`mdx-amal-b ${eq && eq.tur !== "yig" && eq.r === c ? "is-fb" : ""} ${eq && eq.tur !== "yig" && eq.r === c && fp >= 0.18 && fp < 0.62 ? "is-b-on" : ""}`}>{cell(t.b, c) || " "}</i>)}
     <span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}` }} />
     {t.qatorlar.map((row) => { const qs = qatorQadam(row.r);
       return <React.Fragment key={row.r}><i />{cols.map((c) => { const raq = row.raq.find((x) => x.col === c); const q = qs.find((x) => x.q.col === c);
         const sur = qs.length && c < row.r && sp(qs[0].i + 1) > 0.05 && row.mb !== 0;
         const ko = (raq && q && sp(q.i + 1) >= 0.6) || sur;
-        return <i key={c} className={`mdx-amal-n ${q && eq && eq.r === row.r && last === q.i ? "is-fn" : ""}`} style={{ opacity: ko ? 1 : 0, transition: "opacity .25s" }}>{sur && !raq ? "0" : raq ? raq.v : " "}</i>; })}</React.Fragment>; })}
+        return <i key={c} className={`mdx-amal-n ${q && eq && eq.r === row.r && last === q.i ? "is-fn" : ""} ${q && eq && eq.r === row.r && last === q.i && fp >= 0.62 && fp < 0.95 ? "is-n-on" : ""}`} style={{ opacity: ko ? 1 : 0, transition: "opacity .25s" }}>{sur && !raq ? "0" : raq ? raq.v : " "}</i>; })}</React.Fragment>; })}
     {t.kop && <><span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}`, transform: `scaleX(${kesim(sp(n) * 2)})` }} />
       <i />{cols.map((c) => <i key={c} className="mdx-amal-n" style={{ opacity: yigOch ? 1 : 0, transition: "opacity .25s" }}>{cell(t.natija, c) || " "}</i>)}</>}
     <span className="mdx-amal-formula" style={{ gridColumn: "1 / -1" }}>{f || " "}</span>
+    <span className="mdx-amal-rang" style={{ gridColumn: "1 / -1", opacity: ps && ps[0] >= 0.5 ? 1 : 0 }}><b className="r-a">ko‘payuvchi</b><b className="r-b">ko‘paytuvchi</b><b className="r-y">yodda</b><b className="r-n">natija</b></span>
+  </span>;
+}
+
+function BolishQadam({ arg, qismProgress }) {
+  const t = bolishTahlil(arg);
+  if (!t) return <JonliMatn text={arg} progress={1} />;
+  const ps = qismProgress || [];
+  const n = t.qadamlar.length;
+  const sp = (i) => ps[i + 1] ?? 0;
+  const p0 = ps[0] ?? 0;
+  const faol = t.qadamlar.findIndex((q, i) => sp(i) > 0 && sp(i) < 1);
+  const oxirgiB = (() => { let k = -1; t.qadamlar.forEach((q, i) => { if (sp(i) > 0.02) k = i; }); return k; })();
+  const hI = faol >= 0 ? faol : oxirgiB;
+  const hq = hI >= 0 ? t.qadamlar[hI] : null, hp = hI >= 0 ? sp(hI) : 0;
+  const D = Number(t.d);
+  const qat = [];
+  t.qadamlar.forEach((q, i) => {
+    if (i > 0 && q.olingan === 0) return;
+    if (i > 0) qat.push({ k: `o${i}`, matn: String(q.olingan), ustun: q.ustun, vis: sp(i) > 0.02, tush: true, on: faol === i && sp(i) < 0.32 });
+    qat.push({ k: `a${i}`, matn: String(q.ayir), ustun: q.ustun, vis: sp(i) >= 0.55, ayir: true, on: faol === i && sp(i) >= 0.55 && sp(i) < 0.8 });
+  });
+  qat.push({ k: "q", matn: String(t.qoldiq), ustun: t.qadamlar.filter((q, i) => i === 0 || q.olingan !== 0).pop().ustun, vis: sp(n - 1) >= 0.82, qoldiq: true });
+  const izoh = !hq ? " " : (() => { const pp = []; const qq = Math.floor(hq.olingan / D);
+    if (hI > 0) pp.push(`↓ ${t.a[hq.ustun]} tushdi → ${hq.olingan}`);
+    if (hp >= 0.3) pp.push(`${hq.olingan} : ${t.d} = ${qq}`);
+    if (hp >= 0.55) pp.push(`${qq} × ${t.d} = ${hq.ayir}`);
+    if (hp >= 0.78) pp.push(`${hq.olingan} − ${hq.ayir} = ${hq.qoldiq}`);
+    return pp.join("   ·   ") || " "; })();
+  return <span className="mdx-bolish mdx-bolish-q" role="img" aria-label={`${t.a} : ${t.d} = ${t.bolinma}${t.qoldiq ? ` (${t.qoldiq})` : ""}`} style={{ marginTop: "1.6em", position: "relative" }}>
+    <span className="mdx-amal-izoh" style={{ fontSize: "0.5em" }}>{izoh}</span>
+    <span className="mdx-bolinuvchi">{t.a.split("").map((c, i) => <i key={i} style={{ fontStyle: "normal" }} className={hq && p0 >= 1 && hp < 0.32 && ((hI === 0 && i <= hq.ustun) || (hI > 0 && i === hq.ustun)) ? "is-a-on" : ""}>{c}</i>)}</span>
+    <span className="mdx-bolivchi"><span className={hq && hp >= 0.3 && hp < 0.78 ? "is-b-on" : ""}>{t.d}</span></span>
+    <span className="mdx-bolish-qadamlar">{qat.map((q) => <span key={q.k} className={`mdx-bolish-qadam ${q.ayir ? "is-ayir" : ""} ${q.qoldiq ? "mdx-bolish-qoldiq" : ""} ${q.on ? "is-y-on" : ""}`}
+      style={{ opacity: q.vis ? 1 : 0, transition: "opacity .25s", paddingLeft: `${Math.max(0, q.ustun + 1 - q.matn.length)}ch` }}><span className="mdx-son">{q.ayir && <i className="mdx-minus">−</i>}{q.tush ? <>{q.matn.slice(0, -1)}<em className={`mdx-tush ${q.on ? "is-a-on" : ""}`}>{q.matn.slice(-1)}</em></> : q.matn}</span></span>)}</span>
+    <span className="mdx-bolinma">{t.bolinma.split("").map((c, i) => <i key={i} className={hI === i && hp >= 0.3 && hp < 0.55 ? "is-n-on" : ""} style={{ opacity: sp(i) >= 0.3 ? 1 : 0, transition: "opacity .25s" }}>{c}</i>)}</span>
+    <span className="mdx-amal-rang" style={{ gridColumn: "1 / span 2", opacity: p0 >= 0.5 ? 1 : 0 }}><b className="r-a">bo‘linuvchi</b><b className="r-b">bo‘luvchi</b><b className="r-n">bo‘linma</b><b className="r-y">ayirma</b></span>
   </span>;
 }
 
@@ -576,7 +613,7 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
   switch (b.tur) {
     case "ustun": return <Ustun arg={b.arg} progress={p} />;
     case "amal": { const ar = qator.qismlar?.[0]?.matn ?? b.arg; const ps = qator.qismProgress;
-      if (/[:÷]/.test(ar)) { const bt = bolishTahlil(ar); const nb = Math.max(1, bt ? bt.qadamlar.length : 1); const sum = ps ? ps.slice(1).reduce((x, y) => x + y, 0) : p * nb; return <Bolish arg={ar} progress={ps ? (ps[0] < 1 ? ps[0] * 0.15 : Math.min(1, 0.15 + 0.8 * sum / nb)) : p} />; }
+      if (/[:÷]/.test(ar)) return ps ? <BolishQadam arg={ar} qismProgress={ps} /> : <Bolish arg={ar} progress={p} />;
       return <Amal arg={ar} progress={p} qismProgress={ps} />; }
     case "ish": return <Ish arg={b.arg} progress={p} />;
     case "ketma": return <Ketma arg={b.arg} progress={p} />;

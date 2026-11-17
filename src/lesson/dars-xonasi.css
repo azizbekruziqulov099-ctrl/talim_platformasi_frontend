@@ -1435,3 +1435,14 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .mdx-amal-b.is-faol{background:rgba(255,120,190,.4)!important}
 .mdx-amal-eslab{color:#ffd54a;text-shadow:0 0 6px rgba(255,213,74,.6)}
 .mdx-amal-n.is-faol{background:rgba(105,240,174,.3)!important}
+
+/* REV602: ovoz aytgan joy yonadi — ko'payuvchi (ko'k), ko'paytuvchi (pushti), yodda (sariq), natija (yashil) */
+@keyframes mdx-puls{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 0 0 .2em rgba(255,255,255,.35)}}
+.is-a-on{background:rgba(92,170,255,.55)!important;border-radius:.2em;animation:mdx-puls .7s infinite}
+.is-b-on{background:rgba(255,120,190,.6)!important;border-radius:.2em;animation:mdx-puls .7s infinite}
+.is-yod-on,.is-y-on{background:rgba(255,213,74,.5)!important;border-radius:.2em;animation:mdx-puls .7s infinite}
+.is-n-on{background:rgba(105,240,174,.5)!important;border-radius:.2em;animation:mdx-puls .7s infinite}
+.mdx-tush{font-style:normal;color:#7fc4ff}
+.mdx-amal-rang{display:flex;gap:8px;flex-wrap:wrap;font:700 .4em system-ui,sans-serif;margin-top:.7em;transition:opacity .3s}
+.mdx-amal-rang b{padding:1px 8px;border-radius:999px;color:#10243f}
+.mdx-amal-rang .r-a{background:#7fc4ff}.mdx-amal-rang .r-b{background:#ff8cc8}.mdx-amal-rang .r-y{background:#ffd54a}.mdx-amal-rang .r-n{background:#69f0ae}
