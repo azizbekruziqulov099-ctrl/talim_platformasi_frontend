@@ -126,28 +126,31 @@ function AmalKop({ t, progress, qismProgress }) {
   const sp = (k) => (ps ? (ps[k] ?? 0) : kesim((progress - k / (n + 1)) * (n + 1)));
   const cols = Array.from({ length: W }, (_, j) => W - 1 - j);
   const cell = (str, c) => str[str.length - 1 - c] ?? "";
-  const faolI = t.qadamlar.findIndex((q, i) => sp(i + 1) > 0 && sp(i + 1) < 1);
   const last = (() => { let k = -1; t.qadamlar.forEach((q, i) => { if (sp(i + 1) > 0.05) k = i; }); return k; })();
-  const fq = faolI >= 0 ? t.qadamlar[faolI] : null;
-  // yodda raqami: oxirgi boshlangan xona qadamining ko'chishi, keyingi xona tepasida
   const eq = last >= 0 ? t.qadamlar[last] : null;
   const yoddaCol = eq && eq.tur === "xona" && eq.carry && sp(last + 1) >= 0.5 ? eq.i + 1 : -1;
-  const yoddaV = yoddaCol >= 0 ? String(eq.carry) : "";
   const qatorQadam = (r) => t.qadamlar.map((q, i) => ({ q, i })).filter((x) => x.q.r === r && x.q.tur !== "yig");
   const grid = { gridTemplateColumns: `1ch repeat(${W}, 1.6ch)` };
   const yigOch = t.kop && sp(n) >= 0.5;
+  // hozirgi qadam formulasi — rangli, ovozga mos
+  const f = !eq ? null : eq.tur === "xona"
+    ? <><b className="ka">{eq.da}</b> × <b className="kb">{eq.mb}</b> = {eq.da * eq.mb}{eq.kirdi ? <> + <b className="ky">{eq.kirdi}</b> (yodda) = {eq.x}</> : null} → <b className="kn">{eq.res}</b> yozamiz{eq.carry ? <>, <b className="ky">↖ {eq.carry}</b> yodda</> : null}</>
+    : eq.tur === "nol" ? <>nolga ko'paytirsak → <b className="kn">0</b></>
+    : eq.tur === "oxir" ? <>yodda <b className="ky">{eq.res}</b> → <b className="kn">{eq.res}</b> yozamiz</>
+    : <>qatorlarni qo'shamiz = <b className="kn">{t.natija}</b></>;
   return <span className="mdx-amal mdx-amal-kop" role="img" aria-label={`${t.a} × ${t.b} = ${t.natija}`} style={grid}>
-    <i />{cols.map((c) => <i key={c} className="mdx-amal-eslab" style={{ opacity: c === yoddaCol ? 1 : 0 }}>{c === yoddaCol ? yoddaV : " "}</i>)}
-    <i />{cols.map((c) => <i key={c} className={`mdx-amal-a ${fq && fq.tur !== "yig" && fq.i === c ? "is-faol" : ""}`}>{cell(t.a, c) || " "}</i>)}
-    <i className="mdx-amal-op">×</i>{cols.map((c) => <i key={c} className={`mdx-amal-b ${fq && fq.r === c ? "is-faol" : ""}`}>{cell(t.b, c) || " "}</i>)}
+    <i />{cols.map((c) => <i key={c} className="mdx-amal-eslab" style={{ opacity: c === yoddaCol ? 1 : 0 }}>{c === yoddaCol ? "↖" + eq.carry : " "}</i>)}
+    <i />{cols.map((c) => <i key={c} className={`mdx-amal-a ${eq && eq.tur === "xona" && eq.i === c ? "is-fa" : ""}`}>{cell(t.a, c) || " "}</i>)}
+    <i className="mdx-amal-op">×</i>{cols.map((c) => <i key={c} className={`mdx-amal-b ${eq && eq.tur !== "yig" && eq.r === c ? "is-fb" : ""}`}>{cell(t.b, c) || " "}</i>)}
     <span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}` }} />
     {t.qatorlar.map((row) => { const qs = qatorQadam(row.r);
       return <React.Fragment key={row.r}><i />{cols.map((c) => { const raq = row.raq.find((x) => x.col === c); const q = qs.find((x) => x.q.col === c);
-        const sur = qs.length && c < row.r && sp(qs[0].i + 1) > 0.05 && row.mb !== 0;   // surilgan nollar
+        const sur = qs.length && c < row.r && sp(qs[0].i + 1) > 0.05 && row.mb !== 0;
         const ko = (raq && q && sp(q.i + 1) >= 0.6) || sur;
-        return <i key={c} className={`mdx-amal-n ${q && faolI === q.i ? "is-faol" : ""} ${t.kop ? "is-oraliq" : ""}`} style={{ opacity: ko ? 1 : 0, transition: "opacity .25s" }}>{sur && !raq ? "0" : raq ? raq.v : " "}</i>; })}</React.Fragment>; })}
+        return <i key={c} className={`mdx-amal-n ${q && eq && eq.r === row.r && last === q.i ? "is-fn" : ""}`} style={{ opacity: ko ? 1 : 0, transition: "opacity .25s" }}>{sur && !raq ? "0" : raq ? raq.v : " "}</i>; })}</React.Fragment>; })}
     {t.kop && <><span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}`, transform: `scaleX(${kesim(sp(n) * 2)})` }} />
       <i />{cols.map((c) => <i key={c} className="mdx-amal-n" style={{ opacity: yigOch ? 1 : 0, transition: "opacity .25s" }}>{cell(t.natija, c) || " "}</i>)}</>}
+    <span className="mdx-amal-formula" style={{ gridColumn: "1 / -1" }}>{f || " "}</span>
   </span>;
 }
 
