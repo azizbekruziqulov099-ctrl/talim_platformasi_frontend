@@ -16,7 +16,7 @@ test("qadamlar bo'limlarga to'g'ri bo'linadi", () => {
   assert.equal(bolimQadamlari(steps, "hayotdan").length, 2);
   assert.equal(bolimQadamlari(steps, "mashq").length, 1);
   assert.equal(bolimQadamlari(steps, "").length, 6);
-  assert.equal(REPETITOR_BOLIMLAR.length, 5);
+  assert.equal(REPETITOR_BOLIMLAR.length, 6);
 });
 
 import { hayotMasalalari, ovozQadamlari } from "./darsXonasiRules.js";
