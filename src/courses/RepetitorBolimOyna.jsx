@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { offlaynFetch, yuklangan, postNavbat } from "../offlayn/offlayn.js";
 import CourseText from "./CourseText.jsx";
-import { checkAnswer, qadamBolimlari, hayotMasalalari } from "../lesson/darsXonasiRules.js";
+import { checkAnswer, qadamBolimlari, hayotMasalalari, bilimlarRoyxati } from "../lesson/darsXonasiRules.js";
 import { qurilmaKaliti } from "../auth/qurilma.js";
 
 // Repetitor darsining Hayotdan · Mashq · Tarix bo'limlari: har biri o'z oynasida, o'z mantig'i bilan
@@ -106,7 +106,16 @@ function Tarix({ steps }) {
     {s.doska && <CourseText text={s.doska} />}{s.ovoz && s.ovoz !== s.doska && <CourseText text={String(s.ovoz).replace(/^esda tut:\s*/i, "")} />}</article>)}</>;
 }
 
-export default function RepetitorBolimOyna({ apiBase, token, dars, bolim, bolimNomi = "", belgi = "", onOrtga }) {
+function Bilimlar({ steps, onOch }) {
+  const r = bilimlarRoyxati(steps);
+  if (!r.length) return <p>Bu mavzuda alohida bilimlar ro‘yxati hali yo‘q.</p>;
+  return <>
+    <p style={{ margin: "0 0 10px", opacity: .8 }}>Mavzuda o‘rgangan bilimlaringiz. Esingizdan chiqsa — kerakli bilimni bosing, faqat o‘sha qism qayta tushuntiriladi.</p>
+    {r.map((n, i) => <button key={n} type="button" onClick={() => onOch(n)} style={{ ...kartaUslub, display: "block", width: "100%", textAlign: "left", cursor: "pointer", font: "inherit" }}>
+      <b>{i + 1}. {n}</b> <span style={{ float: "right", opacity: .6 }}>▶</span></button>)}</>;
+}
+
+export default function RepetitorBolimOyna({ apiBase, token, dars, bolim, bolimNomi = "", belgi = "", onOrtga, onBilim = null }) {
   const [lesson, setLesson] = useState(null); const [xato, setXato] = useState(""); const [yuk, setYuk] = useState(true);
   useEffect(() => {
     const c = new AbortController(); setYuk(true); setXato(""); setLesson(null);
@@ -125,5 +134,6 @@ export default function RepetitorBolimOyna({ apiBase, token, dars, bolim, bolimN
     {lesson && bolim === "hayotdan" && <Hayotdan steps={steps} />}
     {lesson && bolim === "mashq" && <Mashq steps={steps} apiBase={apiBase} token={token} topicCode={dars.topic_code} />}
     {lesson && bolim === "tarix" && <Tarix steps={steps} />}
+    {lesson && bolim === "bilim" && <Bilimlar steps={steps} onOch={(n) => onBilim?.(n)} />}
   </section>;
 }

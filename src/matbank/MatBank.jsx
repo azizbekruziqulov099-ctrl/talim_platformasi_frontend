@@ -152,16 +152,17 @@ export default function MatBank(props) {
   return <RasmKonteksti.Provider value={{ apiBase: props.apiBase || "", token: props.token }}><MatBankIchki {...props} /></RasmKonteksti.Provider>;
 }
 
-function MatBankIchki({ apiBase = "", token, onClose }) {
+function MatBankIchki({ apiBase = "", token, onClose, mavzuRaqam = 0, mavzuSoni = 30, onNatijaTest = null }) {
   useKbInterfaceLocale();
-  const [ekran, setEkran] = useState({ t: "royxat" });
-  const royxat = () => setEkran({ t: "royxat" });
+  // REV593: kurs darsining «Test» bo'limi — shu mavzuning Tematika test bankiga to'g'ridan-to'g'ri ulanadi
+  const [ekran, setEkran] = useState(mavzuRaqam ? { t: "test", mavzular: [mavzuRaqam], soni: mavzuSoni, n: Date.now(), kim: mavzuRaqam } : { t: "royxat" });
+  const royxat = () => (mavzuRaqam ? onClose?.() : setEkran({ t: "royxat" }));
   if (ekran.t === "bot") return <KabuBot apiBase={apiBase} token={token} rol="oquvchi" onYop={royxat}
     onTest={(mavzular) => setEkran({ t: "test", mavzular, soni: 10, n: Date.now(), kim: mavzular?.[0] || 0 })} onMavzu={(raqam) => setEkran({ t: "mavzu", raqam })} />;
   if (ekran.t === "pasport") return <Pasport apiBase={apiBase} token={token} onYop={royxat} onTest={(raqam) => setEkran({ t: "test", mavzular: [raqam], soni: 10, n: Date.now(), kim: raqam })} />;
   if (ekran.t === "mavzu") return <Mavzu apiBase={apiBase} token={token} raqam={ekran.raqam} onOrqaga={royxat} onTest={(mavzular, soni, ids) => setEkran({ t: "test", mavzular, soni, ids: ids || null, n: Date.now(), kim: ekran.raqam })} />;
   if (ekran.t === "test") return <TestYechish key={ekran.n} apiBase={apiBase} token={token} mavzular={ekran.mavzular} soni={ekran.soni} ids={ekran.ids} onChiq={() => (ekran.kim ? setEkran({ t: "mavzu", raqam: ekran.kim }) : royxat())}
-    onTugadi={(sav, jav, r) => setEkran({ t: "natija", sav, jav, r, mavzular: ekran.mavzular, soni: ekran.ids ? 10 : ekran.soni, kim: ekran.kim })} />;
+    onTugadi={(sav, jav, r) => { try { if (onNatijaTest && Array.isArray(r?.natija)) onNatijaTest({ togri: r.natija.filter((x) => x.togri).length, jami: sav.length }); } catch { /* */ } setEkran({ t: "natija", sav, jav, r, mavzular: ekran.mavzular, soni: ekran.ids ? 10 : ekran.soni, kim: ekran.kim }); }} />;
   if (ekran.t === "natija") return <Natija sav={ekran.sav} jav={ekran.jav} r={ekran.r} onYana={() => setEkran({ t: "test", mavzular: ekran.mavzular, soni: ekran.soni, n: Date.now(), kim: ekran.kim })}
     onMavzu={ekran.kim ? () => setEkran({ t: "mavzu", raqam: ekran.kim }) : null} onRoyxat={royxat} />;
   return <Royxat apiBase={apiBase} token={token} onClose={onClose} onPasport={() => setEkran({ t: "pasport" })} onBot={() => setEkran({ t: "bot" })} onMavzu={(raqam) => setEkran({ t: "mavzu", raqam })} onAralash={(soni) => setEkran({ t: "test", mavzular: [], soni, n: Date.now(), kim: 0 })} />;

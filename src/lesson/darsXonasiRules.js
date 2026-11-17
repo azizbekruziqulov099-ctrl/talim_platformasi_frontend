@@ -184,6 +184,7 @@ export function visibleLines(cues, wordIndex, finished) {
 export const REPETITOR_BOLIMLAR = [
   { kalit: "dars", belgi: "📖", nomi: "Dars", izoh: "Tushuncha va ishlangan misollar" },
   { kalit: "hayotdan", belgi: "🌍", nomi: "Hayotdan", izoh: "Hayotiy masalalar" },
+  { kalit: "bilim", belgi: "🧠", nomi: "Bilimlar", izoh: "Yangi bilimlar ro‘yxati" },
   { kalit: "mashq", belgi: "✏️", nomi: "Mashq", izoh: "O‘zingiz ishlang" },
   { kalit: "test", belgi: "📝", nomi: "Test", izoh: "Bilimni sinash" },
   { kalit: "tarix", belgi: "🏛", nomi: "Tarix", izoh: "Mavzu tarixi" },
@@ -209,9 +210,20 @@ export const qadamBolimlari = (steps) => {
     return sahna.get(key);
   });
 };
-export const bolimQadamlari = (steps, bolim) => {
-  const list = Array.isArray(steps) ? steps : [];
+// REV593: «Bilim: …» sarlavhali qatorlar — alohida bilimlar (Bilimlar bo'limida nomi bilan ro'yxatlanadi); doskada «Bilim: » yozuvi ko'rinmaydi
+export const bilimBelgila = (steps) => (Array.isArray(steps) ? steps : []).map((s) => (/^bilim:\s*/i.test(String(s?.sarlavha || "")) ? { ...s, bilim: true, sarlavha: String(s.sarlavha).replace(/^bilim:\s*/i, "") } : s));
+export const bilimlarRoyxati = (steps) => { const sahna = new Set(); const out = [];
+  bilimBelgila(steps).forEach((s) => { if (s.bilim && !out.includes(s.sarlavha)) out.push(s.sarlavha); if (s.sahna) sahna.add(s.sahna); }); return out; };
+export const bolimQadamlari = (steps, bolim0) => {
+  const list = bilimBelgila(steps);
+  const bolim = String(bolim0 || "");
   if (!bolim) return list;
+  if (bolim.startsWith("bilim:")) {   // bitta bilim — o'z qadamlari (sarlavhasi shu; sahnasi bir xil keyingi qadamlar ham)
+    const nom = bolim.slice(6); const f = []; let ichida = false; let sah = "";
+    list.forEach((s) => { const own = String(s?.sarlavha || "").trim();
+      if (own) { ichida = own === nom; sah = s.sahna || ""; if (ichida) f.push(s); } else if (ichida && (!s.sahna || s.sahna === sah)) f.push(s); });
+    return f.length ? f : list;
+  }
   const b = qadamBolimlari(list);
   const f = list.filter((_, i) => b[i] === bolim);
   return f.length ? f : list;
