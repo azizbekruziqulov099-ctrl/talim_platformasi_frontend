@@ -1,0 +1,63 @@
+.dv-studio { display: flex; flex-direction: column; gap: 16px; max-width: 1180px; margin: 0 auto; padding: 8px 4px 40px; }
+.dv-head { display: flex; gap: 14px; align-items: flex-start; }
+.dv-head h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 1.35rem; }
+.dv-head p { margin: 0; opacity: .75; }
+.dv-back { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(127,127,127,.35); background: transparent; border-radius: 10px; padding: 7px 12px; cursor: pointer; color: inherit; }
+.dv-card { border: 1px solid rgba(127,127,127,.22); border-radius: 16px; padding: 16px 18px; background: var(--kb-surface, rgba(255,255,255,.04)); }
+.dv-card h3 { margin: 0 0 12px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+.dv-tabs { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.dv-tabs button, .dv-row button { border: 1px solid rgba(127,127,127,.3); background: transparent; color: inherit; border-radius: 999px; padding: 7px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: .92rem; }
+.dv-tabs button.is-active, .dv-row button.is-active { background: #b5173a; border-color: #b5173a; color: #fff; }
+.dv-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 12px; align-items: end; }
+.dv-form label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; opacity: .95; }
+.dv-form .dv-wide { grid-column: 1 / -1; }
+.dv-form input, .dv-form select, .dv-form textarea { border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 9px 11px; font: inherit; background: transparent; color: inherit; }
+.dv-form textarea { resize: vertical; }
+.dv-primary { border: 0 !important; background: #b5173a !important; color: #fff !important; border-radius: 12px !important; padding: 10px 16px !important; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.dv-primary:disabled { opacity: .5; cursor: not-allowed; }
+.dv-form .dv-primary { grid-column: 1 / -1; justify-self: start; }
+.dv-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+.dv-spread { justify-content: space-between; }
+.dv-label { font-size: .85rem; opacity: .7; margin-right: 4px; }
+.dv-dots { display: inline-flex; gap: 2px; }
+.dv-dots i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dv-help { font-size: .85rem; opacity: .7; margin: 4px 0 8px; }
+.dv-ok { margin: 12px 0 0; font-size: .92rem; color: #1f9d55; }
+.dv-xato { border: 1px solid #d62839; background: rgba(214,40,57,.08); color: #b3152a; border-radius: 12px; padding: 10px 14px; }
+.dv-xabar { border: 1px solid #1f9d55; background: rgba(31,157,85,.08); border-radius: 12px; padding: 10px 14px; }
+.dv-spin { animation: dv-spin 1s linear infinite; }
+@keyframes dv-spin { to { transform: rotate(360deg); } }
+
+.dv-player { display: flex; flex-direction: column; gap: 8px; }
+.dv-player.is-full { background: #000; justify-content: center; }
+.dv-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.18); cursor: pointer; background: #fff; }
+.dv-player.is-full .dv-stage { border-radius: 0; max-height: calc(100vh - 48px); width: auto; margin: 0 auto; }
+.dv-svg { width: 100%; height: 100%; display: block; user-select: none; }
+.dv-el { transform-box: fill-box; transform-origin: center; }
+.dv-click { cursor: pointer; }
+.dv-click:hover { filter: brightness(1.04); }
+.dv-bar { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: .9rem; }
+.dv-player.is-full .dv-bar { color: #fff; }
+.dv-bar button { border: 1px solid rgba(127,127,127,.35); background: transparent; color: inherit; border-radius: 8px; padding: 5px 8px; cursor: pointer; display: inline-flex; }
+.dv-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; }
+.dv-thumbs button { flex: 0 0 150px; border: 2px solid transparent; border-radius: 8px; padding: 0; overflow: hidden; position: relative; cursor: pointer; background: #fff; }
+.dv-thumbs button.is-active { border-color: #b5173a; }
+.dv-thumbs .dv-svg { width: 150px; height: 84px; pointer-events: none; }
+.dv-thumbs span { position: absolute; left: 4px; bottom: 2px; font-size: 11px; background: rgba(0,0,0,.55); color: #fff; border-radius: 6px; padding: 0 5px; }
+@media (max-width: 720px) { .dv-form { grid-template-columns: 1fr 1fr; } .dv-thumbs button { flex-basis: 110px; } .dv-thumbs .dv-svg { width: 110px; height: 62px; } }
+
+/* animatsiyalar (PowerPoint'dagi effektlarning sayt varianti) */
+@keyframes dv-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dv-rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes dv-zoom { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: none; } }
+@keyframes dv-wedge { from { opacity: 0; transform: rotate(-120deg) scale(.4); } to { opacity: 1; transform: none; } }
+@keyframes dv-pulse { 0% { transform: none; } 50% { transform: scale(1.12); } 100% { transform: none; } }
+@keyframes dv-wipe-l { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes dv-wipe-r { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes dv-wipe-u { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes dv-wipe-d { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes dv-fly-u { from { opacity: 0; transform: translateY(160px); } to { opacity: 1; transform: none; } }
+@keyframes dv-fly-d { from { opacity: 0; transform: translateY(-160px); } to { opacity: 1; transform: none; } }
+@keyframes dv-fly-l { from { opacity: 0; transform: translateX(-220px); } to { opacity: 1; transform: none; } }
+@keyframes dv-fly-r { from { opacity: 0; transform: translateX(220px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dv-el { animation-duration: 1ms !important; animation-delay: 0ms !important; } }
