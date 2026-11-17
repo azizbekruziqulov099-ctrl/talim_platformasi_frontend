@@ -1,4 +1,5 @@
 import { useBand } from "../pwa/band.js";
+import { offlaynFetch, yuklangan } from "../offlayn/offlayn.js";
 import { konikmaYoz } from "./konikmaYoz.js";   // REV480
 import { qurilmaKaliti } from "../auth/qurilma.js";   // REV486
 import QurilmaOyna from "../auth/QurilmaOyna.jsx";
@@ -785,7 +786,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     // REV297: «Testlar» bo'limidan — faqat test: Miya'dagi savollar (shu va oldingi mavzular), yoshiga qarab 20–80 ta
     const yol = faqatTest ? `${encodeURIComponent(topicCode)}/test` : encodeURIComponent(topicCode);
     const qs = new URLSearchParams({ token, til: String(uiLocale || "uz").slice(0, 2), qurilma: qurilmaKaliti(), ...(faqatTest ? { soni: String(faqatTest) } : {}) });
-    fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${yol}?${qs}`, { signal: controller.signal })
+    offlaynFetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${yol}?${qs}`, { signal: controller.signal }, { kod: topicCode, saqla: yuklangan(topicCode) })
       .then(async (r) => { const d = await r.json().catch(() => ({}));
         if (r.status === 402 && d.detail?.kod === "kurs_tolov") { setKursQulf(d.detail); throw new Error(d.detail.xabar || "Kurs yopiq"); }   // REV301
         if (r.status === 423 && d.detail?.kod === "qurilma") { setQurilmaHol(d.detail); throw new Error(d.detail.xabar || "Qurilma"); }   // REV486

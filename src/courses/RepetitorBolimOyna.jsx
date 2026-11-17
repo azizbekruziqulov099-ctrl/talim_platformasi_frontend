@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { offlaynFetch, yuklangan, postNavbat } from "../offlayn/offlayn.js";
 import CourseText from "./CourseText.jsx";
 import { checkAnswer, qadamBolimlari, hayotMasalalari } from "../lesson/darsXonasiRules.js";
 import { qurilmaKaliti } from "../auth/qurilma.js";
@@ -39,8 +40,7 @@ function MashqToplam({ list, zapas = false, apiBase, token, topicCode, onNatija 
   useEffect(() => {
     if (!tugadi || yuborildi) return;
     const otdi = foiz >= 70; setYuborildi({ otdi });
-    fetch(`${API(apiBase)}/api/kurslar/mashq_natija`, { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, topic_code: topicCode, togri: oziTogri, jami: list.length, yechim_kordi: yechimKordi, zapas }) }).catch(() => {});
+    postNavbat(`${API(apiBase)}/api/kurslar/mashq_natija`, { token, topic_code: topicCode, togri: oziTogri, jami: list.length, yechim_kordi: yechimKordi, zapas }).catch(() => {});
     onNatija?.(otdi);
   }, [tugadi]); // eslint-disable-line react-hooks/exhaustive-deps
   const tekshir = (i, s) => {
@@ -111,7 +111,7 @@ export default function RepetitorBolimOyna({ apiBase, token, dars, bolim, bolimN
   useEffect(() => {
     const c = new AbortController(); setYuk(true); setXato(""); setLesson(null);
     const qs = new URLSearchParams({ token, til: "uz", qurilma: qurilmaKaliti() });
-    fetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(dars.topic_code)}?${qs}`, { signal: c.signal })
+    offlaynFetch(`${String(apiBase).replace(/\/+$/, "")}/api/dars_xonasi/${encodeURIComponent(dars.topic_code)}?${qs}`, { signal: c.signal }, { kod: dars.topic_code, saqla: yuklangan(dars.topic_code) })
       .then(async (r) => { const d = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : d.detail?.xabar || "Yuklanmadi"); return d; })
       .then((d) => setLesson(d)).catch((e) => { if (e.name !== "AbortError") setXato(e.message); }).finally(() => setYuk(false));

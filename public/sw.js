@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v23-rev584";   // REV398/REV439: ulashish (share target)
+const CACHE = "samtm-shell-v24-rev585";   // REV398/REV439: ulashish (share target)
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 
@@ -74,6 +74,17 @@ self.addEventListener("fetch", event => {
       return Response.redirect("/?hujjat=ulashilgan", 303);
     })());
   }
+});
+// OFLAYN: dars rasmlari (/api/ai_miya_media/ID) — tarmoq birinchi; internet bo'lmasa «Oflayn uchun yuklash» keshidan (kabutar-offlayn)
+self.addEventListener("fetch", event => {
+  const r = event.request;
+  if (r.method !== "GET") return;
+  let u; try { u = new URL(r.url); } catch { return; }
+  if (!/^\/api\/ai_miya_media\/\d+$/.test(u.pathname)) return;
+  event.respondWith(fetch(r).catch(async () => {
+    const c = await caches.open("kabutar-offlayn");
+    return (await c.match(u.origin + u.pathname)) || new Response("", { status: 504 });
+  }));
 });
 self.addEventListener("fetch", event => {
   const request = event.request;

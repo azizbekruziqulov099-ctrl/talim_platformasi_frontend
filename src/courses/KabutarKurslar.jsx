@@ -5,6 +5,8 @@ import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePref
 import RepetitorBolimOyna from "./RepetitorBolimOyna.jsx";
 import { REPETITOR_BOLIMLAR } from "../lesson/darsXonasiRules.js";
 import KursTolov, { somFmt } from "./KursTolov.jsx";
+import OflaynTugma from "../offlayn/OflaynTugma.jsx";
+import { offlaynFetch, postNavbat, navbatniKuzat } from "../offlayn/offlayn.js";
 import KursGuruh, { GURUH_KALIT, kgFetch } from "./KursGuruh.jsx";   // REV411
 import "./kabutarKurslar.css";
 
@@ -38,9 +40,10 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   const [tolov, setTolov] = useState(null);      // yopiq dars bosilganda
   const [konikmaOchiq, setKonikmaOchiq] = useState(false);   // REV480
 
+  useEffect(() => { navbatniKuzat(); }, []);
   const yukla = () => {
     setXato("");
-    fetch(`${base}/api/kurslar/katalog?${new URLSearchParams({ token, til })}`).then(async (r) => {
+    offlaynFetch(`${base}/api/kurslar/katalog?${new URLSearchParams({ token, til })}`, undefined, { saqla: true }).then(async (r) => {
       const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${r.status}`); setData(d);
     }).catch((e) => setXato(e.message));
   };
@@ -66,7 +69,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     setYakuniy(null);
     if (token) fetch(`${base}/api/yakuniy?${new URLSearchParams({ token, fan: k.fan, grade: k.sinflar?.[0] || "" })}`).then((r) => (r.ok ? r.json() : null)).then(setYakuniy).catch(() => {});
     setKurs({ ...k, darslarSoni: k.darslar, darslar: [], yuklanmoqda: true });
-    fetch(`${base}/api/kurslar/kurs?${new URLSearchParams({ token, fan: k.fan, grade: k.sinflar[0] || "" })}`).then(async (r) => {
+    offlaynFetch(`${base}/api/kurslar/kurs?${new URLSearchParams({ token, fan: k.fan, grade: k.sinflar[0] || "" })}`, undefined, { saqla: true }).then(async (r) => {
       const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${r.status}`);
       setKurs({ ...k, ...d, darslar: Array.isArray(d.darslar) ? d.darslar : [], nomi: k.nomi, yuklanmoqda: false });
       if (ochilsin) { const x = (d.darslar || []).find((y) => y.topic_code === ochilsin.tc); if (x && x.ochiq) setDars({ ...x, guruh: ochilsin.g }); }
@@ -87,8 +90,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {dars.guruh && <p className="kg-darsda">👥 {dars.guruh.nom} · {__kbUi("javoblaringiz o‘qituvchiga ko‘rinadi")}</p>}
     <React.Suspense fallback={<p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}>
     <DarsXonasi onNatija={dars.guruh ? (n) => kgFetch(apiBase, "/api/kurs_dars/javob", token, { method: "POST", body: { topic_code: dars.topic_code, ...n } }).catch(() => {}) : null}
-      onTugadi={(n) => fetch(`${base}/api/kurslar/dars_tugadi`, { method: "POST", headers: { "Content-Type": "application/json" },   // REV477: kurs tartibi
-        body: JSON.stringify({ token, fan: kurs?.fan || "", grade: (kurs?.sinflar || [])[0] || "", topic_code: dars.topic_code, ...(n || {}) }) }).catch(() => {})}
+      onTugadi={(n) => postNavbat(`${base}/api/kurslar/dars_tugadi`, { token, fan: kurs?.fan || "", grade: (kurs?.sinflar || [])[0] || "", topic_code: dars.topic_code, ...(n || {}) }).catch(() => {})}   // REV477: kurs tartibi
       keyingiDars={(() => { const ds = kurs?.darslar || []; const i = ds.findIndex((x) => x.topic_code === dars.topic_code); const k = i >= 0 ? ds[i + 1] : null;
         return k ? { nomi: k.nomi || k.topic_code, darhol: Boolean(kurs?.tartib_erkin), och: () => setDars({ ...k, ...(dars.bolim ? { bolim: dars.bolim } : {}) }) } : null; })()}
       adminMi={Boolean(user?.is_admin)} apiBase={apiBase} token={token} topicCode={dars.topic_code} fan={kurs?.fan || ""} grade={String(dars.sinf || "")} bolim={dars.bolim === "test" ? "" : (dars.bolim || "")} faqatTest={dars.bolim === "test" ? 30 : 0} onTestYoq={dars.bolim === "test" ? () => setDars({ ...dars, bolim: "" }) : null}
@@ -107,6 +109,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {yakOchiq && yakuniy && <div className="kk-yakuniy-ich">{yakuniy.qismlar.map((q) => <div key={q.kalit}><span>{__kbUi(q.nom)} <small>({q.ulush}%)</small></span>
       <b>{q.foiz == null ? "—" : `${q.foiz}%`}</b></div>)}
       {!yakuniy.tasdiqlangan && <p>{__kbUi("O‘qituvchi bahosi hali yo‘q — baho uy ishi va onlayn nazoratlar bo‘yicha hisoblandi.")}</p>}</div>}
+    {!kurs.yuklanmoqda && <OflaynTugma apiBase={apiBase} token={token} kurs={kurs} til={til} />}
     {kurs.yuklanmoqda && <p className="kk-p">{__kbUi("Yuklanmoqda…")}</p>}
     {kurs.xato && <p className="kk-xato" role="alert">{kurs.xato}</p>}
     {!kurs.yuklanmoqda && <KursGuruh apiBase={apiBase} token={token} user={user} kurs={kurs}
