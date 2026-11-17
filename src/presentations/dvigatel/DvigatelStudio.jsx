@@ -27,6 +27,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [xato, setXato] = useState('');
   const [aiVaqt, setAiVaqt] = useState(0);
   const fileRef = useRef(null);
+  const zipRef = useRef(null);
   const ishRef = useRef(null);
   const so = (path, opts) => dvSorov(apiBase, token, path, opts);
 
@@ -81,6 +82,21 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
       const r = await so('/import', { method: 'POST', raw: buf, headers: { 'X-Fayl-Nomi': encodeURIComponent(file.name) } });
       setMiyalar(r.miyalar);
       if (r.miyalar[0]) { setMiya(r.miyalar[0]); setSeed(yangiUrug()); }
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function rasmZip(file) {
+    if (!file) return;
+    setXato('');
+    setBusy('rasm');
+    try {
+      const zip = /\.zip$/i.test(file.name);
+      const r = await so('/rasm-yuklash', { method: 'POST', raw: await file.arrayBuffer(), timeout: 600000, headers: zip ? {} : { 'X-Kalit': file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9_-]/g, '_') } });
+      alertMatn(`${r.saqlandi} ta rasm saqlandi${r.xato?.length ? `, ${r.xato.length} tasi o‘qilmadi` : ''}.`);
     } catch (e) {
       setXato(e.message);
     } finally {
@@ -161,7 +177,10 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
           <button type="button" onClick={() => shablon(false)}><Download size={16} />Bo‘sh shablon</button>
           <button type="button" onClick={() => shablon(true)}><FileText size={16} />To‘ldirilgan namuna</button>
           <button type="button" onClick={korsatma}><Copy size={16} />ChatGPT ko‘rsatmasi</button>
+          <button type="button" onClick={() => zipRef.current?.click()} disabled={busy === 'rasm'}>{busy === 'rasm' ? <LoaderCircle className="dv-spin" size={16} /> : <Upload size={16} />}Rasmlar ZIP (admin)</button>
+          <input ref={zipRef} type="file" accept=".zip,image/png,image/webp,image/jpeg" hidden onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; rasmZip(f); }} />
         </div>
+        <p className="dv-help">Rasm fayli nomi = rasm kaliti (masalan al_xorazmiy.png). Bir ZIP’da 3000 tagacha rasm, 120 MB gacha.</p>
         {miyalar.length > 1 && <div className="dv-row">{miyalar.map((m, i) => <button type="button" key={i} onClick={() => setMiya(m)} className={miya === m ? 'is-active' : ''}>{m.meta.mavzu}</button>)}</div>}
       </div>}
       {tab === 'namuna' && <div className="dv-fayl"><p className="dv-help">«Ratsional sonlar» ma’ruzasi miyasi — dvigatel qanday ishlashini ko‘rish uchun.</p>
