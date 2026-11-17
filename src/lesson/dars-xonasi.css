@@ -1381,3 +1381,13 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-arxiv-bosh-bosh{flex:1}
 .dx-arxiv-bosh .dx-arxiv-davom{background:var(--dx-yellow,#f7c948);color:#10243f}
 .dx-arxiv-ich{flex:1;overflow:auto;padding:10px 16px;position:relative}
+
+/* REV598: AMAL — xona-xona qo'shish/ayirish */
+.mdx-amal{display:inline-grid;font-family:"Courier New",monospace;font-size:1.5em;line-height:1.35;text-align:center;align-items:center;padding:.1em .3em}
+.mdx-amal i{font-style:normal;transition:color .2s,background .2s}
+.mdx-amal-eslab{font-size:.62em;color:#ffd54a;font-weight:700;min-height:1.3em;white-space:nowrap}
+.mdx-amal-eslab.is-yangi{color:#ff8a80}
+.mdx-amal-a.is-ochgan{text-decoration:line-through;text-decoration-color:#ff5252;text-decoration-thickness:.1em;opacity:.7}
+.mdx-amal i.is-faol{background:rgba(255,235,59,.22);border-radius:.2em}
+.mdx-amal-n{color:#69f0ae;font-weight:700}
+.mdx-amal-chiziq{height:.1em;background:currentColor;transform-origin:left;grid-column:1/-1}

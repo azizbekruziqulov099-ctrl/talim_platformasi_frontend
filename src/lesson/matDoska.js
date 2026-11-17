@@ -8,7 +8,7 @@ export const MATEM_RE = /matem|algebr|geometr|математ|алгебр|гео
 export const matRejim = (fan) => MATEM_RE.test(String(fan || ""));
 
 const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
-  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
+  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK", "AMAL"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
 const BUYRUQ_RE = new RegExp(`^\\s*(${BUYRUQLAR.join("|")})\\s*(?::|$)\\s*([\\s\\S]*)$`, "i");
 
 const MATN_BUYRUQ = new Set(["yoz", "davom", "qoida", "belgila"]);
@@ -61,9 +61,10 @@ export function qatorProgress(cues, n, word, total, finished, uzunlik = Infinity
 export function yozishSozlari(qator) {
   const tur = qator?.tur || "yoz";
   if (tur === "ish") { const t = ishTahlil(qator.arg); return t ? 18 + t.qadamlar.length * 24 : 14; }
+  if (tur === "amal") return 16;   // har qadam (xona) uchun
   if (tur === "ketma") return 10 + String(qator.arg || "").split("|").length * 24;
   if (tur === "elak") return 60;
-  if (!["yoz", "qoida", "belgila"].includes(tur)) return tur === "ustun" || tur === "bolish" ? 18 : 14;
+  if (!["yoz", "qoida", "belgila"].includes(tur)) return tur === "ustun" ? 36 : tur === "bolish" ? 40 : 14;
   const matn = (qator.qismlar || [{ matn: qator.arg }]).map((q) => q.matn).join(" ");
   const korinadi = matn.replace(/\\(frac|cdot|cancel|sqrt|left|right|text|mathrm|quad|,)/g, " ").replace(/[{}$^_\\]/g, "").replace(/\s+/g, " ").trim();
   return Math.max(3, Math.round(korinadi.length / 2.6));
@@ -95,6 +96,10 @@ export function ustunTahlil(arg) {
       q = d < 0 ? 1 : 0;
       if (q) eslab[i + 1] = "·";
     }
+  }
+  if (op === "×" && b.length === 1) {   // bir xonali ko'paytuvchi: yodda tutiladigan raqam keyingi xona tepasida
+    let c = 0; const d = Number(b);
+    for (let i = 0; i < a.length; i++) { const x = Number(a[a.length - 1 - i]) * d + c; c = Math.floor(x / 10); if (c) eslab[i + 1] = String(c); }
   }
   const qismlar = op === "×" && b.length > 1
     ? [...b].reverse().map((d, i) => (BigInt(a) * BigInt(d)).toString() + " ".repeat(i))
@@ -439,4 +444,35 @@ export function elakTahlil(arg) {
   }
   const asosiy = tub.filter((p) => p * p <= n);
   return { n, tub, ochgan, asosiy };
+}
+
+
+// ── AMAL: qo'shish / ayirish — xona-xona (qadam-baqadam, ovozga mos); ayirishda qarz olingan raqam o'chiriladi, yangisi yoziladi ──
+/** «25+27» / «6240-3857» → {a, b, op, W, qadamlar:[{col, da, db, res, yodda, mods:[{col, eski, yangi}], qarz}], natija}. Boshqa amal — null. */
+export function amalTahlil(arg) {
+  const m = String(arg || "").replace(/\s+/g, "").match(/^(\d{1,9})([+\-−])(\d{1,9})$/);
+  if (!m) return null;
+  const a = m[1], b = m[3], op = m[2] === "+" ? "+" : "−";
+  if (op === "−" && BigInt(b) > BigInt(a)) return null;
+  const n = Math.max(a.length, b.length);
+  const dg = (x, i) => (i < x.length ? Number(x[x.length - 1 - i]) : null);
+  const qadamlar = [];
+  if (op === "+") {
+    let c = 0;
+    for (let i = 0; i < n; i++) { const da = dg(a, i), db = dg(b, i); const sum = (da || 0) + (db || 0) + c;
+      qadamlar.push({ col: i, da, db, kirdi: c, sum, res: sum % 10, yodda: sum >= 10 ? 1 : 0, mods: [] }); c = sum >= 10 ? 1 : 0; }
+    if (c) qadamlar.push({ col: n, da: null, db: null, kirdi: c, sum: c, res: c, yodda: 0, mods: [], oxirgi: true });
+  } else {
+    const cur = Array.from({ length: a.length }, (_, i) => dg(a, i));
+    for (let i = 0; i < a.length; i++) { const db = dg(b, i) || 0; const mods = []; let qarz = false;
+      if (cur[i] < db) {
+        let k = i + 1; while (k < cur.length && cur[k] === 0) k++;
+        for (let j = k; j > i; j--) { const eski = cur[j]; cur[j] = j === k ? eski - 1 : 9; mods.push({ col: j, eski, yangi: cur[j] }); }
+        cur[i] += 10; qarz = true;
+      }
+      qadamlar.push({ col: i, da: dg(a, i), top: cur[i], db: dg(b, i), res: cur[i] - db, mods, qarz }); }
+  }
+  const natija = (op === "+" ? BigInt(a) + BigInt(b) : BigInt(a) - BigInt(b)).toString();
+  if (op === "−") qadamlar.length = Math.min(qadamlar.length, natija.length);   // bosh nollar uchun qadam yo'q
+  return { a, b, op, W: Math.max(n, natija.length), qadamlar, natija };
 }

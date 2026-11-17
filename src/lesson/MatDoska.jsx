@@ -4,7 +4,7 @@
 import BoardOyin from "./BoardOyin.jsx";   // REV429
 import React, { useMemo } from "react";
 import katex from "katex";
-import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, HARFLAR } from "./matDoska.js";   // REV425
+import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, amalTahlil, HARFLAR } from "./matDoska.js";   // REV425
 import { BoardText } from "./AmaliyDoska.jsx";
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { stripSpeechTags } from "../speech/language.js";
@@ -86,6 +86,36 @@ function Ustun({ arg, progress }) {
     {qismlar.map((q, i) => <React.Fragment key={q.k}><span className="mdx-ustun-qator" style={kor(progress, 0.35 + (i / (qismlar.length + 1)) * 0.4)}>{q.r.map((c, j) => <i key={j}>{c}</i>)}</span>
       {i === qismlar.length - 1 && <span className="mdx-ustun-chiziq" style={{ transform: `scaleX(${kesim((progress - 0.75) / 0.05)})` }} />}</React.Fragment>)}
     <span className="mdx-ustun-qator mdx-natija">{natija.map((c, j) => <i key={j} style={{ opacity: w - j <= ochiq ? 1 : 0, transition: "opacity .25s" }}>{c}</i>)}</span>
+  </span>;
+}
+
+
+/** AMAL: qo'shish/ayirish xona-xona. 0-qism — sonlar yoziladi; k-qism — k-xona (o'ngdan). Ayirishda qarz olingan raqam o'chiriladi, yangisi tepasiga yoziladi. */
+function Amal({ arg, progress, qismProgress }) {
+  const t = amalTahlil(arg);
+  if (!t) return <JonliMatn text={arg} progress={progress} />;
+  const W = t.W, n = t.qadamlar.length;
+  const ps = qismProgress && qismProgress.length ? qismProgress : null;
+  const sp = (k) => (ps ? (ps[k] ?? 0) : kesim((progress - k / (n + 1)) * (n + 1)));   // k-qism progressi
+  const cell = (s, col) => s[s.length - 1 - col] ?? "";
+  const cols = Array.from({ length: W }, (_, j) => W - 1 - j);   // chapdan o'ngga: eng katta xona birinchi
+  const faol = t.qadamlar.findIndex((q, i) => sp(i + 1) > 0 && sp(i + 1) < 1);
+  const mod = (col) => { for (let i = 0; i < n; i++) { const m = t.qadamlar[i].mods.find((x) => x.col === col); if (m && sp(i + 1) > 0.05) return m; } return null; };
+  return <span className="mdx-amal" role="img" aria-label={`${t.a} ${t.op} ${t.b} = ${t.natija}`} style={{ gridTemplateColumns: `1ch repeat(${W}, 1.6ch)` }}>
+    {/* 1-qator: yodda (+) yoki yangi raqam (−) */}
+    <i />{cols.map((c) => {
+      let v = "", cls = "mdx-amal-eslab";
+      if (t.op === "+") { const q = t.qadamlar[c - 1]; if (q && q.yodda && sp(c) >= 0.5) v = "1"; }
+      else { const m = mod(c); const q = t.qadamlar[c]; if (q && q.qarz && sp(c + 1) > 0.05) v = String(q.top); else if (m) v = String(m.yangi); cls += " is-yangi"; }
+      return <i key={c} className={cls} style={kor(1, v ? 0 : 2)}>{v || " "}</i>; })}
+    {/* 2-qator: yuqori son */}
+    <i />{cols.map((c) => { const d = cell(t.a, c); const q = t.qadamlar[c]; const m = t.op === "−" ? mod(c) : null; const borrowed = t.op === "−" && q && q.qarz && sp(c + 1) > 0.05;
+      return <i key={c} className={`mdx-amal-a ${m || borrowed ? "is-ochgan" : ""} ${faol === c ? "is-faol" : ""}`} style={kor(sp(0), 0.3)}>{d || " "}</i>; })}
+    {/* 3-qator: ikkinchi son */}
+    <i className="mdx-amal-op" style={kor(sp(0), 0.6)}>{t.op}</i>{cols.map((c) => <i key={c} className={`mdx-amal-b ${faol === c ? "is-faol" : ""}`} style={kor(sp(0), 0.6)}>{cell(t.b, c) || " "}</i>)}
+    <span className="mdx-amal-chiziq" style={{ gridColumn: `1 / span ${W + 1}`, transform: `scaleX(${kesim(sp(0) * 1.2 - 0.2)})` }} />
+    {/* natija */}
+    <i />{cols.map((c) => { const q = t.qadamlar[c]; const v = cell(t.natija, c); const ko = q && sp(c + 1) >= 0.6; return <i key={c} className={`mdx-amal-n ${faol === c ? "is-faol" : ""}`} style={{ opacity: ko ? 1 : 0, transition: "opacity .25s" }}>{v || " "}</i>; })}
   </span>;
 }
 
@@ -507,6 +537,7 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
   const p = kesim(progress);
   switch (b.tur) {
     case "ustun": return <Ustun arg={b.arg} progress={p} />;
+    case "amal": return <Amal arg={qator.qismlar?.[0]?.matn ?? b.arg} progress={p} qismProgress={qator.qismProgress} />;
     case "ish": return <Ish arg={b.arg} progress={p} />;
     case "ketma": return <Ketma arg={b.arg} progress={p} />;
     case "elak": return <Elak arg={b.arg} progress={p} />;
