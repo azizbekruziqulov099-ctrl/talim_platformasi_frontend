@@ -1,6 +1,6 @@
 // REV512: bilim zanjiri — dars boshida oldingi mavzulardan 3 savollik kirish tekshiruvi; xato bo'lsa «Avval buni eslab olaylik»:
 // namunaviy yechim va 6 ta mashq, keyin darsga. Bizni boshqa saytlardan ajratadigan narsa: o'quvchi bilmagan joyi to'ldiriladi.
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { BoardText } from "./AmaliyDoska.jsx";
@@ -21,10 +21,18 @@ function Savollar({ savollar, onTugadi, sarlavha, tezkor = false }) {
     if (qoldi <= 0) { setTanlov(-1); setNatija((n) => [...n, false]); return undefined; }
     const t = setTimeout(() => setQoldi((x) => x - 1), 1000); return () => clearTimeout(t);
   }, [qoldi, tanlov, tezkor, q]);
+  // Avto o'tish: to'g'ri javobdan keyin 1 soniyada, xatodan keyin (yechim o'qilsin) 3,5 soniyada keyingi savolga — «Keyingi» tugmasi ham ishlayveradi
+  const keyingiRef = useRef(null);
+  useEffect(() => {
+    if (tanlov === null || !q) return undefined;
+    const t = setTimeout(() => keyingiRef.current?.(), tanlov === q.togri ? 1000 : tanlov === -1 ? 2500 : 3500);
+    return () => clearTimeout(t);
+  }, [tanlov, i]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!q) return null;
   const javob = (k) => { if (tanlov !== null) return; setTanlov(k); setNatija((n) => [...n, k === q.togri]); };
   const ok = tanlov !== null && tanlov === q.togri;
   const keyingi = () => { if (i + 1 < savollar.length) { setI(i + 1); setTanlov(null); } else onTugadi(natija); };
+  keyingiRef.current = keyingi;
   return <div className="bzt-savol">
     <div className="bzt-yuqori"><b>{sarlavha}</b><span>{i + 1} / {savollar.length}</span></div>
     {tezkor && <div className="bzt-vaqt"><i style={{ width: `${Math.max(0, (qoldi / VAQT) * 100)}%`, background: qoldi > 6 ? "#2e9e5b" : qoldi > 3 ? "#f2b72e" : "#d9534f" }} /></div>}
