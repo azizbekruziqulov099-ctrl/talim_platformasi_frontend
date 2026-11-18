@@ -13,7 +13,6 @@ import { XbUstoz } from "./XbDoska.jsx";
 import XbOqituvchi, { Xatolarim } from "./XbOqituvchi.jsx";   // REV261
 import { OquvchiSinf } from "./XbSinflar.jsx";   // REV373
 import { MeningGuruhim } from "./XbGuruhlar.jsx";   // REV556
-import XbNatijalarim from "./XbNatijalarim.jsx";   // REV381
 import XbToplamlar, { DARAJA } from "./XbToplamlar.jsx";   // REV399
 import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
 import { GAP_TUR, IMTIHON_BELGI, darajaNomi, mavzuBelgi, sinfRaqami, solishtirishQatorlari } from "./xbRules.js";
@@ -143,6 +142,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
           <button type="button" className="xb-kolonka" aria-label={T("Ustoz gapini eshitish")} title={T("Ustoz gapini eshitish")}
             onClick={() => (ovoz.speaking ? ovoz.hush() : ovoz.say(kat.ustoz?.matn || ""))}>{ovoz.speaking ? "⏹" : "🔊"}</button></p>
         <TilBelgisi til={til} tillar={kat.tillar} />
+        {!kattaRejim && <button type="button" className="xb-yordam" aria-label={T("Qo‘llanma")} title={T("Qo‘llanma: bo‘lim qanday ishlaydi")} onClick={() => { ovoz.hush(); setTab("qollanma"); }}>?</button>}
       </div>
     </header>
     {kat.tayyor_emas && <div className="xb-panel xb-ogoh-panel"><p>🌐 {kat.tayyor_emas}</p></div>}
@@ -160,21 +160,17 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         <b>{t.dastur === "PISA" ? `PISA · ${t.fan_nomi}` : `TIMSS · ${tf("{n}-sinf", { n: t.sinf })}`}</b>
         <small>{t.dastur === "PISA" ? T("15 yosh") : t.fan_nomi}{t.tavsiya ? ` · ⭐ ${T("sizga mos")}` : ""}</small></button>)}</div>
     </div>)}
+    {!tab && tp && <Taft tp={tp} takror={kat.takror} />}
     {!tab ? <div className="xb-menyu">{[
+        ["kurs", "📚", kattaRejim ? T("Darslar") : T("Kurs"), tf("{m} mavzu · har birida dars va mashq", { m: tp?.mavzular?.length || 0 })],
+        ["natija", "📊", T("Natija va xatolar"), kat.takror ? tf("Mavzu testlari, xatolar · bugun {n} ta takror", { n: kat.takror }) : T("Mavzu testlari, xatolar, takrorlash, reyting")],
+        ["imtihon", "📝", kattaRejim ? T("Testlar va imtihonlar") : T("Imtihonlar"), T("Haftalik, oylik, choraklik va yillik sinov")],
+        ...(kuzatuv ? [["sinfim", "🏫", kuzatuv.rol === "oquvchi" ? T("Sinfim") : T("Men a’zo bo‘lgan sinflar"), T("Sinf, guruh, topshiriqlar; kod yoki parol bilan qo‘shilish")]] : []),
         ...(panel ? [["panel", "👩‍🏫", kuzatuv.rol === "admin" ? T("Admin nazorati") : T("Mening sinflarim va natijalar"), T("Sinf ochish, kod va havola, o‘quvchilar natijasi va xatolari")],
           ["metod", "🎓", T("O‘qitish metodlari"), T("TIMSS va PISA bo‘yicha dars berish usullari")]] : []),
-        ...(kuzatuv ? [["sinfim", "🏫", kuzatuv.rol === "oquvchi" ? T("Sinfim") : T("Men a’zo bo‘lgan sinflar"), T("Sinfingiz, topshiriqlar; kod yoki parol bilan qo‘shilish")]] : []),
-        ["natija", "📊", T("Natijalarim"), T("Har mavzu bo‘yicha foizlar, imtihonlar va ballar")],
-        ["kurs", "📚", kattaRejim ? T("Darslar") : T("Kurs: mavzular va testlar"), tf("{m} mavzu · {s} ta test · har mavzuda dars", { m: tp?.mavzular?.length || 0, s: (tp?.mavzular || []).reduce((a, x) => a + (x.savollar || 0), 0) })],
-        ["imtihon", "📝", kattaRejim ? T("Testlar va imtihonlar") : T("Imtihonlar"), T("Haftalik, oylik, choraklik va yillik sinov")],
-        ["takror", "🔁", T("Takrorlash"), kat.takror ? tf("Bugun {n} ta savol kutyapti", { n: kat.takror }) : T("Xato qilingan savollar qayta so‘raladi")],
-        ["xato", "❌", T("Xatolarim"), T("Qayerda adashgansiz va nega")],
-        ["reyting", "🏅", T("Reyting"), T("Sinf, maktab va platformada o‘rningiz")],
-        ["dunyo", "🌍", T("Dunyo natijalari"), T("Davlatlar natijasi bilan solishtiring")],
-        ["qollanma", "📖", T("Qo‘llanma"), T("Bo‘lim qanday ishlaydi")],
       ].filter(([k]) => menyuFiltri(kattaRejim, k)).map(([k, belgi, nom, izoh]) => <button key={k} type="button" className={`xb-menyu-karta is-${k}`} onClick={() => { ovoz.hush(); setTab(k); }}>
         <span className="xb-menyu-belgi" aria-hidden="true">{belgi}</span><b>{nom}</b><small>{izoh}</small>
-        {k === "takror" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
+        {k === "natija" && kat.takror ? <i className="xb-nishon">{kat.takror}</i> : null}</button>)}</div>
       : <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setTab(""); }}>← {T("Bosh sahifa")}</button></div>}
     {/* REV556: guruhim, darajam, nimani o'rganish kerak; kirish testi shu yerdan boshlanadi */}
     {tab === "sinfim" && kuzatuv && <MeningGuruhim apiBase={apiBase} token={token}
@@ -182,25 +178,72 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
     {tab === "sinfim" && kuzatuv && <OquvchiSinf apiBase={apiBase} token={token} ism={user?.full_name || ""}
       onTopshiriq={(t) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { tur: "topshiriq", kod: t.kod }, sarlavha: `📝 ${t.nom}` }); }} onToplam={(t) => { if (t && kat.toplamlar?.some((x) => x.kalit === t)) { ovoz.hush(); setToplam(t); setTab("kurs"); } }} />}
-    {tab === "natija" && <XbNatijalarim apiBase={apiBase} token={token} kat={kat} toplam={toplam} til={til} onMashq={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} onDars={(m) => ochDars(m)} />}
+    {tab === "natija" && tp && <NatijaXatolar tp={tp} kat={kat} kattaRejim={kattaRejim} apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} toplam={toplam} uz={kat.ozbekiston}
+      onMashq={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} onDars={(m) => ochDars(m)}
+      onTakror={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Takrorlash") })}
+      onAralash={(extra) => ochMashq(null, extra)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
     {tab === "kurs" && tp && <Kurs tp={tp} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq}
       onToplamlar={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} />}
     {tab === "imtihon" && <Imtihonlar apiBase={apiBase} token={token} toplam={toplam} onBoshla={(info) => setEkran({ tur: "imtihon", info })} onNatija={(id) => setEkran({ tur: "natija", id })} />}
-    {tab === "takror" && <div className="xb-panel"><p>🔁 {T("Takrorlash navbati: xato qilgan savollaringiz 1, 2, 4, 8, 16 kundan keyin boshqa variantda qayta so‘raladi. 5 marta ketma-ket to‘g‘ri yechsangiz, savol navbatdan chiqadi.")}</p>
-      <p><b>{kat.takror}</b> {T("ta savol bugun takrorlanishi kerak.")}</p>
-      <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Takrorlash") })}>▶ {T("Takrorlashni boshlash")}</button>
-      <button type="button" className="xb-btn" onClick={() => ochMashq(null, { soni: 12 })}>🎲 {T("Aralash mashq (12 savol)")}</button>
-      <button type="button" className="xb-btn" onClick={() => ochMashq(null, { soni: 10, fikrlash: "mulohaza" })}>🧠 {T("Faqat mulohaza savollari")}</button></div>}
-    {tab === "reyting" && <Reyting apiBase={apiBase} token={token} toplam={toplam} />}
-    {tab === "dunyo" && <Dunyo apiBase={apiBase} token={token} uz={kat.ozbekiston} />}
     {tab === "metod" && panel && <XbQollanma rol={kuzatuv?.rol} ovoz={ovoz} faqatMetod onTab={setTab} />}
     {tab === "panel" && panel && <XbOqituvchi apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} kuzatuv={kuzatuv} kat={kat}
       onDars={(m) => ochDars({ dars_kodi: m.dars_kodi, kalit: m.kalit, fan: kat.toplamlar.find((t) => t.kalit === m.toplam)?.ustoz_fan, sinf: kat.toplamlar.find((t) => t.kalit === m.toplam)?.sinf })} />}
-    {tab === "xato" && <Xatolarim apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} toplam={toplam}
-      onMashq={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Xatolar ustida ishlash") })} />}
     <p className="xb-muted xb-kichik">ℹ️ {T(kat.manba)}</p>
     {kattaRejim && !tab && <KabuTur ovoz={ovoz} ustoz={ustoz} />}
+  </div>;
+}
+
+function Taft({ tp, takror }) {
+  const m = tp.mavzular || [];
+  const jami = m.reduce((a, x) => a + (x.holat?.jami || 0), 0);
+  const oz = m.reduce((a, x) => a + (x.holat?.ozlashtirgan || 0), 0);
+  const p = Math.round((100 * oz) / Math.max(1, jami));
+  const zaif = [...m].sort((a, b) => (a.holat?.foiz ?? 0) - (b.holat?.foiz ?? 0))[0];
+  const nom = tp.dastur === "PISA" ? `PISA · ${tp.fan_nomi}` : `TIMSS · ${tf("{n}-sinf", { n: tp.sinf })} · ${tp.fan_nomi}`;
+  return <div className="xb-taft"><div className="xb-taft-bosh"><b>{nom}</b><span>{p}%</span></div>
+    <span className="xb-progress"><i style={{ width: `${p}%` }} /></span>
+    <small>{tf("{a} / {b} savol o‘zlashtirildi", { a: oz, b: jami })}{zaif && (zaif.holat?.foiz ?? 0) < 80 ? ` · ${T("Keyingi qadam")}: ${zaif.nom}` : ""}{takror ? ` · 🔁 ${tf("bugun {n} ta takror", { n: takror })}` : ""}</small></div>;
+}
+
+function Yopiq({ belgi, nom, izoh, children }) {
+  const [och, setOch] = useState(false);
+  return <section className={`xb-yopiq${och ? " is-ochiq" : ""}`}>
+    <button type="button" aria-expanded={och} onClick={() => setOch((x) => !x)}><span aria-hidden="true">{belgi}</span><b>{nom}</b><small>{izoh}</small><i aria-hidden="true">{och ? "▲" : "▼"}</i></button>
+    {och && <div className="xb-yopiq-ichi">{children}</div>}</section>;
+}
+
+function NatijaXatolar({ tp, kat, kattaRejim, apiBase, token, jins, ustoz, toplam, uz, onMashq, onDars, onTakror, onAralash }) {
+  const m = tp.mavzular || [];
+  const jami = m.reduce((a, x) => a + (x.holat?.jami || 0), 0);
+  const oz = m.reduce((a, x) => a + (x.holat?.ozlashtirgan || 0), 0);
+  const boshl = m.filter((x) => x.holat?.urinilgan > 0).length;
+  const p = Math.round((100 * oz) / Math.max(1, jami));
+  const tartib = [...m].sort((a, b) => (a.holat?.foiz ?? 0) - (b.holat?.foiz ?? 0));
+  const rang = (f) => (f >= 70 ? "#1f8a4c" : f >= 40 ? "#1b6fd8" : f > 0 ? "#c77d00" : "#9aa3af");
+  return <div className="xb-natxato">
+    <div className="xb-xulosa">
+      <div><small>{T("Umumiy o‘zlashtirish")}</small><b style={{ color: rang(p) }}>{p}%</b></div>
+      <div><small>{T("Boshlangan mavzular")}</small><b>{boshl}/{m.length}</b></div>
+      <div><small>{T("Bugun takrorlash")}</small><b>{kat.takror || 0}</b></div>
+    </div>
+    <Yopiq belgi="📝" nom={T("Mavzu testlari")} izoh={T("Mavzuni tanlang — testni shu yerdan boshlang (eng zaifi tepada)")}>
+      <ul className="xb-nat-ruyxat">{tartib.map((x) => { const f = x.holat?.foiz || 0;
+        return <li key={x.kalit}><span className="xb-nat-n"><b>{x.nom}</b><span className="xb-chiziq"><i style={{ width: `${f}%`, background: rang(f) }} /></span></span>
+          <b style={{ color: rang(f) }}>{f}%</b>
+          <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onMashq(x)}>✍️ {T("Test")}</button></li>; })}</ul>
+      <button type="button" className="xb-btn" onClick={() => onAralash({ soni: 12 })}>🎲 {T("Aralash mashq (12 savol)")}</button>
+    </Yopiq>
+    <Yopiq belgi="❌" nom={T("Xatolarim")} izoh={T("Qayerda adashgansiz va nega")}>
+      <Xatolarim apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} toplam={toplam} onMashq={onTakror} />
+    </Yopiq>
+    <Yopiq belgi="🔁" nom={T("Takrorlash")} izoh={kat.takror ? tf("Bugun {n} ta savol kutyapti", { n: kat.takror }) : T("Xato qilingan savollar qayta so‘raladi")}>
+      <p>{T("Xato qilgan savollaringiz 1, 2, 4, 8, 16 kundan keyin boshqa variantda qayta so‘raladi. 5 marta ketma-ket to‘g‘ri yechsangiz, savol navbatdan chiqadi.")}</p>
+      <button type="button" className="xb-btn xb-btn-asosiy" onClick={onTakror}>▶ {T("Takrorlashni boshlash")}</button>
+      <button type="button" className="xb-btn" onClick={() => onAralash({ soni: 10, fikrlash: "mulohaza" })}>🧠 {T("Faqat mulohaza savollari")}</button>
+    </Yopiq>
+    <Yopiq belgi="🏅" nom={T("Reyting")} izoh={T("Sinf, maktab va platformada o‘rningiz")}><Reyting apiBase={apiBase} token={token} toplam={toplam} /></Yopiq>
+    {!kattaRejim && <Yopiq belgi="🌍" nom={T("Dunyo natijalari")} izoh={T("Davlatlar natijasi bilan solishtiring")}><Dunyo apiBase={apiBase} token={token} uz={uz} /></Yopiq>}
   </div>;
 }
 
@@ -216,7 +259,7 @@ function Kurs({ tp, onMavzu, onDars, onMashq, onToplamlar }) {
   return <div className="xb-kurs">
     <div className="xb-karta xb-kurs-bosh"><small>{T("Kurs bo‘yicha o‘zlashtirish")}</small><b>{oz}/{jami} {T("savol")}</b>
       <span className="xb-progress"><i style={{ width: `${jami ? Math.round((100 * oz) / jami) : 0}%` }} /></span>
-      <small>{T("Har mavzu: avval dars (Kabu doskada tushuntiradi), keyin mashq. 80% dan keyin mavzu ★ bo‘ladi.")}</small></div>
+      <small>{T("Har mavzu: dars (Kabu doskada tushuntiradi). Mavzu testlari va xatolar — «Natija va xatolar» bo‘limida.")}</small></div>
     {sohalar.map((s) => <section key={s.soha} className="xb-soha"><h3>{s.nom}</h3>
       <ul className="xb-mavzular">{s.mavzular.map((m) => {
         const b = mavzuBelgi(m.holat);
@@ -224,11 +267,9 @@ function Kurs({ tp, onMavzu, onDars, onMashq, onToplamlar }) {
           <button type="button" className="xb-mavzu-nom" onClick={() => onMavzu(m)}>
             <span className="xb-belgi" title={T(b.nom)}>{b.belgi}</span>
             <span><b>{m.nom}</b><small>🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}% · {tf("{a}/{b} o‘zlashtirildi", { a: m.holat?.ozlashtirgan ?? 0, b: m.savollar })}</small></span>
-            <span className="xb-test-soni" title={T("Savollar soni")}>📝 {tf("{n} savol", { n: m.savollar })}</span>
           </button>
           <span className="xb-mavzu-tug">
-            {m.dars_kodi && <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onDars(m)}>🧑‍🏫 {T("Dars")}</button>}
-            <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onToplamlar(m)}>✍️ {tf("{n} ta savol · {t} to‘plam", { n: m.savollar, t: Math.max(1, Math.round(m.savollar / 8)) })}</button>
+            {m.dars_kodi && <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onDars(m)}>🧑‍🏫 {T("Dars")}</button>}
           </span>
         </li>;
       })}</ul></section>)}

@@ -34,6 +34,6 @@ export const KABU_QADAMLAR = [
   { sel: ".kb-account-notice", matn: "Avval muhim narsa: tepadagi eslatmada Telegram yoki Gmail’ni ulang. Ulamasangiz, boshqa qurilmadan kira olmaysiz va natijalaringiz yo‘qolib ketishi mumkin." },
   { sel: ".xb-menyu-karta.is-kurs", matn: "Bu yerda darslar. Har mavzuda men doskada tushuntiraman, keyin mashq qilasiz. Kerakli maktab darslari ham shu yerda ochiq." },
   { sel: ".xb-menyu-karta.is-imtihon", matn: "Bu yerda testlar va imtihonlar: haftalik, oylik, choraklik va yillik. Har birini o‘z vaqtida topshirasiz." },
-  { sel: ".xb-menyu-karta.is-reyting", matn: "Bu yerda reytingingiz. Natijangizga qarab guruhingiz belgilanadi. Imtihondan keyin yaxshi o‘qisangiz, yuqori guruhga o‘tasiz." },
+  { sel: ".xb-menyu-karta.is-natija", matn: "Bu yerda mavzu testlari, xatolaringiz va reytingingiz. Natijangizga qarab guruhingiz belgilanadi. Imtihondan keyin yaxshi o‘qisangiz, yuqori guruhga o‘tasiz." },
   { sel: ".xb-menyu-karta.is-sinfim", matn: "Bu yerda sinfingiz va guruhingiz. O‘qituvchingiz guruhlarni tuzgach, shu yerda ko‘rasiz." },
 ];
