@@ -12,7 +12,7 @@ const Xato = ({ x, qayta }) => <div className="mb-xato" role="alert"><p>⚠️ {
 const Rasm = ({ r }) => (r ? <div className="mb-mock-rasm" dangerouslySetInnerHTML={{ __html: r }} /> : null); // server o‘zi yasagan SVG (foydalanuvchi matni emas)
 const kalit = (s, h) => (h ? `${s.slot}${h}` : String(s.slot));
 
-function Boshlash({ apiBase, token, onBosh, onClose }) {
+function Boshlash({ apiBase, token, onBosh, onClose, onKorish }) {
   const [d, setD] = useState(null); const [xato, setXato] = useState("");
   useEffect(() => { matFetch(apiBase, token, "/api/matmock/turlar").then(setD).catch((e) => setXato(e.message)); }, [apiBase, token]);
   return <section className="mb-root">
@@ -22,9 +22,9 @@ function Boshlash({ apiBase, token, onBosh, onClose }) {
       <button type="button" className="mb-karta mb-sert-tur" onClick={() => onBosh()}><b>▶️ {__kbUi("Yangi imtihonni boshlash")}</b>
         <span>{d.topshiriq} {__kbUi("topshiriq")} · {d.daqiqa} {__kbUi("daqiqa")}</span><small>{__kbUi("32 yopiq, 3 moslashtirish, 10 ochiq (a, b qismli). Oxirida ball va yechimlar.")}</small></button>
       <p className="mb-muted">ℹ️ {__kbUi(d.izoh)}</p>
-      {d.tarix.length > 0 && <div className="mb-karta"><h3>{__kbUi("Oldingi urinishlar")}</h3>
-        <ul className="mb-sert-tarix">{d.tarix.map((t) => <li key={t.id}><span>{new Date(t.sana).toLocaleDateString()}</span>
-          <b style={{ color: BALL_RANGI[t.daraja] || "#6b7280" }}>{t.ball} {__kbUi("ball")}{t.daraja ? ` · ${t.daraja}` : ""}</b><small>{t.togri}/45</small></li>)}</ul></div>}</>}
+      {d.tarix.length > 0 && <div className="mb-karta"><h3>{__kbUi("Yechilgan imtihonlar")}</h3>
+        <ul className="mb-sert-tarix">{d.tarix.map((t) => <li key={t.id}><button type="button" className="mb-tarix-qator" onClick={() => onKorish(t.id)}><span>{new Date(t.sana).toLocaleDateString()}</span>
+          <b style={{ color: BALL_RANGI[t.daraja] || "#6b7280" }}>{t.ball} {__kbUi("ball")}{t.daraja ? ` · ${t.daraja}` : ""}</b><small>{t.togri}/45 · {__kbUi("xato va yechimlarni ko‘rish")} →</small></button></li>)}</ul></div>}</>}
   </section>;
 }
 
@@ -104,5 +104,5 @@ export default function MatMock({ apiBase = "", token, onClose }) {
   return <RasmKonteksti.Provider value={{ apiBase, token }}>{
     e.t === "yech" ? <Yechish key={e.n} apiBase={apiBase} token={token} onChiq={() => setE({ t: "bosh" })} onTugadi={(r) => setE({ t: "natija", r })} />
       : e.t === "natija" ? <Natija r={e.r} onBosh={() => setE({ t: "bosh" })} onYana={() => setE({ t: "yech", n: Date.now() })} />
-        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onBosh={() => setE({ t: "yech", n: Date.now() })} />}</RasmKonteksti.Provider>;
+        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onKorish={async (id) => { try { const r = await matFetch(apiBase, token, "/api/matmock/natija", { params: { id } }); setE({ t: "natija", r }); } catch { /* */ } }} onBosh={() => setE({ t: "yech", n: Date.now() })} />}</RasmKonteksti.Provider>;
 }

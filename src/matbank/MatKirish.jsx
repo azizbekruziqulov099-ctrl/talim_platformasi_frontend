@@ -10,7 +10,7 @@ import "./matbank.css";
 const f1 = (x) => String(Number(x).toFixed(1)).replace(".", ",");
 const Xato = ({ x, qayta }) => <div className="mb-xato" role="alert"><p>⚠️ {__kbUi(x)}</p>{qayta && <button type="button" className="mb-btn" onClick={qayta}>↻ {__kbUi("Qayta urinish")}</button>}</div>;
 
-function Boshlash({ apiBase, token, onBosh, onClose }) {
+function Boshlash({ apiBase, token, onBosh, onClose, onKorish }) {
   const [d, setD] = useState(null); const [xato, setXato] = useState("");
   useEffect(() => { matFetch(apiBase, token, "/api/matkirish/info").then(setD).catch((e) => setXato(e.message)); }, [apiBase, token]);
   return <section className="mb-root">
@@ -21,8 +21,8 @@ function Boshlash({ apiBase, token, onBosh, onClose }) {
       <div className="mb-sert-turlar">
         <button type="button" className="mb-karta mb-sert-tur" onClick={() => onBosh(2)}><b>🟢 2,1 {__kbUi("ballik")}</b><span>10 × 1,1 + 30 × 2,1 = 74,0 {__kbUi("ball")}</span><small>{__kbUi("30 ta savol — har biri 2,1 ball")}</small></button>
         <button type="button" className="mb-karta mb-sert-tur" onClick={() => onBosh(3)}><b>🔴 3,1 {__kbUi("ballik")}</b><span>10 × 1,1 + 30 × 3,1 = 104,0 {__kbUi("ball")}</span><small>{__kbUi("30 ta murakkab savol — har biri 3,1 ball")}</small></button></div>
-      {d.tarix.length > 0 && <div className="mb-karta"><h3>{__kbUi("Oldingi urinishlar")}</h3>
-        <ul className="mb-sert-tarix">{d.tarix.map((t) => <li key={t.id}><span>{new Date(t.sana).toLocaleDateString()} · {f1(t.daraja === 3 ? 3.1 : 2.1)}</span><b>{f1(t.ball)} / {f1(t.maks)}</b><small>{t.togri}/40</small></li>)}</ul></div>}</>}
+      {d.tarix.length > 0 && <div className="mb-karta"><h3>{__kbUi("Yechilgan imtihonlar")}</h3>
+        <ul className="mb-sert-tarix">{d.tarix.map((t) => <li key={t.id}><button type="button" className="mb-tarix-qator" onClick={() => onKorish(t.id)}><span>{new Date(t.sana).toLocaleDateString()} · {f1(t.daraja === 3 ? 3.1 : 2.1)}</span><b>{f1(t.ball)} / {f1(t.maks)}</b><small>{t.togri}/40 · {__kbUi("xato va yechimlarni ko‘rish")} →</small></button></li>)}</ul></div>}</>}
   </section>;
 }
 
@@ -92,5 +92,5 @@ export default function MatKirish({ apiBase = "", token, onClose, onMavzu = null
   return <RasmKonteksti.Provider value={{ apiBase, token }}>{
     e.t === "yech" ? <Yechish key={e.n} apiBase={apiBase} token={token} daraja={e.daraja} onChiq={() => setE({ t: "bosh" })} onTugadi={(r, savollar) => setE({ t: "natija", r, savollar })} />
       : e.t === "natija" ? <Natija r={e.r} savollar={e.savollar} onMavzu={onMavzu} onBosh={() => setE({ t: "bosh" })} onYana={() => setE({ t: "yech", daraja: e.r.daraja, n: Date.now() })} />
-        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onBosh={(daraja) => setE({ t: "yech", daraja, n: Date.now() })} />}</RasmKonteksti.Provider>;
+        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onKorish={async (id) => { try { const r = await matFetch(apiBase, token, "/api/matkirish/natija", { params: { id } }); setE({ t: "natija", r, savollar: r.natija }); } catch { /* */ } }} onBosh={(daraja) => setE({ t: "yech", daraja, n: Date.now() })} />}</RasmKonteksti.Provider>;
 }

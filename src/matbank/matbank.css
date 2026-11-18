@@ -85,3 +85,5 @@
 .kb-chop-royxat{padding-left:22px;display:grid;gap:12px}.kb-chop-royxat li{break-inside:avoid}.kb-chop-var{display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;margin-top:4px}
 .kb-chop-javoblar{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:16px}.kb-chop-yechim{margin:6px 0;break-inside:avoid;font-size:14px}
 @media print{body.kb-chop-faol>*:not(.kb-chop-root){display:none!important}.kb-chop-root{position:static;overflow:visible;padding:0}.kb-chop-tugmalar{display:none}.kb-chop-kalit{break-before:page}}
+.mb-tarix-qator{all:unset;box-sizing:border-box;width:100%;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;cursor:pointer;padding:8px 10px;border-radius:10px}
+.mb-tarix-qator:hover,.mb-tarix-qator:focus-visible{background:#eef5ff}
