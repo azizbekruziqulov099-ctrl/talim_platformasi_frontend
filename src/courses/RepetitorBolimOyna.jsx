@@ -49,12 +49,26 @@ function MashqToplam({ list, zapas = false, apiBase, token, topicCode, onNatija 
     const n = (xato[i] || 0) + 1; setXato({ ...xato, [i]: n });
     if (n >= 3) { setYech({ ...yech, [i]: true }); setHolat({ ...holat, [i]: "yechim" }); }   // 3-xato: ustoz yechib ko'rsatadi
   };
+  // REV623: «Qo'shish · 1-mashq (…) · 3-misol» ko'rinishidagi sarlavhalar guruhlanadi: bir vaqtda bitta guruh ochiq, tugaganlari yig'iladi
+  const guruhNomi = (s) => { const t = String(s.sarlavha || "").replace(/^topshiriq\s*·\s*/i, ""); const m = t.match(/^(.*?)\s*·\s*(\d+)-misol\s*$/); return m ? { g: m[1], k: m[2] } : { g: "", k: "" }; };
+  const gInfo = list.map(guruhNomi);
+  const guruhlar = [...new Set(gInfo.map((x) => x.g))];
+  const guruhHolat = (g) => { const id = gInfo.map((x, i) => (x.g === g ? i : -1)).filter((i) => i >= 0); return { jami: id.length, tugadi: id.filter((i) => holat[i]).length, togri: id.filter((i) => holat[i] === "ozi").length }; };
+  const [qoldiq, setQoldiq] = useState(null);
+  const joriyG = guruhlar.find((g) => { const x = guruhHolat(g); return x.tugadi < x.jami; });
+  const ochiqG = qoldiq !== null ? qoldiq : joriyG;
+  const guruhli = guruhlar.length > 1 || (guruhlar.length === 1 && guruhlar[0] !== "");
   return <>
     <p style={{ fontWeight: 700 }}>O‘zingiz yechgan: {oziTogri} / {list.length}{tugadi ? ` · ${foiz}%` : ""}</p>
     {list.map((s, i) => { const h = holat[i]; const n = xato[i] || 0; const mas = Array.isArray(s.maslahat) ? s.maslahat : [];
+      const gi = gInfo[i]; const gh = guruhli ? guruhHolat(gi.g) : null; const birinchi = guruhli && (i === 0 || gInfo[i - 1].g !== gi.g);
+      const yopiq = guruhli && gi.g !== ochiqG;
       const y = yechimMatni(s.yechim) || s.javob_izohi || ""; const yechOchiq = yech[i] || h === "yechim";
-      return <article key={i} style={{ ...kartaUslub, borderColor: h === "ozi" ? "#2f8f6f" : h === "yechim" ? "#d4a017" : kartaUslub.border }}>
-        <b>{String(s.sarlavha || "").replace(/^topshiriq\s*·\s*/i, "") || `Mashq ${i + 1}`}</b>
+      return <React.Fragment key={i}>
+      {birinchi && <button type="button" onClick={() => setQoldiq(gi.g === ochiqG ? "" : gi.g)} style={{ ...kartaUslub, width: "100%", textAlign: "left", cursor: "pointer", fontWeight: 800, borderColor: gh.tugadi === gh.jami ? "#2f8f6f" : kartaUslub.border }}>
+        {gh.tugadi === gh.jami ? "✓ " : gi.g === ochiqG ? "▼ " : "▶ "}{gi.g || "Mashqlar"} <span style={{ fontWeight: 500 }}>· {gh.togri}/{gh.jami} to‘g‘ri{gh.tugadi < gh.jami ? ` · ${gh.tugadi} ta ishlandi` : ""}</span></button>}
+      {!yopiq && <article style={{ ...kartaUslub, borderColor: h === "ozi" ? "#2f8f6f" : h === "yechim" ? "#d4a017" : kartaUslub.border }}>
+        <b>{guruhli && gi.k ? `${gi.k}-misol` : (String(s.sarlavha || "").replace(/^topshiriq\s*·\s*/i, "") || `Mashq ${i + 1}`)}</b>
         <CourseText text={s.doska || s.ovoz} />
         {!h && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           <input value={javob[i] || ""} placeholder="Javobingiz" inputMode="text" style={{ flex: "1 1 160px", padding: 9, borderRadius: 9, border: "1px solid #aab" }}
@@ -70,7 +84,7 @@ function MashqToplam({ list, zapas = false, apiBase, token, topicCode, onNatija 
         {yechOchiq && <div style={{ marginTop: 8, background: "rgba(47,143,111,.08)", borderRadius: 10, padding: 10 }}>
           <b>Javob: </b><CourseText text={String(s.javob || "")} />{y && <CourseText text={y} />}
           {!h && <button type="button" style={{ ...tugma(true), marginTop: 8 }} onClick={() => setHolat({ ...holat, [i]: "yechim" })}>Tushundim, keyingisi</button>}</div>}
-      </article>; })}
+      </article>}</React.Fragment>; })}
     {tugadi && <div style={{ ...kartaUslub, borderColor: foiz >= 70 ? "#2f8f6f" : "#c0392b" }}>
       {foiz >= 70 ? <b style={{ color: "#2f8f6f" }}>✓ Mashq o‘tdi: {foiz}%. Endi Test bo‘limini ishlang, ikkalasi ham 70% dan o‘tsa keyingi dars ochiladi.</b>
         : <b style={{ color: "#c0392b" }}>O‘zingiz yechgan {foiz}%: 70% kerak. {zapas ? "Darsni qayta ko‘rib chiqing va yana urinib ko‘ring." : "Yangi mashqlar chiqdi: ularni o‘zingiz ishlasangiz keyingi darslar ochiladi. Yechimga qarab o‘qisangiz, foydasi yo‘q."}</b>}
