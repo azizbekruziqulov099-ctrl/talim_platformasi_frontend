@@ -52,7 +52,7 @@ export function havoJoyi(dz, doska) {
  */
 export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", neytral = false, onOchiq }) {
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
-  const poza0 = neytral ? (/(^|\s)yozadi(\s|$)/.test(mood) && USTOZLAR[ustoz]?.[7] ? 7 : 6) : pozaFor(mood, { hasPics, listening });   // REV604: telefonda qo'l yoymaydi — tinch tik poza
+  const poza0 = neytral ? (/(^|\s)yozadi(\s|$)/.test(mood) && (USTOZLAR[ustoz]?.[7]?.og || USTOZLAR[ustoz]?.[7]?.yuz) ? 7 : 6) : pozaFor(mood, { hasPics, listening });   // REV604: telefonda qo'l yoymaydi — tinch tik poza
   const poza = t[poza0] ? poza0 : 3;   // REV392: 7-poza bo'lmasa — ko'rsatish pozasi
   const p = t[poza];
   const ogRasm = OG_RASM[t.lab] || OG_RASM.ayol;
@@ -109,12 +109,13 @@ export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = fal
   }, [speaking, p, poza]);
 
   // Kadrlarni oldindan yuklab qo'yamiz (birinchi gapirishda miltillamasin).
+  useEffect(() => { if (neytral && typeof Image !== "undefined") [6, 7].forEach((k) => { if (t[k]?.src) { const im = new Image(); im.src = t[k].src; } }); }, [t, neytral]);
   useEffect(() => { if (typeof Image !== "undefined" && p.yuz) p.yuz.kadr.forEach((s) => { const im = new Image(); im.src = s; }); }, [p]);
   useEffect(() => { if (typeof Image !== "undefined" && p.og) ogRasm.forEach((s) => { const im = new Image(); im.src = s; }); }, [p, ogRasm]);
 
   useEffect(() => { onOchiq?.(ochiq); }, [ochiq, onOchiq]);
   // juftda poza almashganda qiyofa qayta «kirib kelmaydi» (har gapda sakramasin) — faqat rasm almashadi
-  return <div key={rol ? `rol-${rol}` : `${ustoz}-${poza}`} className={`us-teacher poza-${poza} ${rol ? `is-rol-${rol}` : ""} ${speaking && ochiq ? "is-gapir" : ""} ${jim ? "is-jim" : ""} ${yashirin ? "is-yashirin" : ""}`} style={{ aspectRatio: `${p.w} / ${p.h}` }}>
+  return <div key={rol ? `rol-${rol}` : `${ustoz}-${poza}`} className={`us-teacher poza-${poza} ${neytral ? "is-neytral" : ""} ${rol ? `is-rol-${rol}` : ""} ${speaking && ochiq ? "is-gapir" : ""} ${jim ? "is-jim" : ""} ${yashirin ? "is-yashirin" : ""}`} style={{ aspectRatio: `${p.w} / ${p.h}` }}>
     <div className="us-ich">
       {/* REV181: bayroq — ko'krakka taqilgan nishon (boshi ustida emas); joyi pozadagi og'iz/yuz joyidan hisoblanadi */}
       {bayroq && <img className="us-bayroq" src={bayroq} alt="" draggable="false" style={kokrak(p)} />}
@@ -144,6 +145,11 @@ export default function UstozSahna({ havoYashir = false, ustoz = "nilufar", ikki
   const juft0 = Boolean(ikkinchi && USTOZLAR[ikkinchi] && ikkinchi !== ustoz);
   const xonaKey = juft0 && XONALAR[XONA[ustoz]] ? XONA[ustoz] : XONALAR[xonaKaliti(ustoz)] ? xonaKaliti(ustoz) : "onatili";
   const xona = XONALAR[xonaKey];
+  // REV617: «yozadi» (doskaga qarash) poza tez-tez almashmasin — yozish tugagach 1,8 s ushlab turiladi
+  const yozNow = /(^|\s)yozadi(\s|$)/.test(mood);
+  const [yozTut, setYozTut] = useState(false);
+  useEffect(() => { if (yozNow) { setYozTut(true); return undefined; } const t = setTimeout(() => setYozTut(false), 1800); return () => clearTimeout(t); }, [yozNow]);
+  const moodEff = neytral ? (yozNow || yozTut ? "yozadi" : String(mood).replace(/(^|\s)yozadi(?=\s|$)/g, "")) : mood;
   const [detal, setDetal] = useState(null);   // REV171: ochilgan madaniy detal
   const det = xonaKey.startsWith("til_") ? detallar(ustoz) : [];
   useEffect(() => { if (!detal) return undefined; const t = setTimeout(() => setDetal(null), 6000); return () => clearTimeout(t); }, [detal]);
@@ -214,7 +220,7 @@ export default function UstozSahna({ havoYashir = false, ustoz = "nilufar", ikki
       style={{ aspectRatio: `${(detal.w * 1.6) / detal.h}`, backgroundImage: `url(${xona.src2x || xona.src})`,
         backgroundSize: `${10000 / detal.w}% ${10000 / detal.h}%`, backgroundPosition: `${(detal.l / (100 - detal.w)) * 100}% ${(detal.t / (100 - detal.h)) * 100}%` }} />}
     {/* juftda: gapirayotganining og'zi qimirlaydi (avvalgidek), ikkinchisi oddiy turadi — boshqa qo'shimcha harakat yo'q */}
-    <UstozFigura ustoz={ustoz} mood={gapIkkinchi ? "" : mood} speaking={gapAsosiy} mouth={mouth} soz={soz} listening={listening} hasPics={hasPics} neytral={neytral}
+    <UstozFigura ustoz={ustoz} mood={gapIkkinchi ? "" : moodEff} speaking={gapAsosiy} mouth={mouth} soz={soz} listening={listening} hasPics={hasPics} neytral={neytral}
       rol={juft ? "til" : ""} jim={gapIkkinchi} bayroq={juft ? bayroqlar?.til || "" : ""} onOchiq={setOchiq1} />
     {juft && <UstozFigura key={`iz-${ikkinchi}`} yashirin={!ikkinchiKorinsin} ustoz={ikkinchi} mood={gapIkkinchi ? mood : ""} speaking={gapIkkinchi} mouth={mouth} soz={soz} listening={false} hasPics={false}
       rol="iz" jim={gapAsosiy} bayroq={bayroqlar?.iz || ""} onOchiq={setOchiq2} />}

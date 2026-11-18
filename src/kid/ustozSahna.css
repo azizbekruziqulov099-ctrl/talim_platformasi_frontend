@@ -301,3 +301,7 @@
 @media (prefers-reduced-motion:reduce){.us-detal,.us-detal-pop,.us-window.is-bosh .us-sun{animation:none}}
 
 .us-teacher{opacity:1!important}
+
+/* REV617: tinch ustoz (6/7-poza) — poza almashganda «kirib kelish» sakramasin */
+.us-teacher.is-neytral{animation:us-breathe 3.6s ease-in-out infinite!important}
+.us-stage.is-speaking .us-teacher.is-neytral,.us-teacher.is-neytral.is-gapir{animation:us-talk .9s ease-in-out infinite alternate!important}
