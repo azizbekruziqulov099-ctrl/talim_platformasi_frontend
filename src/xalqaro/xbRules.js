@@ -185,3 +185,26 @@ export function solishtirishQatorlari(jadval, ball, n = 5, til = "uz") {
   if (!rows.some((r) => r[0] === N.oecd)) out.push({ nom: N.markaz, ball: 500, markaz: true });
   return out.sort((a, b) => b.ball - a.ball);
 }
+
+
+/** Matndagi «a | b | c» qatorlari — jadval. Ketma-ket kamida 2 qator, har birida kamida 2 ustun bo'lsa jadval bo'ladi.
+ *  Natija: [{matn}] yoki [{jadval:{sarlavha:[..]|null, qatorlar:[[..]]}}]. */
+export function matnniBol(matn) {
+  const qatorlar = String(matn ?? "").split("\n");
+  const hujayralar = (q) => { const t = q.trim().replace(/^\|/, "").replace(/\|$/, ""); const h = t.split("|").map((x) => x.trim()); return q.includes("|") && h.length >= 2 ? h : null; };
+  const chiqish = []; let oddiy = []; let jad = [];
+  const yop = () => {
+    if (jad.length >= 2) {
+      const ayir = (c) => c.every((x) => /^:?-{2,}:?$/.test(x));
+      let q = jad.filter((c) => !ayir(c));
+      const sarlavha = jad.length > 1 && jad.some(ayir) ? q.shift() : (q.length > 2 && q[0].every((x) => x && !/^[-+]?[\d.,\s%]+$/.test(x)) ? q.shift() : null);
+      if (oddiy.length) { chiqish.push({ matn: oddiy.join("\n") }); oddiy = []; }
+      chiqish.push({ jadval: { sarlavha, qatorlar: q } });
+    } else if (jad.length) { oddiy.push(...jad.map((c) => c.join(" | "))); }
+    jad = [];
+  };
+  for (const q of qatorlar) { const h = hujayralar(q); if (h) jad.push(h); else { yop(); oddiy.push(q); } }
+  yop();
+  if (oddiy.length) chiqish.push({ matn: oddiy.join("\n") });
+  return chiqish;
+}

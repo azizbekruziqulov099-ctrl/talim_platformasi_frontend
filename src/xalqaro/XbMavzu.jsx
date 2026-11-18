@@ -32,8 +32,8 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
       d.davlatlar?.[0] ? tf("Eng yaxshisi — {nom}, {foiz} foiz.", { nom: d.davlatlar[0][0], foiz: d.davlatlar[0][1] }) : "",
       h.urinilgan ? tf("Siz bu mavzuning {jami} ta savolidan {oz} tasini o‘zlashtirgansiz.", { jami: h.jami, oz: h.ozlashtirgan }) : tf("Siz bu mavzuni hali boshlamagansiz."),
       r?.orin ? tf("Sinfdoshlaringiz orasida {jami} kishidan {orin}-o‘rindasiz.", { jami: r.jami, orin: r.orin }) : ""].filter(Boolean).join(" ");
-    const t = setTimeout(() => ovoz.say(matn), 400);
-    return () => { clearTimeout(t); ovoz.hush(); };
+    const bekor = ovoz.birMarta(`mavzu:${kalit}:${oldi ? "o" : "m"}`, matn, 400);
+    return () => { bekor(); ovoz.hush(); };
   }, [d]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (xato) return <div className="xb-panel"><p className="xb-xato">{T(xato)}</p><button type="button" className="xb-btn" onClick={onYopish}>{T("← Orqaga")}</button></div>;
@@ -47,7 +47,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
       <small>{d.toplam_nomi?.dastur} · {tf("{n}-sinf", { n: d.toplam_nomi?.sinf })} · {d.soha_nomi}</small>
     </div>
     <div className="xb-mavzu-bosh">
-      <XbUstoz ustoz={ustoz} speaking={ovoz.speaking} />
+      <button type="button" className="xb-kabu-tugma" aria-label={T("Kabu gapirsin")} onClick={() => (ovoz.speaking ? ovoz.hush() : ovoz.say(d.ustoz?.matn || d.nom))}><XbUstoz speaking={ovoz.speaking} /></button>
       <div className="xb-pufak" style={{ borderColor: gapRang[0] }}>
         {d.ustoz?.matn && <p style={{ color: gapRang[0] }}>{gapRang[1]} {d.ustoz.matn}</p>}
         <p>{oldi && <b>{d.nom}. </b>}{T("Dunyo bo‘yicha to‘g‘ri yechganlar")}: <b>{d.xalqaro_foiz}%</b>{d.maqsad ? <> · {d.maqsad}</> : null}</p>
@@ -73,6 +73,19 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
         <span className="xb-progress"><i style={{ width: `${f}%` }} /></span><b>{f}%</b></div>)}</div></section>}
     {!oldi && d.strategiyalar?.length > 0 && <details className="xb-blok xb-yigma"><summary><h4>🧭 {T("Xalqaro savollarni yechish yo‘llari")} <small>({d.strategiyalar.length})</small></h4></summary><ul>{d.strategiyalar.map((s) => <li key={s}>{s}</li>)}</ul></details>}
     {d.tipik_xatolar?.length > 0 && <details className="xb-blok xb-yigma" open={oldi}><summary><h4>⚠️ {T("Ko‘p uchraydigan xatolar")} <small>({Math.min(d.tipik_xatolar.length, oldi ? 3 : 8)})</small></h4></summary><ul>{d.tipik_xatolar.slice(0, oldi ? 3 : 8).map((s) => <li key={s}>{s}</li>)}</ul></details>}
+    {!oldi && d.maktab_darslari?.length > 0 && (() => { const ml = d.maktab_darslari; const otgan = ml.filter((m) => m.otilgan).length;
+      const ort = otgan ? Math.round(ml.filter((m) => m.otilgan).reduce((n, m) => n + (m.foiz ?? 100), 0) / otgan) : 0;
+      return <section className="xb-blok" id="xb-maktab"><h4>📚 {T("Kerakli maktab darslari (1–11 sinf) — takrorlash uchun")}</h4>
+      <div className="xb-mk-xulosa"><span><b>{otgan}/{ml.length}</b> {T("mavzu o‘qilgan")}</span><span className="xb-progress"><i style={{ width: `${Math.round(100 * otgan / ml.length)}%` }} /></span>{otgan > 0 && <span>{T("O‘rtacha o‘zlashtirish")}: <b>{ort}%</b></span>}</div>
+      {[...new Set(ml.map((m) => m.sinf))].map((g) => <div key={g} className="xb-maktab-guruh">
+        <b className="xb-maktab-sinf">{tf("{n}-sinf", { n: g })} · {String(ml.find((m) => m.sinf === g)?.fan || "").replace(/\s*\(izoh: (rus|ingliz)\)/i, "")}</b>
+        <ul className="xb-mk-kartalar">{ml.filter((m) => m.sinf === g).map((m) => <li key={m.topic_code}>
+          <button type="button" className={m.otilgan ? "is-otilgan" : ""} onClick={() => onMaktabDarsi?.(m)}>
+            <span className="xb-mk-nom">{String(m.nom || "").charAt(0).toUpperCase() + String(m.nom || "").slice(1)}</span>
+            <span className={`xb-mk-holat ${m.otilgan ? "is-ok" : ""}`}>{m.otilgan ? `✅ ${m.foiz ?? 100}%` : T("Boshlanmagan")}</span>
+            <span className="xb-progress"><i style={{ width: `${m.otilgan ? (m.foiz ?? 100) : 0}%` }} /></span>
+            <i className="xb-mk-boshla" aria-hidden="true">▶</i></button></li>)}</ul>
+      </div>)}</section>; })()}
     {d.namuna?.length > 0 && <section className="xb-blok"><h4>📝 {T("Namuna savollar — har darajadan bittadan")}</h4>
       {d.namuna.map((s, k) => <div key={s.savol_id} className="xb-namuna">
         <XbSavol savol={s} javob={namuna?.[k]?.javob || ""} holat={namuna?.[k]?.holat || null} ovoz={ovoz} raqam={k + 1}
@@ -91,12 +104,6 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
           {namuna[k].doska ? <XbDoska qadamlar={s.yechim} ovoz={ovoz} ustoz={ustoz} sarlavha={T("Yechim")} />
             : <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setNamuna((n) => ({ ...n, [k]: { ...n[k], doska: true } })); }}>🧑‍🏫 {T("Yechimni doskada ko‘rish")}</button>}
         </>}
-      </div>)}</section>}
-    {!oldi && d.maktab_darslari?.length > 0 && <section className="xb-blok" id="xb-maktab"><h4>📚 {T("Kerakli maktab darslari (1–11 sinf) — takrorlash uchun")}</h4>
-      {[...new Set(d.maktab_darslari.map((m) => m.sinf))].map((g) => <div key={g} className="xb-maktab-guruh">
-        <b className="xb-maktab-sinf">{tf("{n}-sinf", { n: g })} · {String(d.maktab_darslari.find((m) => m.sinf === g)?.fan || "").replace(/\s*\(izoh: (rus|ingliz)\)/i, "")}</b>
-        <ol className="xb-maktab-royxat">{d.maktab_darslari.filter((m) => m.sinf === g).map((m) => <li key={m.topic_code}>
-          <button type="button" onClick={() => onMaktabDarsi?.(m)}><span>{String(m.nom || "").charAt(0).toUpperCase() + String(m.nom || "").slice(1)}</span><i aria-hidden="true">▶</i></button></li>)}</ol>
       </div>)}</section>}
     <div className="xb-tug-qator">
       {oldi && onDavom && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDavom(); }}>▶ {T("Maktab darsini boshlash")}</button>}

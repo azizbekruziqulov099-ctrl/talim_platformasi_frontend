@@ -2,7 +2,7 @@ import React from "react";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import CourseText from "../courses/CourseText.jsx";
 import { BoardText } from "../lesson/AmaliyDoska.jsx";
-import { FIKRLASH, ovozdanJavob, ovozdanVariant, svgUrl } from "./xbRules.js";
+import { FIKRLASH, matnniBol, ovozdanJavob, ovozdanVariant, svgUrl } from "./xbRules.js";
 import { useMikrofon } from "./xbOvoz.js";
 import { MIK_TIL } from "./xbTil.js";
 const ChizmaDaftar = React.lazy(() => import("../daftar/ChizmaDaftar.jsx"));   // REV400: yechish uchun daftar
@@ -16,7 +16,11 @@ function Stimul({ stimul, imtihon }) {
     <button type="button" className="xb-stimul-bosh" onClick={() => setOchiq(!ochiq)} aria-expanded={ochiq}>
       📄 <b>{stimul.nom}</b> <small>{ochiq ? T("(yashirish)") : T("(matnni ochish)")}</small></button>
     {ochiq && <div className="xb-stimul-ich">
-      {stimul.matn && <CourseText text={stimul.matn} className="xb-stimul-matn" />}
+      {stimul.matn && matnniBol(stimul.matn).map((b, i) => b.jadval
+        ? <div key={i} className="xb-jadval-o"><table className="xb-jadval">
+            {b.jadval.sarlavha && <thead><tr>{b.jadval.sarlavha.map((h, k) => <th key={k}><CourseText text={h} /></th>)}</tr></thead>}
+            <tbody>{b.jadval.qatorlar.map((q, r) => <tr key={r}>{q.map((h, k) => <td key={k}><CourseText text={h} /></td>)}</tr>)}</tbody></table></div>
+        : b.matn.trim() ? <CourseText key={i} text={b.matn.trim()} className="xb-stimul-matn" /> : null)}
       {stimul.rasm_svg && <img className="xb-savol-rasm" src={svgUrl(stimul.rasm_svg)} alt={T("Ma’lumot rasmi")} />}
     </div>}
   </div>;

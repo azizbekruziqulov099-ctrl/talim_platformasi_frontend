@@ -61,7 +61,17 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
   useEffect(() => hush, [hush]);
   const [, majbur] = useState(0);
   const ustozQoy = useCallback((u) => { if (u && ustozRef.current !== u) { ustozRef.current = u; majbur((x) => x + 1); } }, []);
-  return useMemo(() => ({ say, hush, speaking, progress, ustozQoy }), [say, hush, speaking, progress, ustozQoy]);
+  // Avtomatik gapirish — har bir kalit uchun faqat BIR marta (keyin Kabu jim; 🔊 bosilsa qayta gapiradi)
+  const birMarta = useCallback((kalit, text, kech = 400) => {
+    try {
+      const k = "kabutar:xb:aytildi";
+      const royxat = JSON.parse(localStorage.getItem(k) || "[]");
+      if (royxat.includes(kalit)) return () => {};
+      const t = setTimeout(() => { say(text); try { localStorage.setItem(k, JSON.stringify([...royxat, kalit].slice(-400))); } catch { /* */ } }, kech);
+      return () => clearTimeout(t);
+    } catch { return () => {}; }
+  }, [say]);
+  return useMemo(() => ({ say, hush, speaking, progress, ustozQoy, birMarta }), [say, hush, speaking, progress, ustozQoy, birMarta]);
 }
 
 /** Mikrofon: bir marta tinglab, eng ishonchli variantlarni qaytaradi. Brauzer qo'llamasa — mavjud=false. */

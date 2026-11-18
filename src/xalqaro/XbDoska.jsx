@@ -8,11 +8,10 @@ import { boardCues } from "../lesson/darsXonasiRules.js";
 import { USTOZLAR } from "../kid/ustozlar.js";
 
 /** Kichik ustoz rasmi (gapirayotganda qimirlaydi). */
-export function XbUstoz({ ustoz = "sardor", speaking = false, mood = "" }) {
-  // REV402: jonli ustoz — gapirganda og'zi ochilib-yopiladi (lab kadrlari), ko'zini pirpiratadi
-  if (!USTOZLAR?.[ustoz]) return <div className="xb-ustoz" aria-hidden="true"><span>🧑‍🏫</span></div>;
-  return <div className={`xb-ustoz xb-ustoz-jonli ${speaking ? "is-gap" : ""}`} aria-hidden="true">
-    <UstozFigura ustoz={ustoz} speaking={speaking} mood={mood === "happy" ? "happy" : speaking ? "" : ""} /></div>;
+export function XbUstoz({ speaking = false, mood = "" }) {
+  // Odam-ustoz o'rniga — Kabu (kaptar): gapirganda tebranadi, xursand bo'lganda sakraydi
+  return <div className={`xb-ustoz xb-kabu ${speaking ? "is-gap" : ""} ${mood === "happy" ? "is-happy" : ""}`} aria-hidden="true">
+    <span className="xb-kabu-q">🕊️</span>{speaking && <i className="xb-kabu-ovoz">♪</i>}</div>;
 }
 
 /**
