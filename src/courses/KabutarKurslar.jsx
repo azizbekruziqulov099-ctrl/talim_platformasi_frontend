@@ -149,7 +149,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
         <button type="button" onClick={() => setDars({ ...x, ...(ox.bolim ? { bolim: ox.bolim } : {}) })}>▶ {__kbUi("Davom etish")}</button></div>; })()}
         {kitobKursi && !kurs.yuklanmoqda && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))", gap: 8, marginTop: 8 }}>
       <button type="button" className="kk-davom" style={{ cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq("mock")}><span>🧪 {__kbUi("MOCK imtihon: 1–150 mavzu bo‘yicha")}</span><b>{__kbUi("45 topshiriq · 150 daqiqa · yechimlar bilan")}</b></button>
-      <button type="button" className="kk-davom" style={{ cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq("kirish")}><span>🎓 {__kbUi("Kirish imtihoni: 30 ta savol")}</span><b>{__kbUi("10 × 1,1 + 10 × 2,1 + 10 × 3,1 = 63 ball")}</b></button></div>}
+      <button type="button" className="kk-davom" style={{ cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq("kirish")}><span>🎓 {__kbUi("Kirish imtihoni: 40 ta savol")}</span><b>{__kbUi("10 ta 1,1 + 30 ta 2,1 yoki 3,1 ballik")}</b></button></div>}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code} className={oxirgiOqi()[kurs.kalit]?.tc === d.topic_code ? "is-oxirgi" : ""}>
       {kurs.kategoriya === "repetitor" && !String(kurs.kalit || "").endsWith("|148") && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
       <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""} ${d.nazorat ? "is-nazorat" : ""}`}
