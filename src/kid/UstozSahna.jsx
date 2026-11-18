@@ -37,6 +37,8 @@ function DevorSoat({ soat }) {
 
 // REV164: ustoz og'zi tabiiy bo'lsin — eng katta ochilgan shakllar (baqirgandek «O») o'rniga o'rtacha ochilgan shakl
 const OG_YUMSHOQ = { 3: 9, 6: 5, 8: 2 };
+// REV620: og'iz rassomning o'z tabassumidan kichik edi — kattalashtirildi (tabassum chiziqlari ko'rinib qolmasin)
+const OG_OLCHAM = 1.38;
 export function ogYumshoq(i) { return OG_YUMSHOQ[i] ?? i; }
 
 export function havoJoyi(dz, doska) {
@@ -124,10 +126,10 @@ export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = fal
       {p.yuz && <img className="us-face" src={p.yuz.kadr[Math.max(1, kadr) - 1]} alt="" draggable="false"
         style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
       {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
-      {p.og && og >= 0 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
-        <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w}%`, "--teri": p.og.skin, "--og-r": `${p.og.r || 0}deg` }}>
+      {p.og && og > 1 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
+        <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w * OG_OLCHAM}%`, "--teri": p.og.skin, "--og-r": `${p.og.r || 0}deg` }}>
           {/* REV552: yamoq o'lchami pozadan (tw — eni, th — bo'yi, tq — to'liq qoplaydigan qismi); berilmasa — eski umumiy o'lcham */}
-          <i className="us-og-teri" style={p.og.tw || p.og.th || p.og.tq ? { ...(p.og.tw ? { width: `${p.og.tw}%` } : null), ...(p.og.th ? { height: `${p.og.th}%` } : null), ...(p.og.tq ? { "--teri-q": `${p.og.tq}%` } : null) } : undefined} />
+          <i className="us-og-teri" style={p.og.tw || p.og.th || p.og.tq ? { ...(p.og.tw ? { width: `${p.og.tw * 0.95}%` } : null), ...(p.og.th ? { height: `${p.og.th * 0.8}%` } : null), ...(p.og.tq ? { "--teri-q": `${p.og.tq}%` } : null) } : undefined} />
           <img src={ogRasm[ogYumshoq(og)]} alt="" draggable="false" style={{ width: `${OGIZ[ogYumshoq(og)][0] * 95}%`, top: `${50 + OGIZ[ogYumshoq(og)][2] * 100}%` }} />
         </span>
       </span>}
