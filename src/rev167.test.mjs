@@ -34,7 +34,7 @@ test('uxlash vaqti hamma narsani yopadi (dars o‘rtasida 10 daqiqa beriladi)', 
 test('Sardor doskaga qaraganda: og‘iz kichikroq, yonoq chizig‘i o‘chmaydi (tw)', () => {
   const u = src('./kid/ustozlar.js');
   assert.match(u, /sardor: \{/);   // REV240: yangi rasmlarda og'iz yuz kadrida — tw faqat yamoqli eski rasmlar uchun
-  assert.match(src('./kid/UstozSahna.jsx'), /p\.og\.tw \? \{ width: `\$\{p\.og\.tw \* 0\.95\}%` \}/);
+  assert.match(src('./kid/UstozSahna.jsx'), /p\.og\.tw \? \{ width: `\$\{p\.og\.tw \* \(p\.og\.k \? 1 : 0\.95\)\}%` \}/);
 });
 
 test('ota-ona kundaligi — so‘z bilan, bo‘sh oyna emas', () => {
