@@ -1534,7 +1534,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const [tikHolat, setYotiq] = useState(tikTelefon);
   // REV413: o'quvchi o'zi tanlaydi — yotiq (buriladi) yoki tik (burilmaydi); tanlov eslab qolinadi
   const [yotiqTanlov, setYotiqTanlov] = useState(() => { try { const v = localStorage.getItem("kb_dars_yotiq"); return v === null ? true : v === "1"; } catch { return true; } });
-  const yotiq = tikHolat && yotiqTanlov;
+  const yotiq = tikHolat;   // REV603: «Tik/Yotiq» almashtirgich olib tashlandi — tik telefonda dars doim yotiq (hozirgidek)
   const yotiqAlmashtir = () => { const n = !yotiqTanlov; setYotiqTanlov(n); try { localStorage.setItem("kb_dars_yotiq", n ? "1" : "0"); } catch { /* */ } };
   useEffect(() => {
     const yangila = () => setYotiq(tikTelefon());
@@ -1929,7 +1929,6 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     {kirishQatlam}
     {burish && <div className="dx-burish" aria-hidden="true"><span className="dx-burish-tel">📱</span><b>{__kbUi("Ekran burilmoqda…")}</b></div>}
     <header className={`dx-head ${boshYigiq ? "is-yigiq" : ""}`}>
-      {tikHolat && focus && <button type="button" className="dx-burish-fab" onClick={yotiqAlmashtir} aria-label={yotiq ? __kbUi("Tik ko‘rinish") : __kbUi("Yotiq ko‘rinish")} title={yotiq ? __kbUi("Ekranni burmasdan (tik) ko‘rish") : __kbUi("Ekranni yotiq qilib ko‘rish")}>{yotiq ? "📱" : "↻"}</button>}
       {(focus || (yotiq && onClose)) && <button type="button" className="dx-exit" onClick={onClose ? () => { exitLesson(); hush(); onClose(); } : exitLesson} aria-label={__kbUi("Darsni yopish")} title={__kbUi("Darsni yopish")}>{kid ? <B e="🏠" /> : "✕"}</button>}
       <div>
         <h2>{lesson.topic?.mavzu || topicCode}</h2>
@@ -1938,7 +1937,6 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       <div className="dx-head-actions">
         {/* REV383: darsdan har doim chiqish mumkin — oldingi sahifaga qaytadi */}
         {onClose && !focus && <button type="button" className="dx-btn dx-orqa" onClick={() => { hush(); onClose(); }}>← {__kbUi("Ortga")}</button>}
-        {tikHolat && <button type="button" className="dx-btn dx-burish" onClick={yotiqAlmashtir} title={yotiq ? __kbUi("Ekranni burmasdan (tik) ko‘rish") : __kbUi("Ekranni yotiq qilib ko‘rish")}>{yotiq ? "📱" : "↻"} {yotiq ? __kbUi("Tik") : __kbUi("Yotiq")}</button>}
         {adminmi && <span className="dx-chip dx-kod" title={__kbUi("Dars kodi — izohda shu kod yoziladi")}>🔖 {topicCode}</span>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("pdf")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ PDF")}</a>}
         {!kid && adminmi && <a className="dx-btn dx-link" href={downloadUrl("docx")} download title={__kbUi("Ochiq dars ishlanmasi")}>{__kbUi("⬇ Word")}</a>}

@@ -647,15 +647,33 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
   }
 }
 
-/** «Esda tut» burchagi — darsdagi QOIDA qatorlari doskada o'chmay turadi. */
+/** «Esda tut» burchagi — darsdagi QOIDA qatorlari doskada o'chmay turadi.
+ *  REV603: telefonda yig'iladi (chip), bosilsa ochiladi; yangi qoida kelsa ~5 soniya ochiq turib o'zi yig'iladi. */
 export function EsdaTut({ qoidalar, eski = [], sarlavha = "Esda tut" }) {
   const [och, setOch] = React.useState(false);
+  const [ochiq, setOchiq] = React.useState(false);
+  const n = qoidalar?.length || 0;
+  const oldin = React.useRef(n);
+  const taymer = React.useRef(0);
+  React.useEffect(() => {
+    if (n > oldin.current) {
+      setOchiq(true);
+      clearTimeout(taymer.current);
+      taymer.current = setTimeout(() => setOchiq(false), 5000);
+    }
+    oldin.current = n;
+  }, [n]);
+  React.useEffect(() => () => clearTimeout(taymer.current), []);
   if (!qoidalar?.length && !eski?.length) return null;
-  return <aside className="mdx-esda" aria-label={sarlavha}><b>{sarlavha}</b>
-    {qoidalar?.map((q, i) => <div key={i}><BoardText text={q} /></div>)}
-    {eski?.length > 0 && <>
-      <button type="button" className="mdx-esda-eski" onClick={() => setOch((x) => !x)} aria-expanded={och}>{och ? "▾" : "▸"} Oldingi bilimlar ({eski.length})</button>
-      {och && eski.map((q, i) => <div key={`e${i}`} className="mdx-esda-e"><BoardText text={q} /></div>)}</>}
+  const almash = () => { clearTimeout(taymer.current); setOchiq((x) => !x); };
+  return <aside className={`mdx-esda ${ochiq ? "is-ochiq" : "is-yigilgan"}`} aria-label={sarlavha}>
+    <button type="button" className="mdx-esda-tugma" onClick={almash} aria-expanded={ochiq}><b>{sarlavha}</b><span className="mdx-esda-soni">{n + (eski?.length || 0)}</span><span className="mdx-esda-ok" aria-hidden="true">{ochiq ? "▴" : "▾"}</span></button>
+    <div className="mdx-esda-ich">
+      {qoidalar?.map((q, i) => <div key={i}><BoardText text={q} /></div>)}
+      {eski?.length > 0 && <>
+        <button type="button" className="mdx-esda-eski" onClick={() => setOch((x) => !x)} aria-expanded={och}>{och ? "▾" : "▸"} Oldingi bilimlar ({eski.length})</button>
+        {och && eski.map((q, i) => <div key={`e${i}`} className="mdx-esda-e"><BoardText text={q} /></div>)}</>}
+    </div>
   </aside>;
 }
 

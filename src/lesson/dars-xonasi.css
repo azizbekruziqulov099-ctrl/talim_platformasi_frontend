@@ -1332,7 +1332,7 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .mdx-qoida-kart{display:inline-block;padding:4px 14px 4px 12px;border-left:5px solid var(--dx-yellow);border-radius:4px 10px 10px 4px;background:rgba(247,201,72,.13);animation:mdx-qoida-chiq .7s ease-out both}
 .mdx-qoida-kart::before{content:"★ ";color:var(--dx-yellow)}
 @keyframes mdx-qoida-chiq{0%{opacity:0;transform:translateX(-18px) scale(.96);box-shadow:0 0 0 rgba(247,201,72,0)}55%{opacity:1;transform:none;box-shadow:0 0 22px rgba(247,201,72,.75)}100%{opacity:1;transform:none;box-shadow:0 0 0 rgba(247,201,72,0)}}
-.mdx-esda>div:last-child{animation:mdx-esda-yangi 1.4s ease-out both}
+.mdx-esda-ich>div:last-child{animation:mdx-esda-yangi 1.4s ease-out both}
 @keyframes mdx-esda-yangi{0%{background:rgba(247,201,72,.55);transform:scale(1.04)}100%{background:transparent;transform:none}}
 
 /* REV588: ustoz chapda bo'lganda qo'li doskani to'smasin — ustoz biroz chapga, doska biroz o'ngga */
@@ -1446,3 +1446,26 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .mdx-amal-rang{display:flex;gap:8px;flex-wrap:wrap;font:700 .4em system-ui,sans-serif;margin-top:.7em;transition:opacity .3s}
 .mdx-amal-rang b{padding:1px 8px;border-radius:999px;color:#10243f}
 .mdx-amal-rang .r-a{background:#7fc4ff}.mdx-amal-rang .r-b{background:#ff8cc8}.mdx-amal-rang .r-y{background:#ffd54a}.mdx-amal-rang .r-n{background:#69f0ae}
+
+/* REV603: «Esda tut» — kompyuterda avvalgidek ochiq; telefonda yig'iladigan chip */
+.mdx-esda-tugma{display:block;width:100%;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:default}
+.mdx-esda-tugma .mdx-esda-soni,.mdx-esda-tugma .mdx-esda-ok{display:none}
+
+/* REV603: telefon — Esda tut yig'iladigan chip; doska raqamlari va Qoralama doskaning pastki qatorida mahkam (yozuvni to'smaydi) */
+@media (max-width:700px){
+  .dx-root.dx-sinf .dx-frame{padding-bottom:calc(1.1cqh + 38px)!important}
+  .dx-root.dx-root.dx-sinf .dx-frame>.dx-doskalar{left:10px!important;bottom:6px!important;top:auto!important;padding:3px 6px!important;font-size:12px!important;gap:4px!important;background:rgba(10,24,48,.92)!important}
+  .dx-root.dx-sinf .dx-doskalar>span:first-child{display:none}
+  .dx-root.dx-root.dx-sinf .dx-frame>.dx-burchak-daftar{right:10px!important;bottom:6px!important;top:auto!important;padding:5px 12px 5px 10px!important;font-size:12px!important;opacity:1}
+  .dx-root.dx-root.dx-sinf .dx-frame>.dx-panel-asboblar{bottom:6px!important}
+  .mdx-board .mdx-esda{position:absolute!important;top:6px!important;right:6px!important;left:auto!important;margin:0!important;padding:0!important;max-width:70%!important;max-height:none!important;z-index:5;font-size:17px;background:rgba(10,24,48,.94);border:1.5px dashed rgba(241,208,106,.85);border-radius:10px;overflow:hidden}
+  .mdx-board .mdx-esda-tugma{display:flex;align-items:center;gap:6px;padding:4px 10px;cursor:pointer}
+  .mdx-board .mdx-esda-tugma b{margin:0;font-size:13px}
+  .mdx-board .mdx-esda-tugma .mdx-esda-soni{display:inline-grid;place-items:center;min-width:1.5em;height:1.5em;border-radius:999px;background:var(--dx-yellow,#f7c948);color:#10243f;font:800 12px/1 system-ui,sans-serif}
+  .mdx-board .mdx-esda-tugma .mdx-esda-ok{display:inline;font-size:12px}
+  .mdx-board .mdx-esda.is-yigilgan .mdx-esda-ich{display:none}
+  .mdx-board .mdx-esda.is-ochiq{max-width:70%}
+  .mdx-board .mdx-esda.is-ochiq .mdx-esda-ich{display:block;padding:2px 12px 8px;max-height:60%;overflow:auto}
+  .mdx-board .dx-title,.mdx-board .dx-lines{padding-right:0!important}
+  .mdx-board:has(.mdx-esda) .dx-title{padding-right:7em!important}
+}
