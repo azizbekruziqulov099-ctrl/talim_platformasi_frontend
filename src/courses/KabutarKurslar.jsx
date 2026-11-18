@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { lazyQayta } from "../workspace/lazyQayta.js";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
@@ -8,6 +8,7 @@ import KursTolov, { somFmt } from "./KursTolov.jsx";
 import OflaynTugma from "../offlayn/OflaynTugma.jsx";
 import { offlaynFetch, postNavbat, navbatniKuzat } from "../offlayn/offlayn.js";
 import KursGuruh, { GURUH_KALIT, kgFetch } from "./KursGuruh.jsx";   // REV411
+import { navKurslarUlash, navYoz } from "../nav/appNav.js";   // REV605
 import "./kabutarKurslar.css";
 
 const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
@@ -21,6 +22,11 @@ const DarajaPanel = lazyQayta(() => import("../pasport/DarajaPanel.jsx"));
 // «Matematika banki» — server kategoriyalariga tegmasdan, shu sahifaning o'zida qo'shiladigan bo'lim
 const BANK_KATEGORIYA = { kalit: "bank", belgi: "📘", nomi: "Matematika banki", izoh: "Mavzular bo‘yicha qoida, ishlangan misol va testlar; natijada taxminiy baho (C … A+), pasport va Kabu-bot" };
 
+
+// REV605: kursda oxirgi ko'rilgan dars (va bo'lim) eslab qolinadi — qayta kirsa «Davom etish»
+const OXIRGI_KALIT = "kb_oxirgi_dars_v1";
+const oxirgiOqi = () => { try { return JSON.parse(localStorage.getItem(OXIRGI_KALIT) || "{}") || {}; } catch { return {}; } };
+const oxirgiYoz = (kalit, v) => { try { const m = oxirgiOqi(); m[kalit] = v; localStorage.setItem(OXIRGI_KALIT, JSON.stringify(m)); } catch { /* */ } };
 
 export const sinfYozuv = (s) => (/^\d+$/.test(String(s)) ? `${s}-sinf` : /^\d+-\d+$/.test(String(s)) ? `${String(s).replace("-", "–")}-sinf` : String(s));   // REV419: «5–7-sinf»
 // Bolalar kurslari yoshga bo'linmaydi; faqat matematikada dastur yoshi yoziladi
@@ -39,6 +45,14 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   const [dars, setDars] = useState(null);        // ochilgan dars
   const [tolov, setTolov] = useState(null);      // yopiq dars bosilganda
   const [konikmaOchiq, setKonikmaOchiq] = useState(false);   // REV480
+  // REV605: yagona navigatsiya tarixi bilan ulanish (tepadagi ‹ › va telefonning «orqaga»si)
+  const holatRef = useRef({});
+  holatRef.current = { kat, kurs, dars };
+  useEffect(() => navKurslarUlash(
+    () => { const h = holatRef.current; return { key: `${h.kat || ""}|${h.kurs?.kalit || ""}|${h.dars?.topic_code || ""}|${h.dars?.bolim || ""}`, snap: { ...h } }; },
+    (x) => { setKat(x?.kat || null); setKurs(x?.kurs || null); setDars(x?.dars || null); setTolov(null); }), []);
+  useEffect(() => { navYoz(); }, [kat, kurs?.kalit, kurs?.yuklanmoqda, dars?.topic_code, dars?.bolim]);
+  useEffect(() => { if (dars?.topic_code && kurs?.kalit && !dars.nazorat) oxirgiYoz(kurs.kalit, { tc: dars.topic_code, nomi: dars.nomi || "", bolim: dars.bolim || "", t: Date.now() }); }, [dars?.topic_code, dars?.bolim, kurs?.kalit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { navbatniKuzat(); }, []);
   const yukla = () => {
@@ -119,7 +133,11 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {kurs.xato && <p className="kk-xato" role="alert">{kurs.xato}</p>}
     {!kurs.yuklanmoqda && <KursGuruh apiBase={apiBase} token={token} user={user} kurs={kurs}
       onDars={(tc, g) => { const x = (kurs.darslar || []).find((y) => y.topic_code === tc); if (x?.ochiq) setDars({ ...x, guruh: g }); else if (x) setTolov({ kalit: kurs.kalit, nomi: kursNomi(kurs), narx: kurs.narx, bepul: kurs.bepul }); }} />}
-    <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code}>
+    {!kurs.yuklanmoqda && (() => { const ox = oxirgiOqi()[kurs.kalit]; const x = ox && (kurs.darslar || []).find((y) => y.topic_code === ox.tc); if (!x || !x.ochiq) return null;
+      const raqam = (kurs.darslar || []).slice(0, (kurs.darslar || []).indexOf(x) + 1).filter((y) => !y.nazorat).length;
+      return <div className="kk-davom"><span>{__kbUi("Davom etish · oxirgi ko‘rganingiz")}</span><b>{raqam}-{__kbUi("dars")} · {x.nomi || x.topic_code}</b>
+        <button type="button" onClick={() => setDars({ ...x, ...(ox.bolim ? { bolim: ox.bolim } : {}) })}>▶ {__kbUi("Davom etish")}</button></div>; })()}
+    <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code} className={oxirgiOqi()[kurs.kalit]?.tc === d.topic_code ? "is-oxirgi" : ""}>
       {kurs.kategoriya === "repetitor" && !String(kurs.kalit || "").endsWith("|148") && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
       <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""} ${d.nazorat ? "is-nazorat" : ""}`}
         onClick={() => (d.ochiq ? setDars(d) : d.holat === "yakshanba" ? alert(__kbUi(d.oyin ? "📅 Kabu bilan bilim o‘yini yakshanba kuni ochiladi!" : "📅 Bu imtihon yakshanba kuni ochiladi. Hafta davomida darslarni davom ettiravering."))

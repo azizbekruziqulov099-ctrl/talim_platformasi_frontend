@@ -477,7 +477,8 @@ import {
   organizationTrialState,
   organizationTypeMeta,
 } from "./organizationTrialRules.js";
-import { initializeSamtmPwa, registerPhoneBackHandler } from "./pwa/samtmPwa.js";
+import { initializeSamtmPwa, registerPhoneBackHandler, phoneBackNow, phoneBackHandlersCount } from "./pwa/samtmPwa.js";
+import { navTabUlash, navYoz, navOrtga, navOldinga, useNavHolat } from "./nav/appNav.js";
 import { BATTLE_CODE_KEY, normalizeCode } from "./battle/battleRules.js";
 import { SHASHKA_CODE_KEY } from "./games/shashkaRules.js";
 import { SHAXMAT_CODE_KEY } from "./games/chessRules.js";
@@ -14596,46 +14597,25 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   }, [testDavomida, readOnly]);
   const [talimYoliTestNishoni, setTalimYoliTestNishoni] = useState(null);
   const [talimYoliDarsNishoni, setTalimYoliDarsNishoni] = useState(null);
-  const kabinetHistoryRef = useRef([]);
-  const kabinetBackInProgressRef = useRef(false);
   const birInstitutAvtoOchishRef = useRef(true);
 
-  useEffect(() => {
-    if (!tab) return;
-    if (kabinetBackInProgressRef.current) {
-      kabinetBackInProgressRef.current = false;
-      return;
-    }
-    const history = kabinetHistoryRef.current;
-    const last = history[history.length - 1];
-    if (
-      !last ||
-      last.tab !== tab ||
-      last.adminKorinish !== adminKorinish ||
-      last.oqituvchiBoshlanishKorinishi !== oqituvchiBoshlanishKorinishi
-    ) {
-      history.push({ tab, adminKorinish, oqituvchiBoshlanishKorinishi });
-    }
-  }, [adminKorinish, oqituvchiBoshlanishKorinishi, tab]);
-
-  const kabinetTarixdanQayt = useCallback(() => {
-    const history = kabinetHistoryRef.current;
-    if (history.length <= 1) return false;
-    history.pop();
-    const previous = history[history.length - 1];
-    kabinetBackInProgressRef.current = true;
-    setAdminKorinish(previous.adminKorinish);
-    setOqituvchiBoshlanishKorinishi(previous.oqituvchiBoshlanishKorinishi);
-    setTab(previous.tab);
-    return true;
-  }, []);
+  // REV605: yagona navigatsiya tarixi — bo'lim (tab), Kabutar/Ta'lim va Kurslar ichidagi holat; ‹ › va telefon «orqaga»si shu tarixdan yuradi
+  const navHolat = useNavHolat();
+  const navSnapRef = useRef(null);
+  navSnapRef.current = { tab, adminKorinish, oqituvchiBoshlanishKorinishi, kabutar: kabutarOchiq };
+  useEffect(() => navTabUlash(
+    () => { const x = navSnapRef.current; return x && x.tab ? { key: `${x.tab}|${x.adminKorinish}|${x.oqituvchiBoshlanishKorinishi}|${x.kabutar ? 1 : 0}`, snap: { ...x } } : null; },
+    (x) => { setAdminKorinish(x.adminKorinish); setOqituvchiBoshlanishKorinishi(x.oqituvchiBoshlanishKorinishi); setTab(x.tab); kabutarniOch(Boolean(x.kabutar)); }), [kabutarniOch]);
+  useEffect(() => { if (tab) navYoz(); }, [adminKorinish, oqituvchiBoshlanishKorinishi, tab, kabutarOchiq]);
 
   useEffect(() => registerPhoneBackHandler("kabinet-tab", () => {
     // Test ketayotgan paytda tasodifiy telefon "orqaga" tugmasi testni
     // tashlab yubormaydi. Test o'zining To'xtatish/Yakunlash amali bilan yopiladi.
     if (testDavomida) return true;
-    return kabinetTarixdanQayt();
-  }), [kabinetTarixdanQayt, testDavomida]);
+    return navOrtga();
+  }), [testDavomida]);
+  const ramkaOrtga = () => { if (testDavomida) return; phoneBackNow(); };
+  const ramkaOldinga = () => { if (testDavomida) return; navOldinga(); };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -14993,6 +14973,21 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-robot-fab{width:54px;height:54px;border-radius:50%;border:0;background:#8B5FBF;color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(139,95,191,.35)}
         .samtm-robot-oyna{width:min(340px,calc(100vw - 28px));background:#fff;border:1px solid #E5E1D8;border-radius:16px;box-shadow:0 14px 40px rgba(23,50,75,.18);padding:8px}
         body:has(.dx-root) .samtm-robot{display:none!important}
+        /* REV605: tepa panel — ingichka chiroyli ramka: ☰ ‹ › (chapda), Ta'lim | Kabutar, til, profil (o'ngda); keyin obuna joyi */
+        .samtm-top-switch.samtm-ixcham{display:block!important;padding:4px 6px!important}
+        .samtm-ixcham .samtm-ramka{display:flex;align-items:center;justify-content:space-between;gap:6px;height:38px;padding:0 5px;box-sizing:border-box;border:1.5px solid var(--space-color,#1B4B7A);border-radius:19px;background:rgba(255,255,255,.96);box-shadow:0 3px 10px rgba(23,50,75,.12);pointer-events:auto}
+        .samtm-ixcham .samtm-chap{display:flex;align-items:center;gap:4px}
+        .samtm-ixcham .samtm-gamburger{width:30px;height:30px;border-radius:50%;margin-right:0;gap:3px}
+        .samtm-ixcham .samtm-gamburger svg{width:17px;height:17px}
+        .samtm-nav{width:30px;height:30px;border-radius:50%;border:0;background:#EAF4F2;color:#0D5C63;font:800 20px/1 system-ui,sans-serif;display:inline-grid;place-items:center;padding:0 0 3px;cursor:pointer}
+        .samtm-nav:disabled{opacity:.3;cursor:default}
+        .samtm-obuna-joy:empty{display:none}
+        .samtm-ixcham .samtm-ong{gap:4px}
+        .samtm-ixcham .samtm-belgi{width:30px;height:30px}
+        .samtm-ixcham .samtm-avatar{font-size:11px}
+        .samtm-ixcham .samtm-makon{padding:2px;gap:2px;border-radius:15px}
+        .samtm-ixcham .samtm-makon-t{height:28px;padding:0 10px;font-size:13px;border-radius:12px;gap:5px}
+        .samtm-ixcham .samtm-makon-t svg{width:16px;height:16px}
         body:has(.dx-root) .samtm-ixcham{display:none!important}
         .samtm-top-spacer{height:0!important}
         .premium-page-stage{padding-top:56px}
@@ -15004,11 +14999,16 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         {/* REV226: tepada faqat burchak belgilari — chapda Ta'lim, o'ngda Kabutar, til va profil.
             Qolganlari (rol, profillar, bildirishnoma, sozlama, akkaunt) profil menyusida; yordamchi — o'ng pastda robot. */}
         <div className={`samtm-top-switch samtm-ixcham ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
+          <div className="samtm-ramka">
           <div className="samtm-chap">
             {!kabutarOchiq && <button type="button" className={`samtm-gamburger ${yonMenyuOchiq ? "is-on" : ""}`} onClick={yonMenyuniAlmashtir} aria-expanded={yonMenyuOchiq}
               aria-label={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")} title={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">{yonMenyuOchiq ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 6h16M4 12h16M4 18h16" />}</svg></button>}
             {/* REV429: ☰ yonidagi kabutar rasmi olib tashlandi — tepada faqat kerakli tugmalar */}
+            {/* REV605: ‹ › — butun tizim bo'yicha ortga / oldinga (telefonning «orqaga»si bilan bir xil tarix) */}
+            <button type="button" className="samtm-nav" onClick={ramkaOrtga} disabled={!navHolat.ortga && phoneBackHandlersCount("kabinet-tab") === 0} aria-label={uiT("Ortga")} title={uiT("Ortga")}>‹</button>
+            <button type="button" className="samtm-nav" onClick={ramkaOldinga} disabled={!navHolat.oldinga} aria-label={uiT("Oldinga")} title={uiT("Oldinga")}>›</button>
+            <span className="samtm-obuna-joy" aria-hidden="true" />
           </div>
           <div className="samtm-ong">
             {/* REV387: o'ng tepada ikkita qalin tugma — Ta'lim va Kabutar; robot ham shu yerda (ekranga xalaqit bermaydi) */}
@@ -15039,6 +15039,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
                   {!readOnly && <button type="button" role="menuitem" onClick={() => setAccountOpen(true)}>🔐 {uiT("Akkaunt va kirish")}</button>}
                 </div></>}
             </div>
+          </div>
           </div>
           <KitobKodQidiruv apiBase={API_BASE} token={token} hideBar trigger={kodTrigger} />
         </div>
@@ -15158,7 +15159,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         <TeacherAnalyticsPanel
           token={token}
           initialWorkplace={birinchiMuassasa}
-          onBack={() => { if (!kabinetTarixdanQayt()) setTab("oqituvchi"); }}
+          onBack={() => { if (!navOrtga()) setTab("oqituvchi"); }}
         />
       )}
       {korinishRoli === "ota-ona" && tab === "farzand" && <OtaOnaTab token={token} foydalanuvchi={foydalanuvchi} rang={joriyRang} />}

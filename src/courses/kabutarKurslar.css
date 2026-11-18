@@ -109,3 +109,10 @@
 .nz-oyin-qadam i.is-otdi{background:#2e9e5b}.nz-oyin-qadam i.is-hozir{background:#f2b72e}
 .nz-yulduz{font-size:56px;letter-spacing:6px}
 @media (max-width:560px){.nz-kabu{width:100px;height:130px}.nz-oyin-savol{font-size:24px}.nz-var.is-oyin button{min-height:90px;font-size:32px}}
+
+/* REV605: «Davom etish» kartasi va oxirgi dars belgisi */
+.kk-davom{display:grid;gap:4px;margin:10px 0;padding:14px;border-radius:16px;background:linear-gradient(135deg,#0f9d8a,#14b8a6);color:#fff;box-shadow:0 6px 18px rgba(15,157,138,.25)}
+.kk-davom span{font-size:12px;opacity:.92}
+.kk-davom b{font-size:17px;line-height:1.25}
+.kk-davom button{justify-self:start;margin-top:6px;border:0;border-radius:999px;padding:8px 18px;background:#fff;color:#0b6f61;font:800 14px system-ui,sans-serif;cursor:pointer}
+.kk-darslar li.is-oxirgi .kk-dars{background:#fff6dd;box-shadow:inset 0 0 0 2px #f7c948}

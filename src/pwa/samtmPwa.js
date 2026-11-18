@@ -297,6 +297,10 @@ function handlePhoneBack() {
   });
 }
 
+/** REV605: tepadagi ‹ tugmasi telefonning «orqaga»si bilan bir xil ishlaydi (modal → ichki ekran → tarix). */
+export function phoneBackNow() { return runPhoneBackHandlers(); }
+export function phoneBackHandlersCount(skipId = "") { return [...BACK_HANDLERS.keys()].filter((k) => k !== skipId).length; }
+
 export function registerPhoneBackHandler(id, handler, explicitPriority) {
   const entry = {
     handler,
