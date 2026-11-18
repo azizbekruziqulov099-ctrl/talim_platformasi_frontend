@@ -147,8 +147,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       const raqam = (kurs.darslar || []).slice(0, (kurs.darslar || []).indexOf(x) + 1).filter((y) => !y.nazorat).length;
       return <div className="kk-davom"><span>{__kbUi("Davom etish · oxirgi ko‘rganingiz")}</span><b>{raqam}-{__kbUi("dars")} · {x.nomi || x.topic_code}</b>
         <button type="button" onClick={() => setDars({ ...x, ...(ox.bolim ? { bolim: ox.bolim } : {}) })}>▶ {__kbUi("Davom etish")}</button></div>; })()}
-    {kitobKursi && !kurs.yuklanmoqda && <button type="button" className="kk-davom" style={{ width: "100%", cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq(true)}><span>🏅 {__kbUi("Kirish testi: Milliy sertifikat uslubida")}</span><b>{__kbUi("Bilimingizni sinab, ballingizni ko‘ring")}</b></button>}
-    {kitobKursi && !kurs.yuklanmoqda && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))", gap: 8, marginTop: 8 }}>
+        {kitobKursi && !kurs.yuklanmoqda && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))", gap: 8, marginTop: 8 }}>
       <button type="button" className="kk-davom" style={{ cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq("mock")}><span>🧪 {__kbUi("MOCK imtihon: 1–150 mavzu bo‘yicha")}</span><b>{__kbUi("45 topshiriq · 150 daqiqa · yechimlar bilan")}</b></button>
       <button type="button" className="kk-davom" style={{ cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq("kirish")}><span>🎓 {__kbUi("Kirish imtihoni: 30 ta savol")}</span><b>{__kbUi("10 ta oddiy + 20 ta 2,1 yoki 3,1 ballik")}</b></button></div>}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code} className={oxirgiOqi()[kurs.kalit]?.tc === d.topic_code ? "is-oxirgi" : ""}>
