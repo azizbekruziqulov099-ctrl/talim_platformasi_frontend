@@ -1524,7 +1524,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     return () => globalThis.removeEventListener?.("resize", yangila);
   }, []);
   // telefonda ikki Kabu chekkaroqda va kichikroq — doska kengroq, yozuv kattaroq
-  const kabuJoy = telefon && kabuJuftMuhit ? { doska: { l: 20, t: 6, w: 60, h: 88 }, gap: { l: 20, t: 95, w: 60, h: 1 } } : KABU_JOY;
+  const kabuJoy = telefon && kabuJuftMuhit ? { doska: { l: 20, t: 6, w: 60, h: 88 }, gap: { l: 20, t: 95, w: 60, h: 1 } } : telefon ? { doska: { l: 28, t: 4, w: 60, h: 92 }, gap: { l: 28, t: 96, w: 60, h: 1 } } : KABU_JOY;
   const focus = ["lesson", "ovoz", "test", "bridge", "end", "result", "limit"].includes(mode) || (telefon && mode === "idle" && !error);
   // REV175: tik ushlangan telefonda (avtoburish o'chiq bo'lsa ham) dars o'zi yotiq ko'rinishga buriladi —
   // doska, ustoz va tugmalar eniga sig'adi. Qurilma ruxsat bersa — haqiqiy gorizontal holat (to'liq ekran) yoqiladi.

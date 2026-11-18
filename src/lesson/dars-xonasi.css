@@ -1477,7 +1477,7 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-root.dx-yotiq.dx-sinf .dx-sinf-fon .us-stage{width:100%!important;height:100%!important;max-width:none!important;aspect-ratio:auto!important}
   .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-head{position:absolute!important;left:auto!important;right:.6%!important;top:4px!important;width:10.4%!important;min-width:58px!important;max-width:none!important;padding:0!important;background:none!important;box-shadow:none!important;display:flex!important;justify-content:center!important}
   .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-head :is(h2,p,.dx-chip){display:none!important}
-  .dx-root.dx-root.dx-yotiq.dx-sinf .dx-frame{left:1.6%!important;top:2%!important;width:86.6%!important;height:96%!important;padding:4px 4px 40px!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf:not(:has(.dx-kabu-fon)) .dx-frame{left:1.6%!important;top:2%!important;width:86.6%!important;height:96%!important;padding:4px 4px 40px!important}
   .dx-root.dx-root.dx-yotiq.dx-sinf .dx-board{padding:10px 12px 44px!important}
   .dx-root.dx-root.dx-yotiq.dx-sinf .dx-sinf-fon .us-teacher{left:auto!important;right:1.5%!important;bottom:1%!important;height:32%!important}
   .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-room>.dx-teacher{display:none!important}
