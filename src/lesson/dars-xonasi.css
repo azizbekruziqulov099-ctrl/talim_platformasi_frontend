@@ -1517,10 +1517,16 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-sinf-fon .us-stage{width:100%!important;height:100%!important;max-width:none!important;aspect-ratio:auto!important;border-radius:0}
   .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq){padding-left:0!important;padding-right:0!important}
   .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-teacher .dx-bubble{display:none!important}
-  .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-subtitr{display:block;position:absolute;left:16.5%;top:83.5%;width:75.5%;height:14%;box-sizing:border-box;padding:6px 16px;border-radius:14px;background:rgba(19,32,46,.88);color:#fff;font:600 clamp(15px,2.3cqh,22px)/1.3 system-ui,sans-serif;overflow:hidden;z-index:6;opacity:.75;transition:opacity .2s}
+  .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-subtitr{display:block;position:absolute;left:44.5%;top:83.5%;width:47.5%;height:14%;box-sizing:border-box;padding:6px 16px;border-radius:14px;background:rgba(19,32,46,.88);color:#fff;font:600 clamp(15px,2.3cqh,22px)/1.3 system-ui,sans-serif;overflow:hidden;z-index:6;opacity:.75;transition:opacity .2s}
   .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq) .dx-subtitr.is-on{opacity:1}
   .dx-root.dx-sinf:not(.dx-yotiq) .dx-subtitr p{margin:0;height:100%;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
   .dx-subtitr span{display:inline}
+  /* REV616: doskalar qatori (1 2 3 … Qoralama) — telefondagidek ekran pastida, doskadan tashqarida, subtitr yonida */
+  .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-frame>.dx-doskalar{position:fixed!important;left:16.5%!important;top:90.5%!important;bottom:auto!important;right:auto!important;transform:translateY(-50%);max-width:27%;overflow-x:auto;white-space:nowrap;scrollbar-width:none;font-size:15px!important;padding:5px 10px!important}
+  .dx-root.dx-sinf:not(.dx-yotiq) .dx-frame{padding-bottom:6px!important}
   /* soat (raqamli panel) doska burchagida — «Esda tut» uni yopmasin, biroz chapga suriladi */
   .dx-root.dx-root.dx-sinf:not(.dx-yotiq) .mdx-board .mdx-esda{right:clamp(100px,9.5cqw,160px)!important}
 }
+
+/* REV616: ustoz aytayotgan so'z doskadagi qatorda bo'lsa — qator yonib turadi */
+.dx-root.dx-sinf .dx-line.is-nutq,.dx-root.dx-sinf .mdx-line.is-nutq{background:rgba(255,210,74,.16);box-shadow:inset 4px 0 0 #ffd24a;border-radius:6px;transition:background .25s,box-shadow .25s}

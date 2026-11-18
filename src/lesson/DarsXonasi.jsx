@@ -1862,6 +1862,12 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     if (!w.length) return true;
     return w.filter((x) => b.has(x)).length / w.length >= 0.7;
   })();
+  // REV616: ustoz hozir aytayotgan so'z (raqam yoki mazmunli so'z) doskadagi qatorda bo'lsa — shu qator yonib turadi
+  const nutqQatorda = (line) => { try {
+    const norm = (x) => String(x || "").toLowerCase().replace(/\[\/?[a-z]{2}\]|\$|\\[a-zA-Z]+|[{}]/g, " ").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    const t = norm(words[word]); if (!t || (t.length < 3 && !/\d/.test(t))) return false;
+    return norm(line).split(" ").includes(t);
+  } catch { return false; } };
   const kidMood = kidPhase || (mode === "idle" || mode === "bridge" ? "wave" : speaking ? kabuMood(step, "speaking") : mode === "lesson" ? kabuMood(step, "waiting") : mode === "result" ? "happy" : "");
   const STICKER_SAY = { hello: "Hello!", red: "Red!", three: "Three!", big: "Big!", small: "Small!", cat: "Cat!", apple: "Apple!", jump: "I can jump!" };
   const tapKid = (i) => {
@@ -2079,7 +2085,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
                 const tegliQatorlar = steps[i].doskaTeg ? String(steps[i].doskaTeg).split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;
                 const qatorlar = cue.lines.slice(0, shown).map((line, n) => { const kim = qatorKimi(tegliQatorlar && tegliQatorlar.length === cue.lines.length ? tegliQatorlar[n] : line);
                   return <div key={`${steps[i].id}-${n}`}
-                    className={`dx-line ${i === idx ? "is-new" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}{juftDoska && kim === "til" ? <BosiladiganQator text={line} onSoz={sozBosildi} /> : (i === idx && n === shown - 1 && speaking && !stepFinished
+                    className={`dx-line ${i === idx ? "is-new" : ""} ${i === idx && speaking && !doskaYozilmoqda && nutqQatorda(line) ? "is-nutq" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}{juftDoska && kim === "til" ? <BosiladiganQator text={line} onSoz={sozBosildi} /> : (i === idx && n === shown - 1 && speaking && !stepFinished
                       ? <ChalkText text={line} progress={lineProgress(cue.cues, n, word, cue.spoken.split(/\s+/).filter(Boolean).length)} />
                       : <BoardText text={line} />)}</div>; });
                 if (!juftDoska || i !== idx) return qatorlar;
@@ -2308,9 +2314,13 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>}
     {/* REV611: doska tagida subtitr (telefon va kompyuter) — ustoz aytayotgan gap aytilayotgan so'z yonib turadi */}
-    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && !nutqDoskada && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
-      const bosh = Math.max(0, Math.min(word - 6, words.length - 16));
-      return words.slice(bosh, bosh + 16).map((w, j) => {
+    {sinfXona && !kid && !kabuMuhit && !juftDoska && (mode === "lesson" || mode === "idle") && words.length > 0 && (speaking || mode === "idle") && !doskaYozilmoqda && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
+      // REV616: gap bo'yicha (sakramaydi) — hozirgi gap to'liq turadi, uzun bo'lsa 14 so'zli bo'laklarda; aytilayotgan so'z yonadi
+      const tugaydi = (x) => /[.!?…:]$/.test(String(x));
+      let bosh = Math.max(0, word); while (bosh > 0 && !tugaydi(words[bosh - 1])) bosh--;
+      let oxir = bosh; while (oxir < words.length - 1 && !tugaydi(words[oxir])) oxir++;
+      if (oxir - bosh > 17) { const k = Math.floor((Math.max(0, word) - bosh) / 14); bosh += k * 14; oxir = Math.min(oxir, bosh + 13); }
+      return words.slice(bosh, oxir + 1).map((w, j) => {
         const t = String(w).replace(/^\[\d{1,2}\]$/, "").replace(/\$/g, "").replace(/\\cdot/g, "·").replace(/\\times/g, "×").replace(/\\[a-zA-Z]+/g, "").replace(/[{}]/g, "");
         return t ? <span key={bosh + j} className={bosh + j === word ? "is-on" : ""}>{t} </span> : null; }); })()}</p></div>}
     </div>
