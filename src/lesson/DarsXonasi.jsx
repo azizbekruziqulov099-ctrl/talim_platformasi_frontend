@@ -2314,7 +2314,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>}
     {/* REV611: doska tagida subtitr (telefon va kompyuter) — ustoz aytayotgan gap aytilayotgan so'z yonib turadi */}
-    {sinfXona && !kid && !kabuMuhit && !juftDoska && (mode === "lesson" || mode === "idle") && words.length > 0 && (speaking || mode === "idle") && !doskaYozilmoqda && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
+    {sinfXona && !kid && !kabuMuhit && !juftDoska && (mode === "lesson" || mode === "idle") && words.length > 0 && (speaking || mode === "idle") && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
       // REV616: gap bo'yicha (sakramaydi) — hozirgi gap to'liq turadi, uzun bo'lsa 14 so'zli bo'laklarda; aytilayotgan so'z yonadi
       const tugaydi = (x) => /[.!?…:]$/.test(String(x));
       let bosh = Math.max(0, word); while (bosh > 0 && !tugaydi(words[bosh - 1])) bosh--;

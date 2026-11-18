@@ -1530,3 +1530,16 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 
 /* REV616: ustoz aytayotgan so'z doskadagi qatorda bo'lsa — qator yonib turadi */
 .dx-root.dx-sinf .dx-line.is-nutq,.dx-root.dx-sinf .mdx-line.is-nutq{background:rgba(255,210,74,.16);box-shadow:inset 4px 0 0 #ffd24a;border-radius:6px;transition:background .25s,box-shadow .25s}
+
+/* REV618: «Esda tut» kompyuterda ham yig'iladigan chip (oldin doim ochiq turib doskaga halaqit qilardi); yangi qoida kelsa 5 s ochiladi */
+@media (min-width:701px){
+  .dx-root.dx-sinf .mdx-board .mdx-esda{position:absolute!important;top:8px!important;left:auto!important;margin:0!important;padding:0!important;max-width:min(46%,420px)!important;max-height:none!important;z-index:5;font-size:19px;background:rgba(10,24,48,.94);border:1.5px dashed rgba(241,208,106,.85);border-radius:10px;overflow:hidden}
+  .dx-root.dx-sinf .mdx-board .mdx-esda-tugma{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer}
+  .dx-root.dx-sinf .mdx-board .mdx-esda-tugma b{margin:0;font-size:14px}
+  .dx-root.dx-sinf .mdx-board .mdx-esda-tugma .mdx-esda-soni{display:inline-grid;place-items:center;min-width:1.5em;height:1.5em;border-radius:999px;background:var(--dx-yellow,#f7c948);color:#10243f;font:800 13px/1 system-ui,sans-serif}
+  .dx-root.dx-sinf .mdx-board .mdx-esda-tugma .mdx-esda-ok{display:inline;font-size:13px}
+  .dx-root.dx-sinf .mdx-board .mdx-esda.is-yigilgan .mdx-esda-ich{display:none}
+  .dx-root.dx-sinf .mdx-board .mdx-esda.is-ochiq .mdx-esda-ich{display:block;padding:2px 14px 10px;max-height:50vh;overflow:auto}
+  .dx-root.dx-sinf .mdx-board .dx-title,.dx-root.dx-sinf .mdx-board .dx-lines{padding-right:0!important}
+  .dx-root.dx-sinf .mdx-board:has(.mdx-esda) .dx-title{padding-right:min(300px,28%)!important}
+}
