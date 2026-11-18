@@ -16,6 +16,8 @@ const NazoratTest = lazyQayta(() => import("./NazoratTest.jsx"));   // REV479
 const KonikmaXarita = lazyQayta(() => import("./KonikmaXarita.jsx"));   // REV480
 const MarkazPanel = lazyQayta(() => import("../markaz/MarkazPanel.jsx"));
 const XalqaroBaholash = lazyQayta(() => import("../xalqaro/XalqaroBaholash.jsx"));
+const MatMock = lazyQayta(() => import("../matbank/MatMock.jsx"));   // MOCK imtihon (45 topshiriq, yechimli)
+const MatKirish = lazyQayta(() => import("../matbank/MatKirish.jsx"));   // Kirish imtihoni: 30 ta (10 oddiy + 20 ta 2,1/3,1)
 const MatSertifikat = lazyQayta(() => import("../matbank/MatSertifikat.jsx"));   // Milliy sertifikat uslubidagi kirish testi
 const MatBank = lazyQayta(() => import("../matbank/MatBank.jsx"));   // REV562: matematika banki shu yerda
 const Pasport = lazyQayta(() => import("../pasport/Pasport.jsx"));
@@ -121,6 +123,9 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   if (kat === "pasport") return <Bolim nom="📊 Pasport" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><Pasport apiBase={apiBase} token={token} /></React.Suspense></Bolim>;
   if (kat === "xalqaro") return <Bolim nom="🌍 Xalqaro baholash" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={user?.jins} /></React.Suspense></Bolim>;
 
+  const darsOchish = (n) => { const x = (kurs.darslar || []).find((y) => new RegExp(`^\\s*${n}\\s*-?\\s*dars`, "i").test(String(y.nomi || ""))); setSertOchiq(false); if (x?.ochiq) setDars({ ...x }); };
+  if (kurs && kitobKursi && sertOchiq === "mock") return <section className="kk"><React.Suspense fallback={<p className="kk-p">…</p>}><MatMock apiBase={apiBase} token={token} onClose={() => setSertOchiq(false)} /></React.Suspense></section>;
+  if (kurs && kitobKursi && sertOchiq === "kirish") return <section className="kk"><React.Suspense fallback={<p className="kk-p">…</p>}><MatKirish apiBase={apiBase} token={token} onClose={() => setSertOchiq(false)} onMavzu={darsOchish} /></React.Suspense></section>;
   if (kurs && kitobKursi && sertOchiq) return <section className="kk"><React.Suspense fallback={<p className="kk-p">…</p>}>
     <MatSertifikat apiBase={apiBase} token={token} onClose={() => setSertOchiq(false)}
       onMavzu={(n) => { const x = (kurs.darslar || []).find((y) => new RegExp(`^\\s*${n}\\s*-?\\s*dars`, "i").test(String(y.nomi || ""))); setSertOchiq(false); if (x?.ochiq) setDars({ ...x }); }} /></React.Suspense></section>;
@@ -143,6 +148,9 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       return <div className="kk-davom"><span>{__kbUi("Davom etish · oxirgi ko‘rganingiz")}</span><b>{raqam}-{__kbUi("dars")} · {x.nomi || x.topic_code}</b>
         <button type="button" onClick={() => setDars({ ...x, ...(ox.bolim ? { bolim: ox.bolim } : {}) })}>▶ {__kbUi("Davom etish")}</button></div>; })()}
     {kitobKursi && !kurs.yuklanmoqda && <button type="button" className="kk-davom" style={{ width: "100%", cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq(true)}><span>🏅 {__kbUi("Kirish testi: Milliy sertifikat uslubida")}</span><b>{__kbUi("Bilimingizni sinab, ballingizni ko‘ring")}</b></button>}
+    {kitobKursi && !kurs.yuklanmoqda && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))", gap: 8, marginTop: 8 }}>
+      <button type="button" className="kk-davom" style={{ cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq("mock")}><span>🧪 {__kbUi("MOCK imtihon: 1–150 mavzu bo‘yicha")}</span><b>{__kbUi("45 topshiriq · 150 daqiqa · yechimlar bilan")}</b></button>
+      <button type="button" className="kk-davom" style={{ cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq("kirish")}><span>🎓 {__kbUi("Kirish imtihoni: 30 ta savol")}</span><b>{__kbUi("10 ta oddiy + 20 ta 2,1 yoki 3,1 ballik")}</b></button></div>}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code} className={oxirgiOqi()[kurs.kalit]?.tc === d.topic_code ? "is-oxirgi" : ""}>
       {kurs.kategoriya === "repetitor" && !String(kurs.kalit || "").endsWith("|148") && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
       <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""} ${d.nazorat ? "is-nazorat" : ""}`}
