@@ -11954,6 +11954,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
           ))}
         </div>
       )}
+      {false && (<>
       <h2 className="text-sm font-bold mt-5 mb-2" style={{ color: "var(--ui-legacy-color-5a5648, #5A5648)" }}>{__kbUi("Ish joyi va AI vositalari")}</h2>
 
       {faolSamariMuassasalar.length > 1 && (
@@ -12030,6 +12031,7 @@ function OqituvchiTab({ token, foydalanuvchi, boshlanishKorinishi, birInstitutAv
           </div>
         );
       })())}
+      </>)}   {/* «Ish joyi va AI vositalari» o‘qituvchi uchun vaqtincha yopildi */}
     </div>
   );
 }
@@ -13294,7 +13296,7 @@ function PastkiMenyu({
       { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
       { kalit: "profil", nom: "Profil", ikon: User });
   }
-  if (taqdimotMavjud) bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
+  if (taqdimotMavjud && rol !== "oqituvchi") bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
   const profilBandi = bandlar.find((band) => band.kalit === "profil");
   const asosiyBandlar = bandlar.filter((band) => band.kalit !== "profil");
   const rolNomi = rol === "admin"
@@ -15116,7 +15118,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {coursesOpened && <div style={{ display: tab === "kurslar" ? "block" : "none" }}>
         {readOnly ? <p className="p-6" role="status">{__kbUi("Kurslarni shaxsiy hisobingizdan oching. Ko‘rish rejimida pulli darslar va o‘zgarishlar yopiq.")}</p> :
           <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Kurslar yuklanmoqda…")}</p>}>
-            <CourseWorkspace key={token} apiBase={API_BASE} token={token} user={foydalanuvchi} active={tab === "kurslar" && !kabutarOchiq} initialCourseId={courseNavigation.courseId} initialMode={courseNavigation.mode} onClose={() => { setCoursesOpened(false); setTab(korinishRoli === "oqituvchi" ? "oqituvchi" : korinishRoli === "ota-ona" ? "farzand" : korinishRoli === "admin" ? "admin" : "bilim"); }} />
+            <CourseWorkspace key={token} apiBase={API_BASE} token={token} user={foydalanuvchi} adminKorinish={korinishRoli === "admin"} active={tab === "kurslar" && !kabutarOchiq} initialCourseId={courseNavigation.courseId} initialMode={courseNavigation.mode} onClose={() => { setCoursesOpened(false); setTab(korinishRoli === "oqituvchi" ? "oqituvchi" : korinishRoli === "ota-ona" ? "farzand" : korinishRoli === "admin" ? "admin" : "bilim"); }} />
           </React.Suspense>}
       </div>}
       {korinishRoli === "admin" && tab === "admin" && <AdminTab token={token} oldindanTanlangan={shablonOldindanTanlangan} />}

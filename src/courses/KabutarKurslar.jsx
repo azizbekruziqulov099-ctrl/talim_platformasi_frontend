@@ -38,7 +38,7 @@ export const sinfYozuv = (s) => (/^\d+$/.test(String(s)) ? `${s}-sinf` : /^\d+-\
 export const kursNomi = (k) => (k.kategoriya === "bolalar" && /matem/i.test(k.nomi) ? `${k.nomi} (2–7 yosh dasturi)` : k.nomi);
 
 /** REV301: «Kurslar» — platformadagi hamma darsli kurs bitta joyda: fan, til, erkin til, sertifikat, xalqaro, bolalar. */
-export default function KabutarKurslar({ apiBase, token, user }) {
+export default function KabutarKurslar({ apiBase, token, user, adminKorinish = false }) {
   const { locale } = useKbInterfaceLocale();
   const til = String(locale || "uz").slice(0, 2);
   const base = String(apiBase || "").replace(/\/+$/, "");
@@ -64,7 +64,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   const yukla = () => {
     setXato("");
     offlaynFetch(`${base}/api/kurslar/katalog?${new URLSearchParams({ token, til })}`, undefined, { saqla: true }).then(async (r) => {
-      const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${r.status}`); setData(user?.is_admin ? d : { ...d, kategoriyalar: (d.kategoriyalar || []).filter((c) => !YOPIQ_KAT.has(c.kalit)), kurslar: (d.kurslar || []).filter((k) => !YOPIQ_KAT.has(k.kategoriya)) });   // yopiq yo‘nalishlar faqat adminga ko‘rinadi
+      const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(typeof d.detail === "string" ? d.detail : `Xato ${r.status}`); setData(adminKorinish ? d : { ...d, kategoriyalar: (d.kategoriyalar || []).filter((c) => !YOPIQ_KAT.has(c.kalit)), kurslar: (d.kurslar || []).filter((k) => !YOPIQ_KAT.has(k.kategoriya)) });   // yopiq yo‘nalishlar faqat adminga ko‘rinadi
     }).catch((e) => setXato(e.message));
   };
   useEffect(yukla, [base, token, til]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -168,7 +168,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
     {konikmaOchiq && <React.Suspense fallback={null}><KonikmaXarita base={base} token={token} onYop={() => setKonikmaOchiq(false)} /></React.Suspense>}
     <div className="kk-kategoriyalar" role="tablist" aria-label={__kbUi("Yo‘nalishlar")}>
       <button type="button" role="tab" aria-selected={!kat} className={!kat ? "is-faol" : ""} onClick={() => setKat(null)}><b>✨</b><span>{__kbUi("Hammasi")}</span><small>{(data?.kurslar || []).length}</small></button>
-      {[...(data?.kategoriyalar || []), ...(token ? [BANK_KATEGORIYA] : [])].filter((c) => (c.kalit === "sertifikat" && user?.is_admin) || c.kalit === "xalqaro" || c.kalit === "bank" || soni(c.kalit)).map((c) => (
+      {[...(data?.kategoriyalar || []), ...(token ? [BANK_KATEGORIYA] : [])].filter((c) => (c.kalit === "sertifikat" && adminKorinish) || c.kalit === "xalqaro" || c.kalit === "bank" || soni(c.kalit)).map((c) => (
         <button key={c.kalit} type="button" role="tab" aria-selected={kat === c.kalit} className={kat === c.kalit ? "is-faol" : ""} onClick={() => setKat(c.kalit)} title={__kbUi(c.izoh)}>
           <b aria-hidden="true">{c.belgi}</b><span>{__kbUi(c.nomi)}</span><small>{c.kalit === "sertifikat" || c.kalit === "xalqaro" || c.kalit === "bank" ? "→" : soni(c.kalit)}</small></button>))}
     </div>

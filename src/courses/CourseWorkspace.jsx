@@ -125,7 +125,7 @@ export default function CourseWorkspace(props) {
 
 const KabutarKurslar = lazyQayta(() => import("./KabutarKurslar.jsx"));
 
-function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initialCourseId, initialMode, onLogin, onClose, active = true }) {
+function CourseWorkspaceSession({ apiBase, token, user, adminKorinish = false, readOnly = false, initialCourseId, initialMode, onLogin, onClose, active = true }) {
   useKbInterfaceLocale();
   const authToken = readOnly ? "" : token;
   // REV301: birinchi bo'lim — platformaning darsli kurslari (fan, til, erkin til, sertifikat, xalqaro, bolalar)
@@ -135,7 +135,7 @@ function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initia
   const [revision, setRevision] = useState(0);
   const [retryCapability, setRetryCapability] = useState(0);
   const capabilities = useCourseQuery(apiBase, authToken, authToken ? `${ROOT}/capabilities` : null, retryCapability);
-  const adminMi = Boolean(user?.is_admin || user?.role === "admin");   // O‘qituvchilar kurslari va O‘qituvchi xonasi hozircha faqat adminga
+  const adminMi = Boolean(adminKorinish);   // O‘qituvchilar kurslari va O‘qituvchi xonasi hozircha faqat adminga
   const canTeach = Boolean(authToken && !readOnly && capabilities.data?.can_teach && adminMi);   // kurs ochish hozircha faqat admin (puxta bo‘lgach o‘qituvchilarga ruxsat beramiz)
   useEffect(() => {
     if (initialMode === "newcourse" && canTeach) setView("studio");
@@ -159,7 +159,7 @@ function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initia
       {!authToken && onLogin && <button className="course-login-link" onClick={() => onLogin?.(selectedCourse)}>{__kbUi("Hisobga kirish")}<ArrowRight size={16} /></button>}
     </nav>}
     {capabilities.error && <Notice error>{__kbUi("Hisob imkoniyatlari olinmadi. ")}<button onClick={() => setRetryCapability((n) => n + 1)}>{__kbUi("Qayta tekshirish")}</button></Notice>}
-    {view === "kabutar" && authToken && <React.Suspense fallback={<Notice>{__kbUi("Yuklanmoqda…")}</Notice>}><KabutarKurslar apiBase={apiBase} token={authToken} user={user} /></React.Suspense>}
+    {view === "kabutar" && authToken && <React.Suspense fallback={<Notice>{__kbUi("Yuklanmoqda…")}</Notice>}><KabutarKurslar apiBase={apiBase} token={authToken} user={user} adminKorinish={adminMi} /></React.Suspense>}
     {(view === "catalog" || (view === "kabutar" && !authToken)) && <Catalog apiBase={apiBase} token={authToken} onOpen={openCourse} />}
     {(view === "learning" || view === "teaching") && <MyCourses key={`${view}:${revision}`} apiBase={apiBase} token={authToken} teaching={view === "teaching"} canTeach={canTeach} capabilityLoading={capabilities.loading} onCreate={() => openStudio()} onOpen={openCourse} onEdit={openStudio} onCatalog={() => setView("catalog")} onLogin={onLogin} />}
     {view === "detail" && selectedCourse && <CourseDetail key={`${selectedCourse}:${revision}`} active={active} apiBase={apiBase} token={authToken} user={user} id={selectedCourse} readOnly={readOnly} onBack={() => setView("catalog")} onLogin={() => onLogin?.(selectedCourse)} onEdit={() => openStudio(selectedCourse)} />}
