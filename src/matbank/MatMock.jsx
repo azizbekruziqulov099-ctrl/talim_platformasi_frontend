@@ -9,6 +9,7 @@ import { BALL_RANGI, qolganSekund, vaqtMatni } from "./sertRules.js";
 import "./matbank.css";
 
 const Xato = ({ x, qayta }) => <div className="mb-xato" role="alert"><p>⚠️ {__kbUi(x)}</p>{qayta && <button type="button" className="mb-btn" onClick={qayta}>↻ {__kbUi("Qayta urinish")}</button>}</div>;
+const Rasm = ({ r }) => (r ? <div className="mb-mock-rasm" dangerouslySetInnerHTML={{ __html: r }} /> : null); // server o‘zi yasagan SVG (foydalanuvchi matni emas)
 const kalit = (s, h) => (h ? `${s.slot}${h}` : String(s.slot));
 
 function Boshlash({ apiBase, token, onBosh, onClose }) {
@@ -53,7 +54,7 @@ function Yechish({ apiBase, token, onTugadi, onChiq }) {
       <b>{i + 1} / {jami}</b><span className={`mb-vaqt ${qolgan < 300 ? "is-oz" : ""}`} aria-label={__kbUi("Qolgan vaqt")}>⏱ {vaqtMatni(qolgan)}</span></header>
     <i className="mb-yolak mb-yolak-katta" aria-hidden="true"><b style={{ width: `${(100 * n) / jami}%` }} /></i>
     <nav className="mb-nuqtalar" aria-label={__kbUi("Topshiriqlar")}>{t.savollar.map((x, k) => <button key={x.slot} type="button" className={`${k === i ? "is-hozir" : ""} ${javobli(x) ? "is-javob" : ""}`} onClick={() => setI(k)} aria-current={k === i}>{k + 1}</button>)}</nav>
-    <article className="mb-karta mb-savol-karta" key={s.slot}><SavolMatn matn={s.savol} />
+    <article className="mb-karta mb-savol-karta" key={s.slot}><SavolMatn matn={s.savol} /><Rasm r={s.rasm} />
       {s.tur === "ochiq" ? <div className="mb-ochiq">{s.qismlar.map((q) => <label key={q.h} className="mb-ochiq-qism"><SavolMatn matn={q.savol} />
         <input className="mb-input" inputMode="decimal" autoComplete="off" placeholder={__kbUi("Javob (son yoki a/b)")} value={jav[kalit(s, q.h)] || ""} maxLength={20}
           onChange={(e) => setJav((j) => ({ ...j, [kalit(s, q.h)]: e.target.value }))} /></label>)}</div>
@@ -71,7 +72,7 @@ function Yechim({ t }) {
   const [och, setOch] = useState(false);
   return <li className={`mb-mock-q ${t.togri ? "is-togri" : "is-xato"}`}>
     <div className="mb-mock-bosh"><b>{t.slot}. {t.togri ? "✅" : "❌"}</b><small>{t.mavzu}</small></div>
-    <SavolMatn matn={t.savol} />
+    <SavolMatn matn={t.savol} /><Rasm r={t.rasm} />
     {t.tur === "yopiq" ? <p className="mb-muted">{__kbUi("Sizning javob")}: <b>{t.tanlandi || "—"}</b> · {__kbUi("To‘g‘ri")}: <b>{t.javob}</b>{" "}<VariantMatn matn={t.variantlar[HARFLAR.indexOf(t.javob)] || ""} /></p>
       : t.qismlar.map((q) => <p key={q.h} className="mb-muted"><SavolMatn matn={q.savol} />{q.togri ? "✅" : "❌"} {__kbUi("Sizning javob")}: <b>{q.kiritildi || "—"}</b> · {__kbUi("To‘g‘ri")}: <b><VariantMatn matn={q.javob} /></b></p>)}
     <button type="button" className="mb-link" onClick={() => setOch(!och)}>{och ? __kbUi("Yechimni yopish") : `💡 ${__kbUi("Yechimni ko‘rish")}`}</button>
