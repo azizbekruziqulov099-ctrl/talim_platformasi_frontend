@@ -527,6 +527,7 @@ const LazyMantiqOyinlari = _samtmLazyRetry(() => import("./games/mantiq/MantiqOy
 const LazyMatBank = _samtmLazyRetry(() => import("./matbank/MatBank.jsx"));   // REV559: matematika banki (Tematika)   // REV526: 1–11-sinf mantiq o'yinlari
 const LazyEkspeditsiya = _samtmLazyRetry(() => import("./games/Ekspeditsiya.jsx"));   // REV456
 const LazyBugun = _samtmLazyRetry(() => import("./workspace/BugunEkran.jsx"));   // REV487: «🏠 Bugun» bosh ekrani
+const LazyTestVaraq = _samtmLazyRetry(() => import("./matbank/TestVaraq.jsx"));   // o'qituvchi: test varag'i + kalitlar (PDF)
 const LazyMen = _samtmLazyRetry(() => import("./workspace/MenSahifa.jsx"));   // REV488: «📊 Men»
 const LazyGuruhlarim = _samtmLazyRetry(() => import("./courses/Guruhlarim.jsx"));   // REV488: «👥 Guruhlarim»
 const LazyHujjatSahifa = _samtmLazyRetry(() => import("./hujjat/HujjatSahifa.jsx"));   // REV439: hujjat ko'ruvchi
@@ -13216,23 +13217,14 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
     ];
   }
   if (rol === "oqituvchi") {
-    // Muassasasi bor xodim (dekan, direktor, o'qituvchi...) uchun asosiy ish joyi — muassasasi.
-    // Umumiy "Ish maydoni" (to'garak, repetitorlik, AI vositalari) qo'shimcha bo'lib pastda turadi.
+    // Ixcham menyu: Bugun, Kurslar (faqat ko'rish), Xalqaro baholash (sinf ochish), Testlar (PDF + kalitlar), Hujjat ochish, Profil.
+    // Muassasalar, To'garak va repetitorlik, Ovoz ⇄ Matn, Statistikalar, Mavzular, O'yinlar, Guruhlarim — hozircha yopildi (puxta bo'lgach qaytariladi).
     return [
       { kalit: "bugun", nom: "Bugun", ikon: BugunIkon },   // REV487
-      { kalit: "guruhlarim", nom: "Guruhlarim", ikon: Users },   // REV488
       { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: BookOpen },
-      ...(qoshimchaBand ? [qoshimchaBand] : []),
-      // REV96: to'garak endi aniq nom bilan ko'rinadi; kutubxona va ovoz vositasi alohida band.
-      { kalit: "oqituvchi", nom: "To‘garak va repetitorlik", ikon: Users },
-      { kalit: "kutubxonam", nom: "Kutubxonam", ikon: Folder },
-      { kalit: "ovoz", nom: "Ovoz ⇄ Matn", ikon: Mic },
-      { kalit: "oqituvchi_analitika", nom: "Statistikalar", ikon: BarChart3 },
-      { kalit: "mavzular", nom: "Mavzular", ikon: BookOpen },
       { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV260: sinf natijalari (o'qituvchi paneli)
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
-      { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
-            { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
+      { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
       { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
@@ -15227,6 +15219,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona" && tab === "ai_ustoz" && (
         <AiOquvchiUstozBolimi token={token} foydalanuvchi={foydalanuvchi} initialTarget={talimYoliDarsNishoni} onOpenTest={(topic) => { setTalimYoliTestNishoni({ ...topic, nonce: Date.now() }); setTab("test"); }} />
       )}
+      {korinishRoli === "oqituvchi" && tab === "test" && <div className="px-5 pt-4">{lazyPanel(LazyTestVaraq, { apiBase: API_BASE, token })}</div>}
       {korinishRoli !== "admin" && korinishRoli !== "ota-ona" && tab === "test" && (
         <TestTab
           token={token}

@@ -135,7 +135,7 @@ function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initia
   const [revision, setRevision] = useState(0);
   const [retryCapability, setRetryCapability] = useState(0);
   const capabilities = useCourseQuery(apiBase, authToken, authToken ? `${ROOT}/capabilities` : null, retryCapability);
-  const canTeach = Boolean(authToken && !readOnly && capabilities.data?.can_teach);
+  const canTeach = Boolean(authToken && !readOnly && capabilities.data?.can_teach && (user?.is_admin || user?.role === "admin"));   // kurs ochish hozircha faqat admin (puxta bo‘lgach o‘qituvchilarga ruxsat beramiz)
   useEffect(() => {
     if (initialMode === "newcourse" && canTeach) setView("studio");
   }, [initialMode, canTeach]);
