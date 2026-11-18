@@ -2291,11 +2291,11 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       </aside>}
     </div>
     {/* REV611: telefonda doska tagida subtitr — ustoz aytayotgan gap, aytilayotgan so'z yonib turadi */}
-    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off">{(() => {
+    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
       const bosh = Math.max(0, Math.min(word - 6, words.length - 16));
       return words.slice(bosh, bosh + 16).map((w, j) => {
         const t = String(w).replace(/^\[\d{1,2}\]$/, "").replace(/\$/g, "").replace(/\\cdot/g, "·").replace(/\\times/g, "×").replace(/\\[a-zA-Z]+/g, "").replace(/[{}]/g, "");
-        return t ? <span key={bosh + j} className={bosh + j === word ? "is-on" : ""}>{t} </span> : null; }); })()}</div>}
+        return t ? <span key={bosh + j} className={bosh + j === word ? "is-on" : ""}>{t} </span> : null; }); })()}</p></div>}
     {/* REV184: ikki ustozning jonli yozuvi — har ustoz o'z rangida, aytilayotgan so'z yonadi; so'zni bosib izoh so'raladi */}
     {/* REV266: bog'chada pastda hech qanday yozuv yo'q (bola o'qimaydi) — faqat maktabda */}
     {!kid && darsTil && ikkinchi && mode === "lesson" && nutqQism.length > 0 && <IkkiUstozTaglavha qismlar={nutqQism} faol={nutqI} soz={qismSoz} til={darsTil} kid={kid}
