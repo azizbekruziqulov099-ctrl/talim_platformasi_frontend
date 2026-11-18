@@ -63,6 +63,7 @@ export default function HujjatSahifa({ onYop }) {
       <h2 style={{ margin: 0 }}>📂 {__kbUi("Hujjat ochish")}</h2>
       {onYop && <button type="button" className="hs-tugma" style={{ background: "#eef2f6", color: "#1d2b3a" }} onClick={onYop}>←</button>}
     </div>
+    <p className="hs-izoh" style={{ margin: "6px 0 10px", color: "#4b5b6b", fontSize: 14, lineHeight: 1.45 }}>{__kbUi("Telefon yoki kompyuteringizdagi faylni shu yerda ochib o‘qing: PDF, Word (.docx), Excel (.xlsx), PowerPoint (.pptx), rasm, matn yoki ZIP arxiv. Darslik, dars ishlanma, topshiriq yoki o‘qituvchi yuborgan faylni ochish uchun.")}</p>
     <label className={`hs-tashla ${ustida ? "is-ustida" : ""}`} onDragOver={(e) => { e.preventDefault(); setUstida(true); }} onDragLeave={() => setUstida(false)}
       onDrop={(e) => { e.preventDefault(); setUstida(false); const f = e.dataTransfer.files?.[0];
         // REV471: Windows'da ZIP oynasi yoki Telegram'dan sudralganda ba'zan haqiqiy fayl kelmaydi — tushuntiramiz

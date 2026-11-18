@@ -2300,3 +2300,34 @@ img, video, canvas, svg { max-width: 100%; }
    kelishib ishlaydi, ramka yashirilsa tepada bo'sh yo'lak qolardi.
    Yangi to'liq ekranli oyna qo'shilsa: avval unda ✕ borligini tekshiring, so'ng shu ro'yxatga qo'shing (src/ramka.test.mjs). */
 body:has(.cd-root.is-toliq, .ox-root, .bzt-fon, .kb-family-overlay, .kb-family-markaz, .kt-oyna) :is(.samtm-top-switch, #samtm-install-app, .premium-mobile-nav){display:none!important}
+
+/* ===== Menyu va profil: yagona yumshoq dizayn (v633) ===== */
+.premium-side-link{border-radius:14px;padding:10px 12px;font-size:12px;position:relative;margin-bottom:3px;transition:transform .16s ease,background .16s ease,box-shadow .16s ease}
+.premium-side-link:hover{transform:translateX(3px);background:rgba(255,255,255,.1)}
+.premium-side-link.active{box-shadow:0 10px 22px rgba(0,0,0,.2),inset 3px 0 0 #7ff0e4}
+.premium-side-icon{border-radius:12px;background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.05));transition:transform .16s ease}
+.premium-side-link:hover .premium-side-icon,.premium-side-link.active .premium-side-icon{transform:scale(1.07)}
+.premium-side-link.active .premium-side-icon{background:rgba(255,255,255,.22)}
+@media (max-width:900px){
+  .premium-mobile-nav{backdrop-filter:blur(14px);box-shadow:0 -8px 26px rgba(10,50,70,.14)}
+  .premium-mobile-link{border-radius:16px;transition:transform .15s ease,background .15s ease}
+  .premium-mobile-link:active{transform:scale(.94)}
+  .premium-mobile-link.active{background:color-mix(in srgb,var(--nav-accent,#1B4B7A) 13%,#fff)}
+  .premium-mobile-link .premium-mobile-icon{border-radius:14px}
+  .premium-mobile-link.active .premium-mobile-icon{background:var(--nav-accent,#1B4B7A);color:#fff;box-shadow:0 6px 14px color-mix(in srgb,var(--nav-accent,#1B4B7A) 40%,transparent)}
+}
+/* Profil: sarlavha va bo'limlar ajralib, nafis turadi */
+.kb-prof-bosh{border-radius:0 0 32px 32px;padding-bottom:38px!important;margin-bottom:0!important;box-shadow:0 16px 34px rgba(27,75,122,.24)}
+.kb-prof-ichi{margin-top:20px!important;display:grid;gap:12px}
+.kb-prof-ichi>*{margin-bottom:0}
+.kb-prof-avatar{width:72px!important;height:72px!important;border-radius:22px!important;overflow:visible!important;box-shadow:0 8px 20px rgba(0,0,0,.25);border:3px solid rgba(255,255,255,.55)!important}
+.kb-prof-avatar img{border-radius:19px}
+.kb-prof-kamera{position:absolute;right:-8px;bottom:-8px;width:28px;height:28px;border-radius:50%;background:#fff;color:#1B4B7A;display:grid;place-items:center;font-size:14px;box-shadow:0 4px 10px rgba(0,0,0,.25)}
+.kb-acc{border-radius:20px!important;border:1px solid #e3edf1!important;box-shadow:0 6px 18px rgba(20,60,90,.06)!important;margin-bottom:0!important;transition:box-shadow .2s ease,border-color .2s ease}
+.kb-acc[open]{border-color:#a9dcd8!important;box-shadow:0 12px 28px rgba(20,100,110,.12)!important}
+.kb-acc>summary{border-radius:20px;transition:background .15s ease}
+.kb-acc>summary:hover{background:#f4fbfa}
+.kb-acc>summary>span:first-child{background:linear-gradient(145deg,#e4f5f3,#d3ecf3)!important;box-shadow:inset 0 0 0 1px rgba(15,110,120,.08)}
+.kb-acc-ichki{border-radius:16px!important;box-shadow:none!important;margin-bottom:10px!important}
+.kb-acc-ichki>summary{border-radius:16px}
+.kb-prof-ichi button:not(summary){border-radius:14px}

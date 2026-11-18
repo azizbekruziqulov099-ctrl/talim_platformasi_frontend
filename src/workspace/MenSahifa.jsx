@@ -34,5 +34,7 @@ export default function MenSahifa({ apiBase, token, ism = "", onTab }) {
       {nish.length ? <div className="bg-nishon">{nish.map((n) => <span key={n.kalit} title={__kbUi(n.izoh || "")}>{__kbUi(n.nom)}</span>)}</div>
         : <p className="bg-izoh">{__kbUi("Ekspeditsiyada bosqichlarni o‘tib, nishonlar to‘plang!")}</p>}
       <button type="button" onClick={() => onTab("ekspeditsiya")}>🧭 {__kbUi("Ekspeditsiyaga")} →</button></div>
+    <div className="bg-karta"><b>📈 {__kbUi("Mening tahlilim")}</b><p className="bg-izoh">{__kbUi("Qaysi mavzularni bilasiz, qaysilari zaif — batafsil tahlil.")}</p>
+      <button type="button" onClick={() => onTab("bilim")}>{__kbUi("Tahlilni ochish")} →</button></div>
   </section>;
 }

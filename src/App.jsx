@@ -12225,7 +12225,7 @@ function ProfileAccordion({ icon, title, summary, children, nested = false }) {
   const [ochiq, setOchiq] = useState(false);
   return (
     <details
-      className={`${nested ? "rounded-xl" : "rounded-2xl shadow-sm"} bg-white border mb-3 overflow-visible`}
+      className={`kb-acc${nested ? " kb-acc-ichki" : ""} ${nested ? "rounded-xl" : "rounded-2xl shadow-sm"} bg-white border mb-3 overflow-visible`}
       style={{ borderColor: "var(--ui-legacy-borderColor-e5e1d8, #E5E1D8)" }}
       onToggle={(event) => setOchiq(event.currentTarget.open)}
     >
@@ -12649,21 +12649,19 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
 
   return (
     <div className="pb-4">
-      <div className="relative px-5 pt-8 pb-12 mb-3 overflow-hidden"
+      <div className="kb-prof-bosh relative px-5 pt-8 pb-12 mb-3 overflow-hidden"
         style={{ background: `linear-gradient(135deg, ${profilRangi} 0%, ${profilRangi}CC 100%)` }}>
         <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }} />
         <div className="absolute right-10 bottom-0 w-16 h-16 rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.06)" }} />
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <button type="button" onClick={() => rasmInputRef.current?.click()} disabled={rasmYuklanmoqda}
-              className="relative w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl shrink-0 overflow-hidden"
+              className="kb-prof-avatar relative w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl shrink-0"
               style={{ backgroundColor: "rgba(255,255,255,0.18)", color: "#fff", border: "2px solid rgba(255,255,255,0.35)" }}>
               {foydalanuvchi?.rasm_bormi ? (
                 <img src={`${API_BASE}/api/profil_rasm/${foydalanuvchi.user_id}?v=${rasmVersiyasi}`} alt={__kbUi("")} className="w-full h-full object-cover" />
               ) : __kbUi((ism || "?").trim().slice(0, 1).toUpperCase())}
-              <span className="absolute bottom-0 inset-x-0 text-center text-[9px] font-semibold py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.4)", color: "#fff" }}>
-                {rasmYuklanmoqda ? __kbUi("...") : __kbUi("✏️")}
-              </span>
+              <span className="kb-prof-kamera">{rasmYuklanmoqda ? __kbUi("...") : __kbUi("📷")}</span>
             </button>
             <input ref={rasmInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={rasmTanlandi} className="hidden" />
             <div className="min-w-0">
@@ -12688,7 +12686,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
         </div>
       </div>
 
-      <div className="px-5 -mt-8">
+      <div className="kb-prof-ichi px-5 -mt-8">
       {rasmXato && <p className="text-xs mb-3" style={{ color: "#B0553A" }}>{__kbUi(rasmXato)}</p>}
 
       <ProfileAccordion icon="⚙️" title={__kbUi("Profil sozlamalari")} summary="Shaxsiy ma'lumot, maktab, fan, dizayn, ovoz va til">
@@ -13247,19 +13245,13 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "profil", nom: "Profil", ikon: User },
     ];
   }
-  // O'quvchi / talaba / bog'cha / markaz: asosiy yo'l — O'rganish (fan → mavzu → dars → test).
+  // O'quvchi / talaba / bog'cha / markaz. Ixcham menyu: O'yinlar, O'rganish, AI Ustoz, Hujjat ochish olib tashlandi; «Mening tahlilim» — «Men» ichida.
   return [
     { kalit: "bugun", nom: "Bugun", ikon: BugunIkon },   // REV487
-    // REV301: hamma o'qish (fan, til, erkin til, sertifikat, xalqaro baholash, bolalar kurslari) — «Kurslar» ichida
-    { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: GraduationCap },
-    { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },
-    { kalit: "men", nom: "Men", ikon: User },   // REV488: baholar, ko'nikmalar, nishonlar, avatar
-    { kalit: "mavzular", nom: "O‘rganish", ikon: BookOpen },
+    { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: GraduationCap },   // REV301: hamma o'qish shu yerda
+    { kalit: "men", nom: "Men", ikon: User },   // REV488: baholar, ko'nikmalar, nishonlar, avatar, tahlil
     { kalit: "test", nom: "Testlar", ikon: PencilLine },
-    { kalit: "ai_ustoz", nom: "AI Ustoz", ikon: Bot },
-    { kalit: "bilim", nom: "Mening tahlilim", ikon: BarChart3 },
-    { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
-      { kalit: "profil", nom: "Profil", ikon: User },
+    { kalit: "profil", nom: "Profil", ikon: User },
   ];
 }
 
@@ -13291,6 +13283,14 @@ function PastkiMenyu({
   const talabaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && (_kbAccountRole(foydalanuvchi) === "talaba" || /kurs/i.test(String(foydalanuvchi?.class || "")));
   if (talabaMi) bandlar.splice(1, 0, { kalit: "institutim", nom: "Mening institutim", ikon: GraduationCap });
   if (talabaMi) { const xi = bandlar.findIndex((b) => b.kalit === "xalqaro"); if (xi >= 0) bandlar.splice(xi, 1); }   // REV260: talabaga emas
+  if (talabaMi) {   // talaba menyusi: faqat Mening institutim, Kurslar, Testlar, Hujjat ochish, Profil
+    bandlar.splice(0, bandlar.length,
+      { kalit: "institutim", nom: "Mening institutim", ikon: GraduationCap },
+      { kalit: "kurslar", nom: "Kurslar va to‘garaklar", ikon: GraduationCap },
+      { kalit: "test", nom: "Testlar", ikon: PencilLine },
+      { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },
+      { kalit: "profil", nom: "Profil", ikon: User });
+  }
   // REV80: bog'cha bolasi — sodda menyu: o'rganamiz, o'yin-testlar, to'garaklar, profil.
   const bogchaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && _kbAccountRole(foydalanuvchi) === "bogcha";
   if (bogchaMi) {

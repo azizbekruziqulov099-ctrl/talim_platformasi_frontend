@@ -30,6 +30,7 @@ export function initialEducationTab(user) {
   if (user?.is_admin) return 'admin';
   if (user?.role === 'oqituvchi' || user?.role === 'ota-ona') return 'bugun';
   if (!learningReady(user)) return 'home';
+  if (educationRole(user) === 'talaba') return 'kurslar';   // talaba menyusida «Bugun» yo'q
   return educationRole(user) === 'bogcha' ? 'mavzular' : 'bugun';
 }
 export function needsEducation(user, tab) {
