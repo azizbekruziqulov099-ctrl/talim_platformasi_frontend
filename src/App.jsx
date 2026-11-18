@@ -14974,7 +14974,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-robot-oyna{width:min(340px,calc(100vw - 28px));background:#fff;border:1px solid #E5E1D8;border-radius:16px;box-shadow:0 14px 40px rgba(23,50,75,.18);padding:8px}
         body:has(.dx-root) .samtm-robot{display:none!important}
         /* REV605: tepa panel — ingichka chiroyli ramka: ☰ ‹ › (chapda), Ta'lim | Kabutar, til, profil (o'ngda); keyin obuna joyi */
-        .samtm-top-switch.samtm-ixcham{display:block!important;padding:4px 6px!important}
+        .samtm-top-switch.samtm-ixcham{display:block!important;padding:4px 6px!important;background:var(--kb-fon,#f7f8fa)!important;pointer-events:auto!important;border-bottom:1px solid rgba(23,50,75,.08)!important}
         .samtm-ixcham .samtm-ramka{display:flex;align-items:center;justify-content:space-between;gap:6px;height:38px;padding:0 5px;box-sizing:border-box;border:1.5px solid var(--space-color,#1B4B7A);border-radius:19px;background:rgba(255,255,255,.96);box-shadow:0 3px 10px rgba(23,50,75,.12);pointer-events:auto}
         .samtm-ixcham .samtm-chap{display:flex;align-items:center;gap:4px}
         .samtm-ixcham .samtm-gamburger{width:30px;height:30px;border-radius:50%;margin-right:0;gap:3px}
