@@ -6,11 +6,12 @@ import { RasmKonteksti, SavolMatn, VariantMatn } from "./MatMatn.jsx";
 import { HARFLAR } from "./matMatn.js";
 import { matFetch } from "./matBankApi.js";
 import { BALL_RANGI, natijaXabari, qolganSekund, vaqtMatni, zaifBolimlar } from "./sertRules.js";
+import MatMock from "./MatMock.jsx";
 import "./matbank.css";
 
 const Xato = ({ x, qayta }) => <div className="mb-xato" role="alert"><p>⚠️ {__kbUi(x)}</p>{qayta && <button type="button" className="mb-btn" onClick={qayta}>↻ {__kbUi("Qayta urinish")}</button>}</div>;
 
-function Boshlash({ apiBase, token, onBosh, onClose }) {
+function Boshlash({ apiBase, token, onBosh, onClose, onMock }) {
   const [d, setD] = useState(null); const [xato, setXato] = useState("");
   useEffect(() => { matFetch(apiBase, token, "/api/matsert/turlar").then(setD).catch((e) => setXato(e.message)); }, [apiBase, token]);
   return <section className="mb-root">
@@ -19,7 +20,8 @@ function Boshlash({ apiBase, token, onBosh, onClose }) {
     {xato ? <Xato x={xato} /> : !d ? <p className="mb-bosh" role="status">⏳</p> : <>
       <div className="mb-sert-turlar">{d.turlar.map((t) => <button key={t.tur} type="button" className="mb-karta mb-sert-tur" onClick={() => onBosh(t.tur)}>
         <b>{t.tur === "kirish" ? "🚪" : "📝"} {__kbUi(t.nom)}</b><span>{t.savol} {__kbUi("savol")} · {t.daqiqa} {__kbUi("daqiqa")}</span>
-        <small>{t.tur === "kirish" ? __kbUi("Darajangizni va zaif mavzularingizni aniqlaydi") : __kbUi("Rasmiy imtihon tarkibi: hamma bo‘limlardan")}</small></button>)}</div>
+        <small>{t.tur === "kirish" ? __kbUi("Darajangizni va zaif mavzularingizni aniqlaydi") : __kbUi("Rasmiy imtihon tarkibi: hamma bo‘limlardan")}</small></button>)}
+        <button type="button" className="mb-karta mb-sert-tur" onClick={onMock}><b>🧪 {__kbUi("MOCK imtihon")}</b><span>45 {__kbUi("topshiriq")} · 150 {__kbUi("daqiqa")}</span><small>{__kbUi("Har safar yangi savollar, ochiq javobli topshiriqlar, yechimlar bilan")}</small></button></div>
       <p className="mb-muted">ℹ️ {__kbUi(d.izoh)}</p>
       {d.tarix.length > 0 && <div className="mb-karta"><h3>{__kbUi("Oldingi urinishlar")}</h3>
         <ul className="mb-sert-tarix">{d.tarix.map((t) => <li key={t.id}><span>{new Date(t.sana).toLocaleDateString()} · {__kbUi(t.tur === "kirish" ? "Kirish testi" : "To‘liq sinov")}</span>
@@ -87,7 +89,8 @@ function Natija({ r, onYana, onBosh, onMavzu }) {
 export default function MatSertifikat({ apiBase = "", token, onClose, onMavzu = null, boshlash = "" }) {
   const [e, setE] = useState(boshlash ? { t: "yech", tur: boshlash, n: Date.now() } : { t: "bosh" });
   return <RasmKonteksti.Provider value={{ apiBase, token }}>{
-    e.t === "yech" ? <Yechish key={e.n} apiBase={apiBase} token={token} tur={e.tur} onChiq={() => setE({ t: "bosh" })} onTugadi={(r) => setE({ t: "natija", r })} />
+    e.t === "mock" ? <MatMock apiBase={apiBase} token={token} onClose={() => setE({ t: "bosh" })} />
+    : e.t === "yech" ? <Yechish key={e.n} apiBase={apiBase} token={token} tur={e.tur} onChiq={() => setE({ t: "bosh" })} onTugadi={(r) => setE({ t: "natija", r })} />
       : e.t === "natija" ? <Natija r={e.r} onMavzu={onMavzu} onBosh={() => setE({ t: "bosh" })} onYana={() => setE({ t: "yech", tur: e.r.tur, n: Date.now() })} />
-        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onBosh={(tur) => setE({ t: "yech", tur, n: Date.now() })} />}</RasmKonteksti.Provider>;
+        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onBosh={(tur) => setE({ t: "yech", tur, n: Date.now() })} onMock={() => setE({ t: "mock" })} />}</RasmKonteksti.Provider>;
 }

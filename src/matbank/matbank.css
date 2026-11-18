@@ -72,3 +72,8 @@
 .mb-sert-raqam{font-size:56px;line-height:1;font-weight:800}.mb-sert-raqam i{font-size:20px;font-style:normal;opacity:.6}
 .mb-sert-daraja{color:#fff;font-weight:800;border-radius:99px;padding:4px 16px;font-size:18px}
 .mb-vaqt{font-weight:800;font-variant-numeric:tabular-nums}.mb-vaqt.is-oz{color:#b33a3a}
+.mb-ochiq{display:grid;gap:12px;margin-top:10px}.mb-ochiq-qism{display:grid;gap:6px}
+.mb-input{font:inherit;padding:10px 12px;border:1px solid #cdd6e2;border-radius:10px;max-width:260px}
+.mb-mock-royxat{gap:14px}.mb-mock-q{display:grid;gap:6px;padding:10px 12px;border-radius:12px;border:1px solid #e1e7ef;list-style:none}
+.mb-mock-q.is-togri{background:#f1fbf5;border-color:#b9e3c9}.mb-mock-q.is-xato{background:#fff5f3;border-color:#f1c4bb}
+.mb-mock-bosh{display:flex;gap:8px;align-items:center;justify-content:space-between}.mb-yechim{display:grid;gap:4px;padding:8px 10px;background:#fff;border-radius:10px;border:1px dashed #cfd8e5}
