@@ -135,7 +135,8 @@ function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initia
   const [revision, setRevision] = useState(0);
   const [retryCapability, setRetryCapability] = useState(0);
   const capabilities = useCourseQuery(apiBase, authToken, authToken ? `${ROOT}/capabilities` : null, retryCapability);
-  const canTeach = Boolean(authToken && !readOnly && capabilities.data?.can_teach && (user?.is_admin || user?.role === "admin"));   // kurs ochish hozircha faqat admin (puxta bo‘lgach o‘qituvchilarga ruxsat beramiz)
+  const adminMi = Boolean(user?.is_admin || user?.role === "admin");   // O‘qituvchilar kurslari va O‘qituvchi xonasi hozircha faqat adminga
+  const canTeach = Boolean(authToken && !readOnly && capabilities.data?.can_teach && adminMi);   // kurs ochish hozircha faqat admin (puxta bo‘lgach o‘qituvchilarga ruxsat beramiz)
   useEffect(() => {
     if (initialMode === "newcourse" && canTeach) setView("studio");
   }, [initialMode, canTeach]);
@@ -152,9 +153,9 @@ function CourseWorkspaceSession({ apiBase, token, user, readOnly = false, initia
     {readOnly && <Notice>{__kbUi("Ko‘rib chiqish rejimi. Kursga yozilish va natijalarni saqlash uchun o‘z hisobingizga kiring.")}</Notice>}
     {view !== "studio" && view !== "detail" && <nav className="course-tabs" aria-label={__kbUi("Kurs bo‘limlari")}>
       {authToken && <button className={view === "kabutar" ? "is-active" : ""} onClick={() => setView("kabutar")}><BookOpen size={17} />{__kbUi("Kabutar kurslari")}</button>}
-      <button className={view === "catalog" ? "is-active" : ""} onClick={() => setView("catalog")}><Search size={17} />{__kbUi("O‘qituvchilar kurslari")}</button>
+      {adminMi && <button className={view === "catalog" ? "is-active" : ""} onClick={() => setView("catalog")}><Search size={17} />{__kbUi("O‘qituvchilar kurslari")}</button>}
       {authToken && <button className={view === "learning" ? "is-active" : ""} onClick={() => setView("learning")}><BookOpen size={17} />{__kbUi("Mening kurslarim")}</button>}
-      {canTeach && <button className={view === "teaching" ? "is-active" : ""} onClick={() => setView("teaching")}><GraduationCap size={17} />{__kbUi("O‘qituvchi xonasi")}</button>}
+      {adminMi && canTeach && <button className={view === "teaching" ? "is-active" : ""} onClick={() => setView("teaching")}><GraduationCap size={17} />{__kbUi("O‘qituvchi xonasi")}</button>}
       {!authToken && onLogin && <button className="course-login-link" onClick={() => onLogin?.(selectedCourse)}>{__kbUi("Hisobga kirish")}<ArrowRight size={16} /></button>}
     </nav>}
     {capabilities.error && <Notice error>{__kbUi("Hisob imkoniyatlari olinmadi. ")}<button onClick={() => setRetryCapability((n) => n + 1)}>{__kbUi("Qayta tekshirish")}</button></Notice>}
