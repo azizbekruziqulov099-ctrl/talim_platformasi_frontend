@@ -1844,6 +1844,24 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     ? faolRasm(kidPics, sayWords.current, speaking ? word : -1, mikSoz && mikSoz.holat !== "no" ? mikSoz.phrase : "") : -1;
   const doskaRasmlari = faol >= 0 ? kidPics.map((p, i) => ({ ...p, faol: i === faol })) : kidPics;
   const badge = kindBadge(kidKind);
+  // REV614: ustoz doskaga yozilayotganda doskaga qarab (7-poza), gapirganda va tinch turganda o'quvchiga qarab (6-poza) turadi
+  const doskaYozilmoqda = (() => { try {
+    if (!sinfXona || kid || mode !== "lesson" || !speaking || stepFinished || !String(step?.doska || "").trim()) return false;
+    const cue = boardCues(step.doska, step.ovoz || step.doska);
+    if (!cue.lines.length) return false;
+    const jami = cue.spoken.split(/\s+/).filter(Boolean).length;
+    const shown = visibleLines(cue.cues, word, false);
+    return shown < cue.lines.length || lineProgress(cue.cues, Math.max(0, shown - 1), word, jami) < 1;
+  } catch { return false; } })();
+  // REV614: ustoz aytgani doskada allaqachon yozilgan bo'lsa (so'zlarning ≥70 %) — subtitr chiqmaydi, aks holda doska tagida chiqadi
+  const nutqDoskada = (() => {
+    const norm = (x) => String(x || "").toLowerCase().replace(/\[\/?[a-z]{2}\]|\$|\\[a-zA-Z]+|[{}]/g, " ").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    const b = new Set(norm(step?.doska).split(" ").filter(Boolean));
+    if (!b.size) return false;
+    const w = words.map(norm).join(" ").split(" ").filter((x) => x.length > 2);
+    if (!w.length) return true;
+    return w.filter((x) => b.has(x)).length / w.length >= 0.7;
+  })();
   const kidMood = kidPhase || (mode === "idle" || mode === "bridge" ? "wave" : speaking ? kabuMood(step, "speaking") : mode === "lesson" ? kabuMood(step, "waiting") : mode === "result" ? "happy" : "");
   const STICKER_SAY = { hello: "Hello!", red: "Red!", three: "Three!", big: "Big!", small: "Small!", cat: "Cat!", apple: "Apple!", jump: "I can jump!" };
   const tapKid = (i) => {
@@ -1959,7 +1977,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
 
     <div className="dx-room">
       {sinfXona && !kabuMuhit && <div className="dx-sinf-fon" aria-hidden="true">
-        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={yotiq && mode === "lesson" && String(step?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim() ? "yozadi" : kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} neytral={yotiq} doskaYoq />
+        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={doskaYozilmoqda ? "yozadi" : kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} neytral={!ikkinchi} doskaYoq />
       </div>}
       {kabuMuhit && <div className={`dx-kabu-fon ${kabuJuftMuhit ? "is-juft" : ""}`} aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
         {kabuJuftMuhit ? <>
@@ -2289,13 +2307,13 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         </form>}
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>}
-    </div>
-    {/* REV611: telefonda doska tagida subtitr — ustoz aytayotgan gap (doskada yozilmagan bo'lsa), aytilayotgan so'z yonib turadi */}
-    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && !String(step?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim() && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
+    {/* REV611: doska tagida subtitr (telefon va kompyuter) — ustoz aytayotgan gap aytilayotgan so'z yonib turadi */}
+    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && !nutqDoskada && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
       const bosh = Math.max(0, Math.min(word - 6, words.length - 16));
       return words.slice(bosh, bosh + 16).map((w, j) => {
         const t = String(w).replace(/^\[\d{1,2}\]$/, "").replace(/\$/g, "").replace(/\\cdot/g, "·").replace(/\\times/g, "×").replace(/\\[a-zA-Z]+/g, "").replace(/[{}]/g, "");
         return t ? <span key={bosh + j} className={bosh + j === word ? "is-on" : ""}>{t} </span> : null; }); })()}</p></div>}
+    </div>
     {/* REV184: ikki ustozning jonli yozuvi — har ustoz o'z rangida, aytilayotgan so'z yonadi; so'zni bosib izoh so'raladi */}
     {/* REV266: bog'chada pastda hech qanday yozuv yo'q (bola o'qimaydi) — faqat maktabda */}
     {!kid && darsTil && ikkinchi && mode === "lesson" && nutqQism.length > 0 && <IkkiUstozTaglavha qismlar={nutqQism} faol={nutqI} soz={qismSoz} til={darsTil} kid={kid}
