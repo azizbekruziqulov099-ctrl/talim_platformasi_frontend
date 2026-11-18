@@ -16,6 +16,7 @@ const NazoratTest = lazyQayta(() => import("./NazoratTest.jsx"));   // REV479
 const KonikmaXarita = lazyQayta(() => import("./KonikmaXarita.jsx"));   // REV480
 const MarkazPanel = lazyQayta(() => import("../markaz/MarkazPanel.jsx"));
 const XalqaroBaholash = lazyQayta(() => import("../xalqaro/XalqaroBaholash.jsx"));
+const MatSertifikat = lazyQayta(() => import("../matbank/MatSertifikat.jsx"));   // Milliy sertifikat uslubidagi kirish testi
 const MatBank = lazyQayta(() => import("../matbank/MatBank.jsx"));   // REV562: matematika banki shu yerda
 const Pasport = lazyQayta(() => import("../pasport/Pasport.jsx"));
 const DarajaPanel = lazyQayta(() => import("../pasport/DarajaPanel.jsx"));
@@ -43,6 +44,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   const [qidir, setQidir] = useState("");
   const [kurs, setKurs] = useState(null);        // ochilgan kurs (darslar ro'yxati)
   const [dars, setDars] = useState(null);        // ochilgan dars
+  const [sertOchiq, setSertOchiq] = useState(false);   // Repetitor: kirish testi (Milliy sertifikat uslubi)
   const [tolov, setTolov] = useState(null);      // yopiq dars bosilganda
   const [konikmaOchiq, setKonikmaOchiq] = useState(false);   // REV480
   // REV605: yagona navigatsiya tarixi bilan ulanish (tepadagi ‹ › va telefonning «orqaga»si)
@@ -119,6 +121,9 @@ export default function KabutarKurslar({ apiBase, token, user }) {
   if (kat === "pasport") return <Bolim nom="📊 Pasport" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><Pasport apiBase={apiBase} token={token} /></React.Suspense></Bolim>;
   if (kat === "xalqaro") return <Bolim nom="🌍 Xalqaro baholash" onOrtga={() => setKat(null)}><React.Suspense fallback={<p className="kk-p">…</p>}><XalqaroBaholash apiBase={apiBase} token={token} user={user} jins={user?.jins} /></React.Suspense></Bolim>;
 
+  if (kurs && kitobKursi && sertOchiq) return <section className="kk"><React.Suspense fallback={<p className="kk-p">…</p>}>
+    <MatSertifikat apiBase={apiBase} token={token} onClose={() => setSertOchiq(false)}
+      onMavzu={(n) => { const x = (kurs.darslar || []).find((y) => new RegExp(`^\\s*${n}\\s*-?\\s*dars`, "i").test(String(y.nomi || ""))); setSertOchiq(false); if (x?.ochiq) setDars({ ...x }); }} /></React.Suspense></section>;
   if (kurs) return <section className="kk" aria-label={kursNomi(kurs)}>
     <button type="button" className="kk-ortga" onClick={() => setKurs(null)}>← {__kbUi("Kurslar")}</button>
     <header className="kk-kurs-bosh"><h2>{kursNomi(kurs)}</h2>
@@ -137,6 +142,7 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       const raqam = (kurs.darslar || []).slice(0, (kurs.darslar || []).indexOf(x) + 1).filter((y) => !y.nazorat).length;
       return <div className="kk-davom"><span>{__kbUi("Davom etish · oxirgi ko‘rganingiz")}</span><b>{raqam}-{__kbUi("dars")} · {x.nomi || x.topic_code}</b>
         <button type="button" onClick={() => setDars({ ...x, ...(ox.bolim ? { bolim: ox.bolim } : {}) })}>▶ {__kbUi("Davom etish")}</button></div>; })()}
+    {kitobKursi && !kurs.yuklanmoqda && <button type="button" className="kk-davom" style={{ width: "100%", cursor: "pointer", textAlign: "left" }} onClick={() => setSertOchiq(true)}><span>🏅 {__kbUi("Kirish testi: Milliy sertifikat uslubida")}</span><b>{__kbUi("Bilimingizni sinab, ballingizni ko‘ring")}</b></button>}
     <ol className="kk-darslar">{(kurs.darslar || []).map((d, i) => <li key={d.topic_code} className={oxirgiOqi()[kurs.kalit]?.tc === d.topic_code ? "is-oxirgi" : ""}>
       {kurs.kategoriya === "repetitor" && !String(kurs.kalit || "").endsWith("|148") && d.sinf && d.sinf !== (kurs.darslar[i - 1] || {}).sinf && <div className="kk-sinf-bosh">📘 {__kbUi(sinfYozuv(d.sinf))}</div>}
       <button type="button" className={`kk-dars ${d.ochiq ? "" : "is-qulf"} ${d.holat === "tugadi" ? "is-tugadi" : ""} ${d.holat === "ertaga" ? "is-ertaga" : ""} ${d.nazorat ? "is-nazorat" : ""}`}
