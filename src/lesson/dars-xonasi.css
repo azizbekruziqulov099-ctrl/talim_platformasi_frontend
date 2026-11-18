@@ -1503,3 +1503,11 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   background:#f2b72e!important;color:#13202e!important;font:800 12px/1 system-ui,sans-serif!important;display:inline-flex!important;align-items:center;gap:4px;border:0!important;box-shadow:none!important;opacity:1!important}
 .dx-root .dx-doskalar .dx-burchak-daftar span{font-size:13px!important}
 .dx-root.dx-root.dx-sinf .dx-frame>.dx-doskalar{right:auto!important}
+
+/* REV613: kompyuter — xona butun ekranni egallaydi (xira chetlar qolmaydi), doska 70–80% gacha kengayadi, ustoz chapda kattaroq */
+@media (min-width:901px){
+  .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon))>.dx-room{width:100%!important;max-width:none!important;aspect-ratio:auto!important;flex:1 1 auto;min-height:0;height:auto!important;margin:0!important}
+  .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-frame{left:17%!important;top:2.5%!important;width:77%!important;height:79%!important}
+  .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-teacher{left:17%!important;top:83%!important;width:77%!important;height:14.5%!important}
+  .dx-root.dx-root.dx-root.dx-sinf:not(.dx-yotiq):not(.dx-ikki-ustoz):not(:has(.dx-kabu-fon)) .dx-sinf-fon .us-teacher{left:.6%!important;bottom:1.5%!important;height:74%!important}
+}

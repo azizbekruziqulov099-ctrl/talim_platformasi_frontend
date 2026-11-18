@@ -2290,8 +2290,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>}
     </div>
-    {/* REV611: telefonda doska tagida subtitr — ustoz aytayotgan gap, aytilayotgan so'z yonib turadi */}
-    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
+    {/* REV611: telefonda doska tagida subtitr — ustoz aytayotgan gap (doskada yozilmagan bo'lsa), aytilayotgan so'z yonib turadi */}
+    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && !String(step?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim() && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off"><p>{(() => {
       const bosh = Math.max(0, Math.min(word - 6, words.length - 16));
       return words.slice(bosh, bosh + 16).map((w, j) => {
         const t = String(w).replace(/^\[\d{1,2}\]$/, "").replace(/\$/g, "").replace(/\\cdot/g, "·").replace(/\\times/g, "×").replace(/\\[a-zA-Z]+/g, "").replace(/[{}]/g, "");
