@@ -17,20 +17,18 @@ function Boshlash({ apiBase, token, onBosh, onClose }) {
     <header className="mb-bosh-qator">{onClose && <button type="button" className="mb-btn mb-yengil" onClick={onClose}>← {__kbUi("Orqaga")}</button>}
       <div><h2>🎓 {__kbUi("Kirish imtihoni: matematika")}</h2><small>{__kbUi("30 ta savol · 60 daqiqa")}</small></div></header>
     {xato ? <Xato x={xato} /> : !d ? <p className="mb-bosh" role="status">⏳</p> : <>
-      <div className="mb-karta"><p>{__kbUi(d.izoh)}</p><small className="mb-muted">{__kbUi("Birinchi 10 ta savol har doim oddiy bo‘ladi — 1,1 ball. Keyingi 20 tasini o‘z darajangizga qarab tanlang:")}</small></div>
-      <div className="mb-sert-turlar">
-        <button type="button" className="mb-karta mb-sert-tur" onClick={() => onBosh(2)}><b>🟢 2,1 {__kbUi("ball")}</b><span>10 × 1,1 + 20 × 2,1 = 53,0 {__kbUi("ball")}</span><small>{__kbUi("O‘rta darajadagi savollar")}</small></button>
-        <button type="button" className="mb-karta mb-sert-tur" onClick={() => onBosh(3)}><b>🔴 3,1 {__kbUi("ball")}</b><span>10 × 1,1 + 20 × 3,1 = 73,0 {__kbUi("ball")}</span><small>{__kbUi("Murakkab savollar — ko‘proq ball")}</small></button></div>
+      <div className="mb-karta"><p>{__kbUi(d.izoh)}</p></div>
+      <button type="button" className="mb-karta mb-sert-tur" onClick={() => onBosh()}><b>▶️ {__kbUi("Imtihonni boshlash")}</b><span>10 × 1,1 + 10 × 2,1 + 10 × 3,1 = 63,0 {__kbUi("ball")}</span><small>{__kbUi("30 ta savol · 60 daqiqa")}</small></button>
       {d.tarix.length > 0 && <div className="mb-karta"><h3>{__kbUi("Oldingi urinishlar")}</h3>
-        <ul className="mb-sert-tarix">{d.tarix.map((t) => <li key={t.id}><span>{new Date(t.sana).toLocaleDateString()} · {f1(t.daraja === 2 ? 2.1 : 3.1)}</span><b>{f1(t.ball)} / {f1(t.maks)}</b><small>{t.togri}/30</small></li>)}</ul></div>}</>}
+        <ul className="mb-sert-tarix">{d.tarix.map((t) => <li key={t.id}><span>{new Date(t.sana).toLocaleDateString()}</span><b>{f1(t.ball)} / {f1(t.maks)}</b><small>{t.togri}/30</small></li>)}</ul></div>}</>}
   </section>;
 }
 
-function Yechish({ apiBase, token, daraja, onTugadi, onChiq }) {
+function Yechish({ apiBase, token, onTugadi, onChiq }) {
   const [t, setT] = useState(null); const [xato, setXato] = useState(""); const [i, setI] = useState(0); const [jav, setJav] = useState({}); const [yub, setYub] = useState(false);
   const [otgan, setOtgan] = useState(0); const boshi = useRef(Date.now()); const tugadi = useRef(false);
   const yukla = useCallback(() => { setT(null); setXato(""); setI(0); setJav({}); setOtgan(0); boshi.current = Date.now();
-    matFetch(apiBase, token, "/api/matkirish/test", { params: { daraja } }).then(setT).catch((e) => setXato(e.message)); }, [apiBase, token, daraja]);
+    matFetch(apiBase, token, "/api/matkirish/test").then(setT).catch((e) => setXato(e.message)); }, [apiBase, token]);
   useEffect(() => { yukla(); }, [yukla]);
   useEffect(() => { if (!t) return undefined; const id = setInterval(() => setOtgan(Math.floor((Date.now() - boshi.current) / 1000)), 1000); return () => clearInterval(id); }, [t]);
   const qolgan = t ? qolganSekund(t.daqiqa, otgan) : 0;
@@ -39,9 +37,9 @@ function Yechish({ apiBase, token, daraja, onTugadi, onChiq }) {
     const bosh = t.savollar.filter((s) => !jav[s.id]).length;
     if (!majbur && bosh && !window.confirm(`${bosh} ${__kbUi("ta savolga javob berilmadi. Baribir tugatilsinmi?")}`)) return;
     tugadi.current = true; setYub(true); setXato("");
-    try { const r = await matFetch(apiBase, token, "/api/matkirish/topshir", { method: "POST", body: { daraja, idlar: t.savollar.map((s) => s.id), javoblar: jav, sekund: Math.floor((Date.now() - boshi.current) / 1000) } }); onTugadi(r, t.savollar); }
+    try { const r = await matFetch(apiBase, token, "/api/matkirish/topshir", { method: "POST", body: { idlar: t.savollar.map((s) => s.id), javoblar: jav, sekund: Math.floor((Date.now() - boshi.current) / 1000) } }); onTugadi(r, t.savollar); }
     catch (e) { tugadi.current = false; setXato(e.message); setYub(false); }
-  }, [t, jav, apiBase, token, daraja, onTugadi]);
+  }, [t, jav, apiBase, token, onTugadi]);
   useEffect(() => { if (t && qolgan === 0 && otgan > 0) tugat(true); }, [qolgan]); // eslint-disable-line react-hooks/exhaustive-deps
   if (xato && !t) return <section className="mb-root"><button type="button" className="mb-btn mb-yengil" onClick={onChiq}>← {__kbUi("Orqaga")}</button><Xato x={xato} qayta={yukla} /></section>;
   if (!t) return <section className="mb-root"><p className="mb-bosh" role="status">⏳ {__kbUi("Savollar tayyorlanmoqda…")}</p></section>;
@@ -70,7 +68,7 @@ function Natija({ r, savollar, onYana, onBosh, onMavzu }) {
     <div className="mb-karta mb-sert-ball"><small>{__kbUi("Kirish imtihoni natijasi")}</small>
       <b className="mb-sert-raqam">{f1(r.ball)}<i> / {f1(r.maks)}</i></b>
       <p>{r.togri} / 30 {__kbUi("to‘g‘ri")} ({r.foiz}%)</p>
-      <small>{__kbUi("Oddiy savollar")}: {r.oddiy_togri}/10 · {f1(r.daraja === 2 ? 2.1 : 3.1)} {__kbUi("ballik")}: {r.tanlov_togri}/20</small></div>
+      <small>1,1: {r.qismlar[0]}/10 · 2,1: {r.qismlar[1]}/10 · 3,1: {r.qismlar[2]}/10</small></div>
     {r.tavsiya?.length > 0 && <div className="mb-karta"><h3>📚 {__kbUi("Nimani o‘rganish kerak")}</h3>
       <ul className="mb-sert-tavsiya">{r.tavsiya.map((m) => <li key={m.mavzu}><span><b>{m.mavzu}-{__kbUi("mavzu")}</b> {m.nom}<small> · {m.xato} {__kbUi("ta xato")}</small></span>
         {onMavzu && <button type="button" className="mb-btn mb-asosiy" onClick={() => onMavzu(m.mavzu)}>{__kbUi("O‘rganish")} →</button>}</li>)}</ul></div>}
@@ -90,7 +88,7 @@ function Natija({ r, savollar, onYana, onBosh, onMavzu }) {
 export default function MatKirish({ apiBase = "", token, onClose, onMavzu = null }) {
   const [e, setE] = useState({ t: "bosh" });
   return <RasmKonteksti.Provider value={{ apiBase, token }}>{
-    e.t === "yech" ? <Yechish key={e.n} apiBase={apiBase} token={token} daraja={e.daraja} onChiq={() => setE({ t: "bosh" })} onTugadi={(r, savollar) => setE({ t: "natija", r, savollar })} />
-      : e.t === "natija" ? <Natija r={e.r} savollar={e.savollar} onMavzu={onMavzu} onBosh={() => setE({ t: "bosh" })} onYana={() => setE({ t: "yech", daraja: e.r.daraja, n: Date.now() })} />
-        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onBosh={(daraja) => setE({ t: "yech", daraja, n: Date.now() })} />}</RasmKonteksti.Provider>;
+    e.t === "yech" ? <Yechish key={e.n} apiBase={apiBase} token={token} onChiq={() => setE({ t: "bosh" })} onTugadi={(r, savollar) => setE({ t: "natija", r, savollar })} />
+      : e.t === "natija" ? <Natija r={e.r} savollar={e.savollar} onMavzu={onMavzu} onBosh={() => setE({ t: "bosh" })} onYana={() => setE({ t: "yech", n: Date.now() })} />
+        : <Boshlash apiBase={apiBase} token={token} onClose={onClose} onBosh={() => setE({ t: "yech", n: Date.now() })} />}</RasmKonteksti.Provider>;
 }
