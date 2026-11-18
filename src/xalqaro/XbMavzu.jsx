@@ -47,7 +47,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
       <small>{d.toplam_nomi?.dastur} · {tf("{n}-sinf", { n: d.toplam_nomi?.sinf })} · {d.soha_nomi}</small>
     </div>
     <div className="xb-mavzu-bosh">
-      <button type="button" className="xb-kabu-tugma" aria-label={T("Kabu gapirsin")} onClick={() => (ovoz.speaking ? ovoz.hush() : ovoz.say(d.ustoz?.matn || d.nom))}><XbUstoz speaking={ovoz.speaking} /></button>
+      <XbUstoz speaking={ovoz.speaking} />
       <div className="xb-pufak" style={{ borderColor: gapRang[0] }}>
         {d.ustoz?.matn && <p style={{ color: gapRang[0] }}>{gapRang[1]} {d.ustoz.matn}</p>}
         <p>{oldi && <b>{d.nom}. </b>}{T("Dunyo bo‘yicha to‘g‘ri yechganlar")}: <b>{d.xalqaro_foiz}%</b>{d.maqsad ? <> · {d.maqsad}</> : null}</p>

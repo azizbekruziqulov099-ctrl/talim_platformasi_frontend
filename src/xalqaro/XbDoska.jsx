@@ -1,3 +1,5 @@
+import RobotKabu from "../kid/RobotKabu.jsx";
+import { useOvozYoqilgan } from "./xbOvoz.js";
 import { UstozFigura } from "../kid/UstozSahna.jsx";   // REV402
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { T } from "./xbTil.js";   // REV270: uch til
@@ -9,9 +11,11 @@ import { USTOZLAR } from "../kid/ustozlar.js";
 
 /** Kichik ustoz rasmi (gapirayotganda qimirlaydi). */
 export function XbUstoz({ speaking = false, mood = "" }) {
-  // Odam-ustoz o'rniga — Kabu (kaptar): gapirganda tebranadi, xursand bo'lganda sakraydi
-  return <div className={`xb-ustoz xb-kabu ${speaking ? "is-gap" : ""} ${mood === "happy" ? "is-happy" : ""}`} aria-hidden="true">
-    <span className="xb-kabu-q">🕊️</span>{speaking && <i className="xb-kabu-ovoz">♪</i>}</div>;
+  // Testlardagi asl robot Kabu — interfeys tilida o'z varianti (uz, ru, en, de, es…); gapirganda og'zi qimirlaydi
+  const [yoq, qoy] = useOvozYoqilgan();
+  return <div className={`xb-ustoz xb-kabu ${speaking ? "is-gap" : ""}`}>
+    <div className="xb-kabu-robot" aria-hidden="true"><div className="kabu-float"><RobotKabu mood={mood === "happy" ? "happy" : speaking ? "talk" : "wave"} /></div></div>
+    <button type="button" className="xb-kabu-ovoz-tugma" onClick={() => qoy(!yoq)} aria-pressed={yoq} aria-label={T(yoq ? "Ovozni o‘chirish" : "Ovozni yoqish")} title={T(yoq ? "Ovozni o‘chirish" : "Ovozni yoqish")}>{yoq ? "🔊" : "🔇"}</button></div>;
 }
 
 /**

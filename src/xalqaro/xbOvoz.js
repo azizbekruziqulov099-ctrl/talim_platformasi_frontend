@@ -9,6 +9,15 @@ import { MIK_TIL, ovozMatni, xbTil } from "./xbTil.js";
 import { USTOZLAR } from "../kid/ustozlar.js";
 const USTOZLAR_JINS = Object.fromEntries(Object.entries(USTOZLAR).map(([k, v]) => [k, v.lab]));
 
+const OVOZ_KALIT = "kabutar:xb:ovoz_yoq";   // "1" — foydalanuvchi ovozni o'chirgan
+export const ovozYoqilgan = () => { try { return localStorage.getItem(OVOZ_KALIT) !== "1"; } catch { return true; } };
+export function ovozQoy(yoq) { try { localStorage.setItem(OVOZ_KALIT, yoq ? "0" : "1"); } catch { /* */ } try { window.dispatchEvent(new Event("kabutar-xb-ovoz")); } catch { /* */ } }
+export function useOvozYoqilgan() {
+  const [v, setV] = useState(ovozYoqilgan);
+  useEffect(() => { const h = () => setV(ovozYoqilgan()); window.addEventListener("kabutar-xb-ovoz", h); return () => window.removeEventListener("kabutar-xb-ovoz", h); }, []);
+  return [v, ovozQoy];
+}
+
 export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
   // REV402: ovoz ustozga mos — erkak ustoz erkak ovozida (ustoz keyinroq aniqlansa, ovoz.ustozQoy(u) bilan beriladi)
   const ustozRef = useRef(ustoz); if (ustoz) ustozRef.current = ustoz;
@@ -36,6 +45,7 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
     if (!clean) { setProgress(1); done?.(); return; }
     setSpeaking(true);
     const finish = () => { if (my !== runRef.current) return; clearInterval(timerRef.current); setProgress(1); setSpeaking(false); audioRef.current = null; done?.(); };
+    const jim = !ovozYoqilgan();
     const fallback = () => {
       const ms = Math.min(14000, 800 + clean.length * 55), t0 = Date.now();
       clearInterval(timerRef.current);
@@ -46,6 +56,7 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
         if (p >= 1) finish();
       }, 60);
     };
+    if (jim) { fallback(); return; }   // ovoz o'chirilgan: tovushsiz, doska esa yuradi
     try {
       // REV270: ruscha/inglizcha matn — til tegi bilan (server shu tilning ovozini tanlaydi)
       const a = new Audio(`${String(apiBase).replace(/\/+$/, "")}/api/ovoz?k=133&${new URLSearchParams({ matn: ovozMatni(clean.slice(0, 1480)), jins })}`);
@@ -66,7 +77,7 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
     try {
       const k = "kabutar:xb:aytildi";
       const royxat = JSON.parse(localStorage.getItem(k) || "[]");
-      if (royxat.includes(kalit)) return () => {};
+      if (royxat.includes(kalit) || !ovozYoqilgan()) return () => {};
       const t = setTimeout(() => { say(text); try { localStorage.setItem(k, JSON.stringify([...royxat, kalit].slice(-400))); } catch { /* */ } }, kech);
       return () => clearTimeout(t);
     } catch { return () => {}; }

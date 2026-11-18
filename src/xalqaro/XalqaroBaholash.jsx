@@ -18,6 +18,7 @@ import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
 import { GAP_TUR, IMTIHON_BELGI, darajaNomi, mavzuBelgi, sinfRaqami, solishtirishQatorlari } from "./xbRules.js";
 import XbQollanma from "./XbQollanma.jsx";   // REV262
 import { XB_TILLAR, XB_TIL_BAYROQ, XB_TIL_NOMI } from "./xbTil.js";
+const PisaMat = lazyQayta(() => import("../matbank/PisaMat.jsx"));   // PISA matematika: dars + 30 mashq + 30 test
 import "./xalqaro.css";
 
 const DarsXonasi = lazyQayta(() => import("../lesson/DarsXonasi.jsx"));
@@ -130,6 +131,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     key={ekran.kalit || "m"} onYopish={() => (ekran.qaytish ? setEkran(ekran.qaytish) : orqaga())} /></div>;
   if (kirishNavbat) return <div className="xb-root"><KirishNavbat apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} onTugadi={() => setKirishNavbat(false)} /></div>;
   if (ekran?.tur === "imtihon") return <div className="xb-root"><XbImtihon apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} tur={ekran.info.tur} toplam={toplam} info={ekran.info} onYopish={orqaga} /></div>;
+  if (ekran?.tur === "pisamat") return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} onClose={orqaga} /></React.Suspense></div>;
   if (ekran?.tur === "natija") return <div className="xb-root"><XbNatija apiBase={apiBase} token={token} id={ekran.id} jins={jins} ustoz={ustoz} onYopish={orqaga} /></div>;
 
   const gap = GAP_TUR[kat.ustoz?.tur] || GAP_TUR.salom;
@@ -145,6 +147,8 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         {!kattaRejim && <button type="button" className="xb-yordam" aria-label={T("Qo‘llanma")} title={T("Qo‘llanma: bo‘lim qanday ishlaydi")} onClick={() => { ovoz.hush(); setTab("qollanma"); }}>?</button>}
       </div>
     </header>
+    <button type="button" className="xb-pisamat-tugma" onClick={() => { ovoz.hush(); setEkran({ tur: "pisamat" }); }}>
+      <b>📘 {T("PISA matematika: mavzular bo‘yicha dars, 30 mashq, 30 test")}</b><small>{T("Hayotiy masalalar, chizmalar, 1–2–4 ballik savollar, o‘zlashtirish foizi")}</small></button>
     {kat.tayyor_emas && <div className="xb-panel xb-ogoh-panel"><p>🌐 {kat.tayyor_emas}</p></div>}
     {!kat.toplamlar?.length && <div className="xb-panel xb-ogoh-panel"><p>📦 {T("Xalqaro baholash materiallari hali yuklanmagan. Tez orada shu yerda TIMSS va PISA savollari va darslari paydo bo‘ladi.")}</p></div>}
     {/* REV375: joriy dastur — bitta qatorda; almashtirish faqat bosilganda ochiladi */}
