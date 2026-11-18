@@ -52,7 +52,7 @@ export function havoJoyi(dz, doska) {
  */
 export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", neytral = false, onOchiq }) {
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
-  const poza0 = neytral ? 6 : pozaFor(mood, { hasPics, listening });   // REV604: telefonda qo'l yoymaydi — tinch tik poza
+  const poza0 = neytral ? (/(^|\s)yozadi(\s|$)/.test(mood) && USTOZLAR[ustoz]?.[7] ? 7 : 6) : pozaFor(mood, { hasPics, listening });   // REV604: telefonda qo'l yoymaydi — tinch tik poza
   const poza = t[poza0] ? poza0 : 3;   // REV392: 7-poza bo'lmasa — ko'rsatish pozasi
   const p = t[poza];
   const ogRasm = OG_RASM[t.lab] || OG_RASM.ayol;

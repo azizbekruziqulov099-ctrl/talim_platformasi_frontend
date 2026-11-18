@@ -1959,7 +1959,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
 
     <div className="dx-room">
       {sinfXona && !kabuMuhit && <div className="dx-sinf-fon" aria-hidden="true">
-        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} neytral={yotiq} doskaYoq />
+        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={yotiq && mode === "lesson" && String(step?.doska || "").replace(/\[\/?[a-z]{2}\]/g, "").trim() ? "yozadi" : kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} neytral={yotiq} doskaYoq />
       </div>}
       {kabuMuhit && <div className={`dx-kabu-fon ${kabuJuftMuhit ? "is-juft" : ""}`} aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
         {kabuJuftMuhit ? <>
@@ -2290,6 +2290,12 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         {lesson.manba?.kitob && <p className="dx-source">{__kbUi("Manba: ")}{lesson.manba.kitob}{lesson.auto ? __kbUi(" · kitob asosida avtomatik yig‘ilgan dars") : ""} · {APP_VERSION}</p>}
       </aside>}
     </div>
+    {/* REV611: telefonda doska tagida subtitr — ustoz aytayotgan gap, aytilayotgan so'z yonib turadi */}
+    {sinfXona && !kid && !kabuMuhit && !juftDoska && mode === "lesson" && words.length > 0 && <div className={`dx-subtitr ${speaking ? "is-on" : ""}`} aria-live="off">{(() => {
+      const bosh = Math.max(0, Math.min(word - 6, words.length - 16));
+      return words.slice(bosh, bosh + 16).map((w, j) => {
+        const t = String(w).replace(/^\[\d{1,2}\]$/, "").replace(/\$/g, "").replace(/\\cdot/g, "·").replace(/\\times/g, "×").replace(/\\[a-zA-Z]+/g, "").replace(/[{}]/g, "");
+        return t ? <span key={bosh + j} className={bosh + j === word ? "is-on" : ""}>{t} </span> : null; }); })()}</div>}
     {/* REV184: ikki ustozning jonli yozuvi — har ustoz o'z rangida, aytilayotgan so'z yonadi; so'zni bosib izoh so'raladi */}
     {/* REV266: bog'chada pastda hech qanday yozuv yo'q (bola o'qimaydi) — faqat maktabda */}
     {!kid && darsTil && ikkinchi && mode === "lesson" && nutqQism.length > 0 && <IkkiUstozTaglavha qismlar={nutqQism} faol={nutqI} soz={qismSoz} til={darsTil} kid={kid}
