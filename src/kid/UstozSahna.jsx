@@ -50,9 +50,9 @@ export function havoJoyi(dz, doska) {
  * gapirayotganining og'zi ovozga mos qimirlaydi (avvalgidek), ikkinchisi jim turadi — boshqa qo'shimcha harakat yo'q.
  * rol — "til" (o'rganilayotgan til ustozi) | "iz" (izoh tili ustozi); jim — boshqasi gapiryapti.
  */
-export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", onOchiq }) {
+export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", neytral = false, onOchiq }) {
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
-  const poza0 = pozaFor(mood, { hasPics, listening });
+  const poza0 = neytral ? 6 : pozaFor(mood, { hasPics, listening });   // REV604: telefonda qo'l yoymaydi — tinch tik poza
   const poza = t[poza0] ? poza0 : 3;   // REV392: 7-poza bo'lmasa — ko'rsatish pozasi
   const p = t[poza];
   const ogRasm = OG_RASM[t.lab] || OG_RASM.ayol;
@@ -138,7 +138,7 @@ export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = fal
  * REV181: ikkinchi — ikki ustozli til darsi: asosiy ustoz (o'rganilayotgan til egasi, masalan Lukas — nemis) va izoh tili
  * ustozi (o'zbek — Nilufar, rus — Anna, ingliz — Emily). kim — hozir kim gapiryapti ("til" | "iz").
  */
-export default function UstozSahna({ havoYashir = false, ustoz = "nilufar", ikkinchi = "", ikkinchiKorinsin = true, kim = null, bayroqlar = null, mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, onDetal, celebrate = 0, children }) {
+export default function UstozSahna({ havoYashir = false, ustoz = "nilufar", ikkinchi = "", ikkinchiKorinsin = true, kim = null, bayroqlar = null, mood = "", speaking = false, mouth = null, soz = "", listening = false, pictures = [], havo = "quyosh", vaqt = "kun", shamol = false, derazaga = false, havo2 = "", doskaYoq = false, onTap, onDetal, celebrate = 0, neytral = false, children }) {
   // REV171: til ustozi ko'p kun o'z xonasida, ba'zi kunlar eski xonalarda (almashib turadi)
   // REV181: ikki ustozli darsda — doim til ustozining o'z xonasi (o'sha tilning madaniyati, doska atrofida keng joy)
   const juft0 = Boolean(ikkinchi && USTOZLAR[ikkinchi] && ikkinchi !== ustoz);
@@ -214,7 +214,7 @@ export default function UstozSahna({ havoYashir = false, ustoz = "nilufar", ikki
       style={{ aspectRatio: `${(detal.w * 1.6) / detal.h}`, backgroundImage: `url(${xona.src2x || xona.src})`,
         backgroundSize: `${10000 / detal.w}% ${10000 / detal.h}%`, backgroundPosition: `${(detal.l / (100 - detal.w)) * 100}% ${(detal.t / (100 - detal.h)) * 100}%` }} />}
     {/* juftda: gapirayotganining og'zi qimirlaydi (avvalgidek), ikkinchisi oddiy turadi — boshqa qo'shimcha harakat yo'q */}
-    <UstozFigura ustoz={ustoz} mood={gapIkkinchi ? "" : mood} speaking={gapAsosiy} mouth={mouth} soz={soz} listening={listening} hasPics={hasPics}
+    <UstozFigura ustoz={ustoz} mood={gapIkkinchi ? "" : mood} speaking={gapAsosiy} mouth={mouth} soz={soz} listening={listening} hasPics={hasPics} neytral={neytral}
       rol={juft ? "til" : ""} jim={gapIkkinchi} bayroq={juft ? bayroqlar?.til || "" : ""} onOchiq={setOchiq1} />
     {juft && <UstozFigura key={`iz-${ikkinchi}`} yashirin={!ikkinchiKorinsin} ustoz={ikkinchi} mood={gapIkkinchi ? mood : ""} speaking={gapIkkinchi} mouth={mouth} soz={soz} listening={false} hasPics={false}
       rol="iz" jim={gapAsosiy} bayroq={bayroqlar?.iz || ""} onOchiq={setOchiq2} />}

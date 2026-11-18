@@ -1559,11 +1559,11 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     el.querySelectorAll(".is-sahifa-yashirin").forEach((x) => { x.classList.remove("is-sahifa-yashirin"); delete x.dataset.sahifa; });
     const sigdir = () => {
       if (el.classList.contains("is-korish")) return;   // o'quvchi oldingi sahifani ko'ryapti — tegmaymiz
-      let z = kid ? 1 : 0.9;   // REV385: maktab doskasida yozuv biroz kichikroq — ko'proq narsa sig'adi
+      let z = kid ? 1 : (el.closest(".dx-yotiq") ? 0.72 : 0.9);   // REV604: telefonda yozuv kompyuterdagidek ixcham; REV385: maktab doskasida yozuv biroz kichikroq — ko'proq narsa sig'adi
       el.style.setProperty("--dx-sig", String(z));
       // REV313: yozuv yirik qoladi (0.85 dan kichraymaydi); baribir sig'masa — YANGI SAHIFA: oldingi qatorlar yashiriladi,
       // doskada hozirgi qator qoladi (haqiqiy elektron panel kabi «+»), oldingi sahifani ◀ bilan ko'rish mumkin
-      const zMin = el.closest(".dx-yotiq") ? 0.7 : 0.85;   // REV381: telefonda (buralgan dars) yozuv ko'proq kichrayib sig'sin
+      const zMin = el.closest(".dx-yotiq") ? 0.55 : 0.85;   // REV381: telefonda (buralgan dars) yozuv ko'proq kichrayib sig'sin
       for (let k = 0; k < 24 && el.scrollHeight > el.clientHeight + 2 && z > zMin; k++) { z = Math.round((z - 0.05) * 100) / 100; el.style.setProperty("--dx-sig", String(z)); }
       // REV460: doska to'lsa — YANGI SAHIFA («+» va ◀ ▶) EMAS: doska pastga suriladi, oldingi yozuvlar tepada qoladi,
       // yangi yozuv pastda paydo bo'ladi (tepaga surib eskisini o'qish mumkin). Haqiqiy uzun doska kabi.
@@ -1959,7 +1959,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
 
     <div className="dx-room">
       {sinfXona && !kabuMuhit && <div className="dx-sinf-fon" aria-hidden="true">
-        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} doskaYoq />
+        <UstozSahna ustoz={ustozRef.current} ikkinchi={ikkinchi} ikkinchiKorinsin={!ikkinchi || ustozKim === "iz" || nutqQismlar.some((q) => q.kim === "iz")} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} pictures={[]} havo={havo} vaqt={vaqt} shamol={shamol} speaking={speaking && !["test", "ovoz", "result"].includes(mode)} mouth={mouthLevel} neytral={yotiq} doskaYoq />
       </div>}
       {kabuMuhit && <div className={`dx-kabu-fon ${kabuJuftMuhit ? "is-juft" : ""}`} aria-hidden="true"><i className="kf-yulduz" /><i className="kf-sayyora" /><i className="kf-bulut" />
         {kabuJuftMuhit ? <>

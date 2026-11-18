@@ -1469,3 +1469,21 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .mdx-board .dx-title,.mdx-board .dx-lines{padding-right:0!important}
   .mdx-board:has(.mdx-esda) .dx-title{padding-right:7em!important}
 }
+
+/* REV604: telefon (burilgan dars) — xona butun ekran, doska ~85–90%, ustoz kichik burchakda, tugmalar o'ng chetda tor vertikal ustun (~10%) */
+@media (max-width:700px) and (orientation:portrait){
+  .dx-root.dx-root.dx-yotiq.dx-sinf{padding:0!important;display:block!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-room{position:absolute!important;left:0!important;top:0!important;right:auto!important;bottom:auto!important;width:100%!important;height:100%!important;max-width:none!important;margin:0!important;aspect-ratio:auto!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf .dx-sinf-fon .us-stage{width:100%!important;height:100%!important;max-width:none!important;aspect-ratio:auto!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-head{position:absolute!important;left:auto!important;right:.6%!important;top:4px!important;width:10.4%!important;min-width:58px!important;max-width:none!important;padding:0!important;background:none!important;box-shadow:none!important;display:flex!important;justify-content:center!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-head :is(h2,p,.dx-chip){display:none!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf .dx-frame{left:1.6%!important;top:2%!important;width:86.6%!important;height:96%!important;padding:4px 4px 40px!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf .dx-board{padding:10px 12px 44px!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf .dx-sinf-fon .us-teacher{left:auto!important;right:1.5%!important;bottom:1%!important;height:32%!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-room>.dx-teacher{display:none!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-controls{position:absolute!important;left:auto!important;right:.6%!important;top:46px!important;bottom:35%!important;width:10.4%!important;min-width:58px!important;max-width:none!important;flex-direction:column!important;flex-wrap:nowrap!important;overflow-y:auto!important;overflow-x:hidden!important;gap:4px!important;padding:4px!important;justify-content:flex-start!important;border-radius:12px!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-controls .dx-btn{width:100%!important;min-width:0!important;min-height:0!important;height:auto!important;padding:5px 2px!important;font-size:9.5px!important;line-height:1.15!important;white-space:normal!important;overflow-wrap:anywhere!important;text-align:center;flex:0 0 auto!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-controls .dx-kid-ico{font-size:17px!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-controls .dx-kid-cap{font-size:9.5px!important}
+  .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-controls :is(label,select){font-size:9px!important;max-width:100%!important}
+}
