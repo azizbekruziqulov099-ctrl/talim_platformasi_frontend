@@ -720,8 +720,18 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         // nazariya oxirigacha aytiladi, keyingi qadam (misol) erta kirib kelmaydi
         if (Number.isFinite(audio.duration) && audio.duration > 0) {
           clearTimeout(qorovul);
-          qorovul = setTimeout(() => { if (!bitdi && my === tokenRef.current && playingRef.current) finish(); },
-            Math.min(180000, (audio.duration / Math.max(0.5, rateRef.current || 1)) * 1000 + 5000));
+          // REV621: pauzada qorovul gapni TUGATMAYDI (oldin audio davomiyligi + 5 s dan keyin pauzada ham dars o'zi davom etib ketardi);
+          // pauzadan chiqqach — ovozning qolgan qismi tugaguncha kutiladi
+          let kutdi = 0;
+          const qorovulTek = () => {
+            if (bitdi || my !== tokenRef.current || !playingRef.current) return;
+            if (pauzaRef.current) { qorovul = setTimeout(qorovulTek, 3000); return; }
+            if (audio.paused && !audio.ended && ++kutdi < 12) { qorovul = setTimeout(qorovulTek, 3000); return; }   // tashqi to'xtash (qo'ng'iroq…) — ~36 s kutiladi
+            const qoldi = Math.max(0, (audio.duration - audio.currentTime) / Math.max(0.5, rateRef.current || 1)) * 1000;
+            if (qoldi > 1500) { qorovul = setTimeout(qorovulTek, Math.min(60000, qoldi + 5000)); return; }
+            finish();
+          };
+          qorovul = setTimeout(qorovulTek, Math.min(180000, (audio.duration / Math.max(0.5, rateRef.current || 1)) * 1000 + 5000));
         }
         // og'iz uchun tahlil — ovoz boshlangach (server ovozni allaqachon tayyorlagan, ikki marta yaratilmaydi)
         if (!lipRef.current) loadEnvelope(src).then((lv) => { if (lv && my === tokenRef.current && audioRef.current === audio) lipRef.current = { lv, audio }; });
