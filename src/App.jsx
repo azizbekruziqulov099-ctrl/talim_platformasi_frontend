@@ -14990,6 +14990,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-ixcham .samtm-makon{padding:2px;gap:2px;border-radius:15px}
         .samtm-ixcham .samtm-makon-t{height:28px;padding:0 10px;font-size:13px;border-radius:12px;gap:5px}
         .samtm-ixcham .samtm-makon-t svg{width:16px;height:16px}
+        .samtm-top-switch .samtm-gamburger b.samtm-menyu-yoz{min-width:0;height:auto;padding:0;border-radius:0;background:transparent!important;color:inherit!important;font:800 13px/1 system-ui,sans-serif;display:inline}
+        html{scroll-padding-top:calc(var(--samtm-portal-top,0px) + 8px)}
+        body:not(.kb-focus-dars):not(.kb-focus-test) :is(h1,h2,h3,[id]){scroll-margin-top:calc(var(--samtm-portal-top,0px) + 8px)}
         body:has(.dx-root) .samtm-ixcham{display:none!important}
         .samtm-top-spacer{height:0!important}
         .premium-page-stage{padding-top:56px}
