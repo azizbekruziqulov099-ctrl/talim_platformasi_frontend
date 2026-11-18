@@ -22,7 +22,7 @@ test('talaba is never blocked: all institute tests open, profile only ranks own 
  assert.equal(educationRole(user),'talaba');assert.equal(needsEducation(user,'test'),false);
  assert.equal(talabaProfileComplete(user),false);
  user.class='2 kurs'; user.learning_profile={kurs:2,talim_bosqichi:'bakalavr',talim_shakli:'kechki',talim_tili:'ru'};
- assert.equal(initialEducationTab(user),'bugun');assert.equal(needsEducation(user,'test'),false);
+ assert.equal(initialEducationTab(user),'kurslar');assert.equal(needsEducation(user,'test'),false);
  assert.equal(talabaProfileComplete(user),true);
  assert.equal(user.universitet_id,undefined);
 });
