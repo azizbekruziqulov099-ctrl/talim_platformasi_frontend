@@ -100,10 +100,10 @@ export default function KabutarKurslar({ apiBase, token, user }) {
       <span className="kk-kat">{b.belgi}</span><b>{__kbUi(b.nomi)}</b><small>{__kbUi(b.izoh)}</small></button>)}</div></section>;
   if (dars && kitobKursi && ["hayotdan", "mashq", "tarix", "bilim"].includes(dars.bolim)) { const b = REPETITOR_BOLIMLAR.find((x) => x.kalit === dars.bolim);
     return <RepetitorBolimOyna apiBase={apiBase} token={token} dars={dars} bolim={dars.bolim} bolimNomi={__kbUi(b.nomi)} belgi={b.belgi} onOrtga={() => setDars({ ...dars, bolim: "" })} onBilim={(n) => setDars({ ...dars, bolim: `bilim:${n}` })} />; }
-  // REV593: Test — shu mavzuning Tematika test banki (Kabu testi emas); natija darsning test natijasi sifatida yoziladi
+  // REV623: Test — shu mavzuning Repetitor banki (150 mavzu, har birida ≥20 test); eskisi: Tematika test banki (Kabu testi emas); natija darsning test natijasi sifatida yoziladi
   if (dars && kitobKursi && dars.bolim === "test") { const raqam = Number(String(dars.nomi || "").match(/^\s*(\d+)\s*-?\s*dars/i)?.[1] || 0);
     if (raqam) return <section className="kk"><React.Suspense fallback={<p className="kk-p">…</p>}>
-      <MatBank apiBase={apiBase} token={token} mavzuRaqam={raqam} mavzuSoni={30} onClose={() => setDars({ ...dars, bolim: "" })}
+      <MatBank apiBase={apiBase} token={token} repetitor mavzuRaqam={raqam} mavzuSoni={30} onClose={() => setDars({ ...dars, bolim: "" })}
         onNatijaTest={(n) => postNavbat(`${base}/api/kurslar/dars_tugadi`, { token, fan: kurs?.fan || "", grade: (kurs?.sinflar || [])[0] || "", topic_code: dars.topic_code, ...n }).catch(() => {})} /></React.Suspense></section>; }
   if (dars) return <div className="kk-toliq">{dars.guruh && <GuruhJonli apiBase={apiBase} token={token} tc={dars.topic_code} />}
     {dars.guruh && <p className="kg-darsda">👥 {dars.guruh.nom} · {__kbUi("javoblaringiz o‘qituvchiga ko‘rinadi")}</p>}
