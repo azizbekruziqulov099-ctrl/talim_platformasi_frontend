@@ -1990,7 +1990,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
             }}>{x}</button>)}</div>}
         </div>}
         {/* REV499: bitta tugma — «✏️ Qoralama»; ishlanadigan misol bo'lsa u sariq bo'lib eslatadi (alohida «Misolni daftarda ishlash» olib tashlandi) */}
-        {!kid && ["lesson", "test", "ovoz"].includes(mode) && <button type="button"
+        {!kid && ["lesson", "test", "ovoz"].includes(mode) && !(sinfXona && mode === "lesson" && doskalar.length > 1 && arxiv === null) && ["lesson", "test", "ovoz"].includes(mode) && <button type="button"
           className={`dx-burchak-daftar ${mode === "lesson" && step && step.turi !== "amaliy" && /misol|masala|hisobla|yeching|toping|ishlang|\d\s*[+−·×:÷=]\s*[\d(]|\d\s+-\s+\d/i.test(`${step.doska || ""} ${step.ovoz || ""}`) ? "is-misol" : ""}`}
           onClick={() => { hush(); if (mode === "lesson") setPlaying(false); setBurchakDaftar(true); }}
           title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}><span aria-hidden="true">✏️</span>{__kbUi("Qoralama")}</button>}
@@ -2244,6 +2244,10 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
           <span>{__kbUi("Doskalar")}:</span>
           {doskalar.map((d, k) => (doskalar.length > 9 && k < doskalar.length - 8 && k > 0 ? (k === 1 ? <span key={k}>…</span> : null)
             : <button key={k} type="button" className={k === doskalar.length - 1 ? "is-hozir" : ""} aria-label={`${k + 1}-${__kbUi("doska")}`} onClick={() => (k === doskalar.length - 1 ? undefined : arxivOch(k))}>{k + 1}</button>))}
+          {!kid && ["lesson", "test", "ovoz"].includes(mode) && ["lesson", "test", "ovoz"].includes(mode) && <button type="button"
+          className={`dx-burchak-daftar ${mode === "lesson" && step && step.turi !== "amaliy" && /misol|masala|hisobla|yeching|toping|ishlang|\d\s*[+−·×:÷=]\s*[\d(]|\d\s+-\s+\d/i.test(`${step.doska || ""} ${step.ovoz || ""}`) ? "is-misol" : ""}`}
+          onClick={() => { hush(); if (mode === "lesson") setPlaying(false); setBurchakDaftar(true); }}
+          title={__kbUi("Qoralama daftar — yozib, chizib yechish")} aria-label={__kbUi("Qoralama daftar")}><span aria-hidden="true">✏️</span>{__kbUi("Qoralama")}</button>}
         </div>}
         {arxiv !== null && doskalar[arxiv] && (() => { const aq = arxivQatorlari(doskalar[arxiv]); const n = Math.max(1, aq.length);
           const cl = (v) => Math.max(0, Math.min(1, v));

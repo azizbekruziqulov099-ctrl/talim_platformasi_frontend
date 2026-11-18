@@ -14910,7 +14910,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         /* REV381: ☰ menyu — ustidan ochiladigan panel; asosiy sahifa doim to'liq kenglikda; pastki menyu satri o'rniga ☰ */
         .premium-app-main{margin-left:0 !important}
         .premium-mobile-nav{display:none !important}
-        @media (max-width:820px){.premium-mobile-nav.samtm-pastki-4{display:block !important}.premium-app-main{padding-bottom:calc(62px + env(safe-area-inset-bottom)) !important}}
+        /* REV607: pastki panel (Kurslar/Taqdimot/…) olib tashlandi — hammasi tepadagi «Menyu» (yon oyna) ichida */
         .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{display:flex !important;width:min(300px,86vw) !important;padding-inline:16px !important;z-index:2147483080 !important;box-shadow:12px 0 40px rgba(10,25,40,.35);animation:samtm-yon-kir .18s ease-out}
         .premium-app-shell:not(.samtm-yon-yopiq) :is(.premium-side-brand > div:last-child,.premium-role-card > div,.premium-side-link > span:last-child,.premium-side-nav > p,.premium-side-status > div){display:block !important}
         .premium-app-shell:not(.samtm-yon-yopiq) .premium-side-link{display:flex !important;justify-items:start !important}
@@ -14977,8 +14977,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         .samtm-top-switch.samtm-ixcham{display:block!important;padding:4px 6px!important;background:var(--kb-fon,#f7f8fa)!important;pointer-events:auto!important;border-bottom:1px solid rgba(23,50,75,.08)!important}
         .samtm-ixcham .samtm-ramka{display:flex;align-items:center;justify-content:space-between;gap:6px;height:38px;padding:0 5px;box-sizing:border-box;border:1.5px solid var(--space-color,#1B4B7A);border-radius:19px;background:rgba(255,255,255,.96);box-shadow:0 3px 10px rgba(23,50,75,.12);pointer-events:auto}
         .samtm-ixcham .samtm-chap{display:flex;align-items:center;gap:4px}
-        .samtm-ixcham .samtm-gamburger{width:30px;height:30px;border-radius:50%;margin-right:0;gap:3px}
-        .samtm-ixcham .samtm-gamburger svg{width:17px;height:17px}
+        .samtm-ixcham .samtm-gamburger{width:auto;height:30px;border-radius:15px;margin-right:0;gap:5px;flex-direction:row;padding:0 11px 0 8px;color:#fff}
+        .samtm-ixcham .samtm-gamburger svg{width:18px;height:18px;stroke:currentColor!important}
+        .samtm-ixcham .samtm-menyu-yoz{font:800 13px/1 system-ui,sans-serif;color:inherit}
+        html[data-kb-korinish="yangi"] .samtm-ixcham .samtm-gamburger{color:var(--kb-siyoh)}
         .samtm-nav{width:30px;height:30px;border-radius:50%;border:0;background:#EAF4F2;color:#0D5C63;font:800 20px/1 system-ui,sans-serif;display:inline-grid;place-items:center;padding:0 0 3px;cursor:pointer}
         .samtm-nav:disabled{opacity:.3;cursor:default}
         .samtm-obuna-joy:empty{display:none}
@@ -15001,9 +15003,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         <div className={`samtm-top-switch samtm-ixcham ${kabutarOchiq ? "is-kabutar" : "is-talim"}`} ref={topSwitchRef}>
           <div className="samtm-ramka">
           <div className="samtm-chap">
-            {!kabutarOchiq && <button type="button" className={`samtm-gamburger ${yonMenyuOchiq ? "is-on" : ""}`} onClick={yonMenyuniAlmashtir} aria-expanded={yonMenyuOchiq}
+            <button type="button" className={`samtm-gamburger ${yonMenyuOchiq ? "is-on" : ""}`} onClick={() => { if (kabutarOchiq) kabutarniOch(false); yonMenyuniAlmashtir(); }} aria-expanded={yonMenyuOchiq}
               aria-label={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")} title={yonMenyuOchiq ? uiT("Menyuni yopish") : uiT("Menyuni ochish")}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">{yonMenyuOchiq ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 6h16M4 12h16M4 18h16" />}</svg></button>}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true">{yonMenyuOchiq ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 6h16M4 12h16M4 18h16" />}</svg><b className="samtm-menyu-yoz">{uiT("Menyu")}</b></button>
             {/* REV429: ☰ yonidagi kabutar rasmi olib tashlandi — tepada faqat kerakli tugmalar */}
             {/* REV605: ‹ › — butun tizim bo'yicha ortga / oldinga (telefonning «orqaga»si bilan bir xil tarix) */}
             <button type="button" className="samtm-nav" onClick={ramkaOrtga} disabled={!navHolat.ortga && phoneBackHandlersCount("kabinet-tab") === 0} aria-label={uiT("Ortga")} title={uiT("Ortga")}>‹</button>

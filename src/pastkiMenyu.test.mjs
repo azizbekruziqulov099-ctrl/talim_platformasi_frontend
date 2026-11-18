@@ -20,5 +20,7 @@ test("REV548: pastki menyu ixcham va iPhone'ning pastki chizig'i uchun joy bor; 
   const b = css.slice(css.indexOf("/* REV548"));
   assert.match(b, /\.premium-mobile-nav\.samtm-pastki-4\{padding-bottom:env\(safe-area-inset-bottom,0px\)\}/);
   assert.match(b, /white-space:nowrap/); assert.match(b, /@media \(max-width:820px\)/);
-  assert.match(app, /padding-bottom:calc\(62px \+ env\(safe-area-inset-bottom\)\)/);
+  // REV607: pastki panel olib tashlandi — hammasi tepadagi «Menyu» ichida
+  assert.doesNotMatch(app, /\.premium-mobile-nav\.samtm-pastki-4\{display:block !important\}/);
+  assert.match(app, /samtm-menyu-yoz/);
 });

@@ -1487,3 +1487,9 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-controls .dx-kid-cap{font-size:9.5px!important}
   .dx-root.dx-root.dx-yotiq.dx-sinf>.dx-controls :is(label,select){font-size:9px!important;max-width:100%!important}
 }
+
+/* REV607: Qoralama — doska raqamlari (1 2 3 …) qatori ichida, bitta ixcham pilyulada */
+.dx-root .dx-doskalar .dx-burchak-daftar{position:static!important;inset:auto!important;width:auto!important;height:auto!important;min-width:0!important;margin:0 0 0 4px!important;padding:4px 10px 4px 8px!important;border-radius:999px!important;
+  background:#f2b72e!important;color:#13202e!important;font:800 12px/1 system-ui,sans-serif!important;display:inline-flex!important;align-items:center;gap:4px;border:0!important;box-shadow:none!important;opacity:1!important}
+.dx-root .dx-doskalar .dx-burchak-daftar span{font-size:13px!important}
+.dx-root.dx-root.dx-sinf .dx-frame>.dx-doskalar{right:auto!important}
