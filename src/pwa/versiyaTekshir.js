@@ -1,11 +1,11 @@
 // REV378: yangi versiya chiqqanini bilish va hech kimni «eski fayllar»da qoldirmaslik.
-// • Har 10 daqiqada va ilovaga qaytilganda /version.json tekshiriladi.
+// • Har 1 daqiqada va ilovaga qaytilganda /version.json tekshiriladi.
 // • Yangi versiya bo'lsa — pastda kichik «🔄 Yangilash» lavhasi (dars yoki o'yin to'xtatilmaydi).
 // • Ilova 10 daqiqadan ko'p fonda turib qaytilsa — o'zi jimgina yangilanadi (bola dars o'rtasida bo'lmaydi).
 import { APP_VERSION } from "../appVersion.js";
 import { bandmi } from "./band.js";   // REV466
 
-const TEKSHIR_MS = 10 * 60 * 1000, FON_MS = 10 * 60 * 1000;
+const TEKSHIR_MS = 60 * 1000, FON_MS = 10 * 60 * 1000;
 let yangi = "", fondaKetdi = 0, lavha = null, ishga = false;
 
 async function yangiVersiya() {
