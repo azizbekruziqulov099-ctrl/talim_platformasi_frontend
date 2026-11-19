@@ -19,6 +19,7 @@ import { useUstozOvoz, xbFetch } from "./xbOvoz.js";
 import { GAP_TUR, IMTIHON_BELGI, darajaNomi, mavzuBelgi, sinfRaqami, solishtirishQatorlari } from "./xbRules.js";
 import XbQollanma from "./XbQollanma.jsx";   // REV262
 import { XB_TILLAR, XB_TIL_BAYROQ, XB_TIL_NOMI } from "./xbTil.js";
+import XbKursBolim from "./XbKursBolim.jsx";
 const PisaMat = lazyQayta(() => import("../matbank/PisaMat.jsx"));   // PISA matematika: dars + 30 mashq + 30 test
 import "./xalqaro.css";
 
@@ -130,7 +131,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     key={ekran.kalit || "m"} onYopish={() => (ekran.qaytish ? setEkran(ekran.qaytish) : orqaga())} /></div>;
   if (kirishNavbat) return <div className="xb-root"><KirishNavbat apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} onTugadi={() => setKirishNavbat(false)} /></div>;
   if (ekran?.tur === "imtihon") return <div className="xb-root"><XbImtihon apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} tur={ekran.info.tur} toplam={toplam} info={ekran.info} onYopish={orqaga} /></div>;
-  if (ekran?.tur === "chuqur") return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} bolim={ekran.kalit} boshlash={ekran.bosh} onClose={orqaga} /></React.Suspense></div>;
+  if (ekran?.tur === "chuqur") return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} bolim={ekran.kalit} kod={ekran.kod} boshlash={ekran.bosh} onClose={orqaga} /></React.Suspense></div>;
   if (ekran?.tur === "pisamat") return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} onClose={orqaga} /></React.Suspense></div>;
   if (ekran?.tur === "natija") return <div className="xb-root"><XbNatija apiBase={apiBase} token={token} id={ekran.id} jins={jins} ustoz={ustoz} onYopish={orqaga} /></div>;
 
@@ -183,7 +184,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       onTakror={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Takrorlash") })}
       onAralash={(extra) => ochMashq(null, extra)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
-    {tab === "kurs" && tp && <Kurs tp={tp} apiBase={apiBase} token={token} onChuqur={(k, b) => { ovoz.hush(); setEkran({ tur: "chuqur", kalit: k, bosh: b }); }} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq}
+    {tab === "kurs" && tp && <Kurs tp={tp} apiBase={apiBase} token={token} onChuqur={(k, b) => { ovoz.hush(); setEkran({ tur: "chuqur", kalit: k, bosh: b }); }} onChuqurKod={(k, b) => { ovoz.hush(); setEkran({ tur: "chuqur", kod: k, bosh: b }); }} yangila={yangila} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq}
       onToplamlar={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }}
       onKirish={() => { ovoz.hush(); setEkran({ tur: "imtihon", info: { tur: "kirish", nom: T("Kirish testi") } }); }} />}
     {tab === "imtihon" && <>
@@ -252,7 +253,8 @@ function NatijaXatolar({ tp, kat, kattaRejim, apiBase, token, jins, ustoz, topla
   </div>;
 }
 
-function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChuqur, onKirish }) {
+function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChuqur, onChuqurKod, onKirish, yangila }) {
+  const [kb, setKb] = useState(undefined);   // bo'limli kurs bor (true) / yo'q (false)
   const [yol, setYol] = useState(null);   // shaxsiy yo'l: 70% qulf
   useEffect(() => { let t = true; xbFetch(apiBase, "/api/xalqaro/yol", token, { params: { toplam: tp.kalit } }).then((r) => t && setYol(r)).catch(() => {}); return () => { t = false; }; }, [apiBase, token, tp.kalit]);
   const yh = (k) => yol?.mavzular?.find((x) => x.kalit === k);
@@ -269,6 +271,8 @@ function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChu
   const oz = tp.mavzular.reduce((a, m) => a + (m.holat?.ozlashtirgan || 0), 0);
   return <div className="xb-kurs">
     <XbBall apiBase={apiBase} token={token} toplam={tp.kalit} />
+    <XbKursBolim apiBase={apiBase} token={token} toplam={tp.kalit} yangila={yangila} onData={(r) => setKb(!!r)} onDars={(m) => onDars({ ...m, fan: tp.ustoz_fan, sinf: tp.sinf })} onChuqur={onChuqurKod} onKirish={onKirish} />
+    {kb === false && <>
     {yol && <div className="xb-karta xb-yol-bosh">
       {yol.kirish_foiz == null && <><small>{T("Avval kirish testini topshiring: bilim darajangizga qarab yo‘l ochiladi.")}</small>
         <button type="button" className="xb-btn xb-btn-asosiy" onClick={onKirish}>🎯 {T("Kirish testi")}</button></>}
@@ -298,6 +302,7 @@ function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChu
             <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onChuqur(m.kalit, "test")}>📝 {T("30 test")}</button></span>}
         </li>;
       })}</ul></section>)}
+    </>}
   </div>;
 }
 
