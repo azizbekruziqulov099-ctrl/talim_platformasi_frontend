@@ -18,6 +18,20 @@ export function useOvozYoqilgan() {
   return [v, ovozQoy];
 }
 
+
+// Ovoz chiqmasa — jim qolmaymiz: pastda «Kabu ovozini yoqish» tugmasi va sababi ko'rinadi (bosish = brauzer ruxsati ham beriladi)
+function ovozXato(sabab, qayta) {
+  try {
+    if (typeof document === "undefined" || !document.body) return;
+    document.getElementById("kb-ovoz-xato")?.remove();
+    const e = document.createElement("button"); e.id = "kb-ovoz-xato"; e.type = "button";
+    e.style.cssText = "position:fixed;left:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2147483000;max-width:min(92vw,360px);padding:9px 14px;border-radius:14px;border:1px solid #f0c36d;background:#fff8e6;color:#5b3d00;font:600 13px/1.3 system-ui,sans-serif;text-align:left;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18)";
+    e.textContent = `🔊 Kabu ovozi chiqmadi (${sabab}). Bosing — qayta gapiradi.`;
+    e.onclick = () => { e.remove(); try { qayta?.(); } catch { /* */ } };
+    document.body.appendChild(e); setTimeout(() => e.remove(), 15000);
+  } catch { /* */ }
+}
+
 export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
   // REV402: ovoz ustozga mos — erkak ustoz erkak ovozida (ustoz keyinroq aniqlansa, ovoz.ustozQoy(u) bilan beriladi)
   const ustozRef = useRef(ustoz); if (ustoz) ustozRef.current = ustoz;
@@ -64,10 +78,11 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
       let failed = false;
       a.ontimeupdate = () => { if (my === runRef.current && a.duration && Number.isFinite(a.duration)) setProgress(Math.min(1, a.currentTime / a.duration)); };
       a.onended = finish;
-      a.onerror = () => { if (!failed && my === runRef.current) { failed = true; fallback(); } };
-      a.play().then(() => { if (my === runRef.current) onBosh?.(); }).catch(() => {
+      a.onerror = () => { if (!failed && my === runRef.current) { failed = true; fallback(); ovozXato("server/tarmoq: " + (a.error?.code || "?"), () => say(text, done, onBosh)); } };
+      a.play().then(() => { if (my === runRef.current) onBosh?.(); }).catch((err) => {
         if (failed || my !== runRef.current) return;
         failed = true; fallback();
+        ovozXato(String(err?.name || "brauzer to‘sdi"), () => say(text, done, onBosh));
         // brauzer o‘z-o‘zidan ovozni to‘sdi (autoplay): birinchi bosish/tegishda shu matnni o‘qib beramiz
         const qayta = () => { ["pointerdown", "keydown", "touchstart"].forEach((e) => window.removeEventListener(e, qayta, true)); if (my === runRef.current) say(text, done, onBosh); };
         ["pointerdown", "keydown", "touchstart"].forEach((e) => window.addEventListener(e, qayta, true));
