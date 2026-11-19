@@ -427,3 +427,5 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 
 .xb-uch-kichik{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 2px;grid-column:1/-1;width:100%}.xb-uch-kichik .xb-btn{padding:9px 4px;font-size:13px}
 .xb-mavzu-q{flex-wrap:wrap}
+
+.xb-ball{display:grid;gap:6px}.xb-ball-katta{font-size:40px;line-height:1}.xb-ball-katta span{font-size:16px;opacity:.6}.xb-ball-qism{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.xb-ball-qism div{text-align:center}

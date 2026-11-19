@@ -4,6 +4,7 @@ import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
 import { ustozFor } from "../kid/ustozRules.js";
 import XbMavzu from "./XbMavzu.jsx";
+import XbBall from "./XbBall.jsx";
 import XbMashq from "./XbMashq.jsx";
 import KirishNavbat from "./KirishNavbat.jsx";
 import KabuTur from "./KabuTur.jsx";
@@ -258,6 +259,7 @@ function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChu
   const jami = tp.mavzular.reduce((a, m) => a + (m.holat?.jami || 0), 0);
   const oz = tp.mavzular.reduce((a, m) => a + (m.holat?.ozlashtirgan || 0), 0);
   return <div className="xb-kurs">
+    <XbBall apiBase={apiBase} token={token} toplam={tp.kalit} />
     <div className="xb-karta xb-kurs-bosh"><small>{T("Kurs bo‘yicha o‘zlashtirish")}</small><b>{oz}/{jami} {T("savol")}</b>
       <span className="xb-progress"><i style={{ width: `${jami ? Math.round((100 * oz) / jami) : 0}%` }} /></span>
       <small>{T("Har mavzu: dars (Kabu doskada tushuntiradi). Mavzu testlari va xatolar — «Natija va xatolar» bo‘limida.")}</small></div>
