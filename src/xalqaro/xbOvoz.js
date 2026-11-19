@@ -10,7 +10,7 @@ import { USTOZLAR } from "../kid/ustozlar.js";
 const USTOZLAR_JINS = Object.fromEntries(Object.entries(USTOZLAR).map(([k, v]) => [k, v.lab]));
 
 const OVOZ_KALIT = "kabutar:xb:ovoz_yoq";   // "1" — foydalanuvchi ovozni o'chirgan
-export const ovozYoqilgan = () => { try { return localStorage.getItem(OVOZ_KALIT) !== "1"; } catch { return true; } };
+export const ovozYoqilgan = () => true;   // Kabu doim o‘z ovozida gapiradi (ovozni o‘chirish tugmasi olib tashlangan; eski o‘chirilgan holat e’tiborga olinmaydi)
 export function ovozQoy(yoq) { try { localStorage.setItem(OVOZ_KALIT, yoq ? "0" : "1"); } catch { /* */ } try { window.dispatchEvent(new Event("kabutar-xb-ovoz")); } catch { /* */ } }
 export function useOvozYoqilgan() {
   const [v, setV] = useState(ovozYoqilgan);
@@ -76,10 +76,8 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
   // Avtomatik gapirish — har bir kalit uchun faqat BIR marta (keyin Kabu jim; 🔊 bosilsa qayta gapiradi)
   const birMarta = useCallback((kalit, text, kech = 400) => {
     try {
-      const k = "kabutar:xb:aytildi";
-      const royxat = JSON.parse(localStorage.getItem(k) || "[]");
-      if (royxat.includes(kalit) || !ovozYoqilgan()) return () => {};
-      const t = setTimeout(() => { say(text); try { localStorage.setItem(k, JSON.stringify([...royxat, kalit].slice(-400))); } catch { /* */ } }, kech);
+      // har kirganda gapiradi (oldin faqat bir marta edi; takrorlash tugmasi olib tashlangani uchun)
+      const t = setTimeout(() => { say(text); }, kech);
       return () => clearTimeout(t);
     } catch { return () => {}; }
   }, [say]);
