@@ -48,11 +48,12 @@ function Dars({ apiBase, token, m, onOrqaga }) {
   if (!d) return <section className="mb-root"><Yuk /></section>;
   const asosiy = d.qadamlar.filter((q) => q.turi !== "misol"); const misollar = d.qadamlar.filter((q) => q.turi === "misol");
   const tr = (q) => ({ doska: __kbUi(q.doska), ovoz: __kbUi(q.ovoz) });
+  const qad = (q) => String(q.savol || "").replace(/\$/g, "");
+  const butun = [...asosiy.map(tr), ...misollar.flatMap((q, k) => [{ doska: `🧩 ${__kbUi(q.sarlavha)}: ${qad(q)}`, ovoz: `${__kbUi(q.sarlavha)}. ${qad(q)}` }, ...String(q.doska || "").split("\n").filter(Boolean).map((l) => ({ doska: l, ovoz: l.replace(/\$/g, "") }))])];
   return <section className="mb-root">
     <header className="mb-bosh-qator"><button type="button" className="mb-btn mb-yengil" onClick={() => { ovoz.hush(); onOrqaga(); }}>← {__kbUi("Orqaga")}</button><div><h2>🎓 {__kbUi(d.nom)}</h2><small>{__kbUi(d.maqsad)}</small></div></header>
-    <div className="mb-karta"><XbDoska qadamlar={asosiy.map(tr)} ovoz={ovoz} ustoz="" sarlavha={__kbUi(d.nom)} /></div>
-    {misollar.map((q, k) => <div key={k} className="mb-karta"><h3>🧩 {__kbUi(q.sarlavha)}</h3><SavolMatn matn={q.savol} /><Rasm r={q.rasm} />
-      <XbDoska qadamlar={q.doska.split("\n").filter(Boolean).map((l) => ({ doska: l, ovoz: l.replace(/\$/g, "") }))} ovoz={ovoz} ustoz="" sarlavha={__kbUi("Yechim")} /></div>)}
+    <div className="mb-karta"><XbDoska qadamlar={butun} ovoz={ovoz} ustoz="" avto={false} sarlavha={__kbUi(d.nom)} /></div>
+    {misollar.map((q, k) => q.rasm ? <div key={k} className="mb-karta"><h3>🧩 {__kbUi(q.sarlavha)}</h3><Rasm r={q.rasm} /></div> : null)}
   </section>;
 }
 

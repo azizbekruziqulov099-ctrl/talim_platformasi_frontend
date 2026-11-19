@@ -70,6 +70,7 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
   }, [apiBase, hush, jins]);
 
   useEffect(() => hush, [hush]);
+  useEffect(() => { const h = () => { if (!ovozYoqilgan()) hush(); }; window.addEventListener("kabutar-xb-ovoz", h); return () => window.removeEventListener("kabutar-xb-ovoz", h); }, [hush]);
   const [, majbur] = useState(0);
   const ustozQoy = useCallback((u) => { if (u && ustozRef.current !== u) { ustozRef.current = u; majbur((x) => x + 1); } }, []);
   // Avtomatik gapirish — har bir kalit uchun faqat BIR marta (keyin Kabu jim; 🔊 bosilsa qayta gapiradi)

@@ -147,8 +147,6 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
         {!kattaRejim && <button type="button" className="xb-yordam" aria-label={T("Qo‘llanma")} title={T("Qo‘llanma: bo‘lim qanday ishlaydi")} onClick={() => { ovoz.hush(); setTab("qollanma"); }}>?</button>}
       </div>
     </header>
-    <button type="button" className="xb-pisamat-tugma" onClick={() => { ovoz.hush(); setEkran({ tur: "pisamat" }); }}>
-      <b>📘 {T("PISA matematika: mavzular bo‘yicha dars, 30 mashq, 30 test")}</b><small>{T("Hayotiy masalalar, chizmalar, 1–2–4 ballik savollar, o‘zlashtirish foizi")}</small></button>
     {kat.tayyor_emas && <div className="xb-panel xb-ogoh-panel"><p>🌐 {kat.tayyor_emas}</p></div>}
     {!kat.toplamlar?.length && <div className="xb-panel xb-ogoh-panel"><p>📦 {T("Xalqaro baholash materiallari hali yuklanmagan. Tez orada shu yerda TIMSS va PISA savollari va darslari paydo bo‘ladi.")}</p></div>}
     {/* REV375: joriy dastur — bitta qatorda; almashtirish faqat bosilganda ochiladi */}
