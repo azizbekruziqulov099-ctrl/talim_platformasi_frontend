@@ -68,23 +68,32 @@ export function lavhaKorsat(bosilganda = () => yangila()) {
   lavha = document.createElement("div");
   lavha.setAttribute("role", "status"); lavha.id = "kb-yangi-versiya";
   lavha.style.cssText = `position:fixed;left:50%;transform:translateX(-50%);${tor ? "top:calc(8px + env(safe-area-inset-top,0px))" : "bottom:calc(16px + env(safe-area-inset-bottom,0px))"};z-index:2147483000;display:flex;gap:8px;align-items:center;`
-    + `padding:${tor ? "5px" : "6px 6px 6px 14px"};border-radius:999px;background:${q ? "#18222d" : "#fff"};color:${q ? "#e8eef5" : "#13314f"};border:1px solid ${q ? "#2a3a4b" : "#e3e8ef"};font:600 13px/1.2 ${SHRIFT};box-shadow:0 6px 22px rgba(15,23,32,.16);max-width:calc(100% - 20px);white-space:nowrap`;
+    + `padding:6px 6px 6px 14px;border-radius:999px;background:${q ? "#18222d" : "#fff"};color:${q ? "#e8eef5" : "#13314f"};border:1px solid ${q ? "#2a3a4b" : "#e3e8ef"};font:600 13px/1.2 ${SHRIFT};box-shadow:0 6px 22px rgba(15,23,32,.16);max-width:calc(100% - 20px);white-space:nowrap`;
   // telefonda yozuv ko'rsatilmaydi (joy egallamasin — faqat «Yangilash» va ✕); to'liq matn ekran o'quvchilar uchun qoladi
   lavha.setAttribute("aria-label", t.tayyor); lavha.title = t.tayyor;
-  const m = document.createElement("span"); m.textContent = t.tayyor; m.style.cssText = tor ? "display:none" : "overflow:hidden;text-overflow:ellipsis";
+  const m = document.createElement("span"); m.textContent = t.tayyor; m.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px";
   const b = document.createElement("button"); b.type = "button"; b.textContent = t.yangila;
   b.style.cssText = `border:none;border-radius:999px;padding:8px 14px;min-height:36px;background:${q ? "#6fb0ee" : "#1B4B7A"};color:${q ? "#0f1720" : "#fff"};font:700 13px ${SHRIFT};cursor:pointer`;
   b.onclick = () => bosilganda();
   const x = document.createElement("button"); x.type = "button"; x.textContent = "✕"; x.setAttribute("aria-label", t.yop);
   x.style.cssText = `border:none;background:transparent;color:${q ? "#9fb0c2" : "#8a94a3"};font-size:15px;cursor:pointer;min-width:36px;min-height:36px;border-radius:999px`;
-  x.onclick = () => { lavha?.remove(); lavha = null; };
+  x.onclick = () => { lavha?.remove(); lavha = null; setTimeout(() => { if (yangi) lavhaKorsat(); }, 2 * 60 * 1000); };   // yopilsa ham 2 daqiqadan so'ng qayta eslatadi
   lavha.append(m, b, x); document.body.appendChild(lavha);
   return lavha;
 }
 
 async function tekshir() {
   const v = await yangiVersiya();
-  if (v) { yangi = v; lavhaKorsat(); }
+  if (v) { yangi = v; lavhaKorsat(); bekorYangilashniRejala(); }
+}
+
+// Foydalanuvchi 90 soniya hech narsa bosmasa va dars/o'yin bo'lmasa — o'zi yangilanadi (tugma kutib o'tirmaydi)
+let oxirgiHarakat = Date.now(), rejada = false;
+function bekorYangilashniRejala() {
+  if (rejada) return; rejada = true;
+  const bil = () => { oxirgiHarakat = Date.now(); };
+  ["pointerdown", "keydown", "touchstart", "scroll"].forEach((e) => window.addEventListener(e, bil, { passive: true, capture: true }));
+  setInterval(() => { if (yangi && !bandmi() && Date.now() - oxirgiHarakat > 90 * 1000) yangila({ oyna: false }); }, 15 * 1000);
 }
 
 export function versiyaTekshirishniBoshla() {
@@ -95,7 +104,8 @@ export function versiyaTekshirishniBoshla() {
   // aks holda faqat lavha (bola uloqtirilmaydi); dars tugagach (band tugadi) va sahifa fonda bo'lsa — yangilanadi
   try { navigator.serviceWorker?.addEventListener?.("message", async (e) => { if (e?.data?.tur === "yangi_versiya") { const v = await yangiVersiya(); if (v) { yangi = v; lavhaKorsat(); } } }); } catch { /* */ }
   window.addEventListener("kb-band-tugadi", () => { if (yangi && !bandmi() && document.visibilityState === "hidden") yangila({ oyna: false }); });
-  setTimeout(tekshir, 30 * 1000);
+  setTimeout(tekshir, 5 * 1000);
+  window.addEventListener("focus", tekshir); window.addEventListener("online", tekshir);
   setInterval(() => { if (document.visibilityState === "visible") tekshir(); }, TEKSHIR_MS);
   document.addEventListener("visibilitychange", async () => {
     if (document.visibilityState === "hidden") { fondaKetdi = Date.now(); return; }
