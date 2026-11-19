@@ -184,7 +184,8 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       onAralash={(extra) => ochMashq(null, extra)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
     {tab === "kurs" && tp && <Kurs tp={tp} apiBase={apiBase} token={token} onChuqur={(k, b) => { ovoz.hush(); setEkran({ tur: "chuqur", kalit: k, bosh: b }); }} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq}
-      onToplamlar={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} />}
+      onToplamlar={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }}
+      onKirish={() => { ovoz.hush(); setEkran({ tur: "imtihon", info: { tur: "kirish", nom: T("Kirish testi") } }); }} />}
     {tab === "imtihon" && <>
       <XbBall apiBase={apiBase} token={token} toplam={toplam} />
       <p className="xb-muted">{T("Umumiy ball (1–100) = dars 20 + mashq 30 + test 20 + imtihon 30. Imtihonni topshirsangiz, ballingiz oshadi.")}</p>
@@ -251,7 +252,11 @@ function NatijaXatolar({ tp, kat, kattaRejim, apiBase, token, jins, ustoz, topla
   </div>;
 }
 
-function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChuqur }) {
+function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChuqur, onKirish }) {
+  const [yol, setYol] = useState(null);   // shaxsiy yo'l: 70% qulf
+  useEffect(() => { let t = true; xbFetch(apiBase, "/api/xalqaro/yol", token, { params: { toplam: tp.kalit } }).then((r) => t && setYol(r)).catch(() => {}); return () => { t = false; }; }, [apiBase, token, tp.kalit]);
+  const yh = (k) => yol?.mavzular?.find((x) => x.kalit === k);
+  const keyingi = yol?.keyingi ? tp.mavzular.find((m) => m.kalit === yol.keyingi) : null;
   const [bor, setBor] = useState(null);   // chuqur dars/30 mashq/30 test bor mavzu kodlari
   useEffect(() => { let t = true; xbFetch(apiBase, "/api/pisamat/mavzular", token).then((r) => t && setBor(new Set((r.mavzular || []).map((x) => x.bolim)))).catch(() => {}); return () => { t = false; }; }, [apiBase, token]);
   const sohalar = [];
@@ -264,16 +269,24 @@ function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChu
   const oz = tp.mavzular.reduce((a, m) => a + (m.holat?.ozlashtirgan || 0), 0);
   return <div className="xb-kurs">
     <XbBall apiBase={apiBase} token={token} toplam={tp.kalit} />
+    {yol && <div className="xb-karta xb-yol-bosh">
+      {yol.kirish_foiz == null && <><small>{T("Avval kirish testini topshiring: bilim darajangizga qarab yo‘l ochiladi.")}</small>
+        <button type="button" className="xb-btn xb-btn-asosiy" onClick={onKirish}>🎯 {T("Kirish testi")}</button></>}
+      {keyingi && <small>➡️ {T("Keyingi mavzu")}: <b>{keyingi.nom}</b> · {T("mashq va testdan 70% dan oshsa, keyingisi ochiladi")}</small>}
+    </div>}
     <div className="xb-karta xb-kurs-bosh"><small>{T("Kurs bo‘yicha o‘zlashtirish")}</small><b>{oz}/{jami} {T("savol")}</b>
       <span className="xb-progress"><i style={{ width: `${jami ? Math.round((100 * oz) / jami) : 0}%` }} /></span>
       <small>{T("Har mavzu: dars (Kabu doskada tushuntiradi). Mavzu testlari va xatolar — «Natija va xatolar» bo‘limida.")}</small></div>
     {sohalar.map((s) => <section key={s.soha} className="xb-soha"><h3>{s.nom}</h3>
       <ul className="xb-mavzular">{s.mavzular.map((m) => {
         const b = mavzuBelgi(m.holat);
+        const y = yh(m.kalit); const yopiq = y?.holat === "yopiq";
+        if (yopiq) return <li key={m.kalit} className="xb-mavzu-q is-yopiq"><span className="xb-mavzu-nom"><span className="xb-belgi">🔒</span>
+          <span><b>{m.nom}</b><small>{T("Oldingi mavzuning mashq va testidan 70% dan oshing — shunda ochiladi")}</small></span></span></li>;
         return <li key={m.kalit} className={`xb-mavzu-q is-${b.kalit}`}>
           <button type="button" className="xb-mavzu-nom" onClick={() => onMavzu(m)}>
             <span className="xb-belgi" title={T(b.nom)}>{b.belgi}</span>
-            <span><b>{m.nom}</b><small>🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}% · {tf("{a}/{b} o‘zlashtirildi", { a: m.holat?.ozlashtirgan ?? 0, b: m.savollar })}</small></span>
+            <span><b>{m.nom}</b><small>{y ? `${y.holat === "otilgan" ? "✅ " : ""}${T("Mashq")} ${y.mashq}% · ${T("Test")} ${y.test}% · ` : ""}🌍 {T("dunyo")} {m.xalqaro_foiz ?? "—"}% · {T("siz")} {m.holat?.foiz ?? 0}% · {tf("{a}/{b} o‘zlashtirildi", { a: m.holat?.ozlashtirgan ?? 0, b: m.savollar })}</small></span>
           </button>
           <span className="xb-mavzu-tug">
             {m.dars_kodi && <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onDars(m)}>🧑‍🏫 {T("Dars")}</button>}
