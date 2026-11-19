@@ -13,6 +13,7 @@ import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import LearnerTopics from './curriculum/LearnerTopics.jsx';
 import AdminSpeechStudio from './admin/AdminSpeechStudio.jsx';
+import OvozSinov from './admin/OvozSinov.jsx';
 import Kutubxonam from './teacher/Kutubxonam.jsx';
 import TogarakJurnal from './teacher/TogarakJurnal.jsx';
 import SectionErrorBoundary from './workspace/AppErrorBoundary.jsx';
@@ -13208,6 +13209,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "xalqaro", nom: "Xalqaro baholash", ikon: Globe },   // REV274: admin ham to'g'ridan-to'g'ri ko'radi
       { kalit: "oyinlar", nom: "O‘yinlar", ikon: Gamepad2 },   // REV129: admin ham barcha o'yinlarni ko'radi (cheklovsiz)
       { kalit: "admin_ovoz", nom: "Ovozli matn", ikon: Mic },
+      { kalit: "admin_ovoz_sinov", nom: "Ovoz sinovi", ikon: Mic },
       { kalit: "admin_tv", nom: "Kabutar TV", ikon: Tv },   // REV187
       { kalit: "admin_sertifikat", nom: "Sertifikat guruhlari", ikon: GraduationCap },   // REV209
       { kalit: "oquv_markaz", nom: "O‘quv markazi", ikon: GraduationCap },   // REV270
@@ -14758,6 +14760,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     admin_oyinlar: ["Bog‘cha o‘yinlari — sinov", "Hamma o‘yinni yosh va til bo‘yicha o‘ynab ko‘rish va belgilash"],
     admin_darsmuharrir: ["Bog‘cha darslari — muharrir", "Har darsning qadamlari, o‘yinlari va gaplarini ko‘rib tuzatish, Excel'ga eksport"],
     admin_ovoz: ["Ovozli matn", "O‘zbekcha o‘qish va gapirib yozish"],
+    admin_ovoz_sinov: ["Ovoz sinovi", "Matn yozib, turli diktorlarni tezlik va ohang bilan eshitib ko‘rish"],
     admin_tv: ["Kabutar TV", "Kunlik ko‘rsatuvlar, jadval va ishga tushirish"],
     admin_sertifikat: ["Sertifikat guruhlari", "Arizalar, 30 tadan guruhlash, daraja bo‘yicha qayta guruhlash, reyting"],
     admin_statistikalar: ["Statistikalar", "Tizimdan aniq o‘quvchigacha"],
@@ -15125,6 +15128,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_muassasalar" && <AdminMuassasalarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_testlar" && <AdminTestlarTab token={token} />}
       {korinishRoli === "admin" && tab === "admin_ovoz" && <AdminSpeechStudio apiBase={API_BASE} token={token} />}
+      {korinishRoli === "admin" && tab === "admin_ovoz_sinov" && <OvozSinov apiBase={API_BASE} />}
       {korinishRoli === "admin" && tab === "admin_tv" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminKabutarTv token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_sertifikat" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminSertifikat token={token} /></React.Suspense>}
       {tab === "oquv_markaz" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><MarkazPanel apiBase={API_BASE} token={token} adminMi={korinishRoli === "admin"} /></React.Suspense>}
