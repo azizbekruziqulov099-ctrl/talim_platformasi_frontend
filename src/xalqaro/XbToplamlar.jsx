@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { xbFetch } from "./xbOvoz.js";
 import { T, tf } from "./xbTil.js";
+import XbChuqur from "./XbChuqur.jsx";
 
 export const DARAJA = { oson: ["🟢", "Oson"], orta: ["🔵", "O‘rta"], qiyin: ["🟠", "Qiyin"], imtihon: ["🔴", "Imtihon darajasi"] };
 
@@ -13,6 +14,7 @@ export default function XbToplamlar({ apiBase, token, mavzu, til, onBoshla, onDa
   return <div className="xb-panel xb-toplamlar-sah">
     <div className="xb-bolim-bosh"><button type="button" className="xb-btn" onClick={onYopish}>← {T("Mavzular")}</button></div>
     <h3>📚 {mavzu.nom}</h3>
+    <XbChuqur apiBase={apiBase} token={token} kalit={mavzu.kalit} />
     {xato && <p className="xb-xato" role="alert">{xato}</p>}
     {!d ? <p className="xb-muted">⏳</p> : <>
       <p className="xb-muted">{tf("Bu mavzuda {s} ta savol, {n} ta to‘plamga bo‘lingan. Har to‘plam osondan qiyinga: oxirgisi — xalqaro imtihon darajasi.", { s: d.jami, n: d.toplamlar.length })}</p>

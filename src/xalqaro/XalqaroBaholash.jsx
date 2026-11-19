@@ -129,6 +129,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     key={ekran.kalit || "m"} onYopish={() => (ekran.qaytish ? setEkran(ekran.qaytish) : orqaga())} /></div>;
   if (kirishNavbat) return <div className="xb-root"><KirishNavbat apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} onTugadi={() => setKirishNavbat(false)} /></div>;
   if (ekran?.tur === "imtihon") return <div className="xb-root"><XbImtihon apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} tur={ekran.info.tur} toplam={toplam} info={ekran.info} onYopish={orqaga} /></div>;
+  if (ekran?.tur === "chuqur") return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} bolim={ekran.kalit} boshlash={ekran.bosh} onClose={orqaga} /></React.Suspense></div>;
   if (ekran?.tur === "pisamat") return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} onClose={orqaga} /></React.Suspense></div>;
   if (ekran?.tur === "natija") return <div className="xb-root"><XbNatija apiBase={apiBase} token={token} id={ekran.id} jins={jins} ustoz={ustoz} onYopish={orqaga} /></div>;
 
@@ -181,7 +182,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       onTakror={() => setEkran({ tur: "mashq", manba: { tur: "takror" }, sarlavha: T("Takrorlash") })}
       onAralash={(extra) => ochMashq(null, extra)} />}
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
-    {tab === "kurs" && tp && <Kurs tp={tp} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq}
+    {tab === "kurs" && tp && <Kurs tp={tp} apiBase={apiBase} token={token} onChuqur={(k, b) => { ovoz.hush(); setEkran({ tur: "chuqur", kalit: k, bosh: b }); }} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq}
       onToplamlar={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} />}
     {tab === "imtihon" && <Imtihonlar apiBase={apiBase} token={token} toplam={toplam} onBoshla={(info) => setEkran({ tur: "imtihon", info })} onNatija={(id) => setEkran({ tur: "natija", id })} />}
     {tab === "metod" && panel && <XbQollanma rol={kuzatuv?.rol} ovoz={ovoz} faqatMetod onTab={setTab} />}
@@ -245,7 +246,9 @@ function NatijaXatolar({ tp, kat, kattaRejim, apiBase, token, jins, ustoz, topla
   </div>;
 }
 
-function Kurs({ tp, onMavzu, onDars, onMashq, onToplamlar }) {
+function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChuqur }) {
+  const [bor, setBor] = useState(null);   // chuqur dars/30 mashq/30 test bor mavzu kodlari
+  useEffect(() => { let t = true; xbFetch(apiBase, "/api/pisamat/mavzular", token).then((r) => t && setBor(new Set((r.mavzular || []).map((x) => x.bolim)))).catch(() => {}); return () => { t = false; }; }, [apiBase, token]);
   const sohalar = [];
   for (const m of tp.mavzular) {
     let s = sohalar.find((x) => x.soha === m.soha);
@@ -269,6 +272,10 @@ function Kurs({ tp, onMavzu, onDars, onMashq, onToplamlar }) {
           <span className="xb-mavzu-tug">
             {m.dars_kodi && <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onDars(m)}>🧑‍🏫 {T("Dars")}</button>}
           </span>
+          {bor?.has(m.kalit) && <span className="xb-uch-tugma xb-uch-kichik">
+            <button type="button" className="xb-btn xb-btn-asosiy xb-btn-kichik" onClick={() => onChuqur(m.kalit, "dars")}>🎓 {T("Dars")}</button>
+            <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onChuqur(m.kalit, "mashq")}>✍️ {T("30 mashq")}</button>
+            <button type="button" className="xb-btn xb-btn-kichik" onClick={() => onChuqur(m.kalit, "test")}>📝 {T("30 test")}</button></span>}
         </li>;
       })}</ul></section>)}
   </div>;
