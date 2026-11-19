@@ -16,9 +16,11 @@ import { yangiVersiyagaOt } from "./pwa/tiklash.js";   // REV413
 import { startYangiAlifbo } from "./interface/yangiAlifbo.js";
 import { startIzohBayroq } from "./interface/izohBayroq.js";
 import App from "./App.jsx";
+import { geriTizimniYoq } from "./geriTizim.js";
 import { InterfaceProvider } from "./interface/InterfacePreferences.jsx";
 
 rasmTiklashniYoq();
+geriTizimniYoq();   // butun ilova uchun yagona «orqaga» tizimi
 versiyaTekshirishniBoshla();   // REV378: yangi versiya — «🔄 Yangilash» lavhasi   // REV154: yuklanmagan rasm o'zi qayta yuklanadi
 // REV221: yangi o'zbek alifbosi (Ö, Ğ, Ş, Ç) — o'zbekcha interfeysdagi barcha matn
 try { if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startYangiAlifbo); else startYangiAlifbo(); } catch { /* eski brauzer */ }
