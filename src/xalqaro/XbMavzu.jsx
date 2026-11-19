@@ -17,7 +17,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
   const [d, setD] = useState(malumot);
   const [xato, setXato] = useState("");
   const [namuna, setNamuna] = useState(null);
-  const [chuqur, setChuqur] = useState({ soni: 0, ochiq: false });   // shu mavzu uchun chuqur dars/mashq/test bormi
+  const [chuqur, setChuqur] = useState({ soni: 0, ochiq: false, bosh: "" });   // shu mavzu uchun chuqur dars/mashq/test bormi
   useEffect(() => {
     if (oldi || !kalit) return undefined; let tirik = true;
     xbFetch(apiBase, `/api/pisamat/mavzular?bolim=${encodeURIComponent(kalit)}`, token).then((r) => tirik && setChuqur((c) => ({ ...c, soni: r.mavzular?.length || 0 }))).catch(() => {});
@@ -46,7 +46,7 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
 
   if (xato) return <div className="xb-panel"><p className="xb-xato">{T(xato)}</p><button type="button" className="xb-btn" onClick={onYopish}>{T("← Orqaga")}</button></div>;
   if (!d) return <div className="xb-panel"><p className="xb-muted">⏳ {T("Yuklanmoqda…")}</p></div>;
-  if (chuqur.ochiq) return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} bolim={kalit} onClose={() => setChuqur((c) => ({ ...c, ochiq: false }))} /></React.Suspense></div>;
+  if (chuqur.ochiq) return <div className="xb-root"><React.Suspense fallback={<p className="xb-muted">⏳</p>}><PisaMat apiBase={apiBase} token={token} bolim={kalit} boshlash={chuqur.bosh} onClose={() => setChuqur((c) => ({ ...c, ochiq: false }))} /></React.Suspense></div>;
   const h = d.holat || {};
   const gapRang = GAP_TUR[d.ustoz?.tur] || GAP_TUR.salom;
   return <div className={`xb-panel xb-mavzu ${oldi ? "is-oldi" : ""}`}>
@@ -62,8 +62,10 @@ export default function XbMavzu({ apiBase, token, jins, ustoz = "sardor", kalit,
         <p>{oldi && <b>{d.nom}. </b>}{T("Dunyo bo‘yicha to‘g‘ri yechganlar")}: <b>{d.xalqaro_foiz}%</b>{d.maqsad ? <> · {d.maqsad}</> : null}</p>
       </div>
     </div>
-    {!oldi && chuqur.soni > 0 && <button type="button" className="xb-pisamat-tugma" onClick={() => { ovoz.hush(); setChuqur((c) => ({ ...c, ochiq: true })); }}>
-      <b>📘 {T("Chuqur dars, 30 mashq va 30 test")} ({chuqur.soni} {T("mavzu")})</b><small>{T("Animatsiyali dars, hayotiy masalalar, chizmalar, 1–2–4 ballik savollar, o‘zlashtirish foizi")}</small></button>}
+    {!oldi && chuqur.soni > 0 && <div className="xb-uch-tugma">
+      <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); setChuqur((c) => ({ ...c, ochiq: true, bosh: "dars" })); }}>🎓 {T("Dars")}</button>
+      <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setChuqur((c) => ({ ...c, ochiq: true, bosh: "mashq" })); }}>✍️ {T("30 ta mashq")}</button>
+      <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); setChuqur((c) => ({ ...c, ochiq: true, bosh: "test" })); }}>📝 {T("30 ta test")}</button></div>}
     {!oldi && (d.dars_kodi || onMashq) && <div className="xb-tez-tugmalar">   {/* REV307: asosiy ishlar tepada */}
       {d.dars_kodi && onDars && <button type="button" className="xb-btn xb-btn-asosiy" onClick={() => { ovoz.hush(); onDars(d); }}>🧑‍🏫 {T("Xalqaro darajadagi dars")}</button>}
       {onMashq && <button type="button" className="xb-btn" onClick={() => { ovoz.hush(); onMashq(d); }}>✍️ {T("Test to‘plamlari")}</button>}

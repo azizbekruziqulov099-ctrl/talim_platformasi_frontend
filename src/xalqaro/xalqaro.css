@@ -422,3 +422,5 @@ button.xb-sinf-karta{cursor:pointer;font:inherit;color:inherit}
 .pm-soha{margin:16px 2px 4px;font-size:15px;color:#334155}.pm-bosqich{display:grid;gap:10px;margin:10px 0}
 .mb-nuqtalar button.is-xato{background:#fee2e2;border-color:#f87171}
 @media (prefers-color-scheme:dark){.xb-pisamat-tugma{background:linear-gradient(135deg,#172554,#0c4a6e);border-color:#1e40af;color:#e0f2fe}.xb-pisamat-tugma small{color:#bae6fd}}
+
+.xb-uch-tugma{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.xb-uch-tugma .xb-btn{padding:14px 6px;font-size:15px;font-weight:700}

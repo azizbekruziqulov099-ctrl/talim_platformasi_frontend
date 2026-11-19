@@ -86,9 +86,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   useEffect(() => { try { if (toplam) localStorage.setItem(ESLA, toplam); } catch { /* */ } }, [toplam]);
   useEffect(() => {   // REV375: salom gapi bir marta (birinchi kirishda); keyin faqat 🔊 tugmasi bilan
     if (!kat?.ustoz?.matn || ekran) return undefined;
-    let aytilgan = false; try { aytilgan = Boolean(localStorage.getItem("kabutar:xb:salom")); } catch { /* */ }
-    if (aytilgan) return undefined;
-    const t = setTimeout(() => { ovoz.say(kat.ustoz.matn); try { localStorage.setItem("kabutar:xb:salom", "1"); } catch { /* */ } }, 600);
+    const t = setTimeout(() => { ovoz.say(kat.ustoz.matn); }, 600);   // Kabu yozilgan so‘zlarni har kirganda o‘z ovozida o‘qiydi (🔇 bilan o‘chiriladi)
     return () => clearTimeout(t);
   }, [kat?.ustoz?.matn]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => ovoz.hush(), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -140,9 +138,7 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
       <XbUstoz ustoz={ustoz} speaking={ovoz.speaking} />
       <div>
         <h2>🌍 {T("Xalqaro baholash")}</h2>
-        <p className="xb-pufak" style={{ borderColor: gap[0] }}><span style={{ color: gap[0] }}>{gap[1]}</span> {kat.ustoz?.matn}
-          <button type="button" className="xb-kolonka" aria-label={T("Ustoz gapini eshitish")} title={T("Ustoz gapini eshitish")}
-            onClick={() => (ovoz.speaking ? ovoz.hush() : ovoz.say(kat.ustoz?.matn || ""))}>{ovoz.speaking ? "⏹" : "🔊"}</button></p>
+        <p className="xb-pufak" style={{ borderColor: gap[0] }}><span style={{ color: gap[0] }}>{gap[1]}</span> {kat.ustoz?.matn}</p>
         <TilBelgisi til={til} tillar={kat.tillar} />
         {!kattaRejim && <button type="button" className="xb-yordam" aria-label={T("Qo‘llanma")} title={T("Qo‘llanma: bo‘lim qanday ishlaydi")} onClick={() => { ovoz.hush(); setTab("qollanma"); }}>?</button>}
       </div>

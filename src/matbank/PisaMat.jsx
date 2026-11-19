@@ -19,9 +19,9 @@ const rangOf = (f) => (f >= 85 ? "#15803d" : f >= 70 ? "#2563eb" : f >= 50 ? "#d
 const kalit = (s, h) => (h ? `${s.n}${h}` : String(s.n));
 
 /* ── mavzular ── */
-function Royxat({ apiBase, token, onMavzu, onClose, bolim = "" }) {
+function Royxat({ apiBase, token, onMavzu, onClose, bolim = "", avtoOch }) {
   const [d, setD] = useState(null); const [xato, setXato] = useState("");
-  const yukla = useCallback(() => { setXato(""); matFetch(apiBase, token, "/api/pisamat/mavzular", { params: bolim ? { bolim } : {} }).then(setD).catch((e) => setXato(e.message)); }, [apiBase, token, bolim]);
+  const yukla = useCallback(() => { setXato(""); matFetch(apiBase, token, "/api/pisamat/mavzular", { params: bolim ? { bolim } : {} }).then((r) => { setD(r); if (avtoOch && r.mavzular?.length === 1) avtoOch(r.mavzular[0]); }).catch((e) => setXato(e.message)); }, [apiBase, token, bolim]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { yukla(); }, [yukla]);
   const soha = d ? [...new Set(d.mavzular.map((m) => m.soha))] : [];
   return <section className="mb-root">
@@ -139,17 +139,18 @@ function Mavzu({ apiBase, token, m, onOrqaga, onBosh }) {
   </section>;
 }
 
-export default function PisaMat({ apiBase = "", token, onClose, bolim = "" }) {
+export default function PisaMat({ apiBase = "", token, onClose, bolim = "", boshlash = "" }) {
   useKbInterfaceLocale();
   const [e, setE] = useState({ t: "royxat" });
-  const royxat = () => setE({ t: "royxat", n: Date.now() });
+  const royxat = () => (bolim && onClose ? onClose() : setE({ t: "royxat", n: Date.now() }));
+  const avtoOch = (m) => (boshlash ? setE({ t: boshlash, m, n: Date.now() }) : setE({ t: "mavzu", m }));
   const mavzu = (m) => setE({ t: "mavzu", m });
   const bosh = (m) => async (k, id) => {
     if (k === "natija") { try { const r = await matFetch(apiBase, token, "/api/pisamat/natija", { params: { id } }); setE({ t: "natija", m, r }); } catch { /* */ } return; }
     setE({ t: k, m, n: Date.now() });
   };
   return <RasmKonteksti.Provider value={{ apiBase, token }}>{
-    e.t === "royxat" ? <Royxat key={e.n} apiBase={apiBase} token={token} onClose={onClose} onMavzu={mavzu} bolim={bolim} />
+    e.t === "royxat" ? <Royxat key={e.n} apiBase={apiBase} token={token} onClose={onClose} onMavzu={mavzu} bolim={bolim} avtoOch={bolim ? avtoOch : null} />
       : e.t === "mavzu" ? <Mavzu apiBase={apiBase} token={token} m={e.m} onOrqaga={royxat} onBosh={bosh(e.m)} />
         : e.t === "dars" ? <Dars apiBase={apiBase} token={token} m={e.m} onOrqaga={() => mavzu(e.m)} />
           : e.t === "natija" ? <Natija r={e.r} m={e.m} onOrqaga={() => mavzu(e.m)} onYana={() => setE({ t: e.r.tur, m: e.m, n: Date.now() })} />
