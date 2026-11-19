@@ -185,7 +185,11 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
     {tab === "qollanma" && <XbQollanma rol={kuzatuv?.rol || "oquvchi"} ovoz={ovoz} sinf={sinf} kat={kat} onTab={setTab} />}
     {tab === "kurs" && tp && <Kurs tp={tp} apiBase={apiBase} token={token} onChuqur={(k, b) => { ovoz.hush(); setEkran({ tur: "chuqur", kalit: k, bosh: b }); }} onMavzu={(m) => setEkran({ tur: "mavzu", kalit: m.kalit })} onDars={ochDars} onMashq={ochMashq}
       onToplamlar={(m) => { ovoz.hush(); setEkran({ tur: "toplamlar", m }); }} />}
-    {tab === "imtihon" && <Imtihonlar apiBase={apiBase} token={token} toplam={toplam} onBoshla={(info) => setEkran({ tur: "imtihon", info })} onNatija={(id) => setEkran({ tur: "natija", id })} />}
+    {tab === "imtihon" && <>
+      <XbBall apiBase={apiBase} token={token} toplam={toplam} />
+      <p className="xb-muted">{T("Umumiy ball (1–100) = dars 20 + mashq 30 + test 20 + imtihon 30. Imtihonni topshirsangiz, ballingiz oshadi.")}</p>
+      <Imtihonlar apiBase={apiBase} token={token} toplam={toplam} onBoshla={(info) => setEkran({ tur: "imtihon", info })} onNatija={(id) => setEkran({ tur: "natija", id })} />
+    </>}
     {tab === "metod" && panel && <XbQollanma rol={kuzatuv?.rol} ovoz={ovoz} faqatMetod onTab={setTab} />}
     {tab === "panel" && panel && <XbOqituvchi apiBase={apiBase} token={token} jins={jins} ustoz={ustoz} kuzatuv={kuzatuv} kat={kat}
       onDars={(m) => ochDars({ dars_kodi: m.dars_kodi, kalit: m.kalit, fan: kat.toplamlar.find((t) => t.kalit === m.toplam)?.ustoz_fan, sinf: kat.toplamlar.find((t) => t.kalit === m.toplam)?.sinf })} />}
