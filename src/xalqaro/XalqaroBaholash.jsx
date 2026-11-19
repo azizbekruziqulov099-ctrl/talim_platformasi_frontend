@@ -272,6 +272,7 @@ function Kurs({ tp, apiBase, token, onMavzu, onDars, onMashq, onToplamlar, onChu
     {yol && <div className="xb-karta xb-yol-bosh">
       {yol.kirish_foiz == null && <><small>{T("Avval kirish testini topshiring: bilim darajangizga qarab yo‘l ochiladi.")}</small>
         <button type="button" className="xb-btn xb-btn-asosiy" onClick={onKirish}>🎯 {T("Kirish testi")}</button></>}
+      {yol.zaif?.length > 0 && <small>🔁 {T("Qayta o‘rganing")}: <b>{yol.zaif.map((k) => tp.mavzular.find((m) => m.kalit === k)?.nom).filter(Boolean).join(", ")}</b></small>}
       {keyingi && <small>➡️ {T("Keyingi mavzu")}: <b>{keyingi.nom}</b> · {T("mashq va testdan 70% dan oshsa, keyingisi ochiladi")}</small>}
     </div>}
     <div className="xb-karta xb-kurs-bosh"><small>{T("Kurs bo‘yicha o‘zlashtirish")}</small><b>{oz}/{jami} {T("savol")}</b>
