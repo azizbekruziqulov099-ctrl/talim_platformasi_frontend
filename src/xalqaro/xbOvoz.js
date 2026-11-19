@@ -9,8 +9,8 @@ import { MIK_TIL, ovozMatni, xbTil } from "./xbTil.js";
 import { USTOZLAR } from "../kid/ustozlar.js";
 const USTOZLAR_JINS = Object.fromEntries(Object.entries(USTOZLAR).map(([k, v]) => [k, v.lab]));
 
-const OVOZ_KALIT = "kabutar:xb:ovoz_yoq";   // "1" — foydalanuvchi ovozni o'chirgan
-export const ovozYoqilgan = () => true;   // Kabu doim o‘z ovozida gapiradi (ovozni o‘chirish tugmasi olib tashlangan; eski o‘chirilgan holat e’tiborga olinmaydi)
+const OVOZ_KALIT = "kabutar:xb:ovoz_yoq2";   // yangi kalit: eski «o‘chirilgan» holat hamma uchun bekor   // "1" — foydalanuvchi ovozni o'chirgan
+export const ovozYoqilgan = () => { try { return localStorage.getItem(OVOZ_KALIT) !== "1"; } catch { return true; } };
 export function ovozQoy(yoq) { try { localStorage.setItem(OVOZ_KALIT, yoq ? "0" : "1"); } catch { /* */ } try { window.dispatchEvent(new Event("kabutar-xb-ovoz")); } catch { /* */ } }
 export function useOvozYoqilgan() {
   const [v, setV] = useState(ovozYoqilgan);
@@ -37,7 +37,7 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
     setSpeaking(false);
   }, []);
 
-  const say = useCallback((text, done) => {
+  const say = useCallback((text, done, onBosh) => {
     hush();
     const my = runRef.current;
     const clean = speakableText(text);
@@ -65,7 +65,13 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
       a.ontimeupdate = () => { if (my === runRef.current && a.duration && Number.isFinite(a.duration)) setProgress(Math.min(1, a.currentTime / a.duration)); };
       a.onended = finish;
       a.onerror = () => { if (!failed && my === runRef.current) { failed = true; fallback(); } };
-      a.play().catch(() => { if (!failed && my === runRef.current) { failed = true; fallback(); } });
+      a.play().then(() => { if (my === runRef.current) onBosh?.(); }).catch(() => {
+        if (failed || my !== runRef.current) return;
+        failed = true; fallback();
+        // brauzer o‘z-o‘zidan ovozni to‘sdi (autoplay): birinchi bosish/tegishda shu matnni o‘qib beramiz
+        const qayta = () => { ["pointerdown", "keydown", "touchstart"].forEach((e) => window.removeEventListener(e, qayta, true)); if (my === runRef.current) say(text, done, onBosh); };
+        ["pointerdown", "keydown", "touchstart"].forEach((e) => window.addEventListener(e, qayta, true));
+      });
     } catch { fallback(); }
   }, [apiBase, hush, jins]);
 
@@ -73,11 +79,13 @@ export function useUstozOvoz(apiBase, jins0 = "qiz", ustoz = "") {
   useEffect(() => { const h = () => { if (!ovozYoqilgan()) hush(); }; window.addEventListener("kabutar-xb-ovoz", h); return () => window.removeEventListener("kabutar-xb-ovoz", h); }, [hush]);
   const [, majbur] = useState(0);
   const ustozQoy = useCallback((u) => { if (u && ustozRef.current !== u) { ustozRef.current = u; majbur((x) => x + 1); } }, []);
-  // Avtomatik gapirish — har bir kalit uchun faqat BIR marta (keyin Kabu jim; 🔊 bosilsa qayta gapiradi)
+  // Avtomatik gapirish — har bir kalit uchun faqat BIR marta o‘qiydi (ovoz haqiqatan chiqqandan keyin belgilanadi)
   const birMarta = useCallback((kalit, text, kech = 400) => {
     try {
-      // har kirganda gapiradi (oldin faqat bir marta edi; takrorlash tugmasi olib tashlangani uchun)
-      const t = setTimeout(() => { say(text); }, kech);
+      const k = "kabutar:xb:aytildi2";   // faqat haqiqatan o‘qilgan (ovoz chiqqan) kalitlar yoziladi
+      const royxat = JSON.parse(localStorage.getItem(k) || "[]");
+      if (royxat.includes(kalit) || !ovozYoqilgan()) return () => {};
+      const t = setTimeout(() => { say(text, null, () => { try { const yangi = JSON.parse(localStorage.getItem(k) || "[]"); localStorage.setItem(k, JSON.stringify([...yangi, kalit].slice(-400))); } catch { /* */ } }); }, kech);
       return () => clearTimeout(t);
     } catch { return () => {}; }
   }, [say]);
