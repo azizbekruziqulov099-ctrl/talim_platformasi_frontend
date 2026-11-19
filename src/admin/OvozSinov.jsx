@@ -11,6 +11,7 @@ export default function OvozSinov({ apiBase }) {
   const [diktor, setDiktor] = useState("uz-UZ-SardorNeural");
   const [tezlik, setTezlik] = useState(0);
   const [ohang, setOhang] = useState(0);
+  const [jonli, setJonli] = useState(true);
   const [holat, setHolat] = useState("");
   const [tanlanganlar, setTanlanganlar] = useState(["uz-UZ-MadinaNeural", "uz-UZ-SardorNeural", "ru-RU-SvetlanaNeural", "ru-RU-DmitryNeural"]);
   const audioRef = useRef(null);
@@ -22,7 +23,7 @@ export default function OvozSinov({ apiBase }) {
 
   const toxta = () => { navbat.current += 1; const a = audioRef.current; audioRef.current = null; if (a) { try { a.pause(); a.src = ""; } catch { /* */ } } setHolat(""); };
   const sign = (v) => `${v >= 0 ? "+" : "-"}${Math.abs(v)}`;
-  const url = (d) => `${base}/api/ovoz?${new URLSearchParams({ matn: matn.slice(0, 1400), diktor: d, tezlik: `${sign(tezlik)}%`, ohang: `${sign(ohang)}Hz` })}`;
+  const url = (d) => `${base}/api/ovoz?${new URLSearchParams({ matn: matn.slice(0, 1400), diktor: d, tezlik: `${sign(tezlik)}%`, ohang: `${sign(ohang)}Hz`, ...(jonli ? { jonli: "1" } : {}) })}`;
 
   const ayt = (d, nom) => new Promise((ok) => {
     const id = ++navbat.current; const a = new Audio(url(d)); audioRef.current = a;
@@ -43,6 +44,7 @@ export default function OvozSinov({ apiBase }) {
       <label>Diktor: <select value={diktor} onChange={(e) => setDiktor(e.target.value)} style={{ padding: 8, borderRadius: 8, maxWidth: "100%" }}>
         {Object.entries(guruhlar).map(([t, xs]) => <optgroup key={t} label={t}>{xs.map((x) => <option key={x.kod} value={x.kod}>{x.nom}</option>)}</optgroup>)}
       </select></label>
+      <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={jonli} onChange={(e) => setJonli(e.target.checked)} /> 🎭 Jonli ohang (savol, undov, pauza — gapga qarab o‘zgaradi)</label>
       <label>⏩ Tezlik: <b>{sign(tezlik)}%</b> <input type="range" min={-30} max={30} step={5} value={tezlik} onChange={(e) => setTezlik(+e.target.value)} style={{ width: "100%" }} /></label>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{TEZ.map(([n, v]) => <button key={n} type="button" style={{ ...S.tugma, background: tezlik === v ? "#dbeafe" : "#fff" }} onClick={() => setTezlik(v)}>{n}</button>)}</div>
       <label>🎚️ Ohang (ingichka–yo‘g‘on): <b>{sign(ohang)} Hz</b> <input type="range" min={-30} max={30} step={2} value={ohang} onChange={(e) => setOhang(+e.target.value)} style={{ width: "100%" }} /></label>
