@@ -13224,7 +13224,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   }
   if (rol === "mehmon") {   // rol tanlanmaguncha hamma uchun bir xil: Kurslar, Taqdimot tayyorlash, Bolalar uchun, Testlar
     return [
-      { kalit: "mehmon_bosh", nom: "Bosh sahifa", ikon: Home },
+      { kalit: "mehmon_bosh", nom: "Bosh sahifa", ikon: BugunIkon },
       { kalit: "kurslar", nom: "Kurslar", ikon: GraduationCap },
       { kalit: "taqdimotlar", nom: "Taqdimot tayyorlash", ikon: FileSpreadsheet },
       { kalit: "oyinlar", nom: "Bolalar uchun", ikon: Gamepad2 },

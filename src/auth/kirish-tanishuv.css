@@ -86,3 +86,16 @@ main.kb-login-page.kb-login-v79{overflow-x:clip}
 
 /* telefon: «Boshlash» kartasi eng tepada — odam uzun sahifani aylantirmasdan kiradi */
 @media(max-width:900px){.kb-login-main-kt{display:flex!important;flex-direction:column}.kb-login-main-kt .kb-login-access{order:-1;width:100%}}
+
+/* bitta akkaunt: «Davom etish» katta tugma, qolganlari yig'ilgan */
+.kb-login-davom{display:grid;gap:10px;margin:6px 0 4px}
+.kb-login-davom-btn{display:flex;align-items:center;gap:12px;width:100%;padding:16px;border:0;border-radius:18px;background:linear-gradient(135deg,#0d7a77,#1b4b7a);color:#fff;cursor:pointer;text-align:left;box-shadow:0 10px 22px rgba(13,122,119,.28);font:inherit}
+.kb-login-davom-btn .kb-login-avatar{background:rgba(255,255,255,.22);color:#fff}
+.kb-login-davom-btn .kb-login-saved-text{flex:1;min-width:0;display:flex;flex-direction:column}
+.kb-login-davom-btn b{font:800 18px/1.2 system-ui,sans-serif}
+.kb-login-davom-btn small{font:500 13px system-ui,sans-serif;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb-login-davom-btn:disabled{opacity:.7}
+.kb-login-boshqa summary{cursor:pointer;color:#51677a;font:600 13px system-ui,sans-serif;padding:4px 2px;list-style:none}
+.kb-login-boshqa summary::-webkit-details-marker{display:none}
+.kb-login-boshqa[open] summary{margin-bottom:8px}
+.kb-login-boshqa .kb-login-saved-item{margin-bottom:6px}

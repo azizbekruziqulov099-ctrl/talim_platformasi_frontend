@@ -237,9 +237,9 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
   };
 
   // REV79: rolni bosish — darhol kirish (shu qurilmada yangi akkaunt). Oldin kirganlar pastdan.
-  const quickStart = async (next, ageGroup = "") => {
+  const quickStart = async (next, ageGroup = "", forceNew = false) => {
     if (commandBusy.current || resuming) return;
-    const existing = !newMode && accounts.find((a) => a.role === next && a.token);
+    const existing = !newMode && !forceNew && accounts.find((a) => a.role === next && a.token);
     if (existing) { resume(existing); return; }
     if (next === "bogcha" && !ageGroup) { setAgeOpen(true); pickRole(next); return; }
     pickRole(next);
@@ -295,27 +295,31 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
 
               {error && <div className="kb-login-error" role="alert">{__kbUi(error)}<button type="button" onClick={() => setError("")} aria-label={uiT("Xato xabarini yopish")}><X size={16}/></button></div>}
 
-              {accounts.length > 0 && <div className="kb-login-saved" aria-label={uiT("Shu qurilmada kirgan akkauntlar")}>
-                <p className="kb-login-step"><InterfaceText text={__kbUi("Oldin kirgansiz — shu yerdan davom eting:")}/></p>
-                {accounts.map((account) => <div key={account.user_id} className="kb-login-saved-item">
-                  <button type="button" onClick={() => resume(account)} disabled={Boolean(resuming) || busy}>
-                    <span className="kb-login-avatar" aria-hidden="true">{String(account.name || "?").trim().charAt(0).toUpperCase()}</span>
-                    <span className="kb-login-saved-text"><b>{account.name}</b><small>{[ROLE_NAMES[account.role] && uiT(ROLE_NAMES[account.role]), account.token ? uiT("bir bosishda") : methodLabel(account.method)].filter(Boolean).join(" · ")}</small></span>
-                    {resuming === String(account.user_id) ? <LoaderCircle size={17} className="kb-login-spin"/> : <ChevronRight size={17}/>}
-                  </button>
-                  <button type="button" className="kb-login-saved-remove" aria-label={uiT("Bu qurilmadan olib tashlash")} title={uiT("Bu qurilmadan olib tashlash")} onClick={() => setAccounts(forgetAccount(account.user_id))}><X size={14}/></button>
-                </div>)}
+              {accounts.length > 0 && <div className="kb-login-saved kb-login-davom" aria-label={uiT("Shu qurilmada kirgan akkaunt")}>
+                <button type="button" className="kb-login-davom-btn" onClick={() => resume(accounts[0])} disabled={Boolean(resuming) || busy}>
+                  <span className="kb-login-avatar" aria-hidden="true">{String(accounts[0].name || "?").trim().charAt(0).toUpperCase()}</span>
+                  <span className="kb-login-saved-text"><b>{uiT("Davom etish")}</b><small>{accounts[0].name}{ROLE_NAMES[accounts[0].role] && accounts[0].role !== "mehmon" ? ` · ${uiT(ROLE_NAMES[accounts[0].role])}` : ""}</small></span>
+                  {resuming === String(accounts[0].user_id) ? <LoaderCircle size={18} className="kb-login-spin"/> : <ArrowRight size={18}/>}
+                </button>
+                <details className="kb-login-boshqa">
+                  <summary>{uiT("Boshqa akkaunt")}{accounts.length > 1 ? ` (${accounts.length - 1})` : ""}</summary>
+                  {accounts.slice(1).map((account) => <div key={account.user_id} className="kb-login-saved-item">
+                    <button type="button" onClick={() => resume(account)} disabled={Boolean(resuming) || busy}>
+                      <span className="kb-login-avatar" aria-hidden="true">{String(account.name || "?").trim().charAt(0).toUpperCase()}</span>
+                      <span className="kb-login-saved-text"><b>{account.name}</b><small>{[ROLE_NAMES[account.role] && uiT(ROLE_NAMES[account.role]), account.token ? uiT("bir bosishda") : methodLabel(account.method)].filter(Boolean).join(" · ")}</small></span>
+                      {resuming === String(account.user_id) ? <LoaderCircle size={17} className="kb-login-spin"/> : <ChevronRight size={17}/>}
+                    </button>
+                    <button type="button" className="kb-login-saved-remove" aria-label={uiT("Bu qurilmadan olib tashlash")} title={uiT("Bu qurilmadan olib tashlash")} onClick={() => setAccounts(forgetAccount(account.user_id))}><X size={14}/></button>
+                  </div>
+                  )}
+                  <button type="button" className="kb-login-text-button" onClick={() => quickStart("mehmon", "", true)} disabled={busy || Boolean(resuming)}>➕ {uiT("Yangi akkaunt ochish")}</button>
+                </details>
               </div>}
               {accounts.length === 0 && <button type="button" className="kb-login-old-hint" onClick={() => { chooseMethod("telegram"); setTimeout(() => document.querySelector(".kb-login-method-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 60); }}>
                 <span aria-hidden="true">👋</span><span><b>{__kbUi("Oldin ro‘yxatdan o‘tganmisiz?")}</b> {__kbUi("Telegram bilan kiring — testlaringiz va natijalaringiz o‘sha akkauntda.")}</span><ChevronRight size={16}/>
               </button>}
 
-              {accounts.some((a) => a.token) && <p className="kb-login-new-hint">
-                {newMode
-                  ? <>{__kbUi("Yangi akkaunt ochiladi.")} <button type="button" onClick={() => setNewMode(false)}>{__kbUi("Bekor")}</button></>
-                  : <>{__kbUi("«Boshlash» — shu qurilmadagi akkauntingizga kiradi.")} <button type="button" onClick={() => setNewMode(true)}>➕ {__kbUi("Yangi akkaunt ochish")}</button></>}
-              </p>}
-              <div className="kb-login-role-cards kb-login-mehmon" role="group" aria-label={uiT("Boshlash")}>
+              {accounts.length === 0 && <div className="kb-login-role-cards kb-login-mehmon" role="group" aria-label={uiT("Boshlash")}>
                 <button type="button" className={`kb-login-role-card kb-role-mehmon${yoritRol ? " is-yorit" : ""}`} onClick={() => quickStart("mehmon")} disabled={busy || Boolean(resuming)} style={{ gridColumn: "1 / -1" }}>
                   <span className="kb-login-role-emoji" aria-hidden="true">🚀</span>
                   <b>{uiT("Boshlash")}</b>
@@ -328,7 +332,7 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
                   <small>{uiT(hint)}</small>
                   <span className="kb-login-role-go" aria-hidden="true">{quickRole === id ? <LoaderCircle size={16} className="kb-login-spin"/> : <ArrowRight size={16}/>}</span>
                 </button>)}
-              </div>
+              </div>}
               {ageOpen && <div className="kb-login-age" role="group" aria-label={uiT("Bolaning yoshi")}>
                 <p>🧸 {__kbUi("Bolangiz necha yoshda?")}</p>
                 <div>{PRESCHOOL_GROUPS.map((g) => <button key={g} type="button" disabled={busy} onClick={() => quickStart("bogcha", g)}>{quickRole === "bogcha" && busy ? <LoaderCircle size={14} className="kb-login-spin"/> : null}{g.replace("-", "–")}</button>)}</div>
