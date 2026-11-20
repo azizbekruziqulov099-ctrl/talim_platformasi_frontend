@@ -9,6 +9,7 @@ import "./korinishYangi.css";   // REV549: «Yangi ko'rinish» — faqat <html d
 import { rasmTiklashniYoq } from "./pwa/rasmTiklash.js";
 import { bittaOvozniYoq } from "./speech/bittaOvoz.js";   // REV492
 bittaOvozniYoq();
+import { qaytaUrinniYoq } from "./pwa/qaytaUrin.js";
 import { versiyaTekshirishniBoshla } from "./pwa/versiyaTekshir.js";   // REV378
 import { soroqVaqtiniYoq } from "./pwa/soroqVaqti.js";   // REV467: API so'rovlari abadiy osilmaydi
 soroqVaqtiniYoq();
@@ -21,6 +22,7 @@ import { InterfaceProvider } from "./interface/InterfacePreferences.jsx";
 
 rasmTiklashniYoq();
 geriTizimniYoq();   // butun ilova uchun yagona «orqaga» tizimi
+qaytaUrinniYoq();
 versiyaTekshirishniBoshla();   // REV378: yangi versiya — «🔄 Yangilash» lavhasi   // REV154: yuklanmagan rasm o'zi qayta yuklanadi
 // REV221: yangi o'zbek alifbosi (Ö, Ğ, Ş, Ç) — o'zbekcha interfeysdagi barcha matn
 try { if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", startYangiAlifbo); else startYangiAlifbo(); } catch { /* eski brauzer */ }
