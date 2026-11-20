@@ -108,7 +108,7 @@ export function dropToken(token, store) {
  *  uning sessiyasi bekor qilinmaydi (aks holda akkaunt butunlay yo'qoladi) — ro'yxatdan bir bosishda qaytiladi. */
 export function keepsSessionOnLogout(token, store) {
   const item = savedAccounts(store).find((entry) => entry.token && entry.token === token);
-  return Boolean(item && item.method === 'quick');
+  return Boolean(item && (item.method === 'quick' || item.role === 'mehmon'));   // mehmon: Gmail/Telegram ulangan bo'lsa ham, parol qo'yilmaguncha eslab qolinadi
 }
 
 export function forgetAccount(userId, store) {
