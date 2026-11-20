@@ -74,3 +74,15 @@ main.kb-login-page.kb-login-v79{overflow-x:clip}
 }
 @media(max-width:380px){.kt-cards{grid-template-columns:1fr}.kt-card{flex-direction:row;flex-wrap:wrap;gap:0 12px;align-items:center}.kt-card-rasm{width:64px;height:64px;margin:0}.kt-card b{flex:1}.kt-card p{flex-basis:100%}}
 @media(prefers-reduced-motion:reduce){.kt-hero-kabu img,.kb-login-role-card.is-yorit{animation:none}}
+
+/* Kirgach nima bor — 4 asosiy bo'lim */
+.kt-nima{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kt-nima li{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;background:rgba(255,255,255,.72);border:1px solid rgba(13,122,119,.16);box-shadow:0 4px 14px rgba(23,50,75,.06)}
+.kt-nima li>span{flex:0 0 46px;height:46px;border-radius:12px;background:#eaf5f3;display:grid;place-items:center;overflow:hidden}
+.kt-nima li img{width:38px;height:38px;object-fit:contain}
+.kt-nima b{display:block;font:800 15px/1.2 system-ui,sans-serif;color:#173b57}
+.kt-nima p{margin:3px 0 0;font:500 12.5px/1.4 system-ui,sans-serif;color:#51677a}
+@media(max-width:560px){.kt-nima{grid-template-columns:1fr}}
+
+/* telefon: «Boshlash» kartasi eng tepada — odam uzun sahifani aylantirmasdan kiradi */
+@media(max-width:900px){.kb-login-main-kt{display:flex!important;flex-direction:column}.kb-login-main-kt .kb-login-access{order:-1;width:100%}}

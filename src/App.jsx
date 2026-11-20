@@ -528,6 +528,7 @@ const LazyKabuLoyiha = _samtmLazyRetry(() => import("./games/loyiha/KabuLoyiha.j
 const LazyMantiqOyinlari = _samtmLazyRetry(() => import("./games/mantiq/MantiqOyinlari.jsx"));
 const LazyMatBank = _samtmLazyRetry(() => import("./matbank/MatBank.jsx"));   // REV559: matematika banki (Tematika)   // REV526: 1–11-sinf mantiq o'yinlari
 const LazyEkspeditsiya = _samtmLazyRetry(() => import("./games/Ekspeditsiya.jsx"));   // REV456
+const LazyMehmonBosh = _samtmLazyRetry(() => import("./mehmon/MehmonBosh.jsx"));   // rolsiz kirgan odam uchun bosh sahifa
 const LazyBugun = _samtmLazyRetry(() => import("./workspace/BugunEkran.jsx"));   // REV487: «🏠 Bugun» bosh ekrani
 const LazyTestVaraq = _samtmLazyRetry(() => import("./matbank/TestVaraq.jsx"));   // o'qituvchi: test varag'i + kalitlar (PDF)
 const LazyMen = _samtmLazyRetry(() => import("./workspace/MenSahifa.jsx"));   // REV488: «📊 Men»
@@ -13223,6 +13224,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
   }
   if (rol === "mehmon") {   // rol tanlanmaguncha hamma uchun bir xil: Kurslar, Taqdimot tayyorlash, Bolalar uchun, Testlar
     return [
+      { kalit: "mehmon_bosh", nom: "Bosh sahifa", ikon: Home },
       { kalit: "kurslar", nom: "Kurslar", ikon: GraduationCap },
       { kalit: "taqdimotlar", nom: "Taqdimot tayyorlash", ikon: FileSpreadsheet },
       { kalit: "oyinlar", nom: "Bolalar uchun", ikon: Gamepad2 },
@@ -13266,7 +13268,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
 const __kbM = (x) => x;
 const PASTKI_QISQA = {
   "Kurslar va to‘garaklar": __kbM("Kurslar"), "To‘garak va repetitorlik": __kbM("To‘garak"), "Farzand tahlili": __kbM("Farzand"), "Hujjat ochish": __kbM("Hujjat"),
-  "Mening institutim": __kbM("Institutim"), "O‘yin va testlar": __kbM("Testlar"), "Taqdimot yaratish": __kbM("Taqdimot"), "Taqdimot tayyorlash": __kbM("Taqdimot"), "Bolalar uchun": __kbM("Bolalar"), "Profil va rol tanlash": __kbM("Profil"), "Xalqaro baholash": __kbM("Xalqaro"),
+  "Mening institutim": __kbM("Institutim"), "O‘yin va testlar": __kbM("Testlar"), "Taqdimot yaratish": __kbM("Taqdimot"), "Taqdimot tayyorlash": __kbM("Taqdimot"), "Bolalar uchun": __kbM("Bolalar"), "Profil va rol tanlash": __kbM("Profil"), "Bosh sahifa": __kbM("Bosh"), "Xalqaro baholash": __kbM("Xalqaro"),
   "Profil va sozlamalar": __kbM("Profil"), "Sertifikat guruhlari": __kbM("Sertifikat"), "Bog‘cha o‘yinlari — sinov": __kbM("Sinov"), "Mening tahlilim": __kbM("Tahlilim"),
 };
 function PastkiMenyu({
@@ -14707,7 +14709,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     setMembershipNotice(result?.joy_nomi ? `${result.joy_nomi} — muassasaga ulandingiz.` : "Muassasaga ulandingiz.");
     if (profile) {
       setFoydalanuvchi(profile);
-      setTab(!profile.is_admin && profile.learning_profile?.role === "mehmon" ? (["kurslar", "taqdimotlar", "oyinlar", "test", "profil"].includes(tab) ? tab : "kurslar") : profile.is_admin || ["oqituvchi", "ota-ona"].includes(profile.role) ? initialEducationTab(profile) : ["test", "mavzular", "ai_ustoz"].includes(tab) ? tab : initialEducationTab(profile));
+      setTab(!profile.is_admin && profile.learning_profile?.role === "mehmon" ? (["mehmon_bosh", "kurslar", "taqdimotlar", "oyinlar", "test", "profil"].includes(tab) ? tab : "mehmon_bosh") : profile.is_admin || ["oqituvchi", "ota-ona"].includes(profile.role) ? initialEducationTab(profile) : ["test", "mavzular", "ai_ustoz"].includes(tab) ? tab : initialEducationTab(profile));
     } else setProfileReload((n) => n + 1);
     kabutarniOch(false);
   };
@@ -14780,7 +14782,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
 
   const korinishOzgardi = (yangi) => {
     setAdminKorinish(yangi);
-    setTab(yangi === "mehmon" ? "kurslar" : yangi === "admin" ? "admin" : yangi === "oqituvchi" ? "oqituvchi" : yangi === "ota-ona" ? "farzand" : "bilim");
+    setTab(yangi === "mehmon" ? "mehmon_bosh" : yangi === "admin" ? "admin" : yangi === "oqituvchi" ? "oqituvchi" : yangi === "ota-ona" ? "farzand" : "bilim");
   };
 
   const tabMalumoti = {
@@ -15313,6 +15315,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli !== "ota-ona" && tab === "mantiq_oyinlari" && lazyPanel(LazyMantiqOyinlari, { sinf: foydalanuvchi?.class || "", apiBase: API_BASE, onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
       {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi, muassasalar: muassasalarim, onMuassasa: muassasaniTanla })}
+      {tab === "mehmon_bosh" && lazyPanel(LazyMehmonBosh, { ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
       {tab === "men" && lazyPanel(LazyMen, { apiBase: API_BASE, token, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
       {tab === "guruhlarim" && lazyPanel(LazyGuruhlarim, { apiBase: API_BASE, token, onTab: tabTanlandi })}
       {tab === "hujjat_ochish" && lazyPanel(LazyHujjatSahifa, {})}

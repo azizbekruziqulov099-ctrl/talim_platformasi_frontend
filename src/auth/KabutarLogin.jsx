@@ -290,8 +290,8 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
         <section className="kb-login-access" id="kabutar-signin" aria-labelledby="kabutar-signin-title">
           <div className="kb-login-card">
             {success ? <div className="kb-login-success" role="status"><CheckCircle2 size={36}/><h3><InterfaceText text={__kbUi("Xush kelibsiz!")}/></h3><p><InterfaceText text={__kbUi("Sahifa ochilmoqda…")}/></p></div> : <>
-              <h2 id="kabutar-signin-title"><InterfaceText text={__kbUi("Kim sifatida kirasiz?")}/></h2>
-              <p className="kb-login-lead-v79"><InterfaceText text={__kbUi("Yangi bo‘lsangiz — bosing va darhol kirasiz.")}/></p>
+              <h2 id="kabutar-signin-title"><InterfaceText text={__kbUi("Kabutarga xush kelibsiz")}/></h2>
+              <p className="kb-login-lead-v79"><InterfaceText text={__kbUi("Bir bosishda kiring — ro‘yxatdan o‘tish shart emas.")}/></p>
 
               {error && <div className="kb-login-error" role="alert">{__kbUi(error)}<button type="button" onClick={() => setError("")} aria-label={uiT("Xato xabarini yopish")}><X size={16}/></button></div>}
 
@@ -316,10 +316,10 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
                   : <>{__kbUi("«Boshlash» — shu qurilmadagi akkauntingizga kiradi.")} <button type="button" onClick={() => setNewMode(true)}>➕ {__kbUi("Yangi akkaunt ochish")}</button></>}
               </p>}
               <div className="kb-login-role-cards kb-login-mehmon" role="group" aria-label={uiT("Boshlash")}>
-                <button type="button" className="kb-login-role-card kb-role-mehmon" onClick={() => quickStart("mehmon")} disabled={busy || Boolean(resuming)} style={{ gridColumn: "1 / -1" }}>
+                <button type="button" className={`kb-login-role-card kb-role-mehmon${yoritRol ? " is-yorit" : ""}`} onClick={() => quickStart("mehmon")} disabled={busy || Boolean(resuming)} style={{ gridColumn: "1 / -1" }}>
                   <span className="kb-login-role-emoji" aria-hidden="true">🚀</span>
                   <b>{uiT("Boshlash")}</b>
-                  <small>{uiT("Ro‘yxatdan o‘tmasdan — kurslar, testlar, bolalar uchun")}</small>
+                  <small>{uiT("Kurslar, taqdimot, bolalar uchun, testlar")}</small>
                   <span className="kb-login-role-go" aria-hidden="true">{quickRole === "mehmon" ? <LoaderCircle size={16} className="kb-login-spin"/> : <ArrowRight size={16}/>}</span>
                 </button>
                 {false && LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}${yoritRol === id ? " is-yorit" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>

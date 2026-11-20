@@ -88,6 +88,14 @@ export const HAMMAGA = [
   [bYangi, "3 tilda interfeys", "O‘zbek, rus va ingliz tili — istalgan vaqtda almashtirasiz."],
 ];
 
+// Kirgandan keyin hamma ko'radigan asosiy bo'limlar (menyu bilan bir xil)
+const NIMA = [
+  [bKitoblar, "Kurslar", "Repetitor darslari, Xalqaro baholash (PISA, TIMSS, PIRLS) va matematika — dars, 30 mashq, 30 test."],
+  [doska, "Taqdimot tayyorlash", "Mavzuni yozasiz — slaydlar tayyor bo‘ladi, sinfda ko‘rsatasiz."],
+  [turUshla, "Bolalar uchun", "Jonli ustozli darslar va o‘yinlar: 2–7 yosh uchun."],
+  [bTogri, "Testlar", "Mavzu bo‘yicha testlar, natija va xatolar tahlili darhol."],
+];
+
 const ROL_IDS = TANISHUV_ROLLAR.map((r) => r.id);
 
 /** Yuqori qism: emblema, sayt nima ekani, asosiy raqamlar va «Siz kimsiz?» tanlovi. */
@@ -104,8 +112,10 @@ export function KirishHero({ rol, onRol }) {
       <li><b>5</b><span>{T("xil foydalanuvchi")}</span></li>
       <li><b>3</b><span>{T("tilda interfeys")}</span></li>
     </ul>
-    <p className="kt-ask">{T("Siz kimsiz? Tanlang — sizga nima borligini ko‘rsatamiz:")}</p>
-    <RolTanlov rol={rol} onRol={onRol} />
+    <p className="kt-ask">{T("Kirgach sizni nima kutmoqda:")}</p>
+    <ul className="kt-nima">
+      {NIMA.map(([rasm, t, m]) => <li key={t}><span><img src={rasm} alt="" loading="lazy" draggable="false" /></span><div><b>{T(t)}</b><p>{T(m)}</p></div></li>)}
+    </ul>
   </section>;
 }
 
@@ -128,7 +138,7 @@ export function KirishImkoniyatlar({ rol, onRol, onBoshla }) {
   const korinadi = rol && ROL_IDS.includes(rol) ? TANISHUV_ROLLAR.filter((r) => r.id === rol) : TANISHUV_ROLLAR;
   return <section className="kt-imk" ref={ref} id="kabutar-imkoniyatlar" aria-labelledby="kt-imk-title">
     <div className="kt-imk-head">
-      <h2 id="kt-imk-title">{T("Saytda nimalar bor")}</h2>
+      <h2 id="kt-imk-title">{T("Kim uchun nima bor")}</h2>
       <RolTanlov rol={rol} onRol={onRol} />
     </div>
     {korinadi.map((r) => <article key={r.id} className={`kt-rol kt-rol-${r.rang}`} aria-labelledby={`kt-rol-${r.id}`}>
@@ -143,7 +153,7 @@ export function KirishImkoniyatlar({ rol, onRol, onBoshla }) {
           <p>{T(m)}</p>
         </li>)}
       </ul>
-      <button type="button" className="kt-boshla" onClick={() => onBoshla?.(r.login)}>{T("Shu sifatida boshlash")} →</button>
+      <button type="button" className="kt-boshla" onClick={() => onBoshla?.(r.login)}>{T("Boshlash")} →</button>
     </article>)}
     {rol && <button type="button" className="kt-hammasi" onClick={() => onRol("")}>{T("Hamma imkoniyatlarni ko‘rish")}</button>}
     <article className="kt-rol kt-rol-hamma" aria-labelledby="kt-rol-hamma">
