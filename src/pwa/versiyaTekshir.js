@@ -50,7 +50,7 @@ export function yangilanishOynasi() {
   return () => { vaqtlar.forEach(clearTimeout); fon.remove(); };
 }
 
-async function yangila({ oyna = true } = {}) {
+export async function yangila({ oyna = true } = {}) {
   const boshi = Date.now();
   if (oyna) { lavha?.remove(); lavha = null; yangilanishOynasi(); }
   try { const ks = await caches.keys(); await Promise.all(ks.filter((k) => k.startsWith("samtm-")).map((k) => caches.delete(k))); } catch { /* */ }

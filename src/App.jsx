@@ -1,3 +1,4 @@
+import { yangila as saytniYangila } from "./pwa/versiyaTekshir.js";
 import { prepareSpeech, SPEECH_REVISION } from "./speech/pronunciation.js";
 import { yuklaQayta as _kbYuklaQayta } from "./workspace/lazyQayta.js";
 import { korinishOl, korinishAlmash } from "./korinish.js";   // REV549
@@ -13346,17 +13347,24 @@ function PastkiMenyu({
             <span><InterfaceText text={__kbUi("Ta’lim ekotizimi")}/></span>
           </div>
         </div>
-        <div className="premium-role-card">
+        <button type="button" className="premium-role-card kb-yon-ism" onClick={() => onTanlash("profil")} title={uiT("Profil va sozlamalar")} aria-label={uiT("Profil va sozlamalar")}>
           <span className="premium-role-avatar" style={{ background: `linear-gradient(135deg, ${aktivRang}, #0B7978)` }}>{boshHarf}</span>
           <div>
             <strong>{ism}</strong>
-            <span>{uiT(rolNomi)}</span>
+            <span>{uiT(rolNomi)} · ⚙️ {uiT("Sozlamalar")}</span>
           </div>
-        </div>
+        </button>
         <nav className="premium-side-nav">
           <p><InterfaceText text={__kbUi("ASOSIY MENYU")}/></p>
           {asosiyBandlar.map((band) => bandTugmasi(band, true))}
         </nav>
+        <div className="kb-yon-asbob">
+          <button type="button" onClick={() => saytniYangila()}>🔄 <span>{uiT("Yangilash")}</span></button>
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "til" }))}>🌐 <span>{uiT("Til va ko‘rinish")}</span></button>
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "akkaunt" }))}>🔐 <span>{uiT("Akkaunt va kirish")}</span></button>
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "ai" }))}>🤖 <span>{uiT("AI yordamchi")}</span></button>
+          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "almash" }))}>👥 <span>{uiT("Profilni almashtirish")}</span></button>
+        </div>
         {profilBandi && (
           <div className="premium-side-profile">
             {__kbUi(bandTugmasi(profilBandi, true))}
@@ -14490,7 +14498,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   const [ishxonaTanlash, setIshxonaTanlash] = useState(null); // bir necha ishxona bo'lsa kirishda tanlash
   const [ishJoyiAniqlandi, setIshJoyiAniqlandi] = useState(false);
   // REV381: menyu doim ochiq turmaydi — ☰ bosilganda chiqadi, bo'lim tanlangach o'zi yopiladi (telefon va kompyuterda)
-  const [yonMenyuOchiq, setYonMenyuOchiq] = useState(false);
+  const [yonMenyuOchiq, setYonMenyuOchiq] = useState(() => { try { return window.matchMedia("(min-width:1100px)").matches; } catch { return false; } });   // kompyuterda chap ramka doim ochiq
   const yonMenyuniAlmashtir = useCallback(() => setYonMenyuOchiq((joriy) => !joriy), []);
   // Tepada ikki bo'lim: [Ish joyim] va [Kabutar]. Bittasi ko'rinadi, ikkinchisi yashirin turadi (holati saqlanadi).
   // Kirganda avval Ta'lim maydoni ochiladi; Kabutar — tepadagi tugma bilan.
@@ -14546,6 +14554,18 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     window.addEventListener("kabutar:open-contact", openContact);
     return () => window.removeEventListener("kabutar:open-contact", openContact);
   }, [token, kabutarniOch]);
+  // chap ramkadagi sozlama tugmalari (kompyuter): til, akkaunt, AI yordamchi, profilni almashtirish
+  useEffect(() => {
+    const amal = (e) => {
+      const k = e.detail;
+      if (k === "til") document.querySelector(".samtm-top-switch .kb-interface-button")?.click();
+      else if (k === "akkaunt") setAccountOpen(true);
+      else if (k === "ai") setRobotOchiq(true);
+      else if (k === "almash" && onProfiles) onProfiles(foydalanuvchi);
+    };
+    window.addEventListener("kb-yon-amal", amal);
+    return () => window.removeEventListener("kb-yon-amal", amal);
+  }, [onProfiles, foydalanuvchi]);
   // To'liq ekran ish maydonlari (portal) tepadagi "Ta'lim maydoni | Kabutar" qatorini yopmasin
   const topSwitchObsRef = useRef(null);
   const topSwitchRef = useCallback((el) => {
@@ -14992,6 +15012,20 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         body:not(.kb-focus-dars):not(.kb-focus-test) :is(h1,h2,h3,[id]){scroll-margin-top:calc(var(--samtm-portal-top,0px) + 8px)}
         body:has(.dx-root) .samtm-ixcham{display:none!important}
         .samtm-top-spacer{height:var(--samtm-portal-top,46px)!important}
+
+        /* KOMPYUTER (>=1100px): chapda va tepada alohida ramkalar, bir-biriga kirmaydi. Chap ramkada ism (sozlama), yangilash, til, akkaunt; tepada faqat Menyu, Ta'lim va Kabutar. */
+        .kb-yon-asbob{display:none}
+        @media(min-width:1100px){
+          .samtm-yon-fon-tel{display:none!important}
+          .samtm-top-switch .samtm-profil{display:none!important}
+          .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{left:12px!important;top:calc(var(--samtm-portal-top,64px) + 6px)!important;bottom:12px!important;height:auto!important;width:264px!important;border-radius:20px!important;border:1.5px solid rgba(255,255,255,.14)!important;box-shadow:0 10px 30px rgba(8,37,59,.22)!important;z-index:60!important;animation:none!important;overflow-y:auto}
+          .premium-app-shell:not(.samtm-yon-yopiq) .premium-app-main{margin-left:296px!important}
+          .samtm-muassasa-strip:not(.yon-yopiq){margin-left:296px!important}
+          .kb-yon-ism{width:100%;text-align:left;border:0;cursor:pointer;color:inherit;font:inherit}
+          .kb-yon-asbob{display:grid;gap:4px;margin:8px 0 6px;padding:8px;border-radius:14px;background:rgba(255,255,255,.07)}
+          .kb-yon-asbob button{display:flex;align-items:center;gap:9px;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:#e8f1f7;font:700 13px/1.2 system-ui,sans-serif;text-align:left;cursor:pointer}
+          .kb-yon-asbob button:hover{background:rgba(255,255,255,.12)}
+        }
       `}</style>
       {tab !== "test" && !testDavomida && <>
         <div className="samtm-top-spacer" aria-hidden="true" />
@@ -15102,9 +15136,9 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           </button>
         </div>; })}
       </div>}
-      {yonMenyuOchiq && <div className="samtm-yon-fon" onClick={() => setYonMenyuOchiq(false)} aria-hidden="true" />}
+      {yonMenyuOchiq && <div className="samtm-yon-fon samtm-yon-fon-tel" onClick={() => setYonMenyuOchiq(false)} aria-hidden="true" />}
       <div className={`premium-app-shell ${yonMenyuOchiq ? "" : "samtm-yon-yopiq"}`} onClickCapture={(e) => {
-        if (yonMenyuOchiq && e.target?.closest?.(".premium-side-nav button, .premium-side-profile button")) setTimeout(() => setYonMenyuOchiq(false), 0); }} style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
+        if (yonMenyuOchiq && !window.matchMedia("(min-width:1100px)").matches && e.target?.closest?.(".premium-side-nav button, .premium-side-profile button, .kb-yon-ism")) setTimeout(() => setYonMenyuOchiq(false), 0); }} style={{ "--role-accent": faolMuassasa ? MUASSASA_TURI_RANG[faolMuassasa.turi].rang : joriyRang }}>
         <main className="premium-app-main">
           {/* REV226: sahifa sarlavhasi va tugmalar profil menyusiga o'tdi — sahifa butun ekranni egallaydi */}
           <div className="premium-page-stage">
