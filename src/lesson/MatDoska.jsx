@@ -6,6 +6,8 @@ import React, { useMemo } from "react";
 import katex from "katex";
 import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, amalTahlil, amalIzoh, HARFLAR } from "./matDoska.js";   // REV425
 import { BoardText } from "./AmaliyDoska.jsx";
+import { Kod, Sxema, Zanjir, Jadval, RANG_KOD } from "./PedDoska.jsx";   // REV670: pedagogika jonli doskasi
+import { rangBolaklar, rangsiz } from "./pedDoska.js";
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { stripSpeechTags } from "../speech/language.js";
 import {
@@ -34,12 +36,12 @@ function Qol({ x = "100%", y = "70%" }) {
 // Matn va formula bo'laklari: matn harfma-harf, formula — chapdan o'ngga ochiladi (bir necha qatorga o'tsa ham to'g'ri)
 function bolaklar(text) {
   return splitCourseMath(stripSpeechTags(String(text ?? ""))).map((part) => {
-    if (!part.math) { const t = String(part.text ?? part.source ?? ""); return { t, w: t.length }; }
+    if (!part.math) { const t = String(part.text ?? part.source ?? ""); return rangBolaklar(t).map((b) => ({ t: b.t, w: b.t.length, rang: b.rang })); }   // REV670: [s]…[/s] rangli so'z
     let html = null;
     try { html = part.math.length > 3000 ? null : katex.renderToString(part.math, { displayMode: false, throwOnError: true, trust: false, strict: "ignore", maxExpand: 200, maxSize: 20, output: "html" }); } catch { html = null; }
     const korinadi = part.math.replace(/\\[a-zA-Z]+/g, " ").replace(/[{}^_\s]/g, "");
     return html ? { html, w: Math.max(2, korinadi.length) } : { t: part.source || part.math, w: String(part.source || part.math).length };
-  });
+  }).flat();
 }
 
 /** Qo'lda yozilayotgan matn: progress 0..1. Yozilmagan qismi umuman chiqmaydi — qator xuddi bo'r bilan yozilgandek o'sadi. */
@@ -54,7 +56,8 @@ export function JonliMatn({ text, progress = 1, rang }) {
     const ulush = Math.min(1, qoldi / b.w);
     qoldi -= b.w;
     if (b.html) out.push(<span key={i} className="dx-math mdx-f" style={ulush < 1 ? { clipPath: `inset(-0.4em ${(1 - ulush) * 100}% -0.4em -0.2em)` } : undefined} dangerouslySetInnerHTML={{ __html: b.html }} />);
-    else out.push(<React.Fragment key={i}>{ulush < 1 ? b.t.slice(0, Math.max(1, Math.round(b.t.length * ulush))) : b.t}</React.Fragment>);
+    else { const yoz = ulush < 1 ? b.t.slice(0, Math.max(1, Math.round(b.t.length * ulush))) : b.t;
+      out.push(b.rang ? <span key={i} className={`pdx-rang pdx-rang-${b.rang}`} style={{ color: RANG_KOD[b.rang] }}>{yoz}</span> : <React.Fragment key={i}>{yoz}</React.Fragment>); }
     if (ulush < 1 || (qoldi <= 0 && p < 1)) { out.push(<span key="qol" className="mdx-qol-ich"><Qol x="0" y="0" /></span>); break; }
   }
   return <span className="mdx-matn" style={{ color: rang }}>{out}</span>;
@@ -633,6 +636,11 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
     case "guruhlash": return <Guruhlash arg={b.arg} progress={p} />;
     case "venn": return <Venn arg={b.arg} progress={p} />;
     case "daraxt": return <Daraxt arg={b.arg} progress={p} />;
+    // REV670: pedagogika jonli doskasi — tahlil bo'lmasa oddiy yozuv bo'lib qoladi
+    case "kod": return <Kod arg={b.arg} progress={p} fallback={<JonliMatn text={`KOD: ${b.arg}`} progress={p} />} />;
+    case "sxema": return <Sxema arg={b.arg} progress={p} fallback={<JonliMatn text={`SXEMA: ${b.arg}`} progress={p} />} />;
+    case "zanjir": return <Zanjir arg={b.arg} progress={p} fallback={<JonliMatn text={`ZANJIR: ${b.arg}`} progress={p} />} />;
+    case "jadval": return <Jadval arg={b.arg} progress={p} fallback={<JonliMatn text={`JADVAL: ${b.arg}`} progress={p} />} />;
     case "ochir": return null;
     default: {
       const qismlar = qator.qismlar && qator.qismlar.length > 1 ? qator.qismlar : null;
@@ -669,10 +677,10 @@ export function EsdaTut({ qoidalar, eski = [], sarlavha = "Esda tut" }) {
   return <aside className={`mdx-esda ${ochiq ? "is-ochiq" : "is-yigilgan"}`} aria-label={sarlavha}>
     <button type="button" className="mdx-esda-tugma" onClick={almash} aria-expanded={ochiq}><b>{sarlavha}</b><span className="mdx-esda-soni">{n + (eski?.length || 0)}</span><span className="mdx-esda-ok" aria-hidden="true">{ochiq ? "▴" : "▾"}</span></button>
     <div className="mdx-esda-ich">
-      {qoidalar?.map((q, i) => <div key={i}><BoardText text={q} /></div>)}
+      {qoidalar?.map((q, i) => <div key={i}><BoardText text={rangsiz(q)} /></div>)}
       {eski?.length > 0 && <>
         <button type="button" className="mdx-esda-eski" onClick={() => setOch((x) => !x)} aria-expanded={och}>{och ? "▾" : "▸"} Oldingi bilimlar ({eski.length})</button>
-        {och && eski.map((q, i) => <div key={`e${i}`} className="mdx-esda-e"><BoardText text={q} /></div>)}</>}
+        {och && eski.map((q, i) => <div key={`e${i}`} className="mdx-esda-e"><BoardText text={rangsiz(q)} /></div>)}</>}
     </div>
   </aside>;
 }

@@ -146,7 +146,7 @@ import { GapTuzish, qisqaGaplar } from "../til/GapTuzish.jsx";
 const jwtProfil = (t) => { try { const p = JSON.parse(atob(String(t || "").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return String(p.sub || p.user_id || p.uid || p.id || "_"); } catch { return "_"; } };
 import { B, belgiSrc } from "../kid/Belgi.jsx";
 import { EsdaTut, Latta, MatQator, IshVariant, ishRaqamliMi } from "./MatDoska.jsx";   // REV269: matematika jonli doskasi
-import { doskaQatorlari, esdaTut, matRejim, qatorProgress, yozishSozlari } from "./matDoska.js";
+import { doskaQatorlari, esdaTut, jonliRejim, matRejim, qatorProgress, yozishSozlari } from "./matDoska.js";
 
 /** REV90: bog'cha boshqaruv tugmasi — katta belgi, ostida kichik yozuv (o'qiy olmaydigan bola belgidan taniydi). */
 function KidIcon({ icon, label }) {
@@ -371,6 +371,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const darsTil = useMemo(() => darsTiliIzoh(lesson?.steps || [], izoh, fan || lesson?.topic?.fan || ""), [lesson, izoh, fan]);
   // REV269: matematika darsi — doska ovoz bilan birga qo'lda yozilayotgandek ochiladi, buyruqli qatorlar chizmaga aylanadi
   const matem = !kid && matRejim(fan || lesson?.topic?.fan);
+  // REV670: jonli (buyruqli, sxemali) doska — matematika va 13.00.02 doktorantura kursi; matematikaning qolgan qismlari (kirish tekshiruvi) faqat matem
+  const jonliDoska = !kid && jonliRejim(fan || lesson?.topic?.fan);
   // REV512: matematika darsidan oldin — kunda bir marta kirish tekshiruvi (oldingi mavzular); faqat oddiy dars rejimida
   const [kirishOchiq, setKirishOchiq] = useState(false);
   useEffect(() => {
@@ -1947,7 +1949,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
         style={lattaP > 0 && k < och ? { opacity: 1 - lattaP } : undefined}><MatQator qator={x.q} progress={x.p} /></div>)];
   };
   // REV597: doskalar — har sahna bitta doska; oldingilari yo'qolmaydi: raqamini bosib, to'liq yozilgan holida qayta ochiladi
-  const doskalar = (() => { const out = []; if (!matem || mode !== "lesson") return out;
+  const doskalar = (() => { const out = []; if (!jonliDoska || mode !== "lesson") return out;
     (steps || []).forEach((st, i) => { if (i > idx) return; const so = out[out.length - 1]; if (so && steps[so.last].sahna === st.sahna) so.last = i; else out.push({ first: i, last: i }); }); return out; })();
   const arxivQatorlari = (d) => { const q2 = [];
     for (let i = d.first; i <= d.last; i++) { const cue = boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska);
@@ -2013,7 +2015,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
             if (el) { delete el.dataset.qolda; el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); }
             if (mode === "lesson") setPlaying(true);   // to'xtab qolgan bo'lsa — qolgan joyidan yozib davom etadi
           }}>▶ {__kbUi("Darsni davom ettir")}</button></div>}
-        <div className={`dx-board ${matem ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
+        <div className={`dx-board ${jonliDoska ? "mdx-board" : ""}`} aria-live="polite" ref={doskaRef}>
         {sanoq?.sanash && sanoq.stepIdx === idx && <div className="dx-sanash">
           <span className="dx-sanash-son">{sanoq.tanlangan.length} / ?</span>
           {sanoq.sorov && <div className="dx-sanash-var">{[sanoq.kerak - 1, sanoq.kerak, sanoq.kerak + 1].filter((x) => x >= 1)
@@ -2035,7 +2037,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
               onSay={(t) => say(t)}
               onNatija={() => { const my = oyinQ.stepIdx; setOyinQ(null); if (playingRef.current && idxRef.current === my) go(my + 1, true); }} />
           </div>}
-          {matem && mode === "lesson" && <EsdaTut {...esdaTut(steps, stepFinished || !speaking ? idx : idx - 1)} sarlavha={__kbUi("Esda tut")} />}
+          {jonliDoska && mode === "lesson" && <EsdaTut {...esdaTut(steps, stepFinished || !speaking ? idx : idx - 1)} sarlavha={__kbUi("Esda tut")} />}
           {kid && badge && <div className={`dx-kind is-${kidKind}`} role="status" aria-label={__kbUi(badge[1])}><span aria-hidden="true">{badge[0]}</span></div>}
           {kid && ["idle", "lesson", "bridge"].includes(mode) && <div className={`dx-kind-frame k-${kidKind || "none"}`}>{/* REV110: jonli ustoz va haqiqiy sinfxona; REV181: til darsida ikki ustoz */}<UstozSahna ustoz={ustozFor(fan || lesson?.topic?.fan, uiLocale)} ikkinchi={ikkinchi} kim={ustozKim} bayroqlar={ustozBayroq} mood={kidMood} celebrate={celebrate} pictures={doskaRasmlari} havo={havo} derazaga={mode === "lesson" && step?._ochilish === "havo"} havoYashir={Boolean(tanlov && tanlov.stepIdx === idx && !tanlov.tugadi)} havo2={step?._havo || ""} doskaYoq={mode === "lesson" && Boolean(step?._ochilish) && !(tanlov && tanlov.stepIdx === idx)} vaqt={vaqt} shamol={shamol} speaking={speaking} mouth={mouthLevel} soz={speaking && word >= 0 ? sayWords.current[word] || "" : ""} onTap={tapKid}
             onDetal={(d) => { if (speakingRef.current) return; const m = d.matn?.[tIzoh] || d.matn?.uz || ""; if (m) say(tIzoh === "uz" ? m : izohTeg(m, tIzoh)); }} />
@@ -2082,14 +2084,14 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
             {step.sarlavha && <h3 className="dx-title"><BoardText text={step.sarlavha} /></h3>}
             <AmaliyDoska item={{ ...step, shart: step.doska, turi_nomi: step.turi_nomi }} say={say} hush={hush} mediaUrl={mediaUrl} kid={kid}
               yozmasdan={["1", "0", "yosh"].includes(String(grade || lesson?.topic?.sinf || "").trim())}   /* REV476: 1-sinfda yozma javob yo'q — tanlash */
-              jonli={matem} soz={word} sozSoni={sayWords.current.length}
+              jonli={jonliDoska} soz={word} sozSoni={sayWords.current.length}
               onNatija={onNatija ? (togri) => onNatija({ item: step.kitob_kodi || step.kod || step.id, turi: step.amaliy_turi || "masala", togri }) : null} />
           </>}
           {!kid && mode === "lesson" && step && step.turi !== "amaliy" && <>
             {steps[range[0]]?.sarlavha && <h3 className="dx-title"><BoardText text={steps[range[0]].sarlavha} /></h3>}
             <div className={`dx-lines ${(() => { const n = range.reduce((a, i) => a + boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska).lines.length, 0);
-              return `${n > 10 ? "is-juda-zich" : n > 6 ? "is-zich" : ""} ${matem ? "is-matem" : ""}`; })()}`}>   {/* REV499: ko'p qatorli doska va misollarda yozuv kichikroq */}
-              {matem && !juftDoska ? matQatorlar() : range.flatMap((i) => {
+              return `${n > 10 ? "is-juda-zich" : n > 6 ? "is-zich" : ""} ${jonliDoska ? "is-matem" : ""}`; })()}`}>   {/* REV499: ko'p qatorli doska va misollarda yozuv kichikroq */}
+              {jonliDoska && !juftDoska ? matQatorlar() : range.flatMap((i) => {
                 const cue = boardCues(steps[i].doska, steps[i].ovoz || steps[i].doska);
                 const shown = i === idx ? visibleLines(cue.cues, word, stepFinished || !speaking) : cue.lines.length;
                 const tegliQatorlar = steps[i].doskaTeg ? String(steps[i].doskaTeg).split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;

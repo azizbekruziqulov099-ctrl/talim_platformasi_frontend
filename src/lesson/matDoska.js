@@ -3,12 +3,15 @@
 // maxsus chizma bo'lib chiziladi. Buyruqlar miyaning «Doskaga yoziladi» va «Yechim» kataklarida yoziladi.
 
 import { eskiAlifbo } from "../interface/yangiAlifbo.js";
+import { PED_BUYRUQLAR, pedRejim, pedYozishSozlari, rangsiz } from "./pedDoska.js";   // REV670: pedagogika (13.00.02) jonli doskasi
 
 export const MATEM_RE = /matem|algebr|geometr|математ|алгебр|геометр|\bmath|stereometr|стереометр/i;
 export const matRejim = (fan) => MATEM_RE.test(String(fan || ""));
+/** REV670: jonli (qo'lda yozilayotgan, buyruqli) doska — matematika va 13.00.02 doktorantura kursi. */
+export const jonliRejim = (fan) => matRejim(fan) || pedRejim(fan);
 
 const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
-  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK", "AMAL"];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
+  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK", "AMAL", ...PED_BUYRUQLAR];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
 const BUYRUQ_RE = new RegExp(`^\\s*(${BUYRUQLAR.join("|")})\\s*(?::|$)\\s*([\\s\\S]*)$`, "i");
 
 const MATN_BUYRUQ = new Set(["yoz", "davom", "qoida", "belgila"]);
@@ -20,6 +23,8 @@ export function buyruq(line) {
   const norm = eskiAlifbo(asl);
   const m = norm.match(BUYRUQ_RE);
   if (!m) return { tur: "yoz", arg: asl };
+  // REV670: pedagogika buyruqlari (KOD, SXEMA, ZANJIR, JADVAL) faqat KATTA harf bilan — «Kod: …» oddiy yozuv bo'lib qoladi
+  if (PED_BUYRUQLAR.includes(m[1].toUpperCase()) && m[1] !== m[1].toUpperCase()) return { tur: "yoz", arg: asl };
   const tur = m[1].toLowerCase();
   if (MATN_BUYRUQ.has(tur)) { const bosh = norm.match(/^\s*\w+\s*(?::|$)\s*/)[0].length; return { tur, arg: asl.slice(bosh).trim() }; }
   return { tur, arg: m[2].trim() };
@@ -39,7 +44,7 @@ export function doskaQatorlari(lines) {
 /** Buyruqli doska matnini ovozga moslash (yechimda «ovoz» qismi yo'q bo'lsa): chizma buyruqlari aytilmaydi. */
 export function ovozMatni(line) {
   const b = buyruq(line);
-  if (["yoz", "davom", "qoida", "belgila"].includes(b.tur)) return b.tur === "belgila" ? b.arg.replace(/\s+(aylana|tag|chiz|ramka)\s*$/i, "") : b.arg;
+  if (["yoz", "davom", "qoida", "belgila"].includes(b.tur)) return rangsiz(b.tur === "belgila" ? b.arg.replace(/\s+(aylana|tag|chiz|ramka)\s*$/i, "") : b.arg);
   if (b.tur === "ustun" || b.tur === "bolish") return b.arg.replace(/:/g, " : ");
   if (b.tur === "qisqart") { const q = qisqartTahlil(b.arg); return q ? `${q.eski[0]}/${q.eski[1]} = ${q.yangi[0]}/${q.yangi[1]}` : ""; }
   return "";
@@ -64,8 +69,9 @@ export function yozishSozlari(qator) {
   if (tur === "amal") return 16;   // har qadam (xona) uchun
   if (tur === "ketma") return 10 + String(qator.arg || "").split("|").length * 24;
   if (tur === "elak") return 60;
+  if (["kod", "sxema", "zanjir", "jadval"].includes(tur)) return pedYozishSozlari(tur, qator.arg);   // REV670
   if (!["yoz", "qoida", "belgila"].includes(tur)) return tur === "ustun" ? 36 : tur === "bolish" ? 40 : 14;
-  const matn = (qator.qismlar || [{ matn: qator.arg }]).map((q) => q.matn).join(" ");
+  const matn = rangsiz((qator.qismlar || [{ matn: qator.arg }]).map((q) => q.matn).join(" "));
   const korinadi = matn.replace(/\\(frac|cdot|cancel|sqrt|left|right|text|mathrm|quad|,)/g, " ").replace(/[{}$^_\\]/g, "").replace(/\s+/g, " ").trim();
   return Math.max(3, Math.round(korinadi.length / 2.6));
 }

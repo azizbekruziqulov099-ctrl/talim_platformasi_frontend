@@ -1543,3 +1543,43 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-sinf .mdx-board .dx-title,.dx-root.dx-sinf .mdx-board .dx-lines{padding-right:0!important}
   .dx-root.dx-sinf .mdx-board:has(.mdx-esda) .dx-title{padding-right:min(300px,28%)!important}
 }
+
+/* REV670: pedagogika (13.00.02) jonli doskasi — KOD, SXEMA, ZANJIR, JADVAL, rangli so'zlar */
+.pdx-rang{font-weight:700}
+.pdx-kod{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
+.pdx-kod-bosh{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.pdx-harf{display:inline-flex;align-items:center;justify-content:center;min-width:1.55em;height:1.55em;padding:0 .2em;border-radius:.3em;color:#1E3A32;font-weight:800;font-size:28px;line-height:1;font-family:system-ui,sans-serif}
+.pdx-harf-k{font-size:21px;margin-right:12px;flex:0 0 auto}
+.pdx-kod-q{display:flex;align-items:center;font-size:25px;line-height:1.25}
+.pdx-kod-soz b{font-weight:800}
+.pdx-sxema{position:relative;display:grid;grid-template-columns:minmax(0,34%) minmax(0,12%) minmax(0,54%);align-items:stretch;min-height:160px;margin:6px 0 10px}
+.pdx-markaz{display:flex;align-items:center}
+.pdx-markaz span{display:block;width:100%;border:2.5px solid var(--dx-yellow);border-radius:12px;padding:10px 12px;font-size:23px;font-weight:700;line-height:1.2;text-align:center;background:#ffffff12}
+.pdx-shoxlar{width:100%;height:100%;overflow:visible}
+.pdx-shox-ust{display:flex;flex-direction:column;gap:7px}
+.pdx-shox{flex:1 1 0;display:flex;align-items:center;border:2px solid;border-radius:10px;padding:5px 10px;font-size:21px;line-height:1.2;background:#00000014;min-height:38px}
+.pdx-zanjir{list-style:none;display:flex;align-items:flex-start;gap:6px;margin:6px 0 10px;padding:0}
+.pdx-tugun{position:relative;flex:1 1 0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;min-width:0}
+.pdx-tugun b{font-size:28px;font-weight:800;line-height:1.1}
+.pdx-tugun small{font-size:19px;line-height:1.2;color:var(--dx-chalk)}
+.pdx-nuqta{width:16px;height:16px;border-radius:50%;margin:2px 0 4px}
+.pdx-strelka{position:absolute;left:-14px;top:18px;font-size:26px;color:var(--dx-dim);transform:translateX(-50%)}
+.pdx-zanjir.is-tik{flex-direction:column;align-items:stretch;gap:2px;padding-left:28px;border-left:2px dashed #ffffff40;margin-left:10px}
+.pdx-zanjir.is-tik .pdx-tugun{flex-direction:row;flex-wrap:wrap;align-items:baseline;text-align:left;gap:4px 12px}
+.pdx-zanjir.is-tik .pdx-nuqta{position:absolute;left:-37px;top:9px;margin:0}
+.pdx-zanjir.is-tik .pdx-strelka{display:none}
+.pdx-zanjir.is-tik .pdx-tugun b{font-size:25px}
+.pdx-jadval{width:100%;border-collapse:collapse;margin:6px 0 10px;font-size:21px;line-height:1.25;table-layout:fixed}
+.pdx-jadval th,.pdx-jadval td{border:1.5px solid #ffffff45;padding:6px 10px;vertical-align:top;text-align:left;overflow-wrap:anywhere}
+.pdx-jadval th{font-size:23px;font-weight:800;background:#ffffff10}
+@media (max-width:640px){
+  .pdx-harf{font-size:22px}.pdx-harf-k{font-size:17px;margin-right:8px}.pdx-kod-q{font-size:20px}
+  .pdx-sxema{grid-template-columns:1fr;min-height:0}.pdx-shoxlar{display:none}
+  .pdx-shox-ust{border-left:2px solid var(--dx-yellow);padding-left:12px;margin:8px 0 0 12px}
+  .pdx-markaz span,.pdx-shox{font-size:18px}
+  .pdx-zanjir:not(.is-tik){flex-direction:column;align-items:stretch;padding-left:28px;border-left:2px dashed #ffffff40;margin-left:10px}
+  .pdx-zanjir:not(.is-tik) .pdx-tugun{flex-direction:row;flex-wrap:wrap;align-items:baseline;text-align:left;gap:4px 10px}
+  .pdx-zanjir:not(.is-tik) .pdx-nuqta{position:absolute;left:-37px;top:8px;margin:0}
+  .pdx-zanjir:not(.is-tik) .pdx-strelka{display:none}
+  .pdx-tugun b{font-size:22px}.pdx-tugun small{font-size:16px}.pdx-jadval{font-size:16px}.pdx-jadval th{font-size:17px}
+}
