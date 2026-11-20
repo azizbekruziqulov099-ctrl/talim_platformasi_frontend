@@ -74,3 +74,11 @@
 .dv-mavzu-info { grid-column: 2; font-size: .78rem; opacity: .65; }
 .dv-mavzu-hujjat { padding: 0 10px 10px; gap: 6px; }
 .dv-mavzu-hujjat button { font-size: .8rem; padding: 5px 10px; }
+
+/* Rasmlar hisoboti */
+.dv-rasm-hisobot { margin-top: 12px; padding: 10px 14px; border-radius: 12px; background: rgba(127,127,127,.07); }
+.dv-rasm-hisobot details { margin-top: 6px; }
+.dv-rasm-hisobot summary { cursor: pointer; font-size: .88rem; }
+.dv-rasm-hisobot ul { margin: 8px 0; padding-left: 18px; font-size: .85rem; }
+.dv-rasm-hisobot li { margin-bottom: 6px; }
+.dv-prompt { font-size: .78rem; opacity: .7; font-style: italic; }

@@ -24,6 +24,8 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [palitra, setPalitra] = useState('');
   const [anim, setAnim] = useState('');
   const [bolimTitul, setBolimTitul] = useState(null);
+  const [rasmAvto, setRasmAvto] = useState(true);
+  const [nusxa, setNusxa] = useState(false);
   const [seed, setSeed] = useState(yangiUrug);
   const [sahna, setSahna] = useState(null);
   const [busy, setBusy] = useState('');
@@ -45,12 +47,12 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     let bekor = false;
     setBusy('yasash');
     const uslubKod = oila && palitra ? `${oila}.${palitra}.${seed % 3}` : undefined;
-    so('/yasash', { method: 'POST', json: { miya, seed, ...(uslubKod ? { uslub: uslubKod } : oila ? { oila } : {}), ...(anim ? { anim } : {}), ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}) } })
+    so('/yasash', { method: 'POST', json: { miya, seed, ...(uslubKod ? { uslub: uslubKod } : oila ? { oila } : {}), ...(anim ? { anim } : {}), ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto } })
       .then(s => { if (!bekor) { setSahna(s); setXato(''); } })
       .catch(e => { if (!bekor) setXato(e.message); })
       .finally(() => { if (!bekor) setBusy(''); });
     return () => { bekor = true; };
-  }, [miya, seed, oila, palitra, anim, bolimTitul]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [miya, seed, oila, palitra, anim, bolimTitul, rasmAvto]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function aiYoz() {
     setXato('');
@@ -150,7 +152,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     setBusy('pptx');
     try {
       const uslubKod = sahna.uslub.kod;
-      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}) }, binary: true, timeout: 90000 });
+      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto }, binary: true, timeout: 90000 });
       const nom = (sahna.meta.qisqa || sahna.meta.mavzu || 'taqdimot').replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 60);
       yuklabOl(blob, `${nom}.pptx`);
     } catch (e) {
@@ -257,6 +259,10 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         {[[null, 'Avto'], [true, 'Bor'], [false, 'Yo‘q']].map(([v, n]) => <button type="button" key={String(v)} className={bolimTitul === v ? 'is-active' : ''} onClick={() => setBolimTitul(v)}>{n}</button>)}
         <button type="button" onClick={() => setSeed(yangiUrug())}><Shuffle size={15} />Boshqa variant</button>
       </div>
+      <div className="dv-row dv-chips">
+        <span className="dv-label">Rasmlar:</span>
+        {[[true, 'Kutubxonadan mosini qo‘ysin'], [false, 'Faqat miyadagilar']].map(([v, n]) => <button type="button" key={String(v)} className={rasmAvto === v ? 'is-active' : ''} onClick={() => setRasmAvto(v)}>{n}</button>)}
+      </div>
     </section>}
 
     {sahna && <section className="dv-card">
@@ -265,6 +271,28 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         <button type="button" className="dv-primary" onClick={pptx} disabled={busy === 'pptx'}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}PowerPoint (.pptx) yuklab olish</button></div>
       <p className="dv-help">Slaydni bosing yoki → / bo‘sh joy — keyingi qadam. Reja kartalari, pastki nuqtalar, savol kartalari va test variantlari bosiladi. F — to‘liq ekran.</p>
       <SahnaPlayer sahna={sahna} apiBase={apiBase} />
+      {sahna.rasm_hisobot && <RasmHisobot h={sahna.rasm_hisobot} nusxa={nusxa} setNusxa={setNusxa} />}
     </section>}
+  </div>;
+}
+
+
+function RasmHisobot({ h, nusxa, setNusxa }) {
+  const ishlatilgan = h.ishlatilgan || [];
+  const yoq = h.yoq || [];
+  if (!ishlatilgan.length && !yoq.length) return null;
+  const promptlar = yoq.map(r => `${r.kalit}.png — ${r.tavsif || ''}${r.prompt ? `\n${r.prompt}` : ''}`).join('\n\n');
+  async function nusxala() {
+    try { await navigator.clipboard.writeText(promptlar); setNusxa(true); setTimeout(() => setNusxa(false), 2000); } catch { /* brauzer ruxsat bermadi */ }
+  }
+  return <div className="dv-rasm-hisobot">
+    <p className="dv-help"><b>Rasmlar:</b> {ishlatilgan.length} ta ishlatildi
+      {h.qoshildi?.length ? ` (${h.qoshildi.length} tasini dastur kutubxonadan mos deb qo‘ydi)` : ''}
+      {h.almashtirildi?.length ? ` · ${h.almashtirildi.length} ta nom kutubxonadagi yaqin rasmga almashtirildi` : ''}.</p>
+    {yoq.length > 0 && <details>
+      <summary>Kutubxonada yo‘q {yoq.length} ta rasm — slaydga qo‘yilmadi (chizdirish uchun ro‘yxat)</summary>
+      <ul>{yoq.map(r => <li key={r.kalit}><code>{r.kalit}</code> — {r.tavsif || 'tavsif yo‘q'}{r.prompt && <div className="dv-prompt">{r.prompt}</div>}</li>)}</ul>
+      <button type="button" onClick={nusxala}><Copy size={15} />{nusxa ? 'Nusxa olindi' : 'Promptlarni nusxalash'}</button>
+    </details>}
   </div>;
 }
