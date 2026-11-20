@@ -29,6 +29,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [anim, setAnim] = useState('');
   const [bolimTitul, setBolimTitul] = useState(null);
   const [rasmAvto, setRasmAvto] = useState(true);
+  const [dizayn, setDizayn] = useState({});
   const [nusxa, setNusxa] = useState(false);
   const [seed, setSeed] = useState(yangiUrug);
   const [sahna, setSahna] = useState(null);
@@ -53,12 +54,12 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     let bekor = false;
     setBusy('yasash');
     const uslubKod = oila && palitra ? `${oila}.${palitra}.${seed % 3}` : undefined;
-    so('/yasash', { method: 'POST', json: { miya, seed, ...(uslubKod ? { uslub: uslubKod } : oila ? { oila } : {}), ...(anim ? { anim } : {}), ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto } })
+    so('/yasash', { method: 'POST', json: { miya, seed, ...(uslubKod ? { uslub: uslubKod } : oila ? { oila } : {}), ...(anim ? { anim } : {}), ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn } })
       .then(s => { if (!bekor) { setSahna(s); setXato(''); } })
       .catch(e => { if (!bekor) setXato(e.message); })
       .finally(() => { if (!bekor) setBusy(''); });
     return () => { bekor = true; };
-  }, [miya, seed, oila, palitra, anim, bolimTitul, rasmAvto]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [miya, seed, oila, palitra, anim, bolimTitul, rasmAvto, dizayn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function aiIsh(body, natijaUchun) {
     setXato('');
@@ -166,7 +167,8 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     setBusy('pptx');
     try {
       const uslubKod = sahna.uslub.kod;
-      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto }, binary: true, timeout: 90000 });
+      // sayt ko'rinishidagidek: o'sha urug', uslub, asosiy va yordamchi animatsiya, dizayn
+      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, anim2: sahna.dizayn?.anim2 || '', ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn }, binary: true, timeout: 90000 });
       const nom = (sahna.meta.qisqa || sahna.meta.mavzu || 'taqdimot').replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 60);
       yuklabOl(blob, `${nom}.pptx`);
     } catch (e) {
@@ -281,6 +283,11 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         {[[null, 'Avto'], [true, 'Bor'], [false, 'Yo‘q']].map(([v, n]) => <button type="button" key={String(v)} className={bolimTitul === v ? 'is-active' : ''} onClick={() => setBolimTitul(v)}>{n}</button>)}
         <button type="button" onClick={() => setSeed(yangiUrug())}><Shuffle size={15} />Boshqa variant</button>
       </div>
+      {info.dizaynlar && [['titul', 'Titul'], ['sarlavha', 'Sarlavha qatori'], ['bolim', 'Bo‘lim slaydi'], ['kart', 'Kartalar']].map(([kalit, nom]) => <div className="dv-row dv-chips" key={kalit}>
+        <span className="dv-label">{nom}:</span>
+        <button type="button" className={dizayn[kalit] === undefined ? 'is-active' : ''} onClick={() => setDizayn(d => { const n = { ...d }; delete n[kalit]; return n; })}>Avto</button>
+        {info.dizaynlar[kalit].map(v => <button type="button" key={v.kod} className={dizayn[kalit] === v.kod ? 'is-active' : ''} onClick={() => setDizayn(d => ({ ...d, [kalit]: v.kod }))}>{v.nom}</button>)}
+      </div>)}
       <div className="dv-row dv-chips">
         <span className="dv-label">Rasmlar:</span>
         {[[true, 'Kutubxonadan mosini qo‘ysin'], [false, 'Faqat miyadagilar']].map(([v, n]) => <button type="button" key={String(v)} className={rasmAvto === v ? 'is-active' : ''} onClick={() => setRasmAvto(v)}>{n}</button>)}
