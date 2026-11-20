@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Copy, Download, FileText, LoaderCircle, Shuffle, Sparkles, Upload, Wand2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Copy, Download, FileText, LoaderCircle, Shuffle, Sparkles, Upload, Wand2 } from 'lucide-react';
 import SahnaPlayer from './SahnaPlayer.jsx';
 import { dvSorov, yuklabOl } from './api.js';
 import './dvigatel.css';
 
-/* Kuchli taqdimot: 1) mazmun (AI / Excel / JSON / namuna) → 2) uslub → 3) ko'rish va PPTX.
+/* Kuchli taqdimot: 1) mazmun (tayyor mavzu / AI / Excel / JSON / namuna) → 2) uslub → 3) ko'rish va PPTX.
  * Dizayn, chizmalar va animatsiyani serverdagi dvigatel qiladi; bu oyna faqat boshqaradi. */
 
 const DARAJALAR = [['maktab', 'Maktab'], ['bakalavr', 'Bakalavr'], ['magistr', 'Magistr'], ['bogcha', 'Bog‘cha']];
@@ -13,7 +13,10 @@ const yangiUrug = () => 1 + Math.floor(Math.random() * 2147483000);
 
 export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [info, setInfo] = useState(null);
-  const [tab, setTab] = useState('ai');
+  const [tab, setTab] = useState('tayyor');
+  const [kutub, setKutub] = useState(null);
+  const [kutubTur, setKutubTur] = useState('');
+  const [tanlangan, setTanlangan] = useState(null);
   const [form, setForm] = useState({ mavzu: '', fan: '', daraja: 'maktab', sinf: '', tur: 'dars', qoshimcha: '', manba: '' });
   const [miya, setMiya] = useState(null);
   const [miyalar, setMiyalar] = useState([]);
@@ -104,6 +107,24 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     }
   }
 
+  useEffect(() => {
+    if (tab !== 'tayyor' || kutub) return;
+    so('/kutubxona').then(d => setKutub(d.toplamlar || [])).catch(e => { setKutub([]); setXato(e.message); });
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function tayyorOch(toplam, m) {
+    setBusy('tayyor:' + m.kod);
+    setXato('');
+    try { setMiya(await so(`/kutubxona/${toplam}/${encodeURIComponent(m.kod)}`)); setTanlangan({ toplam, ...m }); setSeed(yangiUrug()); }
+    catch (e) { setXato(e.message); } finally { setBusy(''); }
+  }
+
+  async function tayyorHujjat(toplam, m, tur) {
+    const nomlar = { oqituvchi: 'oqituvchi_matni.md', topshiriq: 'talaba_topshirigi.md', reja: 'reja.json', javoblar: 'javoblar.json' };
+    try { yuklabOl(await so(`/kutubxona/${toplam}/${encodeURIComponent(m.kod)}/${tur}`, { binary: true }), `${m.kod}_${nomlar[tur]}`); }
+    catch (e) { setXato(e.message); }
+  }
+
   async function namuna() {
     setBusy('import');
     try { setMiya(await so('/namuna')); setSeed(yangiUrug()); } catch (e) { setXato(e.message); } finally { setBusy(''); }
@@ -154,9 +175,39 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     <section className="dv-card">
       <h3>1. Mazmun (miya)</h3>
       <div className="dv-tabs" role="tablist">
-        {[['ai', 'AI yozsin'], ['fayl', 'Excel / JSON yuklash'], ['namuna', 'Namuna']].map(([id, nom]) =>
+        {[['tayyor', 'Tayyor mavzular'], ['ai', 'AI yozsin'], ['fayl', 'Excel / JSON yuklash'], ['namuna', 'Namuna']].map(([id, nom]) =>
           <button type="button" key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-active' : ''} onClick={() => setTab(id)}>{nom}</button>)}
       </div>
+      {tab === 'tayyor' && <div className="dv-fayl">
+        {!kutub && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}
+        {kutub && !kutub.length && <p className="dv-help">Hozircha tayyor mavzular yo‘q.</p>}
+        {kutub && kutub.map(t => <div key={t.kod} className="dv-kutub">
+          <p className="dv-help"><b>{t.nom}</b> · {t.mavzular.length} ta mavzu</p>
+          <div className="dv-row dv-chips">
+            {[['', 'Hammasi'], ['maruza', 'Ma’ruza'], ['amaliy', 'Amaliy'], ['mustaqil', 'Mustaqil ta’lim']].map(([k, n]) =>
+              <button type="button" key={k} className={kutubTur === k ? 'is-active' : ''} onClick={() => setKutubTur(k)}>{n} ({k ? t.mavzular.filter(m => m.tur === k).length : t.mavzular.length})</button>)}
+          </div>
+          <div className="dv-mavzular">
+            {t.mavzular.filter(m => !kutubTur || m.tur === kutubTur).map(m => {
+              const faol = tanlangan && tanlangan.toplam === t.kod && tanlangan.kod === m.kod;
+              return <div key={m.kod} className={`dv-mavzu${faol ? ' is-active' : ''}`}>
+                <button type="button" className="dv-mavzu-btn" onClick={() => tayyorOch(t.kod, m)} disabled={busy === 'tayyor:' + m.kod}>
+                  <span className="dv-mavzu-kod">{m.kod}</span>
+                  <span className="dv-mavzu-nom">{m.nom}</span>
+                  <span className="dv-mavzu-info">{m.tur_nomi}{m.testlar ? ` · ${m.testlar} test` : ''}</span>
+                  {busy === 'tayyor:' + m.kod && <LoaderCircle className="dv-spin" size={15} />}
+                </button>
+                {faol && <div className="dv-row dv-mavzu-hujjat">
+                  {m.oqituvchi && <button type="button" onClick={() => tayyorHujjat(t.kod, m, 'oqituvchi')}><BookOpen size={15} />O‘qituvchi matni</button>}
+                  {m.topshiriq && <button type="button" onClick={() => tayyorHujjat(t.kod, m, 'topshiriq')}><FileText size={15} />Talaba topshirig‘i</button>}
+                  {m.reja && <button type="button" onClick={() => tayyorHujjat(t.kod, m, 'reja')}><FileText size={15} />Reja</button>}
+                  {m.javoblar && <button type="button" onClick={() => tayyorHujjat(t.kod, m, 'javoblar')}><Download size={15} />Javoblar (admin)</button>}
+                </div>}
+              </div>;
+            })}
+          </div>
+        </div>)}
+      </div>}
       {tab === 'ai' && <div className="dv-form">
         {info && !info.ai && <p className="dv-help">AI kaliti serverda sozlanmagan. Hozircha Excel shablon yoki ChatGPT ko‘rsatmasi orqali tayyorlang.</p>}
         <label className="dv-wide">Mavzu<input value={form.mavzu} onChange={e => setForm({ ...form, mavzu: e.target.value })} placeholder="Masalan: Kasrlarni qo‘shish va ayirish" /></label>
