@@ -2390,8 +2390,14 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     {/* REV477: dars tugadi — keyingi dars (kurs tartibi: odatda ertaga ochiladi, admin/o'qituvchiga darhol) */}
     {keyingiDars && (mode === "end" || (mode === "result" && !xatoTartib)) && <div className="dx-keyingi-dars">
       <span>✅ {__kbUi("Dars tugadi!")}</span>
-      {keyingiDars.darhol ? <button type="button" className="dx-btn dx-primary is-keyingi-tayyor" onClick={() => { hush(); keyingiDars.och(); }}>{__kbUi("Keyingi dars")} → <small>{keyingiDars.nomi}</small></button>
-        : <span className="dx-keyingi-ertaga">🌙 {__kbUi("Keyingi dars ertaga ochiladi:")} <b>{keyingiDars.nomi}</b></span>}
+      {(() => {   // REV670: foizli kurs (13.00.02 doktorantura) — testdan kerakli foiz olinsa keyingi dars darhol, aks holda qayta topshirish
+        const foiz = Number(keyingiDars.foiz) || 0;
+        const olindi = mode === "result" && questions.length ? Math.round((100 * score) / questions.length) : null;
+        const otdi = foiz > 0 && olindi !== null && olindi >= foiz;
+        if (keyingiDars.darhol || otdi) return <button type="button" className="dx-btn dx-primary is-keyingi-tayyor" onClick={() => { hush(); keyingiDars.och(); }}>{__kbUi("Keyingi dars")} → <small>{keyingiDars.nomi}</small></button>;
+        if (foiz > 0) return <span className="dx-keyingi-ertaga">🔒 {olindi === null ? __kbUi(`Keyingi dars testdan kamida ${foiz}% olinganda ochiladi`) : __kbUi(`Natija: ${olindi}%. Keyingi dars uchun kamida ${foiz}% kerak — darsni takrorlab, testni qayta ishlang`)}</span>;
+        return <span className="dx-keyingi-ertaga">🌙 {__kbUi("Keyingi dars ertaga ochiladi:")} <b>{keyingiDars.nomi}</b></span>;
+      })()}
     </div>}
     {mode !== "ovoz" && !(kid && ["test", "result", "limit", "bridge"].includes(mode)) && <div className={`dx-controls ${kid ? "dx-kid-controls" : ""}`}>
       {matBosqichUstoz && mode === "idle" && <button type="button" className="dx-btn dx-ustoz-jins" onClick={ustozniAlmashtir}
