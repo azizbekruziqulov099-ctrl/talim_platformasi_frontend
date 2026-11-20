@@ -13275,6 +13275,7 @@ function PastkiMenyu({
   const { t: uiT } = useInterface();
   const aktivRang = rang || "#1B4B7A";
   const [yangiKorinish, setYangiKorinish] = useState(() => korinishOl() === "yangi");   // REV549
+  const [yonPop, setYonPop] = useState(false);
   const bandlar = menyuBandlariniOl(rol, qoshimchaBand);
   // REV79: talabaga «Mening institutim» (guruhim, kursim, muhim sanalar).
   const talabaMi = rol !== "admin" && rol !== "oqituvchi" && rol !== "ota-ona" && (_kbAccountRole(foydalanuvchi) === "talaba" || /kurs/i.test(String(foydalanuvchi?.class || "")));
@@ -13347,23 +13348,28 @@ function PastkiMenyu({
             <span><InterfaceText text={__kbUi("Ta’lim ekotizimi")}/></span>
           </div>
         </div>
-        <button type="button" className="premium-role-card kb-yon-ism" onClick={() => onTanlash("profil")} title={uiT("Profil va sozlamalar")} aria-label={uiT("Profil va sozlamalar")}>
+        <div className="premium-role-card">
           <span className="premium-role-avatar" style={{ background: `linear-gradient(135deg, ${aktivRang}, #0B7978)` }}>{boshHarf}</span>
           <div>
             <strong>{ism}</strong>
-            <span>{uiT(rolNomi)} · ⚙️ {uiT("Sozlamalar")}</span>
+            <span>{uiT(rolNomi)}</span>
           </div>
-        </button>
+        </div>
         <nav className="premium-side-nav">
           <p><InterfaceText text={__kbUi("ASOSIY MENYU")}/></p>
           {asosiyBandlar.map((band) => bandTugmasi(band, true))}
         </nav>
-        <div className="kb-yon-asbob">
-          <button type="button" onClick={() => saytniYangila()}>🔄 <span>{uiT("Yangilash")}</span></button>
-          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "til" }))}>🌐 <span>{uiT("Til va ko‘rinish")}</span></button>
-          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "akkaunt" }))}>🔐 <span>{uiT("Akkaunt va kirish")}</span></button>
-          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "ai" }))}>🤖 <span>{uiT("AI yordamchi")}</span></button>
-          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "almash" }))}>👥 <span>{uiT("Profilni almashtirish")}</span></button>
+        <div className="kb-yon-user">
+          {yonPop && <div className="kb-yon-pop" role="menu">
+            <button type="button" role="menuitem" onClick={() => { setYonPop(false); onTanlash("profil"); }}>⚙️ <span>{uiT("Profil va sozlamalar")}</span></button>
+            <button type="button" role="menuitem" onClick={() => { setYonPop(false); saytniYangila(); }}>🔄 <span>{uiT("Yangilash")}</span></button>
+            <button type="button" role="menuitem" onClick={() => { setYonPop(false); window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "til" })); }}>🌐 <span>{uiT("Til va ko‘rinish")}</span></button>
+            <button type="button" role="menuitem" onClick={() => { setYonPop(false); window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "akkaunt" })); }}>🔐 <span>{uiT("Akkaunt va kirish")}</span></button>
+            <button type="button" role="menuitem" onClick={() => { setYonPop(false); window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "ai" })); }}>🤖 <span>{uiT("AI yordamchi")}</span></button>
+            <button type="button" role="menuitem" onClick={() => { setYonPop(false); window.dispatchEvent(new CustomEvent("kb-yon-amal", { detail: "almash" })); }}>👥 <span>{uiT("Profilni almashtirish")}</span></button>
+          </div>}
+          <button type="button" className="kb-yon-user-btn" onClick={() => setYonPop((v) => !v)} aria-haspopup="menu" aria-expanded={yonPop}>
+            <span className="kb-yon-av">{boshHarf}</span><span className="kb-yon-nom"><b>{ism}</b><small>{uiT(rolNomi)}</small></span><span aria-hidden="true">⋯</span></button>
         </div>
         {profilBandi && (
           <div className="premium-side-profile">
@@ -15013,18 +15019,28 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         body:has(.dx-root) .samtm-ixcham{display:none!important}
         .samtm-top-spacer{height:var(--samtm-portal-top,46px)!important}
 
-        /* KOMPYUTER (>=1100px): chapda va tepada alohida ramkalar, bir-biriga kirmaydi. Chap ramkada ism (sozlama), yangilash, til, akkaunt; tepada faqat Menyu, Ta'lim va Kabutar. */
-        .kb-yon-asbob{display:none}
+        /* KOMPYUTER (>=1100px): ChatGPT/Claude kabi — chapda tekis yon panel (pastda ism — bosilsa sozlamalar menyusi), tepada faqat Menyu va Ta'lim|Kabutar */
+        .kb-yon-user{display:none}
         @media(min-width:1100px){
           .samtm-yon-fon-tel{display:none!important}
           .samtm-top-switch .samtm-profil{display:none!important}
-          .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{left:12px!important;top:calc(var(--samtm-portal-top,64px) + 6px)!important;bottom:12px!important;height:auto!important;width:264px!important;border-radius:20px!important;border:1.5px solid rgba(255,255,255,.14)!important;box-shadow:0 10px 30px rgba(8,37,59,.22)!important;z-index:60!important;animation:none!important;overflow-y:auto}
-          .premium-app-shell:not(.samtm-yon-yopiq) .premium-app-main{margin-left:296px!important}
-          .samtm-muassasa-strip:not(.yon-yopiq){margin-left:296px!important}
-          .kb-yon-ism{width:100%;text-align:left;border:0;cursor:pointer;color:inherit;font:inherit}
-          .kb-yon-asbob{display:grid;gap:4px;margin:8px 0 6px;padding:8px;border-radius:14px;background:rgba(255,255,255,.07)}
-          .kb-yon-asbob button{display:flex;align-items:center;gap:9px;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:#e8f1f7;font:700 13px/1.2 system-ui,sans-serif;text-align:left;cursor:pointer}
-          .kb-yon-asbob button:hover{background:rgba(255,255,255,.12)}
+          html body .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar{left:0!important;top:0!important;bottom:0!important;height:100dvh!important;width:264px!important;border-radius:0!important;border:0!important;border-right:1px solid #e3e6ea!important;background:#f7f8fa!important;color:#1f2933!important;box-shadow:none!important;z-index:60!important;animation:none!important;overflow-y:auto}
+          html body .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar :is(.premium-side-brand strong,.premium-side-link,.premium-side-nav > p){color:#1f2933!important}
+          html body .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar .premium-side-brand span,html body .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar .premium-side-nav > p{color:#7a8794!important}
+          html body .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar .premium-side-link:hover{background:rgba(0,0,0,.05)!important}
+          html body .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar .premium-side-link.active{background:#e6f1ef!important}
+          html body .premium-app-shell:not(.samtm-yon-yopiq) .premium-sidebar :is(.premium-role-card,.premium-side-profile,.premium-side-status,.kb-korinish-tugma){display:none!important}
+          .premium-app-shell:not(.samtm-yon-yopiq) .premium-app-main{margin-left:264px!important}
+          .samtm-muassasa-strip:not(.yon-yopiq){margin-left:264px!important}
+          body:has(.premium-app-shell:not(.samtm-yon-yopiq)) .samtm-top-switch{left:264px!important}
+          .premium-app-shell:not(.samtm-yon-yopiq) .kb-yon-user{display:block;position:sticky;bottom:0;margin:auto -2px 0;padding:8px 0 4px;background:#f7f8fa}
+          .kb-yon-user-btn{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:12px;background:transparent;color:#1f2933;font:inherit;text-align:left;cursor:pointer}
+          .kb-yon-user-btn:hover{background:rgba(0,0,0,.06)}
+          .kb-yon-av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#0D7A77;color:#fff;font:800 12px system-ui}
+          .kb-yon-nom{flex:1;min-width:0;display:flex;flex-direction:column}.kb-yon-nom b{font:700 13px/1.2 system-ui;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kb-yon-nom small{color:#7a8794;font:500 11px system-ui}
+          .kb-yon-pop{position:absolute;left:0;right:0;bottom:calc(100% + 4px);display:grid;gap:2px;padding:6px;border-radius:14px;background:#fff;border:1px solid #e3e6ea;box-shadow:0 10px 30px rgba(23,50,75,.18)}
+          .kb-yon-pop button{display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:9px;background:transparent;color:#1f2933;font:600 13px/1.2 system-ui;text-align:left;cursor:pointer}
+          .kb-yon-pop button:hover{background:#eef2f5}
         }
       `}</style>
       {tab !== "test" && !testDavomida && <>
