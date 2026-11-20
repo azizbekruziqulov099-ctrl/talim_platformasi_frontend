@@ -82,3 +82,15 @@
 .dv-rasm-hisobot ul { margin: 8px 0; padding-left: 18px; font-size: .85rem; }
 .dv-rasm-hisobot li { margin-bottom: 6px; }
 .dv-prompt { font-size: .78rem; opacity: .7; font-style: italic; }
+
+/* Reja muharriri */
+.dv-reja { border: 1px solid rgba(127,127,127,.25); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.dv-reja-bolim { border-left: 3px solid #b5173a; padding: 6px 0 6px 12px; display: grid; gap: 6px; }
+.dv-reja-bolim .dv-row { gap: 6px; align-items: center; }
+.dv-reja-raqam { min-width: 26px; height: 26px; border-radius: 50%; background: #b5173a; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: .85rem; }
+.dv-reja-nom { font-weight: 700; flex: 1; }
+.dv-reja-slayd input { flex: 1; }
+.dv-reja-slayd { padding-left: 30px; }
+.dv-reja-tur { font-size: .72rem; opacity: .65; padding: 2px 8px; border-radius: 10px; background: rgba(127,127,127,.12); }
+.dv-reja button { padding: 4px 8px; }
+.dv-reja-qosh { margin-left: 30px; width: fit-content; font-size: .82rem; }

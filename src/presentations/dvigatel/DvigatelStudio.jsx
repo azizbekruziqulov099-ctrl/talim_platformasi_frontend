@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, BookOpen, Copy, Download, FileText, LoaderCircle, Shuffle, Sparkles, Upload, Wand2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Copy, Download, FileText, ListTree, LoaderCircle, Plus, Shuffle, Sparkles, Upload, Wand2, X } from 'lucide-react';
 import SahnaPlayer from './SahnaPlayer.jsx';
 import { dvSorov, yuklabOl } from './api.js';
 import './dvigatel.css';
@@ -9,6 +9,10 @@ import './dvigatel.css';
 
 const DARAJALAR = [['maktab', 'Maktab'], ['bakalavr', 'Bakalavr'], ['magistr', 'Magistr'], ['bogcha', 'Bog‘cha']];
 const TURLAR = [['dars', 'Dars'], ['ma’ruza', 'Ma’ruza'], ['amaliy', 'Amaliy'], ['seminar', 'Seminar']];
+const SLAYD_SONI = [8, 10, 12, 16, 20, 25, 30, 40];
+const HAJMLAR = [['qisqa', 'Qisqa'], ['orta', 'O‘rta'], ['batafsil', 'Batafsil']];
+const TILLAR = [['uz', 'O‘zbek'], ['ru', 'Rus'], ['en', 'Ingliz']];
+const OHANGLAR = [['', 'Avto'], ['ilmiy', 'Ilmiy'], ['oddiy', 'Oddiy'], ['oyinli', 'O‘yinli']];
 const yangiUrug = () => 1 + Math.floor(Math.random() * 2147483000);
 
 export default function DvigatelStudio({ apiBase = '', token, onClose }) {
@@ -31,6 +35,8 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [busy, setBusy] = useState('');
   const [xato, setXato] = useState('');
   const [aiVaqt, setAiVaqt] = useState(0);
+  const [sozlama, setSozlama] = useState({ slayd_soni: 12, hajm: 'orta', til: 'uz', ohang: '' });
+  const [reja, setReja] = useState(null);
   const fileRef = useRef(null);
   const zipRef = useRef(null);
   const ishRef = useRef(null);
@@ -54,28 +60,36 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     return () => { bekor = true; };
   }, [miya, seed, oila, palitra, anim, bolimTitul, rasmAvto]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function aiYoz() {
+  async function aiIsh(body, natijaUchun) {
     setXato('');
     setBusy('ai');
     setAiVaqt(0);
     const t0 = Date.now();
     try {
-      const { ish } = await so('/ai', { method: 'POST', json: form });
+      const { ish } = await so('/ai', { method: 'POST', json: body });
       ishRef.current = ish;
       for (;;) {
         await new Promise(r => setTimeout(r, 3000));
         if (ishRef.current !== ish) return;
         setAiVaqt(Math.round((Date.now() - t0) / 1000));
         const h = await so(`/ai/${ish}`);
-        if (h.holat === 'tayyor') { setMiya(h.miya); setSeed(yangiUrug()); break; }
+        if (h.holat === 'tayyor') { natijaUchun(h.miya); break; }
         if (h.holat === 'xato') throw new Error(h.xato || 'AI xato qildi');
-        if (Date.now() - t0 > 240000) throw new Error('AI juda uzoq ishladi. Qayta urinib ko‘ring.');
+        if (Date.now() - t0 > 300000) throw new Error('AI juda uzoq ishladi. Qayta urinib ko‘ring.');
       }
     } catch (e) {
       setXato(e.message);
     } finally {
       setBusy('');
     }
+  }
+
+  function aiYoz(rejaBilan = false) {
+    return aiIsh({ ...form, sozlama, ...(rejaBilan && reja ? { reja } : {}) }, m => { setMiya(m); setSeed(yangiUrug()); });
+  }
+
+  function aiReja() {
+    return aiIsh({ ...form, sozlama, faqat_reja: true }, r => setReja(r));
   }
 
   async function faylYukla(file) {
@@ -219,8 +233,16 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         <label>Turi<select value={form.tur} onChange={e => setForm({ ...form, tur: e.target.value })}>{TURLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
         <label className="dv-wide">Qo‘shimcha talab (ixtiyoriy)<input value={form.qoshimcha} onChange={e => setForm({ ...form, qoshimcha: e.target.value })} placeholder="Masalan: ko‘proq hayotiy misollar, 4 ta bo‘lim" /></label>
         <label className="dv-wide">Manba matn (ixtiyoriy — darslikdan parcha, reja)<textarea rows={3} value={form.manba} onChange={e => setForm({ ...form, manba: e.target.value })} /></label>
-        <button type="button" className="dv-primary" disabled={busy === 'ai' || form.mavzu.trim().length < 3 || (info && !info.ai)} onClick={aiYoz}>
-          {busy === 'ai' ? <><LoaderCircle className="dv-spin" size={17} />AI yozmoqda… {aiVaqt}s</> : <><Wand2 size={17} />AI’ga yozdirish</>}</button>
+        <label>Slaydlar soni<select value={sozlama.slayd_soni} onChange={e => setSozlama({ ...sozlama, slayd_soni: Number(e.target.value) })}>{SLAYD_SONI.map(n => <option key={n} value={n}>{n} ta</option>)}</select></label>
+        <label>Matn hajmi<select value={sozlama.hajm} onChange={e => setSozlama({ ...sozlama, hajm: e.target.value })}>{HAJMLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+        <label>Til<select value={sozlama.til} onChange={e => setSozlama({ ...sozlama, til: e.target.value })}>{TILLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+        <label>Ohang<select value={sozlama.ohang} onChange={e => setSozlama({ ...sozlama, ohang: e.target.value })}>{OHANGLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+        {!reja && <div className="dv-row dv-wide">
+          <button type="button" className="dv-primary" disabled={busy === 'ai' || form.mavzu.trim().length < 3 || (info && !info.ai)} onClick={aiReja}>
+            {busy === 'ai' ? <><LoaderCircle className="dv-spin" size={17} />AI ishlamoqda… {aiVaqt}s</> : <><ListTree size={17} />Avval reja (tahrirlab olasiz)</>}</button>
+          <button type="button" disabled={busy === 'ai' || form.mavzu.trim().length < 3 || (info && !info.ai)} onClick={() => aiYoz(false)}><Wand2 size={17} />Darhol yozsin</button>
+        </div>}
+        {reja && <RejaMuharrir reja={reja} setReja={setReja} busy={busy === 'ai'} aiVaqt={aiVaqt} onYoz={() => aiYoz(true)} />}
       </div>}
       {tab === 'fayl' && <div className="dv-fayl">
         <p className="dv-help">Excel shablonni to‘ldiring yoki ChatGPT bergan JSON’ni yuklang. Bitta fayl — bitta mavzu.</p>
@@ -294,5 +316,40 @@ function RasmHisobot({ h, nusxa, setNusxa }) {
       <ul>{yoq.map(r => <li key={r.kalit}><code>{r.kalit}</code> — {r.tavsif || 'tavsif yo‘q'}{r.prompt && <div className="dv-prompt">{r.prompt}</div>}</li>)}</ul>
       <button type="button" onClick={nusxala}><Copy size={15} />{nusxa ? 'Nusxa olindi' : 'Promptlarni nusxalash'}</button>
     </details>}
+  </div>;
+}
+
+
+function RejaMuharrir({ reja, setReja, busy, aiVaqt, onYoz }) {
+  const bolimlar = reja.bolimlar || [];
+  const jami = bolimlar.reduce((n, b) => n + b.slaydlar.length, 0);
+  const yangila = fn => setReja(r => { const c = JSON.parse(JSON.stringify(r)); fn(c); return c; });
+  const kochir = (arr, i, d) => { const j = i + d; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; };
+  return <div className="dv-reja dv-wide">
+    <div className="dv-row dv-spread"><b>Reja: {reja.meta?.mavzu}</b><span className="dv-help">{bolimlar.length} bo‘lim · {jami} slayd</span></div>
+    <p className="dv-help">Sarlavhalarni o‘zgartiring, keraksizini o‘chiring, yangisini qo‘shing — AI aynan shu reja bo‘yicha yozadi.</p>
+    {bolimlar.map((b, bi) => <div key={bi} className="dv-reja-bolim">
+      <div className="dv-row">
+        <span className="dv-reja-raqam">{bi + 1}</span>
+        <input className="dv-reja-nom" value={b.nom} onChange={e => yangila(c => { c.bolimlar[bi].nom = e.target.value; })} />
+        <button type="button" title="Yuqoriga" onClick={() => yangila(c => kochir(c.bolimlar, bi, -1))}><ArrowUp size={14} /></button>
+        <button type="button" title="Pastga" onClick={() => yangila(c => kochir(c.bolimlar, bi, 1))}><ArrowDown size={14} /></button>
+        <button type="button" title="Bo‘limni o‘chirish" disabled={bolimlar.length < 2} onClick={() => yangila(c => { c.bolimlar.splice(bi, 1); })}><X size={14} /></button>
+      </div>
+      {b.slaydlar.map((sl, si) => <div key={si} className="dv-row dv-reja-slayd">
+        <input value={sl.sarlavha} onChange={e => yangila(c => { c.bolimlar[bi].slaydlar[si].sarlavha = e.target.value; })} />
+        {sl.tur && <span className="dv-reja-tur">{sl.tur}</span>}
+        <button type="button" title="Yuqoriga" onClick={() => yangila(c => kochir(c.bolimlar[bi].slaydlar, si, -1))}><ArrowUp size={14} /></button>
+        <button type="button" title="Pastga" onClick={() => yangila(c => kochir(c.bolimlar[bi].slaydlar, si, 1))}><ArrowDown size={14} /></button>
+        <button type="button" title="O‘chirish" disabled={b.slaydlar.length < 2} onClick={() => yangila(c => { c.bolimlar[bi].slaydlar.splice(si, 1); })}><X size={14} /></button>
+      </div>)}
+      {b.slaydlar.length < 8 && <button type="button" className="dv-reja-qosh" onClick={() => yangila(c => { c.bolimlar[bi].slaydlar.push({ sarlavha: 'Yangi slayd', maqsad: '', tur: '' }); })}><Plus size={14} />Slayd qo‘shish</button>}
+    </div>)}
+    <div className="dv-row">
+      {bolimlar.length < 6 && <button type="button" onClick={() => yangila(c => { c.bolimlar.push({ nom: 'Yangi bo‘lim', izoh: '', slaydlar: [{ sarlavha: 'Yangi slayd', maqsad: '', tur: '' }] }); })}><Plus size={15} />Bo‘lim qo‘shish</button>}
+      <button type="button" onClick={() => setReja(null)}><X size={15} />Rejani bekor qilish</button>
+      <button type="button" className="dv-primary" disabled={busy} onClick={onYoz}>
+        {busy ? <><LoaderCircle className="dv-spin" size={17} />AI yozmoqda… {aiVaqt}s</> : <><Wand2 size={17} />Shu reja bo‘yicha yozsin</>}</button>
+    </div>
   </div>;
 }
