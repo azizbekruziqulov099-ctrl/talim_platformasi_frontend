@@ -13089,7 +13089,7 @@ function ProfilTab({ token, foydalanuvchi, onYangilandi, onInstitutionJoined, ad
             className="w-full mb-3 py-3 rounded-xl text-sm font-semibold text-white" style={{ backgroundColor: "#E8743B" }}>
             {__kbUi("👁 Bog‘cha, maktab, markaz yoki institut o‘quvchisi ko‘zi bilan ko‘rish →")}</button>}
           <div className="grid grid-cols-2 gap-2">
-            {[["admin", "🛠 Admin"], ["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([v, l]) => (
+            {[["admin", "🛠 Admin"], ["mehmon", "👤 Anonim (rolsiz)"], ["oquvchi", "O'quvchi"], ["ota-ona", "Ota-ona"], ["oqituvchi", "O'qituvchi"]].map(([v, l]) => (
               <button key={v} onClick={() => onKorinishOzgar(v)}
                 className="py-2.5 rounded-lg border text-xs font-medium"
                 style={{
@@ -13221,6 +13221,15 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
             { kalit: "profil", nom: "Profil va sozlamalar", ikon: Settings },
     ];
   }
+  if (rol === "mehmon") {   // rol tanlanmaguncha hamma uchun bir xil: Kurslar, Taqdimot tayyorlash, Bolalar uchun, Testlar
+    return [
+      { kalit: "kurslar", nom: "Kurslar", ikon: GraduationCap },
+      { kalit: "taqdimotlar", nom: "Taqdimot tayyorlash", ikon: FileSpreadsheet },
+      { kalit: "oyinlar", nom: "Bolalar uchun", ikon: Gamepad2 },
+      { kalit: "test", nom: "Testlar", ikon: PencilLine },
+      { kalit: "profil", nom: "Profil va rol tanlash", ikon: User },
+    ];
+  }
   if (rol === "oqituvchi") {
     // Ixcham menyu: Bugun, Kurslar (faqat ko'rish), Xalqaro baholash (sinf ochish), Testlar (PDF + kalitlar), Hujjat ochish, Profil.
     // Muassasalar, To'garak va repetitorlik, Ovoz ⇄ Matn, Statistikalar, Mavzular, O'yinlar, Guruhlarim — hozircha yopildi (puxta bo'lgach qaytariladi).
@@ -13257,7 +13266,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
 const __kbM = (x) => x;
 const PASTKI_QISQA = {
   "Kurslar va to‘garaklar": __kbM("Kurslar"), "To‘garak va repetitorlik": __kbM("To‘garak"), "Farzand tahlili": __kbM("Farzand"), "Hujjat ochish": __kbM("Hujjat"),
-  "Mening institutim": __kbM("Institutim"), "O‘yin va testlar": __kbM("Testlar"), "Taqdimot yaratish": __kbM("Taqdimot"), "Xalqaro baholash": __kbM("Xalqaro"),
+  "Mening institutim": __kbM("Institutim"), "O‘yin va testlar": __kbM("Testlar"), "Taqdimot yaratish": __kbM("Taqdimot"), "Taqdimot tayyorlash": __kbM("Taqdimot"), "Bolalar uchun": __kbM("Bolalar"), "Profil va rol tanlash": __kbM("Profil"), "Xalqaro baholash": __kbM("Xalqaro"),
   "Profil va sozlamalar": __kbM("Profil"), "Sertifikat guruhlari": __kbM("Sertifikat"), "Bog‘cha o‘yinlari — sinov": __kbM("Sinov"), "Mening tahlilim": __kbM("Tahlilim"),
 };
 function PastkiMenyu({
@@ -13300,7 +13309,7 @@ function PastkiMenyu({
       { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
       { kalit: "profil", nom: "Profil", ikon: User });
   }
-  if (taqdimotMavjud && rol !== "oqituvchi") bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
+  if (taqdimotMavjud && rol !== "oqituvchi" && rol !== "mehmon") bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
   const profilBandi = bandlar.find((band) => band.kalit === "profil");
   const asosiyBandlar = bandlar.filter((band) => band.kalit !== "profil");
   const rolNomi = rol === "admin"
@@ -13309,7 +13318,7 @@ function PastkiMenyu({
       ? "O‘qituvchi"
       : rol === "ota-ona"
         ? "Ota-ona"
-        : talabaMi ? "Talaba" : bogchaMi ? "Bog‘cha bolasi" : "O‘quvchi";
+        : rol === "mehmon" ? "Mehmon" : talabaMi ? "Talaba" : bogchaMi ? "Bog‘cha bolasi" : "O‘quvchi";
   const ism = foydalanuvchi?.full_name || rolNomi;
   const boshHarf = ism.trim().split(/\s+/).slice(0, 2).map((q) => q[0]).join("").toUpperCase() || "TA";
 
@@ -14698,7 +14707,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     setMembershipNotice(result?.joy_nomi ? `${result.joy_nomi} — muassasaga ulandingiz.` : "Muassasaga ulandingiz.");
     if (profile) {
       setFoydalanuvchi(profile);
-      setTab(profile.is_admin || ["oqituvchi", "ota-ona"].includes(profile.role) ? initialEducationTab(profile) : ["test", "mavzular", "ai_ustoz"].includes(tab) ? tab : initialEducationTab(profile));
+      setTab(!profile.is_admin && profile.learning_profile?.role === "mehmon" ? (["kurslar", "taqdimotlar", "oyinlar", "test", "profil"].includes(tab) ? tab : "kurslar") : profile.is_admin || ["oqituvchi", "ota-ona"].includes(profile.role) ? initialEducationTab(profile) : ["test", "mavzular", "ai_ustoz"].includes(tab) ? tab : initialEducationTab(profile));
     } else setProfileReload((n) => n + 1);
     kabutarniOch(false);
   };
@@ -14728,7 +14737,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   }
 
   // Admin uchun — mahalliy ko'rinish rejimi; boshqalar uchun — haqiqiy rol
-  const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.role || "oquvchi");
+  const korinishRoli = foydalanuvchi?.is_admin ? adminKorinish : (foydalanuvchi?.learning_profile?.role === "mehmon" ? "mehmon" : (foydalanuvchi?.role || "oquvchi"));   // mehmon: rol hali tanlanmagan
   // REV106: o'qituvchi kirishda fanlarini tanlaydi; tanlamaguncha boshqa bo'limlar ochilmaydi.
   const oqituvchiMi = !readOnly && !foydalanuvchi?.is_admin && foydalanuvchi?.role === "oqituvchi";
   const oqituvchiFanlari = foydalanuvchi?.learning_profile?.fanlar || [];
@@ -14736,7 +14745,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
   // REV103: kunlik vaqt faqat bog'cha bolasining o'z hisobida (admin ko'rish rejimida hisoblanmaydi).
   const bogchaVaqti = !readOnly && !foydalanuvchi?.is_admin && korinishRoli !== "admin" && korinishRoli !== "oqituvchi" && korinishRoli !== "ota-ona"
     && _kbAccountRole(foydalanuvchi) === "bogcha";
-  const joriyRang = joriyRangniHisobla(foydalanuvchi, korinishRoli);
+  const joriyRang = joriyRangniHisobla(foydalanuvchi, korinishRoli === "mehmon" ? "oquvchi" : korinishRoli);
 
   // O'qituvchining pastki menyusiga MUASSASA turiga qarab moslashuvchan
   // 1 ta qo'shimcha tugma — "Maktabim"/"Bog'cham"/"Universitetim"/
@@ -14771,7 +14780,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
 
   const korinishOzgardi = (yangi) => {
     setAdminKorinish(yangi);
-    setTab(yangi === "admin" ? "admin" : yangi === "oqituvchi" ? "oqituvchi" : yangi === "ota-ona" ? "farzand" : "bilim");
+    setTab(yangi === "mehmon" ? "kurslar" : yangi === "admin" ? "admin" : yangi === "oqituvchi" ? "oqituvchi" : yangi === "ota-ona" ? "farzand" : "bilim");
   };
 
   const tabMalumoti = {
@@ -15291,7 +15300,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         />
       )}
       {korinishRoli !== "ota-ona" && tab === "oyinlar" && (
-        <OyinlarMarkazi kid={korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha"} admin={Boolean(foydalanuvchi?.is_admin)} onOpen={(key) => {
+        <OyinlarMarkazi kid={korinishRoli === "mehmon" || (korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha")} admin={Boolean(foydalanuvchi?.is_admin)} onOpen={(key) => {
           if (key === "bellashuv") setBellashuv({ kod: "", createFrom: null, nonce: Date.now() });
           if (key === "shashka") setShashka({ kod: "", nonce: Date.now() });
           if (key === "shaxmat" || key === "shaxmat_maktab") setShaxmat({ kod: "", nonce: Date.now(), maktab: key === "shaxmat_maktab" });

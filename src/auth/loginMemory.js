@@ -8,7 +8,7 @@ export const LOGIN_ROLES = [
   ['ota-ona', 'Ota-ona', '🌱', 'Farzand ta’limi'],
   ['bogcha', 'Bog‘cha bolasi', '🧸', '2–7 yosh, ovozli darslar'],
 ];
-export const ROLE_NAMES = Object.fromEntries(LOGIN_ROLES.map(([id, name]) => [id, name]));
+export const ROLE_NAMES = { ...Object.fromEntries(LOGIN_ROLES.map(([id, name]) => [id, name])), mehmon: 'Mehmon' };   // mehmon: rol tanlanmagan kirish
 const ROLE_KEY = 'kabutar:login-role:v1';
 const ACCOUNTS_KEY = 'kabutar:saved-accounts:v1';
 const LAST_KEY = 'kabutar:last-login:v1';

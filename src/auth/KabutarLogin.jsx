@@ -312,11 +312,17 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
 
               {accounts.some((a) => a.token) && <p className="kb-login-new-hint">
                 {newMode
-                  ? <>{__kbUi("Yangi akkaunt ochiladi — rolni tanlang.")} <button type="button" onClick={() => setNewMode(false)}>{__kbUi("Bekor")}</button></>
-                  : <>{__kbUi("Rolni bossangiz — shu roldagi akkauntingizga kirasiz.")} <button type="button" onClick={() => setNewMode(true)}>➕ {__kbUi("Yangi akkaunt ochish")}</button></>}
+                  ? <>{__kbUi("Yangi akkaunt ochiladi.")} <button type="button" onClick={() => setNewMode(false)}>{__kbUi("Bekor")}</button></>
+                  : <>{__kbUi("«Boshlash» — shu qurilmadagi akkauntingizga kiradi.")} <button type="button" onClick={() => setNewMode(true)}>➕ {__kbUi("Yangi akkaunt ochish")}</button></>}
               </p>}
-              <div className="kb-login-role-cards" role="group" aria-label={uiT("Rol")}>
-                {LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}${yoritRol === id ? " is-yorit" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>
+              <div className="kb-login-role-cards kb-login-mehmon" role="group" aria-label={uiT("Boshlash")}>
+                <button type="button" className="kb-login-role-card kb-role-mehmon" onClick={() => quickStart("mehmon")} disabled={busy || Boolean(resuming)} style={{ gridColumn: "1 / -1" }}>
+                  <span className="kb-login-role-emoji" aria-hidden="true">🚀</span>
+                  <b>{uiT("Boshlash")}</b>
+                  <small>{uiT("Ro‘yxatdan o‘tmasdan — kurslar, testlar, bolalar uchun")}</small>
+                  <span className="kb-login-role-go" aria-hidden="true">{quickRole === "mehmon" ? <LoaderCircle size={16} className="kb-login-spin"/> : <ArrowRight size={16}/>}</span>
+                </button>
+                {false && LOGIN_ROLES.map(([id, name, icon, hint]) => <button key={id} type="button" className={`kb-login-role-card kb-role-${id}${role === id ? " is-last" : ""}${yoritRol === id ? " is-yorit" : ""}`} onClick={() => quickStart(id)} disabled={busy || Boolean(resuming)}>
                   <span className="kb-login-role-emoji" aria-hidden="true">{icon}</span>
                   <b>{uiT(name)}</b>
                   <small>{uiT(hint)}</small>
