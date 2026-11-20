@@ -15053,10 +15053,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
           .kb-yon-pop button{display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:9px;background:transparent;color:#1f2933;font:600 13px/1.2 system-ui;text-align:left;cursor:pointer}
           .kb-yon-pop button:hover{background:#eef2f5}
           /* Dars xonasi / test ochiq: yon panel va tepa qator yashirinadi — xona butun ekranni oladi */
-          html body:is(.kb-focus-dars,.kb-focus-test) .premium-app-shell:not(.x1):not(.x2) .premium-sidebar{display:none!important}
-          html body:is(.kb-focus-dars,.kb-focus-test) .premium-app-shell:not(.x1) .premium-app-main{margin-left:0!important}
-          body:is(.kb-focus-dars,.kb-focus-test) .samtm-muassasa-strip{margin-left:0!important}
-          html body:is(.kb-focus-dars,.kb-focus-test) .samtm-top-switch{left:0!important;display:none!important}
+          html body.kb-focus-dars .premium-app-shell:not(.x1):not(.x2) .premium-sidebar{display:none!important}
+          html body.kb-focus-dars .premium-app-shell:not(.x1) .premium-app-main{margin-left:0!important}
+          body.kb-focus-dars .samtm-muassasa-strip{margin-left:0!important}
+          html body.kb-focus-dars .samtm-top-switch{left:0!important}
         }
       `}</style>
       {tab !== "test" && !testDavomida && <>
