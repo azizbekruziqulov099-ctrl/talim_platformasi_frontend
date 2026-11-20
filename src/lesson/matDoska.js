@@ -320,7 +320,7 @@ export const HARFLAR = ["A", "B", "C", "D", "E", "F", "G", "H"];
 /** n! ni qo'yish yo'li bilan qurish: (n−1)! ta tartibning har biriga yangi narsa n xil joyga qo'yiladi.
  *  → [{asos: ["A","B"], yangi: "C", tartiblar: [["C","A","B"], ["A","C","B"], ["A","B","C"]]}] */
 export function orinAlmashQurish(n) {
-  n = Math.max(1, Math.min(4, Math.trunc(Number(n) || 1)));
+  n = Math.max(1, Math.min(4, parseInt(String(n ?? "").replace(/\D*(\d+).*/s, "$1"), 10) || 1));   // REV672: «3 ru» ham
   let tartib = [[HARFLAR[0]]];
   if (n === 1) return { n, guruhlar: [{ asos: [], yangi: "A", tartiblar: tartib }], jami: 1 };
   for (let m = 2; m < n; m += 1) {
@@ -339,6 +339,8 @@ const ikkiSon = (arg, maxN, maxK) => {
   const n = Math.min(maxN, Math.max(1, +m[1])), k = Math.min(maxK, Math.max(1, Math.min(n, +m[2])));
   return { n, k };
 };
+/** REV672: kombinatorika chizmalari tili — argument oxirida «ru» bo'lsa, doska yozuvlari ruscha. */
+export const doskaTili = (arg) => (/(^|\s|;)ru\s*$/i.test(String(arg || "")) ? "ru" : "uz");
 export const orinlashtirTahlil = (arg) => ikkiSon(arg, 8, 4);
 export const guruhlashTahlil = (arg) => ikkiSon(arg, 8, 3);   // k ≤ 3: k! ≤ 6 tartib doskaga sig'adi
 

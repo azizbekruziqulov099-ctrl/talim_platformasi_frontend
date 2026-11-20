@@ -4,7 +4,7 @@
 import BoardOyin from "./BoardOyin.jsx";   // REV429
 import React, { useMemo } from "react";
 import katex from "katex";
-import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, amalTahlil, amalIzoh, HARFLAR } from "./matDoska.js";   // REV425
+import { taroziTahlil, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil, daraxtTahlil, doskaTili, amalTahlil, amalIzoh, HARFLAR } from "./matDoska.js";   // REV425
 import { BoardText } from "./AmaliyDoska.jsx";
 import { Kod, Sxema, Zanjir, Jadval, RANG_KOD } from "./PedDoska.jsx";   // REV670: pedagogika jonli doskasi
 import { rangBolaklar, rangsiz } from "./pedDoska.js";
@@ -406,7 +406,8 @@ const SARL = 24, XUL = 27;
 function OrinAlmash({ arg, progress }) {
   const q = orinAlmashQurish(arg);
   const n = q.n, r = n >= 4 ? 19 : 22, d = r * 2 + 8;
-  const sarlavha = n === 1 ? "1 ta narsa — 1 xil tartib" : `${n - 1}! = ${faktorial(n - 1)} ta tartibning har biriga ${HARFLAR[n - 1]} ni ${n} xil joyga qo‘yamiz`;
+  const ru = doskaTili(arg) === "ru";   // REV672
+  const sarlavha = n === 1 ? (ru ? "1 предмет — 1 порядок" : "1 ta narsa — 1 xil tartib") : ru ? `в каждый из ${n - 1}! = ${faktorial(n - 1)} порядков ставим ${HARFLAR[n - 1]} на ${n} мест` : `${n - 1}! = ${faktorial(n - 1)} ta tartibning har biriga ${HARFLAR[n - 1]} ni ${n} xil joyga qo‘yamiz`;
   const xulosa = n === 1 ? "1! = 1" : `${n}! = ${n} · ${n - 1}! = ${n} · ${faktorial(n - 1)} = ${q.jami}`;
   if (n <= 3) {
     const qatorEni = n * d + 30, gEni = n * qatorEni + 30, gH = 56 + d + 16, W = Math.max(560, 32 + gEni), H = 64 + q.guruhlar.length * (gH + 14) + 46;
@@ -416,7 +417,7 @@ function OrinAlmash({ arg, progress }) {
       {q.guruhlar.map((g, gi) => { const gx = 16, gy = 54 + gi * (gH + 14);
         return <g key={gi}>
           <rect x={gx} y={gy} width={gEni} height={gH} rx="16" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.25)" />
-          {g.asos.length > 0 && <text x={gx + 16} y={gy + 28} fill={CHALK} fontSize="19" opacity=".9">{`${g.asos.join("")} dan:`}</text>}
+          {g.asos.length > 0 && <text x={gx + 16} y={gy + 28} fill={CHALK} fontSize="19" opacity=".9">{ru ? `из ${g.asos.join("")}:` : `${g.asos.join("")} dan:`}</text>}
           {g.tartiblar.map((t, ti) => { raqam += 1; const at = 0.08 + (0.75 * (raqam - 1)) / Math.max(1, q.jami); const cx = gx + 16 + ti * qatorEni, cy = gy + 48 + r;
             const k = progress >= at ? 1 : 0;
             return <g key={ti}>{t.map((h, hi) => <Shar key={hi} x={cx + hi * d + r} y={cy} h={h} r={r} yangi={h === g.yangi && n > 1} korinish={h === g.yangi ? k : (progress >= at - 0.04 ? 1 : 0)} />)}</g>; })}
@@ -435,7 +436,7 @@ function OrinAlmash({ arg, progress }) {
       </g>; })}
     {birinchi.tartiblar.map((t, ti) => { const xs = x0 + (ti % 2) * qatorEni, y = 74 + r + Math.floor(ti / 2) * (d + 22), at = 0.3 + ti * 0.08;
       return <g key={ti}>{t.map((h, hi) => <Shar key={hi} x={xs + hi * d + r} y={y} h={h} r={r} yangi={h === birinchi.yangi} korinish={h === birinchi.yangi ? (progress >= at ? 1 : 0) : (progress >= at - 0.04 ? 1 : 0)} />)}</g>; })}
-    <text x={x0} y={74 + 2 * (d + 22) + 26} fill={CHALK} fontSize="19" opacity=".9" style={kor(progress, 0.6)}>{`har bir asosdan ${n} ta yangi tartib`}</text>
+    <text x={x0} y={74 + 2 * (d + 22) + 26} fill={CHALK} fontSize="19" opacity=".9" style={kor(progress, 0.6)}>{ru ? `из каждого — ${n} новых порядка` : `har bir asosdan ${n} ta yangi tartib`}</text>
     <text x="16" y={H - 16} fill={SARIQ} fontSize={XUL} fontWeight="800" style={kor(progress, 0.88)}>{xulosa}</text>
   </svg>;
 }
@@ -444,12 +445,13 @@ function OrinAlmash({ arg, progress }) {
 function Orinlashtir({ arg, progress }) {
   const t = orinlashtirTahlil(arg);
   if (!t) return <JonliMatn text={arg} progress={progress} />;
+  const ru = doskaTili(arg) === "ru";   // REV672
   const { n, k } = t, r = 21, qd = 54, W = Math.max(640, 40 + Math.max(n * qd, k * 140)), H = 300;
   const tanlov = Array.from({ length: k }, (_, i) => n - i), A = tanlov.reduce((a, b) => a * b, 1);
   const qadam = (i) => 0.14 + (0.6 * i) / k;
   const ox = (i) => 34 + i * qd, oy = 84, sx = (i) => 44 + i * 140 + 55, sy = 166;
   return <svg className="mdx-svg mdx-kombin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`A ${n} ${k} = ${A}`}>
-    <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{`${n} ta narsa, joy esa faqat ${k} ta`}</text>
+    <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{ru ? `${n} предметов, а мест только ${k}` : `${n} ta narsa, joy esa faqat ${k} ta`}</text>
     {HARFLAR.slice(0, n).map((h, i) => { const ketdi = i < k && progress >= qadam(i);
       return <g key={h}>
         {ketdi && <circle cx={ox(i)} cy={oy} r={r} fill="none" stroke="rgba(255,255,255,.35)" strokeDasharray="5 4" />}
@@ -460,11 +462,11 @@ function Orinlashtir({ arg, progress }) {
       return <g key={i}>
         <rect x={x} y={sy - 32} width={110} height={64} rx="12" fill="none" stroke={CHALK} strokeWidth="2.5" strokeDasharray="7 5" style={kor(progress, 0.04)} />
         <Shar x={sx(i)} y={sy} h={HARFLAR[i]} r={r} yangi korinish={progress >= qadam(i) ? 1 : 0} dx={ox(i) - sx(i)} dy={oy - sy} />
-        <text x={sx(i)} y={sy + 62} textAnchor="middle" fill={SARIQ} fontSize="24" fontWeight="800" style={kor(progress, qadam(i))}>{`${v} xil`}</text>
+        <text x={sx(i)} y={sy + 62} textAnchor="middle" fill={SARIQ} fontSize="24" fontWeight="800" style={kor(progress, qadam(i))}>{ru ? `${v} спос.` : `${v} xil`}</text>
         {i < k - 1 && <text x={x + 125} y={sy + 8} textAnchor="middle" fill={CHALK} fontSize="28" style={kor(progress, qadam(i + 1))}>·</text>}
       </g>; })}
     <text x="16" y={268} fill={SARIQ} fontSize={XUL} fontWeight="800" style={kor(progress, 0.84)}>{`A = ${tanlov.join(" · ")} = ${A} = ${n}! / ${n - k}!`}</text>
-    {n > k && <text x="16" y={294} fill={CHALK} fontSize="19" opacity=".95" style={kor(progress, 0.9)}>{`chetda qolgan ${n - k} tasining tartibi muhim emas — shuning uchun (${n - k})! ga bo‘lamiz`}</text>}
+    {n > k && <text x="16" y={294} fill={CHALK} fontSize="19" opacity=".95" style={kor(progress, 0.9)}>{ru ? `порядок ${n - k} оставшихся не важен — поэтому делим на (${n - k})!` : `chetda qolgan ${n - k} tasining tartibi muhim emas — shuning uchun (${n - k})! ga bo‘lamiz`}</text>}
   </svg>;
 }
 
@@ -472,20 +474,21 @@ function Orinlashtir({ arg, progress }) {
 function Guruhlash({ arg, progress }) {
   const t = guruhlashTahlil(arg);
   if (!t) return <JonliMatn text={arg} progress={progress} />;
+  const ru = doskaTili(arg) === "ru";   // REV672
   const { n, k } = t, harf = HARFLAR.slice(0, k);
   const tartiblar = []; const yasa = (q, qolgan) => { if (!qolgan.length) { tartiblar.push(q); return; } qolgan.forEach((h, i) => yasa([...q, h], [...qolgan.slice(0, i), ...qolgan.slice(i + 1)])); }; yasa([], harf);
   let A = 1; for (let i = 0; i < k; i += 1) A *= n - i;
   const r = 18, d = 2 * r + 6, qe = k * d + 24, W = Math.max(640, 40 + tartiblar.length * qe), H = 290, gx = W / 2 - ((k - 1) * d) / 2, gy = 196;
   const yigildi = progress >= 0.62;
   return <svg className="mdx-svg mdx-kombin" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`C ${n} ${k}`}>
-    <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{`Tartib muhim emas: ${harf.join(", ")} ning hamma tartibi — bitta guruh`}</text>
+    <text x="16" y="34" fill={CHALK} fontSize={SARL} fontWeight="700">{ru ? `Порядок не важен: все порядки ${harf.join(", ")} — одна группа` : `Tartib muhim emas: ${harf.join(", ")} ning hamma tartibi — bitta guruh`}</text>
     {tartiblar.map((tt, i) => { const x = 24 + i * qe, at = 0.08 + (0.45 * i) / tartiblar.length;
       return <g key={i} style={{ opacity: progress < at ? 0 : yigildi ? 0.25 : 1, transform: yigildi ? `translate(${gx - x}px, ${gy - 84}px) scale(.96)` : "translate(0,0)", transition: "transform .9s cubic-bezier(.3,.9,.3,1), opacity .9s" }}>
         {tt.map((h, j) => <Shar key={j} x={x + j * d + r} y={84} h={h} r={r} />)}</g>; })}
     <g style={kor(progress, 0.72)}>
       <rect x={gx - r - 14} y={gy - r - 14} width={(k - 1) * d + 2 * r + 28} height={2 * r + 28} rx="16" fill="rgba(255,213,74,.12)" stroke={YANGI_RANG} strokeWidth="3" />
       {harf.map((h, j) => <Shar key={j} x={gx + j * d} y={gy} h={h} r={r} yangi />)}
-      <text x={gx + (k - 1) * d + r + 28} y={gy + 8} fill={SARIQ} fontSize="22" fontWeight="800">{`${tartiblar.length} = ${k}! tartib → 1 guruh`}</text></g>
+      <text x={gx + (k - 1) * d + r + 28} y={gy + 8} fill={SARIQ} fontSize="22" fontWeight="800">{ru ? `${tartiblar.length} = ${k}! порядков → 1 группа` : `${tartiblar.length} = ${k}! tartib → 1 guruh`}</text></g>
     <text x="16" y={H - 12} fill={SARIQ} fontSize={XUL} fontWeight="800" style={kor(progress, 0.88)}>{`C = A / ${k}! = ${A} / ${tartiblar.length} = ${A / tartiblar.length}`}</text>
   </svg>;
 }
@@ -502,7 +505,7 @@ function Venn({ arg, progress }) {
     <text x="160" y="100" fill={CHALK} fontSize="20" fontWeight="800" textAnchor="middle" style={kor(progress, 0.25)}>{`A ${o.A || ""}`}</text>
     <text x="360" y="100" fill={CHALK} fontSize="20" fontWeight="800" textAnchor="middle" style={kor(progress, 0.4)}>{`B ${o.B || ""}`}</text>
     {o.AB && <g style={kor(progress, 0.55)}><text x="260" y="100" fill={SARIQ} fontSize="18" fontWeight="800" textAnchor="middle">{o.AB}</text>
-      <text x="260" y="122" fill={SARIQ} fontSize="12" textAnchor="middle">AB — ikki marta sanaldi</text></g>}
+      <text x="260" y="122" fill={SARIQ} fontSize="12" textAnchor="middle">{doskaTili(arg) === "ru" ? "AB — посчитано дважды" : "AB — ikki marta sanaldi"}</text></g>}
     <text x="16" y="202" fill={SARIQ} fontSize="17" fontWeight="800" style={kor(progress, 0.8)}>{`A + B = ${o.A || "A"} + ${o.B || "B"} − ${o.AB || "AB"}${o.A && o.B && o.AB && /^\d+$/.test(o.A + o.B + o.AB) ? ` = ${+o.A + +o.B - +o.AB}` : ""}`}</text>
   </svg>;
 }

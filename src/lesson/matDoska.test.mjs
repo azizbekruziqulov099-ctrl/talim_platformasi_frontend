@@ -102,3 +102,14 @@ test("ovoz va «Esda tut»", () => {
   const steps = [{ doska: "QOIDA: $a\\cdot b$\nmatn" }, { doska: "QOIDA: ikkinchi" }, { doska: "QOIDA: uchinchi" }];
   assert.deepEqual(esdaTut(steps, 1), { qoidalar: ["$a\\cdot b$", "ikkinchi"], eski: [] });
 });
+
+// REV672: kombinatorika chizmalari — «ru» belgisi
+{
+  const { doskaTili, orinAlmashQurish, orinlashtirTahlil, guruhlashTahlil, vennTahlil } = await import("./matDoska.js");
+  const assert = (await import("node:assert/strict")).default;
+  assert.equal(doskaTili("3 ru"), "ru"); assert.equal(doskaTili("8 4"), "uz"); assert.equal(doskaTili("A=12; B=9; AB=4; ru"), "ru");
+  assert.equal(orinAlmashQurish("3 ru").jami, 6); assert.equal(orinAlmashQurish(4).jami, 24);
+  assert.deepEqual(orinlashtirTahlil("8 4 ru"), { n: 8, k: 4 }); assert.deepEqual(guruhlashTahlil("5 3 ru"), { n: 5, k: 3 });
+  assert.equal(vennTahlil("A=12; B=9; AB=4; ru").AB, "4");
+  console.log("REV672 ok");
+}
