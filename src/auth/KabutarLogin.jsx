@@ -228,6 +228,8 @@ export default function KabutarLogin({ apiBase = "", onAuthenticated, initialErr
       if (natija === "ok") { finish({ token: account.token }); return; }
       if (natija === "tarmoq") { setError(SERVER_DOWN); return; }
       setAccounts(dropToken(account.token));
+      // Mehmon (ro'yxatdan o'tmagan) sessiyasi tugagan bo'lsa — xato ko'rsatmay, yangi mehmon sifatida darhol kiritamiz.
+      if (account.method === "quick" && (!account.role || account.role === "mehmon")) { quickStart("mehmon", "", true); return; }
     }
     if (account.method === "google" && googleEnabled) { startGoogle(); return; }
     if (account.method === "password") { chooseMethod("password"); setIdentifier(account.identifier || ""); return; }
