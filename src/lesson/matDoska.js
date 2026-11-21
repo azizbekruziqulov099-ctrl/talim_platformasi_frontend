@@ -8,7 +8,10 @@ import { PED_BUYRUQLAR, pedRejim, pedYozishSozlari, rangsiz } from "./pedDoska.j
 export const MATEM_RE = /matem|algebr|geometr|математ|алгебр|геометр|\bmath|stereometr|стереометр/i;
 export const matRejim = (fan) => MATEM_RE.test(String(fan || ""));
 /** REV670: jonli (qo'lda yozilayotgan, buyruqli) doska — matematika va 13.00.02 doktorantura kursi. */
-export const jonliRejim = (fan) => matRejim(fan) || pedRejim(fan);
+// REV674: xalqaro baholash fanlari (TIMSS/PISA/PIRLS: tabiiy fan, o'qish, moliya) ham jonli doskada o'tiladi.
+export const XB_FAN_RE = /^\s*(tabiiy fan|fan \(fizika|o.qish savodxonligi|moliyaviy savodxonlik)/i;
+export const xbFanRejim = (fan) => XB_FAN_RE.test(String(fan || ""));
+export const jonliRejim = (fan) => matRejim(fan) || pedRejim(fan) || xbFanRejim(fan);
 
 const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
   "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK", "AMAL", ...PED_BUYRUQLAR];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
