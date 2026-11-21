@@ -39,6 +39,8 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [sozlama, setSozlama] = useState({ slayd_soni: 12, hajm: 'orta', til: 'uz', ohang: '' });
   const [reja, setReja] = useState(null);
   const fileRef = useRef(null);
+  const xatoRef = useRef(null);
+  const [pptxXato, setPptxXato] = useState('');
   const zipRef = useRef(null);
   const ishRef = useRef(null);
   const so = (path, opts) => dvSorov(apiBase, token, path, opts);
@@ -162,17 +164,22 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [xabar, setXabar] = useState('');
   function alertMatn(t) { setXabar(t); setTimeout(() => setXabar(''), 5000); }
 
+  // xato sahifaning tepasida chiqadi — pastda ishlayotgan odam ko'rmay qolmasin
+  useEffect(() => { if (xato) xatoRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }); }, [xato]);
+
   async function pptx() {
     if (!sahna) return;
     setBusy('pptx');
+    setPptxXato('');
     try {
       const uslubKod = sahna.uslub.kod;
       // sayt ko'rinishidagidek: o'sha urug', uslub, asosiy va yordamchi animatsiya, dizayn
-      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, anim2: sahna.dizayn?.anim2 || '', ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn }, binary: true, timeout: 90000 });
+      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, anim2: sahna.dizayn?.anim2 || '', ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn }, binary: true, timeout: 180000 });
       const nom = (sahna.meta.qisqa || sahna.meta.mavzu || 'taqdimot').replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 60);
       yuklabOl(blob, `${nom}.pptx`);
+      alertMatn('PowerPoint fayli tayyor — yuklab olish boshlandi.');
     } catch (e) {
-      setXato(e.message);
+      setPptxXato(e.message || 'Fayl tayyorlanmadi');
     } finally {
       setBusy('');
     }
@@ -187,7 +194,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         <p>Mazmunni bering — dizayn, chizmalar va animatsiyani dastur o‘zi qiladi{info ? ` · ${info.jami.toLocaleString('uz')} xil uslub kombinatsiyasi` : ''}.</p></div>
     </header>
 
-    {xato && <div className="dv-xato" role="alert">{xato}</div>}
+    {xato && <div className="dv-xato" role="alert" ref={xatoRef}>{xato}</div>}
     {xabar && <div className="dv-xabar" role="status">{xabar}</div>}
 
     <section className="dv-card">
@@ -297,7 +304,8 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     {sahna && <section className="dv-card">
       <div className="dv-row dv-spread"><h3>3. Ko‘rish {busy === 'yasash' && <LoaderCircle className="dv-spin" size={16} />}</h3>
         <span className="dv-help">{sahna.slaydlar.length} slayd · uslub {sahna.uslub.kod} · {sahna.uslub.anim} · urug‘ {sahna.seed}</span>
-        <button type="button" className="dv-primary" onClick={pptx} disabled={busy === 'pptx'}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}PowerPoint (.pptx) yuklab olish</button></div>
+        <button type="button" className="dv-primary" onClick={pptx} disabled={busy === 'pptx'}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}{busy === 'pptx' ? 'Fayl tayyorlanmoqda…' : 'PowerPoint (.pptx) yuklab olish'}</button></div>
+      {pptxXato && <div className="dv-xato" role="alert">PowerPoint fayli tayyorlanmadi: {pptxXato}</div>}
       <p className="dv-help">Slaydni bosing yoki → / bo‘sh joy — keyingi qadam. Reja kartalari, pastki nuqtalar, savol kartalari va test variantlari bosiladi. F — to‘liq ekran.</p>
       <SahnaPlayer sahna={sahna} apiBase={apiBase} />
       {sahna.rasm_hisobot && <RasmHisobot h={sahna.rasm_hisobot} nusxa={nusxa} setNusxa={setNusxa} />}

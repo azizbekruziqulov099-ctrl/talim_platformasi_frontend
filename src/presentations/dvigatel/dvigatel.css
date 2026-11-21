@@ -31,7 +31,9 @@
 .dv-player { display: flex; flex-direction: column; gap: 8px; }
 .dv-player.is-full { background: #000; justify-content: center; }
 .dv-stage { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.18); cursor: pointer; background: #fff; }
-.dv-player.is-full .dv-stage { border-radius: 0; max-height: calc(100vh - 48px); width: auto; margin: 0 auto; }
+.dv-player.is-full { align-items: center; }
+/* to'liq ekranda slayd ekranga sig'adigan eng katta o'lchamda (oldin width:auto bilan 300 px ga tushib qolardi) */
+.dv-player.is-full .dv-stage { border-radius: 0; width: min(calc(100vw - 24px), calc((100vh - 64px) * 16 / 9)); max-height: none; margin: 0 auto; flex: none; }
 .dv-svg { width: 100%; height: 100%; display: block; user-select: none; }
 .dv-el { transform-box: fill-box; transform-origin: center; }
 .dv-click { cursor: pointer; }
@@ -39,6 +41,9 @@
 .dv-bar { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: .9rem; }
 .dv-player.is-full .dv-bar { color: #fff; }
 .dv-bar button { border: 1px solid rgba(127,127,127,.35); background: transparent; color: inherit; border-radius: 8px; padding: 5px 8px; cursor: pointer; display: inline-flex; }
+.dv-player.is-css-full { position: fixed; inset: 0; z-index: 10000; padding: 12px; }
+.dv-player.is-css-full .dv-stage { width: min(calc(100vw - 48px), calc((100vh - 88px) * 16 / 9)); }
+.dv-bar .dv-full-btn { gap: 6px; align-items: center; padding: 5px 12px; font-weight: 600; }
 .dv-thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; }
 .dv-thumbs button { flex: 0 0 150px; border: 2px solid transparent; border-radius: 8px; padding: 0; overflow: hidden; position: relative; cursor: pointer; background: #fff; }
 .dv-thumbs button.is-active { border-color: #b5173a; }

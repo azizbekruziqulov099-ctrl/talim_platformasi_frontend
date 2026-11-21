@@ -152,16 +152,36 @@ export default function SahnaPlayer({ sahna, apiBase, startIndex = 0 }) {
   });
 
   useEffect(() => {
-    const onFs = () => setFull(document.fullscreenElement === box.current);
+    const onFs = () => setFull((document.fullscreenElement || document.webkitFullscreenElement) === box.current);
     document.addEventListener('fullscreenchange', onFs);
-    return () => document.removeEventListener('fullscreenchange', onFs);
+    document.addEventListener('webkitfullscreenchange', onFs);
+    return () => { document.removeEventListener('fullscreenchange', onFs); document.removeEventListener('webkitfullscreenchange', onFs); };
   }, []);
 
+  // brauzer to'liq ekranni bermasa (iframe, eski Safari) — sahifa ichida butun oynani egallaydi
+  const [cssFull, setCssFull] = useState(false);
   function toggleFull() {
     if (!box.current) return;
-    if (document.fullscreenElement) document.exitFullscreen?.();
-    else box.current.requestFullscreen?.().catch(() => {});
+    if (cssFull) { setCssFull(false); setFull(false); return; }
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+      return;
+    }
+    const el = box.current;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    const zaxira = () => { setCssFull(true); setFull(true); };
+    if (!req) return zaxira();
+    try {
+      const p = req.call(el);
+      if (p && p.catch) p.catch(zaxira);
+    } catch { zaxira(); }
   }
+  useEffect(() => {
+    if (!cssFull) return undefined;
+    const esc = (e) => { if (e.key === 'Escape') { setCssFull(false); setFull(false); } };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [cssFull]);
 
   const onLink = (lnk) => {
     if (lnk === 'next') go(idx + 1);
@@ -170,15 +190,15 @@ export default function SahnaPlayer({ sahna, apiBase, startIndex = 0 }) {
   };
   const onTrigger = (id) => setTriggered(prevSet => { const s = new Set(prevSet); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
-  return <div className={`dv-player${full ? ' is-full' : ''}`} ref={box}>
-    <div className="dv-stage" onClick={next} key={idx}>
+  return <div className={`dv-player${full ? ' is-full' : ''}${cssFull ? ' is-css-full' : ''}`} ref={box}>
+    <div className="dv-stage" onClick={next} onDoubleClick={(e) => { e.preventDefault(); toggleFull(); }} key={idx}>
       <SlaydSvg slayd={slayd} apiBase={apiBase} step={step} triggered={triggered} playFrom={playFrom} onLink={onLink} onTrigger={onTrigger} />
     </div>
     <div className="dv-bar">
       <button type="button" onClick={prev} aria-label="Oldingi"><ChevronLeft size={18} /></button>
       <span>{idx + 1} / {slides.length}{(slayd.qadam || 0) > 0 && <small> · {step}/{slayd.qadam}</small>}</span>
       <button type="button" onClick={next} aria-label="Keyingi"><ChevronRight size={18} /></button>
-      <button type="button" onClick={toggleFull} aria-label="To‘liq ekran">{full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
+      <button type="button" className="dv-full-btn" onClick={toggleFull} aria-label="To‘liq ekran">{full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}{full ? 'Kichraytirish' : 'To‘liq ekran'}</button>
     </div>
     {!full && <div className="dv-thumbs">{slides.map((s, i) => <button type="button" key={i} className={i === idx ? 'is-active' : ''} onClick={() => go(i)} aria-label={`${i + 1}-slayd`}>
       <SlaydSvg slayd={s} apiBase={apiBase} statik /><span>{i + 1}</span>
