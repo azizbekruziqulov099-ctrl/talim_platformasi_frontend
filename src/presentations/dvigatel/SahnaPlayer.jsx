@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { dvUrl } from './api.js';
 
@@ -10,6 +10,9 @@ const FONTS = {
   serif: "Cambria, Caladea, Georgia, 'Times New Roman', serif",
   math: "'Cambria Math', Cambria, Caladea, 'STIX Two Math', 'Times New Roman', serif",
 };
+FONTS.head = FONTS.sans;
+// foydalanuvchi tanlagan shriftlar (sahna.shriftlar: {sans|head: {face, css}}) — shu taqdimot uchun
+const FontCtx = createContext(FONTS);
 
 function arrowHead(x1, y1, x2, y2, lw) {
   const a = Math.atan2(y2 - y1, x2 - x1);
@@ -31,6 +34,7 @@ function animStyle(a, play) {
 }
 
 function Matn({ el }) {
+  const FONTS = useContext(FontCtx);
   return el.ly.map((q, i) => {
     const first = q.rs[0] || {};
     return <g key={i}>
@@ -108,7 +112,7 @@ export function SlaydSvg({ slayd, apiBase, step = 99, triggered, playFrom = -1, 
   </svg>;
 }
 
-export default function SahnaPlayer({ sahna, apiBase, startIndex = 0 }) {
+export default function SahnaPlayer({ sahna, apiBase, startIndex = 0, joyidaQol = false }) {
   const slides = sahna.slaydlar;
   const [idx, setIdx] = useState(startIndex);
   const [step, setStep] = useState(0);
@@ -127,7 +131,13 @@ export default function SahnaPlayer({ sahna, apiBase, startIndex = 0 }) {
     setPlayFrom(atEnd ? -1 : 0);
   }, [slides]);
 
-  useEffect(() => { go(0); }, [sahna]); // eslint-disable-line react-hooks/exhaustive-deps
+  // joyidaQol: dizayn sozlanayotganda sahna yangilansa — o'sha slaydda, hamma qismi ko'ringan holda qoladi
+  useEffect(() => { if (joyidaQol) go(Math.min(idx, slides.length - 1), true); else go(0); }, [sahna]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fonts = useMemo(() => {
+    const f = { ...FONTS };
+    Object.entries(sahna.shriftlar || {}).forEach(([k, v]) => { if (v?.css) f[k] = v.css; });
+    return f;
+  }, [sahna]);
 
   const next = useCallback(() => {
     if (step < (slayd.qadam || 0)) { setStep(s => s + 1); setPlayFrom(step + 1); }
@@ -141,6 +151,8 @@ export default function SahnaPlayer({ sahna, apiBase, startIndex = 0 }) {
   useEffect(() => {
     const onKey = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target?.tagName)) return;
+      // sozlamalar tugmasida bo'sh joy / Enter — o'sha tugma uchun (slayd almashmasin)
+      if (e.target?.closest?.('button, a, [role="tab"]') && !box.current?.contains(e.target)) return;
       if (['ArrowRight', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
       else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); prev(); }
       else if (e.key === 'Home') go(0);
@@ -190,7 +202,7 @@ export default function SahnaPlayer({ sahna, apiBase, startIndex = 0 }) {
   };
   const onTrigger = (id) => setTriggered(prevSet => { const s = new Set(prevSet); s.has(id) ? s.delete(id) : s.add(id); return s; });
 
-  return <div className={`dv-player${full ? ' is-full' : ''}${cssFull ? ' is-css-full' : ''}`} ref={box}>
+  return <FontCtx.Provider value={fonts}><div className={`dv-player${full ? ' is-full' : ''}${cssFull ? ' is-css-full' : ''}`} ref={box}>
     <div className="dv-stage" onClick={next} onDoubleClick={(e) => { e.preventDefault(); toggleFull(); }} key={idx}>
       <SlaydSvg slayd={slayd} apiBase={apiBase} step={step} triggered={triggered} playFrom={playFrom} onLink={onLink} onTrigger={onTrigger} />
     </div>
@@ -203,5 +215,5 @@ export default function SahnaPlayer({ sahna, apiBase, startIndex = 0 }) {
     {!full && <div className="dv-thumbs">{slides.map((s, i) => <button type="button" key={i} className={i === idx ? 'is-active' : ''} onClick={() => go(i)} aria-label={`${i + 1}-slayd`}>
       <SlaydSvg slayd={s} apiBase={apiBase} statik /><span>{i + 1}</span>
     </button>)}</div>}
-  </div>;
+  </div></FontCtx.Provider>;
 }

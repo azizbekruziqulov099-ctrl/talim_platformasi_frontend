@@ -1,16 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Check, Copy, Download, FileText, FolderOpen, ListTree, LoaderCircle, Plus, RefreshCw, Save, Shuffle, Sparkles, Trash2, Upload, Wand2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, Copy, Download, Eye, FileSpreadsheet, FileText, Film, FolderOpen, LayoutTemplate, Library, Lightbulb, ListChecks, ListTree, LoaderCircle, Palette, Plus, RefreshCw, RotateCcw, Save, Shuffle, SlidersHorizontal, Sparkles, Trash2, Type, Upload, Wand2, X } from 'lucide-react';
 import SahnaPlayer from './SahnaPlayer.jsx';
 import { dvSorov, yuklabOl } from './api.js';
 import './dvigatel.css';
 
-/* Kuchli taqdimot: 1) mazmun (tayyor mavzu / AI / Excel / JSON / namuna) → 2) uslub → 3) ko'rish va PPTX.
+/* Taqdimot tayyorlash — 4 qadam: 1) mazmun (AI / tayyor mavzu / fayl / saqlanganlar) → 2) reja (ixtiyoriy)
+ * → 3) dizayn (uslub, rang, shrift, ramka, animatsiya, qismlar — jonli ko'rinish bilan) → 4) ko'rish, saqlash, PPTX.
  * Dizayn, chizmalar va animatsiyani serverdagi dvigatel qiladi; bu oyna faqat boshqaradi. */
 
 const DARAJALAR = [['maktab', 'Maktab'], ['bakalavr', 'Bakalavr'], ['magistr', 'Magistr'], ['bogcha', 'Bog‘cha']];
 const TURLAR = [['dars', 'Dars'], ['ma’ruza', 'Ma’ruza'], ['amaliy', 'Amaliy'], ['seminar', 'Seminar']];
-const SLAYD_SONI = [8, 10, 12, 16, 20, 25, 30, 40];
-const HAJMLAR = [['qisqa', 'Qisqa'], ['orta', 'O‘rta'], ['batafsil', 'Batafsil']];
+const HAJMLAR = [['qisqa', 'Qisqa', '20–40 so‘z', '1–2 jumla yoki 3–4 punkt'], ['orta', 'O‘rta', '40–70 so‘z', '2–3 jumla yoki 4–5 punkt'],
+  ['batafsil', 'Batafsil', '70–110 so‘z', '3–4 jumla, har tushunchaga misol'], ['toliq', 'To‘liq', '110–160 so‘z', 'ta’rif + izoh + misol, slayd to‘la']];
+const MISOLLAR = [['kam', 'Kam'], ['orta', 'O‘rta'], ['kop', 'Ko‘p']];
+const TEST_SONI = [['', 'Avto'], ['0', 'Yo‘q'], ['5', '5 ta'], ['10', '10 ta'], ['15', '15 ta'], ['20', '20 ta']];
+const QADAMLAR = [['Mazmun', 'Mavzu va manba'], ['Reja', 'Bo‘lim va slaydlar (ixtiyoriy)'], ['Dizayn', 'Uslub, rang, shrift, animatsiya'], ['Tayyor', 'Ko‘rish, saqlash, yuklab olish']];
+const MANBALAR = [['ai', Sparkles, 'AI yozsin', 'Mavzuni yozasiz — AI darsni o‘zi tuzadi'], ['tayyor', Library, 'Tayyor mavzular', 'Kafedra mavzulari, ma’ruza va amaliy'],
+  ['fayl', FileSpreadsheet, 'Fayldan', 'Excel shablon yoki ChatGPT JSON'], ['mening', FolderOpen, 'Mening taqdimotlarim', 'Saqlanganlar va AI yozganlar'], ['namuna', Eye, 'Namuna', 'Qanday ishlashini ko‘rish']];
+const GURUH_BELGI = { 'Ranglar va fon': Palette, Shrift: Type, Sahifa: LayoutTemplate, Animatsiya: Film, 'Qaysi qismlar bo‘lsin': ListChecks };
 const TILLAR = [['uz', 'O‘zbek'], ['ru', 'Rus'], ['en', 'Ingliz']];
 const OHANGLAR = [['', 'Avto'], ['ilmiy', 'Ilmiy'], ['oddiy', 'Oddiy'], ['oyinli', 'O‘yinli']];
 const yangiUrug = () => 1 + Math.floor(Math.random() * 2147483000);
@@ -29,7 +36,7 @@ function holatMatn(t) {
 
 export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [info, setInfo] = useState(null);
-  const [tab, setTab] = useState('mening');
+  const [tab, setTab] = useState('ai');
   const [royxat, setRoyxat] = useState(null);
   const [joriyIsh, setJoriyIsh] = useState(null);
   const [ochirTasdiq, setOchirTasdiq] = useState('');
@@ -52,7 +59,11 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [busy, setBusy] = useState('');
   const [xato, setXato] = useState('');
   const [aiVaqt, setAiVaqt] = useState(0);
-  const [sozlama, setSozlama] = useState({ slayd_soni: 12, hajm: 'orta', til: 'uz', ohang: '' });
+  const [sozlama, setSozlama] = useState({ slayd_soni: 12, hajm: 'orta', til: 'uz', ohang: '', misollar: 'orta', test_soni: '' });
+  const [soz, setSoz] = useState({});            // dizayn sozlamalari (server katalogi: info.sozlamalar)
+  const [sozKech, setSozKech] = useState({});    // yozib turilganda har harfda qayta chizmaslik uchun
+  const [qadam, setQadam] = useState(1);
+  const [ochiq, setOchiq] = useState(() => new Set(['uslub']));
   const [reja, setReja] = useState(null);
   const fileRef = useRef(null);
   const xatoRef = useRef(null);
@@ -72,10 +83,10 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     try {
       const r = await so('/saqlangan');
       setRoyxat(r.taqdimotlar || []);
-      if (boshida && !(r.taqdimotlar || []).length) setTab(t => (t === 'mening' ? 'tayyor' : t));
+      if (boshida && (r.taqdimotlar || []).length) setTab(t => (t === 'ai' ? 'mening' : t));
     } catch (e) {
       setRoyxat([]);
-      if (boshida) setTab(t => (t === 'mening' ? 'tayyor' : t)); else setXato(e.message);
+      if (!boshida) setXato(e.message);
     }
   }
   // AI yozayotgan ish bo'lsa — ro'yxat o'zi yangilanib turadi
@@ -93,8 +104,25 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     setBolimTitul(k && 'bolim_titul' in k ? k.bolim_titul : null);
     setRasmAvto(k?.rasm_avto ?? true);
     setDizayn(k?.dizayn || {});
+    setSoz(k?.sozlama || {});
+    setSozKech(k?.sozlama || {});
   }
-  const korinish = () => ({ seed, oila, palitra, anim, bolim_titul: bolimTitul, rasm_avto: rasmAvto, dizayn });
+  const korinish = () => ({ seed, oila, palitra, anim, bolim_titul: bolimTitul, rasm_avto: rasmAvto, dizayn, sozlama: sozKech });
+  function avtoga() {
+    setOila(''); setPalitra(''); setAnim(''); setBolimTitul(null); setRasmAvto(true); setDizayn({}); setSoz({}); setSozKech({});
+    alertMatn('Dizayn sozlamalari avtoga qaytarildi.');
+  }
+  // yozib turilgan matn (muallif) — 0,6 soniya to'xtagach chiziladi; tugmalar darhol
+  useEffect(() => {
+    const id = setTimeout(() => setSozKech(soz), 600);
+    return () => clearTimeout(id);
+  }, [soz]);
+  const sozQoy = (kalit, qiymat) => {
+    const n = { ...soz };
+    if (qiymat === '' || qiymat === undefined || qiymat === null) delete n[kalit]; else n[kalit] = qiymat;
+    setSoz(n);
+    if (kalit !== 'muallif') setSozKech(n);
+  };
 
   async function saqlanganOch(t) {
     setBusy('och:' + t.id);
@@ -104,22 +132,28 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
       if (o.holat === 'tayyor' && o.tur === 'reja') {
         const sr = o.sorov || {};
         setForm(f => ({ ...f, ...Object.fromEntries(['mavzu', 'fan', 'daraja', 'sinf', 'tur', 'qoshimcha'].filter(k => sr[k]).map(k => [k, sr[k]])) }));
-        if (sr.sozlama) setSozlama(z => ({ ...z, ...sr.sozlama, slayd_soni: sr.sozlama.slayd_soni || z.slayd_soni }));
+        if (sr.sozlama) {
+          const { qismlar, ...qolgan } = sr.sozlama;
+          setSozlama(z => ({ ...z, ...qolgan, slayd_soni: qolgan.slayd_soni || z.slayd_soni, test_soni: qolgan.test_soni === null || qolgan.test_soni === undefined ? '' : String(qolgan.test_soni) }));
+          if (qismlar && Object.keys(qismlar).length) setSoz(z => ({ ...z, qismlar }));
+        }
         setReja(o.reja);
         setTab('ai');
+        setQadam(2);
         alertMatn('Reja ochildi — tahrirlab, «Shu reja bo‘yicha yozsin» ni bosing.');
       } else if (o.holat === 'tayyor') {
         korinishQoy(o.korinish);
         setJoriyIsh(o.id);
         setMiya(o.miya);
         setTanlangan(null);
+        setQadam(4);
       } else if (t.holat === 'uzildi') {
         setXato('Bu taqdimotni yozish server qayta ishga tushganda to‘xtab qolgan. «AI yozsin» bo‘limida qayta yozdiring.');
       } else if (o.holat === 'xato') {
         setXato(o.xato || 'AI xato bilan tugagan');
       } else {
         setBusy('ai');
-        await kut(o.id, Date.now(), (m) => { setMiya(m); setSeed(yangiUrug()); setJoriyIsh(o.id); });
+        await kut(o.id, Date.now(), (m) => { setMiya(m); setSeed(yangiUrug()); setJoriyIsh(o.id); setQadam(3); });
         royxatYukla();
         return;
       }
@@ -172,7 +206,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         .then(() => setSaqlandi(true)).catch(() => {});
     }, 1200);
     return () => clearTimeout(id);
-  }, [joriyIsh, seed, oila, palitra, anim, bolimTitul, rasmAvto, dizayn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [joriyIsh, seed, oila, palitra, anim, bolimTitul, rasmAvto, dizayn, sozKech]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // mazmun yoki uslub o'zgarsa — sahnani qayta yasaymiz (server 0,2 soniyada chizadi)
   useEffect(() => {
@@ -180,12 +214,12 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     let bekor = false;
     setBusy('yasash');
     const uslubKod = oila && palitra ? `${oila}.${palitra}.${seed % 3}` : undefined;
-    so('/yasash', { method: 'POST', json: { miya, seed, ...(uslubKod ? { uslub: uslubKod } : oila ? { oila } : {}), ...(anim ? { anim } : {}), ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn } })
+    so('/yasash', { method: 'POST', json: { miya, seed, ...(uslubKod ? { uslub: uslubKod } : oila ? { oila } : {}), ...(anim ? { anim } : {}), ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn, sozlama: sozKech } })
       .then(s => { if (!bekor) { setSahna(s); setXato(''); } })
       .catch(e => { if (!bekor) setXato(e.message); })
       .finally(() => { if (!bekor) setBusy(''); });
     return () => { bekor = true; };
-  }, [miya, seed, oila, palitra, anim, bolimTitul, rasmAvto, dizayn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [miya, seed, oila, palitra, anim, bolimTitul, rasmAvto, dizayn, sozKech]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function aiIsh(body, natijaUchun) {
     setXato('');
@@ -222,12 +256,14 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     }
   }
 
+  // AI uchun mazmun sozlamalari: test soni («Avto» — AI o'zi), o'chirilgan qismlar dizayn bilan umumiy
+  const aiSozlama = () => ({ ...sozlama, test_soni: sozlama.test_soni === '' ? undefined : Number(sozlama.test_soni), qismlar: soz.qismlar || {} });
   function aiYoz(rejaBilan = false) {
-    return aiIsh({ ...form, sozlama, ...(rejaBilan && reja ? { reja } : {}) }, (m, ish) => { setMiya(m); setSeed(yangiUrug()); setJoriyIsh(ish); setTanlangan(null); royxatYukla(); });
+    return aiIsh({ ...form, sozlama: aiSozlama(), ...(rejaBilan && reja ? { reja } : {}) }, (m, ish) => { setMiya(m); setSeed(yangiUrug()); setJoriyIsh(ish); setTanlangan(null); royxatYukla(); setQadam(3); });
   }
 
   function aiReja() {
-    return aiIsh({ ...form, sozlama, faqat_reja: true }, r => setReja(r));
+    return aiIsh({ ...form, sozlama: aiSozlama(), faqat_reja: true }, r => { setReja(r); setQadam(2); });
   }
 
   async function faylYukla(file) {
@@ -309,7 +345,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     try {
       const uslubKod = sahna.uslub.kod;
       // sayt ko'rinishidagidek: o'sha urug', uslub, asosiy va yordamchi animatsiya, dizayn
-      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, anim2: sahna.dizayn?.anim2 || '', ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn }, binary: true, timeout: 180000 });
+      const blob = await so('/pptx', { method: 'POST', json: { miya, seed: sahna.seed, uslub: uslubKod, anim: sahna.uslub.anim, anim2: sahna.dizayn?.anim2 || '', ...(bolimTitul !== null ? { bolim_titul: bolimTitul } : {}), rasm_avto: rasmAvto, dizayn, sozlama: sozKech }, binary: true, timeout: 180000 });
       const nom = (sahna.meta.qisqa || sahna.meta.mavzu || 'taqdimot').replace(/[^\p{L}\p{N}]+/gu, '_').slice(0, 60);
       yuklabOl(blob, `${nom}.pptx`);
       alertMatn('PowerPoint fayli tayyor — yuklab olish boshlandi.');
@@ -321,28 +357,53 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   }
 
   const oilaObj = info?.oilalar.find(o => o.kod === oila);
+  const katalog = info?.sozlamalar || [];
+  const qismKatalog = katalog.flatMap(g => g.sozlamalar).find(s => s.tur === 'qismlar');
+  const mazmunSoni = miya ? miya.bolimlar.reduce((n, b) => n + b.slaydlar.length, 0) : 0;
+  const ruxsat = [true, !!reja || tab === 'ai', !!miya, !!miya && !!sahna];
+  const ozgargan = Object.keys(soz).length + (oila ? 1 : 0) + (anim ? 1 : 0) + Object.keys(dizayn).length + (bolimTitul !== null ? 1 : 0) + (rasmAvto ? 0 : 1);
+  const guruhSoni = g => g.sozlamalar.filter(s => soz[s.kalit] !== undefined).length;
+  const ochQoy = id => setOchiq(o => { const n = new Set(o); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const aiTayyor = info?.ai !== false;
+  const aiBand = busy === 'ai';
 
   return <div className="dv-studio">
     <header className="dv-head">
-      <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>
-      <div><h2><Sparkles size={20} /> Kuchli taqdimot</h2>
-        <p>Mazmunni bering — dizayn, chizmalar va animatsiyani dastur o‘zi qiladi{info ? ` · ${info.jami.toLocaleString('uz')} xil uslub kombinatsiyasi` : ''}.</p></div>
+      {onClose && <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>}
+      <div className="dv-head-matn"><h2><Sparkles size={20} /> Taqdimot tayyorlash</h2>
+        <p>Mazmunni bering, dizaynni sozlang — chizmalar, joylashuv va animatsiyani dastur o‘zi qiladi{info ? ` · ${info.jami.toLocaleString('uz')} xil uslub` : ''}.</p></div>
+      <button type="button" className="dv-back" onClick={() => { setTab('mening'); setQadam(1); royxatYukla(); }}><FolderOpen size={16} />Mening taqdimotlarim</button>
     </header>
 
-    {xato && <div className="dv-xato" role="alert" ref={xatoRef}>{xato}</div>}
+    <ol className="dv-qadamlar" aria-label="Taqdimot tayyorlash qadamlari">
+      {QADAMLAR.map(([nom, izoh], i) => {
+        const n = i + 1;
+        const tugadi = (n === 1 && !!miya) || (n === 2 && !!miya && !!reja) || (n === 3 && qadam === 4);
+        return <li key={nom}><button type="button" disabled={!ruxsat[i]} aria-current={qadam === n ? 'step' : undefined}
+          className={`${qadam === n ? 'is-current' : ''}${tugadi ? ' is-done' : ''}`} onClick={() => setQadam(n)}>
+          <span className="dv-qadam-raqam">{tugadi && qadam !== n ? <Check size={15} /> : n}</span>
+          <span className="dv-qadam-matn"><b>{nom}</b><small>{izoh}</small></span>
+        </button></li>;
+      })}
+    </ol>
+
+    {xato && <div className="dv-xato" role="alert" ref={xatoRef}><CircleAlert size={17} /> {xato}</div>}
     {xabar && <div className="dv-xabar" role="status">{xabar}</div>}
 
-    <section className="dv-card">
-      <h3>1. Mazmun (miya)</h3>
-      <div className="dv-tabs" role="tablist">
-        {[['mening', 'Mening taqdimotlarim'], ['tayyor', 'Tayyor mavzular'], ['ai', 'AI yozsin'], ['fayl', 'Excel / JSON yuklash'], ['namuna', 'Namuna']].map(([id, nom]) =>
-          <button type="button" key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-active' : ''} onClick={() => { setTab(id); if (id === 'mening') royxatYukla(); }}>{nom}</button>)}
+    {/* ---------------------------------------------------------------- 1. MAZMUN */}
+    {qadam === 1 && <section className="dv-card">
+      <h3>1-qadam. Mazmun qayerdan olinadi?</h3>
+      <Yoriq>Bittasini tanlang. Eng oson yo‘l — <b>«AI yozsin»</b>: mavzuni yozasiz, slaydlar sonini va hajmini belgilaysiz. Tayyor bo‘lgach dizayn qadamiga o‘tasiz.</Yoriq>
+      <div className="dv-manbalar" role="tablist">
+        {MANBALAR.map(([id, B, nom, izoh]) => <button type="button" key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-active' : ''}
+          onClick={() => { setTab(id); if (id === 'mening') royxatYukla(); }}><B size={20} /><b>{nom}</b><small>{izoh}</small></button>)}
       </div>
+
       {tab === 'mening' && <div className="dv-fayl">
-        <p className="dv-help">AI yozgan barcha taqdimotlar shu yerda saqlanadi — yuklab olmasangiz ham, sahifani yopsangiz ham yo‘qolmaydi. Tanlagan uslub va dizayn ham birga saqlanadi. Tayyor mavzu yoki yuklangan faylni «3. Ko‘rish» dagi «Saqlash» bilan qo‘shasiz.</p>
+        <p className="dv-help">AI yozgan barcha taqdimotlar shu yerda saqlanadi — yuklab olmasangiz ham, sahifani yopsangiz ham yo‘qolmaydi. Tanlagan dizayn sozlamalari ham birga saqlanadi.</p>
         <div className="dv-row"><button type="button" onClick={() => royxatYukla()}><RefreshCw size={15} />Yangilash</button></div>
         {!royxat && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}
-        {royxat && !royxat.length && <p className="dv-help">Hozircha saqlangan taqdimot yo‘q. «AI yozsin» bo‘limida yozdiring — natija shu yerda paydo bo‘ladi.</p>}
+        {royxat && !royxat.length && <p className="dv-help">Hozircha saqlangan taqdimot yo‘q. «AI yozsin» bilan yozdiring — natija shu yerda paydo bo‘ladi.</p>}
         {royxat && royxat.length > 0 && <div className="dv-mavzular">
           {royxat.map(t => <div key={t.id} className={`dv-mavzu${joriyIsh === t.id ? ' is-active' : ''}`}>
             <button type="button" className="dv-mavzu-btn" onClick={() => saqlanganOch(t)} disabled={busy === 'och:' + t.id}>
@@ -360,6 +421,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
           </div>)}
         </div>}
       </div>}
+
       {tab === 'tayyor' && <div className="dv-fayl">
         {!kutub && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}
         {kutub && !kutub.length && <p className="dv-help">Hozircha tayyor mavzular yo‘q.</p>}
@@ -390,26 +452,57 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
           </div>
         </div>)}
       </div>}
-      {tab === 'ai' && <div className="dv-form">
-        {info && !info.ai && <p className="dv-help">AI kaliti serverda sozlanmagan. Hozircha Excel shablon yoki ChatGPT ko‘rsatmasi orqali tayyorlang.</p>}
-        <label className="dv-wide">Mavzu<input value={form.mavzu} onChange={e => setForm({ ...form, mavzu: e.target.value })} placeholder="Masalan: Kasrlarni qo‘shish va ayirish" /></label>
-        <label>Fan<input value={form.fan} onChange={e => setForm({ ...form, fan: e.target.value })} placeholder="Matematika" /></label>
-        <label>Sinf / kurs<input value={form.sinf} onChange={e => setForm({ ...form, sinf: e.target.value })} placeholder="5-sinf yoki 2-kurs" /></label>
-        <label>Daraja<select value={form.daraja} onChange={e => setForm({ ...form, daraja: e.target.value })}>{DARAJALAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
-        <label>Turi<select value={form.tur} onChange={e => setForm({ ...form, tur: e.target.value })}>{TURLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
-        <label className="dv-wide">Qo‘shimcha talab (ixtiyoriy)<input value={form.qoshimcha} onChange={e => setForm({ ...form, qoshimcha: e.target.value })} placeholder="Masalan: ko‘proq hayotiy misollar, 4 ta bo‘lim" /></label>
-        <label className="dv-wide">Manba matn (ixtiyoriy — darslikdan parcha, reja)<textarea rows={3} value={form.manba} onChange={e => setForm({ ...form, manba: e.target.value })} /></label>
-        <label>Slaydlar soni<select value={sozlama.slayd_soni} onChange={e => setSozlama({ ...sozlama, slayd_soni: Number(e.target.value) })}>{SLAYD_SONI.map(n => <option key={n} value={n}>{n} ta</option>)}</select></label>
-        <label>Matn hajmi<select value={sozlama.hajm} onChange={e => setSozlama({ ...sozlama, hajm: e.target.value })}>{HAJMLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
-        <label>Til<select value={sozlama.til} onChange={e => setSozlama({ ...sozlama, til: e.target.value })}>{TILLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
-        <label>Ohang<select value={sozlama.ohang} onChange={e => setSozlama({ ...sozlama, ohang: e.target.value })}>{OHANGLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
-        {!reja && <div className="dv-row dv-wide">
-          <button type="button" className="dv-primary" disabled={busy === 'ai' || form.mavzu.trim().length < 3 || (info && !info.ai)} onClick={aiReja}>
-            {busy === 'ai' ? <><LoaderCircle className="dv-spin" size={17} />AI ishlamoqda… {aiVaqt}s</> : <><ListTree size={17} />Avval reja (tahrirlab olasiz)</>}</button>
-          <button type="button" disabled={busy === 'ai' || form.mavzu.trim().length < 3 || (info && !info.ai)} onClick={() => aiYoz(false)}><Wand2 size={17} />Darhol yozsin</button>
-        </div>}
-        {reja && <RejaMuharrir reja={reja} setReja={setReja} busy={busy === 'ai'} aiVaqt={aiVaqt} onYoz={() => aiYoz(true)} />}
+
+      {tab === 'ai' && <div className="dv-ai">
+        {!aiTayyor && <p className="dv-xato">AI kaliti serverda sozlanmagan. Hozircha «Fayldan» (Excel shablon yoki ChatGPT ko‘rsatmasi) orqali tayyorlang.</p>}
+        <fieldset className="dv-bolak"><legend>Mavzu</legend>
+          <div className="dv-form">
+            <label className="dv-wide"><span>Mavzu <em>*</em></span><input value={form.mavzu} onChange={e => setForm({ ...form, mavzu: e.target.value })} placeholder="Masalan: Kasrlarni qo‘shish va ayirish" /></label>
+            <label>Fan<input value={form.fan} onChange={e => setForm({ ...form, fan: e.target.value })} placeholder="Matematika" /></label>
+            <label>Sinf / kurs<input value={form.sinf} onChange={e => setForm({ ...form, sinf: e.target.value })} placeholder="5-sinf yoki 2-kurs" /></label>
+            <label>Daraja<select value={form.daraja} onChange={e => setForm({ ...form, daraja: e.target.value })}>{DARAJALAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+            <label>Turi<select value={form.tur} onChange={e => setForm({ ...form, tur: e.target.value })}>{TURLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+          </div>
+        </fieldset>
+        <fieldset className="dv-bolak"><legend>Hajm</legend>
+          <div className="dv-soz">
+            <div className="dv-soz-nom"><b>Slaydlar soni: {sozlama.slayd_soni} ta</b><small>Mazmun slaydlari (titul, reja, test va xulosa qo‘shimcha chiqadi). 5 dan 40 gacha.</small></div>
+            <div className="dv-row dv-soni-tanla">
+              <input type="range" min={5} max={40} value={sozlama.slayd_soni} onChange={e => setSozlama({ ...sozlama, slayd_soni: Number(e.target.value) })} aria-label="Slaydlar soni" />
+              <input type="number" min={5} max={40} value={sozlama.slayd_soni} onChange={e => setSozlama({ ...sozlama, slayd_soni: Math.max(5, Math.min(40, Number(e.target.value) || 5)) })} aria-label="Slaydlar soni (raqam)" />
+            </div>
+          </div>
+          <div className="dv-soz">
+            <div className="dv-soz-nom"><b>Har slayddagi matn</b><small>Slaydlar bo‘sh ko‘rinmasin desangiz — «Batafsil» yoki «To‘liq».</small></div>
+            <div className="dv-hajmlar">{HAJMLAR.map(([k, n, soz_, izoh]) => <button type="button" key={k} className={sozlama.hajm === k ? 'is-active' : ''} aria-pressed={sozlama.hajm === k}
+              onClick={() => setSozlama({ ...sozlama, hajm: k })}><b>{n}</b><span>{soz_}</span><small>{izoh}</small></button>)}</div>
+          </div>
+          <div className="dv-form">
+            <label>Misollar<select value={sozlama.misollar} onChange={e => setSozlama({ ...sozlama, misollar: e.target.value })}>{MISOLLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+            <label>Test savollari<select value={sozlama.test_soni} onChange={e => setSozlama({ ...sozlama, test_soni: e.target.value })}>{TEST_SONI.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+            <label>Til<select value={sozlama.til} onChange={e => setSozlama({ ...sozlama, til: e.target.value })}>{TILLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+            <label>Ohang<select value={sozlama.ohang} onChange={e => setSozlama({ ...sozlama, ohang: e.target.value })}>{OHANGLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
+          </div>
+        </fieldset>
+        {qismKatalog && <fieldset className="dv-bolak"><legend>Qaysi qismlar bo‘lsin</legend>
+          <p className="dv-help">Belgini olib tashlasangiz, AI o‘sha qismni yozmaydi va u slaydda chiqmaydi.</p>
+          <Qismlar ai soz={soz} sozQoy={sozQoy} katalog={qismKatalog} />
+        </fieldset>}
+        <fieldset className="dv-bolak"><legend>Qo‘shimcha (ixtiyoriy)</legend>
+          <div className="dv-form">
+            <label className="dv-wide">Qo‘shimcha talab<input value={form.qoshimcha} onChange={e => setForm({ ...form, qoshimcha: e.target.value })} placeholder="Masalan: ko‘proq hayotiy misollar, 4 ta bo‘lim" /></label>
+            <label className="dv-wide">Manba matn (darslikdan parcha, reja)<textarea rows={3} value={form.manba} onChange={e => setForm({ ...form, manba: e.target.value })} /></label>
+          </div>
+        </fieldset>
+        <div className="dv-row">
+          <button type="button" className="dv-primary" disabled={aiBand || form.mavzu.trim().length < 3 || !aiTayyor} onClick={aiReja}>
+            {aiBand ? <><LoaderCircle className="dv-spin" size={17} />AI ishlamoqda… {aiVaqt}s</> : <><ListTree size={17} />Avval reja tuzsin (tavsiya)</>}</button>
+          <button type="button" disabled={aiBand || form.mavzu.trim().length < 3 || !aiTayyor} onClick={() => aiYoz(false)}><Wand2 size={17} />Darhol to‘liq yozsin</button>
+          {form.mavzu.trim().length < 3 && <span className="dv-help">Avval mavzuni yozing.</span>}
+        </div>
+        {aiBand && <p className="dv-help">AI yozayotganda sahifani yopsangiz ham bo‘ladi — natija «Mening taqdimotlarim»da paydo bo‘ladi.</p>}
       </div>}
+
       {tab === 'fayl' && <div className="dv-fayl">
         <p className="dv-help">Excel shablonni to‘ldiring yoki ChatGPT bergan JSON’ni yuklang. Bitta fayl — bitta mavzu.</p>
         <div className="dv-row">
@@ -424,57 +517,152 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         <p className="dv-help">Rasm fayli nomi = rasm kaliti (masalan al_xorazmiy.png). Bir ZIP’da 3000 tagacha rasm, 120 MB gacha.</p>
         {miyalar.length > 1 && <div className="dv-row">{miyalar.map((m, i) => <button type="button" key={i} onClick={() => setMiya(m)} className={miya === m ? 'is-active' : ''}>{m.meta.mavzu}</button>)}</div>}
       </div>}
-      {tab === 'namuna' && <div className="dv-fayl"><p className="dv-help">«Ratsional sonlar» ma’ruzasi miyasi — dvigatel qanday ishlashini ko‘rish uchun.</p>
-        <button type="button" className="dv-primary" onClick={namuna}><Sparkles size={16} />Namunani ochish</button></div>}
-      {miya && <p className="dv-ok">Mazmun tayyor: <b>{miya.meta.mavzu}</b> · {miya.bolimlar.length} bo‘lim · {miya.bolimlar.reduce((n, b) => n + b.slaydlar.length, 0)} mazmun slaydi</p>}
-    </section>
 
-    {miya && info && <section className="dv-card">
-      <h3>2. Uslub</h3>
-      <div className="dv-row dv-chips">
-        <button type="button" className={!oila ? 'is-active' : ''} onClick={() => { setOila(''); setPalitra(''); setSeed(yangiUrug()); }}><Shuffle size={15} />Tasodifiy</button>
-        {info.oilalar.map(o => <button type="button" key={o.kod} className={oila === o.kod ? 'is-active' : ''} onClick={() => { setOila(o.kod); setPalitra(o.palitralar[0].kod); }}>{o.nom}</button>)}
-      </div>
-      {oilaObj && <div className="dv-row dv-chips">{oilaObj.palitralar.map(p => <button type="button" key={p.kod} className={palitra === p.kod ? 'is-active' : ''} onClick={() => setPalitra(p.kod)}>
-        <span className="dv-dots">{p.acc.map(c => <i key={c} style={{ background: c }} />)}</span>{p.nom}</button>)}</div>}
-      <div className="dv-row dv-chips">
-        <span className="dv-label">Animatsiya:</span>
-        <button type="button" className={!anim ? 'is-active' : ''} onClick={() => setAnim('')}>Tasodifiy</button>
-        {info.animatsiyalar.map(a => <button type="button" key={a.kod} className={anim === a.kod ? 'is-active' : ''} onClick={() => setAnim(a.kod)}>{a.nom}</button>)}
-      </div>
-      <div className="dv-row dv-chips">
-        <span className="dv-label">Bo‘lim titullari:</span>
-        {[[null, 'Avto'], [true, 'Bor'], [false, 'Yo‘q']].map(([v, n]) => <button type="button" key={String(v)} className={bolimTitul === v ? 'is-active' : ''} onClick={() => setBolimTitul(v)}>{n}</button>)}
-        <button type="button" onClick={() => setSeed(yangiUrug())}><Shuffle size={15} />Boshqa variant</button>
-      </div>
-      {info.dizaynlar && [['titul', 'Titul'], ['sarlavha', 'Sarlavha qatori'], ['bolim', 'Bo‘lim slaydi'], ['kart', 'Kartalar']].map(([kalit, nom]) => <div className="dv-row dv-chips" key={kalit}>
-        <span className="dv-label">{nom}:</span>
-        <button type="button" className={dizayn[kalit] === undefined ? 'is-active' : ''} onClick={() => setDizayn(d => { const n = { ...d }; delete n[kalit]; return n; })}>Avto</button>
-        {info.dizaynlar[kalit].map(v => <button type="button" key={v.kod} className={dizayn[kalit] === v.kod ? 'is-active' : ''} onClick={() => setDizayn(d => ({ ...d, [kalit]: v.kod }))}>{v.nom}</button>)}
-      </div>)}
-      <div className="dv-row dv-chips">
-        <span className="dv-label">Rasmlar:</span>
-        {[[true, 'Kutubxonadan mosini qo‘ysin'], [false, 'Faqat miyadagilar']].map(([v, n]) => <button type="button" key={String(v)} className={rasmAvto === v ? 'is-active' : ''} onClick={() => setRasmAvto(v)}>{n}</button>)}
-      </div>
+      {tab === 'namuna' && <div className="dv-fayl"><p className="dv-help">«Ratsional sonlar» ma’ruzasi — dvigatel qanday ishlashini ko‘rish uchun.</p>
+        <button type="button" className="dv-primary" onClick={namuna}><Sparkles size={16} />Namunani ochish</button></div>}
+
+      {miya && <div className="dv-tayyor-bar">
+        <p className="dv-ok"><Check size={16} /> Mazmun tayyor: <b>{miya.meta.mavzu}</b> · {miya.bolimlar.length} bo‘lim · {mazmunSoni} mazmun slaydi</p>
+        <button type="button" className="dv-primary" onClick={() => setQadam(3)}>Keyingi: dizayn<ChevronRight size={16} /></button>
+      </div>}
     </section>}
 
-    {sahna && <section className="dv-card">
-      <div className="dv-row dv-spread"><h3>3. Ko‘rish {busy === 'yasash' && <LoaderCircle className="dv-spin" size={16} />}</h3>
-        <span className="dv-help">{sahna.slaydlar.length} slayd · uslub {sahna.uslub.kod} · {sahna.uslub.anim} · urug‘ {sahna.seed}</span>
+    {/* ---------------------------------------------------------------- 2. REJA */}
+    {qadam === 2 && <section className="dv-card">
+      <h3>2-qadam. Reja (ixtiyoriy)</h3>
+      <Yoriq>AI tuzgan rejani ko‘rib chiqing: sarlavhalarni o‘zgartiring, keraksizini o‘chiring, yangisini qo‘shing, tartibini almashtiring. So‘ng <b>«Shu reja bo‘yicha yozsin»</b> ni bosing — AI aynan shu reja bo‘yicha yozadi.</Yoriq>
+      {reja ? <RejaMuharrir reja={reja} setReja={setReja} busy={aiBand} aiVaqt={aiVaqt} onYoz={() => aiYoz(true)} />
+        : <div className="dv-bosh"><p>Hali reja yo‘q. 1-qadamda mavzuni yozib, <b>«Avval reja tuzsin»</b> ni bosing.</p>
+          <button type="button" className="dv-primary" disabled={aiBand || form.mavzu.trim().length < 3 || !aiTayyor} onClick={aiReja}>
+            {aiBand ? <><LoaderCircle className="dv-spin" size={17} />AI ishlamoqda… {aiVaqt}s</> : <><ListTree size={17} />Reja tuzsin</>}</button></div>}
+      <Keyingi setQadam={setQadam} orqa={1} oldinga={miya ? 3 : null} matn="Keyingi: dizayn" />
+    </section>}
+
+    {/* ---------------------------------------------------------------- 3. DIZAYN */}
+    {qadam === 3 && miya && info && <section className="dv-card">
+      <div className="dv-row dv-spread"><h3>3-qadam. Dizayn {busy === 'yasash' && <LoaderCircle className="dv-spin" size={16} />}</h3>
+        <button type="button" onClick={avtoga} disabled={!ozgargan}><RotateCcw size={15} />Hammasini avtoga qaytarish{ozgargan ? ` (${ozgargan})` : ''}</button></div>
+      <Yoriq>Har bir sozlama o‘ngdagi ko‘rinishda darhol ko‘rinadi. Hech narsani o‘zgartirmasangiz ham bo‘ladi — «Avto» holatda dastur mavzuga mos dizaynni o‘zi tanlaydi. Pastdagi kichik slaydlarni bosib, boshqa slaydlarni ko‘ring.</Yoriq>
+      {sahna?.ogohlantirish?.length > 0 && <div className="dv-ogoh" role="status">{sahna.ogohlantirish.map(t => <p key={t}><CircleAlert size={15} /> {t}</p>)}</div>}
+      <div className="dv-dizayn">
+        <div className="dv-sozlamalar">
+          <Guruh ochiq={ochiq} ochQoy={ochQoy} id="uslub" belgi={SlidersHorizontal} nom="Uslub" soni={(oila ? 1 : 0) + (dizayn.titul !== undefined ? 1 : 0)}>
+            <div className="dv-soz"><div className="dv-soz-nom"><b>Uslub oilasi</b><small>Umumiy ko‘rinish: kartalar, fon va sarlavha shakli.</small></div>
+              <div className="dv-row dv-chips">
+                <button type="button" className={!oila ? 'is-active' : ''} onClick={() => { setOila(''); setPalitra(''); setSeed(yangiUrug()); }}><Shuffle size={15} />Avto</button>
+                {info.oilalar.map(o => <button type="button" key={o.kod} className={oila === o.kod ? 'is-active' : ''} onClick={() => { setOila(o.kod); setPalitra(o.palitralar[0].kod); }}>{o.nom}</button>)}
+              </div></div>
+            {oilaObj && <div className="dv-soz"><div className="dv-soz-nom"><b>Rang to‘plami</b></div>
+              <div className="dv-row dv-chips">{oilaObj.palitralar.map(p => <button type="button" key={p.kod} className={palitra === p.kod ? 'is-active' : ''} onClick={() => setPalitra(p.kod)}>
+                <span className="dv-dots">{p.acc.map(c => <i key={c} style={{ background: c }} />)}</span>{p.nom}</button>)}</div></div>}
+            {info.dizaynlar && [['titul', 'Titul slaydi'], ['sarlavha', 'Sarlavha qatori'], ['bolim', 'Bo‘lim slaydi'], ['kart', 'Kartalar soyasi']].map(([kalit, nom]) =>
+              <div className="dv-soz" key={kalit}><div className="dv-soz-nom"><b>{nom}</b></div>
+                <select value={dizayn[kalit] ?? ''} aria-label={nom} onChange={e => { const v = e.target.value; setDizayn(d => { const n = { ...d }; if (v === '') delete n[kalit]; else n[kalit] = /^\d+$/.test(v) ? Number(v) : v; return n; }); }}>
+                  <option value="">Avto</option>
+                  {info.dizaynlar[kalit].map(v => <option key={v.kod} value={v.kod}>{v.nom}</option>)}
+                </select></div>)}
+            <div className="dv-soz"><div className="dv-soz-nom"><b>Bo‘lim titullari</b><small>Har bo‘lim oldidan katta raqamli slayd.</small></div>
+              <Chiplar variantlar={[[null, 'Avto'], [true, 'Bor'], [false, 'Yo‘q']]} qiymat={bolimTitul} ozgar={setBolimTitul} /></div>
+            <div className="dv-soz"><div className="dv-soz-nom"><b>Rasmlar</b><small>Saytdagi 6000+ rasmdan mavzuga mosini dastur o‘zi qo‘yadi.</small></div>
+              <Chiplar variantlar={[[true, 'Kutubxonadan mosini qo‘ysin'], [false, 'Faqat mazmundagilar']]} qiymat={rasmAvto} ozgar={setRasmAvto} /></div>
+            <button type="button" onClick={() => setSeed(yangiUrug())}><Shuffle size={15} />Boshqa variant (joylashuvlar va bezaklar)</button>
+          </Guruh>
+          {katalog.map(g => <Guruh ochiq={ochiq} ochQoy={ochQoy} key={g.guruh} id={g.guruh} belgi={GURUH_BELGI[g.guruh]} nom={g.guruh} soni={guruhSoni(g) + (g.guruh === 'Animatsiya' && anim ? 1 : 0)}>
+            {g.guruh === 'Animatsiya' && <div className="dv-soz"><div className="dv-soz-nom"><b>Animatsiya turi</b><small>Elementlar qanday chiqadi. «Avto» — ikki xil animatsiya aralash.</small></div>
+              <select value={anim} onChange={e => setAnim(e.target.value)} aria-label="Animatsiya turi">
+                <option value="">Avto (aralash)</option>
+                {info.animatsiyalar.map(a => <option key={a.kod} value={a.kod}>{a.nom}</option>)}
+              </select></div>}
+            {g.sozlamalar.map(s => <Sozlama key={s.kalit} s={s} soz={soz} sozQoy={sozQoy} qismKatalog={qismKatalog} />)}
+          </Guruh>)}
+        </div>
+        <div className="dv-korinish">
+          {sahna ? <SahnaPlayer sahna={sahna} apiBase={apiBase} joyidaQol /> : <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Chizilmoqda…</p>}
+        </div>
+      </div>
+      <Keyingi setQadam={setQadam} orqa={1} oldinga={sahna ? 4 : null} matn="Keyingi: ko‘rish va yuklab olish" />
+    </section>}
+
+    {/* ---------------------------------------------------------------- 4. TAYYOR */}
+    {qadam === 4 && sahna && <section className="dv-card">
+      <div className="dv-row dv-spread"><h3>4-qadam. Ko‘rish va yuklab olish {busy === 'yasash' && <LoaderCircle className="dv-spin" size={16} />}</h3>
+        <span className="dv-help">{sahna.slaydlar.length} slayd · uslub {sahna.uslub.kod}</span></div>
+      <Yoriq>Slaydni bosing yoki → / bo‘sh joy — keyingi qadam. F yoki ikki marta bosish — to‘liq ekran. <b>Saqlash</b> — «Mening taqdimotlarim»ga; <b>PowerPoint</b> — kompyuterga yuklab olish (animatsiyalar bilan).</Yoriq>
+      <div className="dv-row dv-amallar">
         {joriyIsh
           ? <span className="dv-help dv-saqlandi"><Check size={15} />{saqlandi ? 'Saqlangan · «Mening taqdimotlarim»' : 'Saqlanmoqda…'}</span>
           : <button type="button" onClick={saqla} disabled={busy === 'saqla'}>{busy === 'saqla' ? <LoaderCircle className="dv-spin" size={16} /> : <Save size={16} />}Saqlash</button>}
-        <button type="button" className="dv-primary" onClick={pptx} disabled={busy === 'pptx'}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}{busy === 'pptx' ? 'Fayl tayyorlanmoqda…' : 'PowerPoint (.pptx) yuklab olish'}</button></div>
+        <button type="button" onClick={() => setQadam(3)}><Palette size={16} />Dizaynni o‘zgartirish</button>
+        <button type="button" className="dv-primary" onClick={pptx} disabled={busy === 'pptx'}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}{busy === 'pptx' ? 'Fayl tayyorlanmoqda…' : 'PowerPoint (.pptx) yuklab olish'}</button>
+      </div>
       {pptxXato && <div className="dv-xato" role="alert">PowerPoint fayli tayyorlanmadi: {pptxXato}</div>}
       {info?.ai && <div className="dv-row dv-chips">
         <span className="dv-label">Til aralashib qolsa:</span>
         {['uz', 'ru', 'en'].map(t => <button type="button" key={t} disabled={busy === 'til'} onClick={() => tilniTogrila(t)}
           className={(miya?.meta?.til || 'uz') === t ? 'is-active' : ''}>{busy === 'til' ? <LoaderCircle className="dv-spin" size={15} /> : null}Hammasini {TIL_NOMI[t]}chaga</button>)}
       </div>}
-      <p className="dv-help">Slaydni bosing yoki → / bo‘sh joy — keyingi qadam. Reja kartalari, pastki nuqtalar, savol kartalari va test variantlari bosiladi. F — to‘liq ekran.</p>
       <SahnaPlayer sahna={sahna} apiBase={apiBase} />
       {sahna.rasm_hisobot && <RasmHisobot h={sahna.rasm_hisobot} nusxa={nusxa} setNusxa={setNusxa} />}
+      <Keyingi setQadam={setQadam} orqa={3} />
     </section>}
+  </div>;
+}
+
+
+// ---------------------------------------------------------------- sozlamalar oynasi bo'laklari (komponent tashqarida — yozganda fokus yo'qolmasin)
+function Guruh({ id, belgi: B, nom, soni, ochiq, ochQoy, children }) {
+  return <div className={`dv-guruh${ochiq.has(id) ? ' is-open' : ''}`}>
+    <button type="button" className="dv-guruh-bosh" aria-expanded={ochiq.has(id)} onClick={() => ochQoy(id)}>
+      {B && <B size={17} />}<b>{nom}</b>{soni > 0 && <span className="dv-soni">{soni} o‘zgargan</span>}<ChevronRight size={16} className="dv-guruh-ok" />
+    </button>
+    {ochiq.has(id) && <div className="dv-guruh-ich">{children}</div>}
+  </div>;
+}
+
+function Chiplar({ variantlar, qiymat, ozgar }) {
+  return <div className="dv-row dv-chips">
+    {variantlar.map(([k, n]) => <button type="button" key={String(k)} className={qiymat === k ? 'is-active' : ''} aria-pressed={qiymat === k} onClick={() => ozgar(k)}>{n}</button>)}
+  </div>;
+}
+
+function Qismlar({ soz, sozQoy, katalog, ai = false }) {
+  return <div className="dv-qismlar">
+    {(katalog?.variantlar || []).filter(([k]) => !ai || k !== 'reja').map(([k, n]) => {
+      const bor = (soz.qismlar || {})[k] !== false;
+      return <label key={k} className={bor ? 'is-on' : ''}><input type="checkbox" checked={bor} onChange={e => {
+        const q = { ...(soz.qismlar || {}) };
+        if (e.target.checked) delete q[k]; else q[k] = false;
+        sozQoy('qismlar', Object.keys(q).length ? q : '');
+      }} />{n}</label>;
+    })}
+  </div>;
+}
+
+function Sozlama({ s, soz, sozQoy, qismKatalog }) {
+  const v = soz[s.kalit];
+  return <div className="dv-soz">
+    <div className="dv-soz-nom"><b>{s.nom}</b>{s.izoh && <small>{s.izoh}</small>}</div>
+    {s.tur === 'tanlov' && (s.variantlar.length <= 5
+      ? <Chiplar variantlar={s.variantlar} qiymat={v ?? ''} ozgar={x => sozQoy(s.kalit, x)} />
+      : <select value={v ?? ''} onChange={e => sozQoy(s.kalit, e.target.value)} aria-label={s.nom}>{s.variantlar.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select>)}
+    {s.tur === 'rang' && <div className="dv-row dv-ranglar">
+      <button type="button" className={!v ? 'is-active' : ''} onClick={() => sozQoy(s.kalit, '')}>Avto</button>
+      {(s.tayyor || []).map(c => <button type="button" key={c} className={`dv-rang${v === c ? ' is-active' : ''}`} style={{ background: c }} title={c} aria-label={`${s.nom}: ${c}`} onClick={() => sozQoy(s.kalit, c)} />)}
+      <label className="dv-rang-tanla" title="Boshqa rang"><input type="color" value={v || '#1D4E89'} onChange={e => sozQoy(s.kalit, e.target.value.toUpperCase())} aria-label={`${s.nom}: boshqa rang`} />Boshqa…</label>
+    </div>}
+    {s.tur === 'matn' && <input className="dv-soz-input" value={v || ''} maxLength={s.max || 80} placeholder={s.namuna || ''} onChange={e => sozQoy(s.kalit, e.target.value)} aria-label={s.nom} />}
+    {s.tur === 'qismlar' && <Qismlar soz={soz} sozQoy={sozQoy} katalog={qismKatalog} />}
+  </div>;
+}
+
+function Yoriq({ children }) {
+  return <div className="dv-yoriq"><Lightbulb size={18} /><div>{children}</div></div>;
+}
+
+function Keyingi({ orqa, oldinga, matn, disabled, setQadam }) {
+  return <div className="dv-qadam-nav">
+    {orqa ? <button type="button" onClick={() => setQadam(orqa)}><ChevronLeft size={16} />Orqaga</button> : <span />}
+    {oldinga && <button type="button" className="dv-primary" disabled={disabled} onClick={() => setQadam(oldinga)}>{matn}<ChevronRight size={16} /></button>}
   </div>;
 }
 

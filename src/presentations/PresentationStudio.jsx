@@ -9,7 +9,7 @@ import { getLayout, getFamily, TEMPLATES, LEGACY_TEMPLATES } from './layouts.js'
 import { LayoutPicker, OverlayPortal, StudioDialog, TemplateGallery } from './PresentationUI.jsx';
 import FreeformCanvas from './FreeformCanvas.jsx';
 import StartScreen, { BackgroundGallery } from './StartScreen.jsx';
-const DvigatelStudio = React.lazy(() => import('./dvigatel/DvigatelStudio.jsx')); // Kuchli taqdimot dvigateli
+const DvigatelStudio = React.lazy(() => import('./dvigatel/DvigatelStudio.jsx')); // taqdimot dvigateli — «Taqdimot tayyorlash»ning asosiy oynasi
 import { renderBackground, suggestTheme } from './backgrounds.js';
 import './presentation-studio.css';
 
@@ -435,15 +435,19 @@ export default function PresentationStudio({ apiBase = '', token, user, active =
   };
   const hiddenFields = ['body2', 'body3', 'image', 'image_prompt', 'image_caption', 'image2', 'image2_prompt', 'image2_caption'].filter(field => current[field] && !currentLayout.fields.includes(field.startsWith('image2') ? 'image2' : field.startsWith('image') ? 'image' : field));
 
-  const [dvigatel, setDvigatel] = useState(false);
   if (!active) return null;
-  if (dvigatel) return <div className="ps49-studio"><React.Suspense fallback={<p role="status">Yuklanmoqda…</p>}><DvigatelStudio apiBase={apiBase} token={token} onClose={() => setDvigatel(false)} /></React.Suspense></div>;
+  // «Taqdimot tayyorlash» — bitta yo'l: ruxsat bo'lsa darhol taqdimot dvigateli ochiladi (eski ustaxona ko'rsatilmaydi).
+  if (capabilities?.allowed) return <div className="ps49-studio">
+    {capabilities.admin && <AdminSettings capabilities={capabilities} request={request} onError={showError} onUpdate={settings => { setCapabilities(previous => ({ ...previous, settings })); setNotice('O‘quvchilar uchun ruxsatlar saqlandi.'); }} />}
+    {notice && <div className="ps49-banner ps49-success" role="status"><CheckCircle2 size={18} /><p>{__kbUi(notice)}</p><button type="button" className="ps49-icon-button" aria-label={__kbUi("Xabarni yopish")} onClick={() => setNotice('')}><X size={16} /></button></div>}
+    {error && <div className="ps49-banner ps49-error" role="alert"><AlertCircle size={20} /><div><p>{__kbUi(error)}</p></div><button type="button" className="ps49-icon-button" aria-label={__kbUi("Xato xabarini yopish")} onClick={() => setError('')}><X size={16} /></button></div>}
+    <React.Suspense fallback={<p role="status">{__kbUi("Yuklanmoqda…")}</p>}><DvigatelStudio apiBase={apiBase} token={token} onClose={onClose} /></React.Suspense>
+  </div>;
   return <div className="ps49-studio" ref={rootRef}>
     <header className="ps49-header"><div className="ps49-brand"><span className="ps49-brand-icon"><Presentation size={24} /></span><div><p className="ps49-eyebrow">{__kbUi("KABUTAR · TAQDIMOT")}</p><h1>{__kbUi("Taqdimot ustaxonasi")}</h1></div></div><div className="ps49-header-actions">{capabilities?.allowed && <><button type="button" className="ps49-button" onClick={loadLibrary} disabled={!!busy}><FolderOpen size={17} /><span>{__kbUi("Loyihalarim")}</span></button><button type="button" className="ps49-button" onClick={() => { if (confirmDiscard()) { replaceDocument(makeProject()); outlinePrepared.current = false; setCount(10); setFamilyMode('auto'); setBgTheme('auto'); setWordFlow(false); setStep(0); } }} disabled={!!busy}><Plus size={17} /><span>{__kbUi("Yangi")}</span></button></>}{onClose && <button type="button" className="ps49-icon-button" aria-label={__kbUi("Taqdimot ustaxonasidan chiqish")} onClick={exit}><X size={20} /></button>}</div></header>
     {!capabilities ? <div className="ps49-empty-state">{capError ? <><AlertCircle size={32} /><h2>{__kbUi("Ulanishni tekshiring")}</h2><p role="alert">{__kbUi(capError)}</p><button type="button" className="ps49-button" onClick={() => setCapAttempt(value => value + 1)}>{__kbUi("Qayta urinish")}</button></> : <><LoaderCircle className="ps49-spin" size={30} /><p role="status">{__kbUi("Taqdimot imkoniyatlari tekshirilmoqda…")}</p></>}</div> : <>
       {capabilities.admin && <AdminSettings capabilities={capabilities} request={request} onError={showError} onUpdate={settings => { setCapabilities(previous => ({ ...previous, settings })); setNotice('O‘quvchilar uchun ruxsatlar saqlandi.'); }} />}
       {!capabilities.allowed ? <div className="ps49-empty-state"><Presentation size={40} /><h2>{__kbUi("Taqdimot yaratish uchun ruxsat kerak")}</h2><p>{capabilities.reason || __kbUi('Hisobingiz uchun bu bo‘lim hali yoqilmagan.')}</p><p>{__kbUi("Ruxsat masalasida muassasa administratoriga murojaat qiling.")}</p></div> : <>
-        <button type="button" className="ps49-banner ps49-success" style={{ width: '100%', cursor: 'pointer', textAlign: 'left' }} onClick={() => setDvigatel(true)}><Sparkles size={20} /><div><strong>{__kbUi("Yangi: Kuchli taqdimot")}</strong><p>{__kbUi("Mavzuni yozing yoki Excel yuklang — chizmalar, animatsiya va 100+ uslubni dastur o‘zi qiladi.")}</p></div><ChevronRight size={18} /></button>
         <nav className="ps49-steps" aria-label={__kbUi("Taqdimot yaratish bosqichlari")}>{STEPS.map((label, index) => <button type="button" key={label} onClick={() => goStep(index)} className={step === index ? 'is-current' : step > index ? 'is-complete' : ''} aria-current={step === index ? 'step' : undefined}><span>{step > index ? <Check size={16} /> : index + 1}</span><strong>{__kbUi(label)}</strong>{index < 2 && <ChevronRight size={16} className="ps49-step-arrow" />}</button>)}</nav>
         <div className="ps49-save-bar"><div className={`ps49-save-status${dirty ? ' is-dirty' : ''}`}><Cloud size={17} /><span>{busy === 'save' ? __kbUi('Serverga saqlanmoqda…') : dirty ? __kbUi('Serverga saqlanmagan o‘zgarishlar') : project ? __kbUi(`Serverda saqlangan · ${when(project.updated_at)}`) : __kbUi('Yangi loyiha · hali serverga saqlanmagan')}</span></div><button type="button" className="ps49-button ps49-primary ps49-button-small" onClick={() => save()} disabled={!!busy}><Save size={16} />{busy === 'save' ? __kbUi('Saqlanmoqda…') : __kbUi('Serverga saqlash')}</button></div>
         <p className="ps49-recovery-status">{__kbUi(recoveryStatus)}</p>

@@ -110,3 +110,85 @@
 .dv-saqlandi { display: inline-flex; align-items: center; gap: 6px; color: #1f7a45; }
 .dv-holat-navbatda, .dv-holat-yozilmoqda { color: #b26b00; }
 .dv-holat-xato, .dv-holat-uzildi { color: #b5173a; }
+
+/* ---------------------------------------------------------------- 4 qadamli oyna */
+.dv-head { align-items: center; flex-wrap: wrap; }
+.dv-head-matn { flex: 1 1 320px; }
+.dv-qadamlar { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.dv-qadamlar button { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; border: 1px solid rgba(127,127,127,.28); background: var(--kb-surface, #fff); color: inherit; border-radius: 14px; padding: 10px 12px; cursor: pointer; }
+.dv-qadamlar button:disabled { opacity: .45; cursor: not-allowed; }
+.dv-qadamlar button.is-current { border-color: #b5173a; box-shadow: 0 0 0 2px rgba(181,23,58,.18); }
+.dv-qadam-raqam { flex: none; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: rgba(127,127,127,.14); }
+.dv-qadamlar .is-current .dv-qadam-raqam { background: #b5173a; color: #fff; }
+.dv-qadamlar .is-done .dv-qadam-raqam { background: #1f9d55; color: #fff; }
+.dv-qadam-matn { display: flex; flex-direction: column; min-width: 0; }
+.dv-qadam-matn small { font-size: .78rem; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dv-yoriq { display: flex; gap: 10px; align-items: flex-start; background: rgba(212,160,23,.1); border: 1px solid rgba(212,160,23,.35); border-radius: 12px; padding: 10px 12px; margin: 0 0 14px; font-size: .9rem; line-height: 1.45; }
+.dv-yoriq svg { flex: none; color: #b8860b; margin-top: 1px; }
+.dv-manbalar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.dv-manbalar button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; border: 1px solid rgba(127,127,127,.28); background: transparent; color: inherit; border-radius: 14px; padding: 12px; cursor: pointer; }
+.dv-manbalar button small { font-size: .78rem; opacity: .7; line-height: 1.3; }
+.dv-manbalar button.is-active { border-color: #b5173a; background: rgba(181,23,58,.07); }
+.dv-manbalar button.is-active svg { color: #b5173a; }
+.dv-bolak { border: 1px solid rgba(127,127,127,.2); border-radius: 14px; padding: 12px 14px 14px; margin: 0 0 12px; }
+.dv-bolak legend { font-weight: 700; padding: 0 6px; font-size: .95rem; }
+.dv-form label em { color: #b5173a; font-style: normal; }
+.dv-soz { display: flex; flex-direction: column; gap: 6px; padding: 8px 0; border-bottom: 1px dashed rgba(127,127,127,.18); }
+.dv-soz:last-child { border-bottom: 0; }
+.dv-soz-nom { display: flex; flex-direction: column; gap: 2px; }
+.dv-soz-nom small { font-size: .78rem; opacity: .68; line-height: 1.35; }
+.dv-soz select, .dv-soz-input { border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 8px 10px; font: inherit; background: transparent; color: inherit; max-width: 100%; }
+.dv-soz .dv-row { margin: 0; }
+.dv-chips button { padding: 6px 12px; font-size: .86rem; }
+.dv-soni-tanla input[type=range] { flex: 1 1 240px; accent-color: #b5173a; }
+.dv-soni-tanla input[type=number] { width: 72px; border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 7px 8px; font: inherit; background: transparent; color: inherit; }
+.dv-hajmlar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.dv-hajmlar button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 1px solid rgba(127,127,127,.3); background: transparent; color: inherit; border-radius: 12px; padding: 10px; cursor: pointer; }
+.dv-hajmlar button span { font-size: .85rem; color: #b5173a; font-weight: 600; }
+.dv-hajmlar button small { font-size: .76rem; opacity: .7; }
+.dv-hajmlar button.is-active { border-color: #b5173a; background: rgba(181,23,58,.07); box-shadow: 0 0 0 1px #b5173a inset; }
+.dv-qismlar { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; }
+.dv-qismlar label { display: flex; align-items: center; gap: 8px; border: 1px solid rgba(127,127,127,.25); border-radius: 10px; padding: 7px 10px; font-size: .86rem; cursor: pointer; opacity: .65; }
+.dv-qismlar label.is-on { opacity: 1; border-color: rgba(31,157,85,.5); background: rgba(31,157,85,.06); }
+.dv-qismlar input { accent-color: #1f9d55; }
+.dv-tayyor-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(127,127,127,.2); position: sticky; bottom: 0; background: var(--kb-surface, #fff); }
+.dv-tayyor-bar .dv-ok { margin: 0; display: inline-flex; align-items: center; gap: 6px; }
+.dv-qadam-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(127,127,127,.2); }
+.dv-qadam-nav > button:not(.dv-primary) { border: 1px solid rgba(127,127,127,.3); background: transparent; color: inherit; border-radius: 999px; padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.dv-bosh { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px; border: 1px dashed rgba(127,127,127,.35); border-radius: 14px; }
+.dv-bosh p { margin: 0; }
+.dv-ogoh { border: 1px solid rgba(214,130,23,.5); background: rgba(214,130,23,.08); border-radius: 12px; padding: 6px 12px; margin-bottom: 12px; font-size: .88rem; }
+.dv-ogoh p { margin: 4px 0; display: flex; gap: 6px; align-items: center; }
+.dv-xato { display: flex; gap: 8px; align-items: center; }
+
+/* dizayn: chapda sozlamalar, o'ngda jonli ko'rinish */
+.dv-dizayn { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.dv-sozlamalar { display: flex; flex-direction: column; gap: 8px; max-height: calc(100vh - 140px); overflow-y: auto; padding-right: 4px; }
+.dv-korinish { position: sticky; top: 12px; min-width: 0; }
+.dv-guruh { border: 1px solid rgba(127,127,127,.25); border-radius: 14px; background: var(--kb-surface, #fff); }
+.dv-guruh-bosh { width: 100%; display: flex; align-items: center; gap: 8px; padding: 11px 12px; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; text-align: left; }
+.dv-guruh-bosh b { flex: 1; }
+.dv-guruh-ok { transition: transform .15s; opacity: .6; }
+.dv-guruh.is-open .dv-guruh-ok { transform: rotate(90deg); }
+.dv-soni { font-size: .72rem; background: rgba(181,23,58,.12); color: #b5173a; border-radius: 999px; padding: 2px 8px; font-weight: 600; }
+.dv-guruh-ich { padding: 0 12px 10px; }
+.dv-guruh-ich > button { border: 1px solid rgba(127,127,127,.3); background: transparent; color: inherit; border-radius: 999px; padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; margin-top: 8px; }
+.dv-ranglar { gap: 6px; }
+.dv-ranglar .dv-rang { width: 28px; height: 28px; padding: 0 !important; border-radius: 50% !important; border: 2px solid rgba(255,255,255,.9) !important; box-shadow: 0 0 0 1px rgba(127,127,127,.4); }
+.dv-ranglar .dv-rang.is-active { box-shadow: 0 0 0 3px #b5173a; }
+.dv-rang-tanla { display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; cursor: pointer; border: 1px solid rgba(127,127,127,.3); border-radius: 999px; padding: 3px 10px 3px 4px; }
+.dv-rang-tanla input { width: 24px; height: 24px; border: 0; padding: 0; background: none; cursor: pointer; }
+.dv-amallar { gap: 10px; }
+@media (max-width: 980px) {
+  .dv-dizayn { grid-template-columns: 1fr; }
+  .dv-korinish { position: static; order: -1; }
+  .dv-sozlamalar { max-height: none; overflow: visible; }
+  .dv-manbalar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .dv-qadamlar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dv-hajmlar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.dv-reja input { flex: 1 1 260px; border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 8px 10px; font: inherit; background: transparent; color: inherit; }
+.dv-reja .dv-reja-nom { font-weight: 700; }
+.dv-reja .dv-reja-qosh { border: 1px dashed rgba(127,127,127,.45); background: transparent; color: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; margin-top: 4px; }
