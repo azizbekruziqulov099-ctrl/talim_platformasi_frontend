@@ -105,3 +105,8 @@
 .dv-reja-tur { font-size: .72rem; opacity: .65; padding: 2px 8px; border-radius: 10px; background: rgba(127,127,127,.12); }
 .dv-reja button { padding: 4px 8px; }
 .dv-reja-qosh { margin-left: 30px; width: fit-content; font-size: .82rem; }
+
+/* «Mening taqdimotlarim» */
+.dv-saqlandi { display: inline-flex; align-items: center; gap: 6px; color: #1f7a45; }
+.dv-holat-navbatda, .dv-holat-yozilmoqda { color: #b26b00; }
+.dv-holat-xato, .dv-holat-uzildi { color: #b5173a; }

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Copy, Download, FileText, ListTree, LoaderCircle, Plus, Shuffle, Sparkles, Upload, Wand2, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Check, Copy, Download, FileText, FolderOpen, ListTree, LoaderCircle, Plus, RefreshCw, Save, Shuffle, Sparkles, Trash2, Upload, Wand2, X } from 'lucide-react';
 import SahnaPlayer from './SahnaPlayer.jsx';
 import { dvSorov, yuklabOl } from './api.js';
 import './dvigatel.css';
@@ -14,10 +14,25 @@ const HAJMLAR = [['qisqa', 'Qisqa'], ['orta', 'O‘rta'], ['batafsil', 'Batafsil
 const TILLAR = [['uz', 'O‘zbek'], ['ru', 'Rus'], ['en', 'Ingliz']];
 const OHANGLAR = [['', 'Avto'], ['ilmiy', 'Ilmiy'], ['oddiy', 'Oddiy'], ['oyinli', 'O‘yinli']];
 const yangiUrug = () => 1 + Math.floor(Math.random() * 2147483000);
+const TUR_NOM = { ai: 'AI', reja: 'Reja', saqlangan: 'Saqlangan' };
+function sana(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso.slice(0, 16); }
+}
+function holatMatn(t) {
+  if (t.holat === 'tayyor') return t.tur === 'reja' ? `reja · ${t.slaydlar} slayd` : `${t.slaydlar} slayd`;
+  if (t.holat === 'navbatda' || t.holat === 'yozilmoqda') return 'AI yozmoqda…';
+  if (t.holat === 'uzildi') return 'to‘xtab qolgan';
+  return 'xato bilan tugagan';
+}
 
 export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   const [info, setInfo] = useState(null);
-  const [tab, setTab] = useState('tayyor');
+  const [tab, setTab] = useState('mening');
+  const [royxat, setRoyxat] = useState(null);
+  const [joriyIsh, setJoriyIsh] = useState(null);
+  const [ochirTasdiq, setOchirTasdiq] = useState('');
+  const [saqlandi, setSaqlandi] = useState(false);
   const [kutub, setKutub] = useState(null);
   const [kutubTur, setKutubTur] = useState('');
   const [tanlangan, setTanlangan] = useState(null);
@@ -47,8 +62,104 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
 
   useEffect(() => {
     so('/uslublar').then(setInfo).catch(e => setXato(e.message));
+    royxatYukla(true);
     return () => { ishRef.current = null; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // «Mening taqdimotlarim»
+  async function royxatYukla(boshida = false) {
+    try {
+      const r = await so('/saqlangan');
+      setRoyxat(r.taqdimotlar || []);
+      if (boshida && !(r.taqdimotlar || []).length) setTab(t => (t === 'mening' ? 'tayyor' : t));
+    } catch (e) {
+      setRoyxat([]);
+      if (boshida) setTab(t => (t === 'mening' ? 'tayyor' : t)); else setXato(e.message);
+    }
+  }
+  // AI yozayotgan ish bo'lsa — ro'yxat o'zi yangilanib turadi
+  useEffect(() => {
+    if (tab !== 'mening' || !royxat?.some(t => t.holat === 'navbatda' || t.holat === 'yozilmoqda')) return undefined;
+    const id = setInterval(() => royxatYukla(), 8000);
+    return () => clearInterval(id);
+  }, [tab, royxat]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function korinishQoy(k) {
+    setSeed(k?.seed || yangiUrug());
+    setOila(k?.oila || '');
+    setPalitra(k?.palitra || '');
+    setAnim(k?.anim || '');
+    setBolimTitul(k && 'bolim_titul' in k ? k.bolim_titul : null);
+    setRasmAvto(k?.rasm_avto ?? true);
+    setDizayn(k?.dizayn || {});
+  }
+  const korinish = () => ({ seed, oila, palitra, anim, bolim_titul: bolimTitul, rasm_avto: rasmAvto, dizayn });
+
+  async function saqlanganOch(t) {
+    setBusy('och:' + t.id);
+    setXato('');
+    try {
+      const o = await so(`/saqlangan/${t.id}`);
+      if (o.holat === 'tayyor' && o.tur === 'reja') {
+        const sr = o.sorov || {};
+        setForm(f => ({ ...f, ...Object.fromEntries(['mavzu', 'fan', 'daraja', 'sinf', 'tur', 'qoshimcha'].filter(k => sr[k]).map(k => [k, sr[k]])) }));
+        if (sr.sozlama) setSozlama(z => ({ ...z, ...sr.sozlama, slayd_soni: sr.sozlama.slayd_soni || z.slayd_soni }));
+        setReja(o.reja);
+        setTab('ai');
+        alertMatn('Reja ochildi — tahrirlab, «Shu reja bo‘yicha yozsin» ni bosing.');
+      } else if (o.holat === 'tayyor') {
+        korinishQoy(o.korinish);
+        setJoriyIsh(o.id);
+        setMiya(o.miya);
+        setTanlangan(null);
+      } else if (t.holat === 'uzildi') {
+        setXato('Bu taqdimotni yozish server qayta ishga tushganda to‘xtab qolgan. «AI yozsin» bo‘limida qayta yozdiring.');
+      } else if (o.holat === 'xato') {
+        setXato(o.xato || 'AI xato bilan tugagan');
+      } else {
+        setBusy('ai');
+        await kut(o.id, Date.now(), (m) => { setMiya(m); setSeed(yangiUrug()); setJoriyIsh(o.id); });
+        royxatYukla();
+        return;
+      }
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setBusy(b => (b === 'och:' + t.id ? '' : b));
+    }
+  }
+
+  async function saqlanganOchir(t) {
+    try {
+      await so(`/saqlangan/${t.id}`, { method: 'DELETE' });
+      if (joriyIsh === t.id) setJoriyIsh(null);
+      setOchirTasdiq('');
+      royxatYukla();
+    } catch (e) { setXato(e.message); }
+  }
+
+  async function saqla() {
+    if (!miya) return;
+    setBusy('saqla');
+    try {
+      const r = await so('/saqlangan', { method: 'POST', json: { miya, korinish: korinish() } });
+      setJoriyIsh(r.id);
+      setSaqlandi(true);
+      alertMatn('Saqlandi — «Mening taqdimotlarim» bo‘limida turadi.');
+      royxatYukla();
+    } catch (e) { setXato(e.message); } finally { setBusy(''); }
+  }
+
+  // saqlangan taqdimotning dizayni (uslub, urug', titul…) o'zgarsa — o'zi saqlanadi
+  useEffect(() => {
+    if (!joriyIsh) return undefined;
+    setSaqlandi(false);
+    const id = setTimeout(() => {
+      so(`/saqlangan/${joriyIsh}/korinish`, { method: 'POST', json: { korinish: korinish() } })
+        .then(() => setSaqlandi(true)).catch(() => {});
+    }, 1200);
+    return () => clearTimeout(id);
+  }, [joriyIsh, seed, oila, palitra, anim, bolimTitul, rasmAvto, dizayn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // mazmun yoki uslub o'zgarsa — sahnani qayta yasaymiz (server 0,2 soniyada chizadi)
   useEffect(() => {
@@ -70,15 +181,26 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     const t0 = Date.now();
     try {
       const { ish } = await so('/ai', { method: 'POST', json: body });
-      ishRef.current = ish;
+      await kut(ish, t0, natijaUchun);
+    } catch (e) {
+      setXato(e.message);
+    } finally {
+      setBusy('');
+    }
+  }
+
+  // AI ishini kutish (yangi yoki «Mening taqdimotlarim»dan davom ettirilgan)
+  async function kut(ish, t0, natijaUchun) {
+    ishRef.current = ish;
+    try {
       for (;;) {
         await new Promise(r => setTimeout(r, 3000));
         if (ishRef.current !== ish) return;
         setAiVaqt(Math.round((Date.now() - t0) / 1000));
         const h = await so(`/ai/${ish}`);
-        if (h.holat === 'tayyor') { natijaUchun(h.miya); break; }
+        if (h.holat === 'tayyor') { natijaUchun(h.miya, ish); break; }
         if (h.holat === 'xato') throw new Error(h.xato || 'AI xato qildi');
-        if (Date.now() - t0 > 300000) throw new Error('AI juda uzoq ishladi. Qayta urinib ko‘ring.');
+        if (Date.now() - t0 > 300000) throw new Error('AI juda uzoq ishladi. Natija tayyor bo‘lsa, «Mening taqdimotlarim»da chiqadi.');
       }
     } catch (e) {
       setXato(e.message);
@@ -88,7 +210,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   }
 
   function aiYoz(rejaBilan = false) {
-    return aiIsh({ ...form, sozlama, ...(rejaBilan && reja ? { reja } : {}) }, m => { setMiya(m); setSeed(yangiUrug()); });
+    return aiIsh({ ...form, sozlama, ...(rejaBilan && reja ? { reja } : {}) }, (m, ish) => { setMiya(m); setSeed(yangiUrug()); setJoriyIsh(ish); setTanlangan(null); royxatYukla(); });
   }
 
   function aiReja() {
@@ -103,7 +225,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
       const buf = await file.arrayBuffer();
       const r = await so('/import', { method: 'POST', raw: buf, headers: { 'X-Fayl-Nomi': encodeURIComponent(file.name) } });
       setMiyalar(r.miyalar);
-      if (r.miyalar[0]) { setMiya(r.miyalar[0]); setSeed(yangiUrug()); }
+      if (r.miyalar[0]) { setMiya(r.miyalar[0]); setSeed(yangiUrug()); setJoriyIsh(null); }
     } catch (e) {
       setXato(e.message);
     } finally {
@@ -134,7 +256,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
   async function tayyorOch(toplam, m) {
     setBusy('tayyor:' + m.kod);
     setXato('');
-    try { setMiya(await so(`/kutubxona/${toplam}/${encodeURIComponent(m.kod)}`)); setTanlangan({ toplam, ...m }); setSeed(yangiUrug()); }
+    try { setMiya(await so(`/kutubxona/${toplam}/${encodeURIComponent(m.kod)}`)); setTanlangan({ toplam, ...m }); setSeed(yangiUrug()); setJoriyIsh(null); }
     catch (e) { setXato(e.message); } finally { setBusy(''); }
   }
 
@@ -146,7 +268,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
 
   async function namuna() {
     setBusy('import');
-    try { setMiya(await so('/namuna')); setSeed(yangiUrug()); } catch (e) { setXato(e.message); } finally { setBusy(''); }
+    try { setMiya(await so('/namuna')); setSeed(yangiUrug()); setJoriyIsh(null); } catch (e) { setXato(e.message); } finally { setBusy(''); }
   }
 
   async function shablon(n) {
@@ -200,9 +322,31 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     <section className="dv-card">
       <h3>1. Mazmun (miya)</h3>
       <div className="dv-tabs" role="tablist">
-        {[['tayyor', 'Tayyor mavzular'], ['ai', 'AI yozsin'], ['fayl', 'Excel / JSON yuklash'], ['namuna', 'Namuna']].map(([id, nom]) =>
-          <button type="button" key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-active' : ''} onClick={() => setTab(id)}>{nom}</button>)}
+        {[['mening', 'Mening taqdimotlarim'], ['tayyor', 'Tayyor mavzular'], ['ai', 'AI yozsin'], ['fayl', 'Excel / JSON yuklash'], ['namuna', 'Namuna']].map(([id, nom]) =>
+          <button type="button" key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'is-active' : ''} onClick={() => { setTab(id); if (id === 'mening') royxatYukla(); }}>{nom}</button>)}
       </div>
+      {tab === 'mening' && <div className="dv-fayl">
+        <p className="dv-help">AI yozgan barcha taqdimotlar shu yerda saqlanadi — yuklab olmasangiz ham, sahifani yopsangiz ham yo‘qolmaydi. Tanlagan uslub va dizayn ham birga saqlanadi. Tayyor mavzu yoki yuklangan faylni «3. Ko‘rish» dagi «Saqlash» bilan qo‘shasiz.</p>
+        <div className="dv-row"><button type="button" onClick={() => royxatYukla()}><RefreshCw size={15} />Yangilash</button></div>
+        {!royxat && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}
+        {royxat && !royxat.length && <p className="dv-help">Hozircha saqlangan taqdimot yo‘q. «AI yozsin» bo‘limida yozdiring — natija shu yerda paydo bo‘ladi.</p>}
+        {royxat && royxat.length > 0 && <div className="dv-mavzular">
+          {royxat.map(t => <div key={t.id} className={`dv-mavzu${joriyIsh === t.id ? ' is-active' : ''}`}>
+            <button type="button" className="dv-mavzu-btn" onClick={() => saqlanganOch(t)} disabled={busy === 'och:' + t.id}>
+              <span className={`dv-mavzu-kod dv-holat-${t.holat}`}>{TUR_NOM[t.tur] || 'AI'}</span>
+              <span className="dv-mavzu-nom">{t.nom}</span>
+              <span className="dv-mavzu-info">{holatMatn(t)} · {sana(t.yangilandi || t.yaratildi)}{t.fan ? ` · ${t.fan}` : ''}{t.sinf ? ` · ${t.sinf}` : ''}</span>
+              {busy === 'och:' + t.id && <LoaderCircle className="dv-spin" size={15} />}
+            </button>
+            <div className="dv-row dv-mavzu-hujjat">
+              {t.holat === 'tayyor' && <button type="button" onClick={() => saqlanganOch(t)}><FolderOpen size={15} />Ochish</button>}
+              {ochirTasdiq === t.id
+                ? <><span className="dv-help">O‘chirilsinmi?</span><button type="button" onClick={() => saqlanganOchir(t)}><Check size={15} />Ha</button><button type="button" onClick={() => setOchirTasdiq('')}><X size={15} />Yo‘q</button></>
+                : <button type="button" onClick={() => setOchirTasdiq(t.id)}><Trash2 size={15} />O‘chirish</button>}
+            </div>
+          </div>)}
+        </div>}
+      </div>}
       {tab === 'tayyor' && <div className="dv-fayl">
         {!kutub && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}
         {kutub && !kutub.length && <p className="dv-help">Hozircha tayyor mavzular yo‘q.</p>}
@@ -304,6 +448,9 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     {sahna && <section className="dv-card">
       <div className="dv-row dv-spread"><h3>3. Ko‘rish {busy === 'yasash' && <LoaderCircle className="dv-spin" size={16} />}</h3>
         <span className="dv-help">{sahna.slaydlar.length} slayd · uslub {sahna.uslub.kod} · {sahna.uslub.anim} · urug‘ {sahna.seed}</span>
+        {joriyIsh
+          ? <span className="dv-help dv-saqlandi"><Check size={15} />{saqlandi ? 'Saqlangan · «Mening taqdimotlarim»' : 'Saqlanmoqda…'}</span>
+          : <button type="button" onClick={saqla} disabled={busy === 'saqla'}>{busy === 'saqla' ? <LoaderCircle className="dv-spin" size={16} /> : <Save size={16} />}Saqlash</button>}
         <button type="button" className="dv-primary" onClick={pptx} disabled={busy === 'pptx'}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}{busy === 'pptx' ? 'Fayl tayyorlanmoqda…' : 'PowerPoint (.pptx) yuklab olish'}</button></div>
       {pptxXato && <div className="dv-xato" role="alert">PowerPoint fayli tayyorlanmadi: {pptxXato}</div>}
       <p className="dv-help">Slaydni bosing yoki → / bo‘sh joy — keyingi qadam. Reja kartalari, pastki nuqtalar, savol kartalari va test variantlari bosiladi. F — to‘liq ekran.</p>
