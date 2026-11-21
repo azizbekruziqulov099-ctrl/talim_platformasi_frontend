@@ -167,8 +167,14 @@ export function sonOqiTahlil(arg) {
   if (!m) return null;
   const min = Number(m[1]), max = Number(m[2]);
   if (!(max > min) || max - min > 40) return null;
-  const nuqtalar = [], sakrashlar = [];
+  const nuqtalar = [], sakrashlar = [], yurishlar = [];
   for (const q of qolgan) {
+    const yu = q.match(/^(?:yur|walk)\s+(\S+)\s+(\S+)$/i);
+    if (yu) {
+      const a = sonQiymat(yu[1]), b = sonQiymat(yu[2]);
+      if (Number.isFinite(a) && Number.isFinite(b) && a !== b && a >= min && a <= max && b >= min && b <= max && Math.abs(b - a) <= 20) yurishlar.push({ a, b });
+      continue;
+    }
     const sk = q.match(/^(?:sakrash|jump)\s+(\S+)\s+(\S+)(?:\s+(.+))?$/i);
     if (sk) {
       const a = sonQiymat(sk[1]), b = sonQiymat(sk[2]);
@@ -180,7 +186,7 @@ export function sonOqiTahlil(arg) {
     const x = sonQiymat(p[1]);
     if (Number.isFinite(x) && x >= min && x <= max) nuqtalar.push({ x, yorliq: (p[2] || p[1]).trim() });
   }
-  return { min, max, qadam: m[3] ? Number(m[3].replace(",", ".")) : 1, nuqtalar, sakrashlar };
+  return { min, max, qadam: m[3] ? Number(m[3].replace(",", ".")) : 1, nuqtalar, sakrashlar, yurishlar };
 }
 
 // ── xavfsiz ifoda hisoblagich (eval yo'q) ─────────────────────────

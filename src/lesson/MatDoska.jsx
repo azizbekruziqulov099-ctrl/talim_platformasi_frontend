@@ -247,21 +247,33 @@ function SonOqi({ arg, progress }) {
   const W = 520, x0 = 30, x1 = W - 30, X = (v) => x0 + ((v - t.min) / (t.max - t.min)) * (x1 - x0);
   const belgilar = [];
   for (let v = t.min; v <= t.max + 1e-9; v += t.qadam) belgilar.push(Math.round(v * 1000) / 1000);
-  const sk = t.sakrashlar || [], H = sk.length ? 134 : 74, Y0 = sk.length ? 78 : 34;
-  return <svg className="mdx-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`son o'qi ${t.min}..${t.max}`}>
+  const sk = t.sakrashlar || [], yu = t.yurishlar || [], H = sk.length || yu.length ? 134 : 74, Y0 = sk.length || yu.length ? 78 : 34;
+  return <svg className="mdx-svg" viewBox={`0 -20 ${W} ${H + 20}`} role="img" aria-label={`son o'qi ${t.min}..${t.max}`}>
     <g transform={`translate(0 ${Y0 - 34})`}>
     <path pathLength="1" d={`M${x0 - 14} 34 H${x1 + 16}`} stroke={CHALK} strokeWidth="2.4" fill="none" style={chiz(progress, 0, 0.35)} />
     <path pathLength="1" d={`M${x1 + 6} 28 L${x1 + 16} 34 L${x1 + 6} 40`} stroke={CHALK} strokeWidth="2.4" fill="none" style={chiz(progress, 0.33, 0.38)} />
     {belgilar.map((v, i) => { const at = 0.35 + (i / belgilar.length) * 0.35; return <g key={v} style={kor(progress, at)}>
       <path d={`M${X(v)} 28 V40`} stroke={CHALK} strokeWidth="2" />{(i % Math.max(1, Math.ceil(belgilar.length / 12)) === 0 || t.nuqtalar.some((n) => n.x === v)) && <text x={X(v)} y="60" textAnchor="middle" fill={CHALK} fontSize="16">{v}</text>}</g>; })}
     {t.nuqtalar.map((n, i) => <g key={i} style={kor(progress, 0.75 + (i / Math.max(1, t.nuqtalar.length)) * 0.2)}>
-      <circle cx={X(n.x)} cy="34" r="6" fill={SARIQ} /><text x={X(n.x)} y={sk.length ? 84 : 18} textAnchor="middle" fill={SARIQ} fontSize="17" fontWeight="700">{n.yorliq}</text></g>)}
+      <circle cx={X(n.x)} cy="34" r="6" fill={SARIQ} /><text x={X(n.x)} y={sk.length || yu.length ? 84 : 18} textAnchor="middle" fill={SARIQ} fontSize="17" fontWeight="700">{n.yorliq}</text></g>)}
     {sk.map((j, i) => { const from = 0.62 + (i / sk.length) * 0.33, to = from + 0.3 / sk.length + 0.05, xa = X(j.a), xb = X(j.b), h = 22 + Math.min(18, Math.abs(xb - xa) / 14), dir = xb > xa ? 1 : -1, mid = (xa + xb) / 2;
       return <g key={`sk${i}`}>
         <path pathLength="1" d={`M${xa} 28 Q${mid} ${28 - h * 1.6} ${xb} 28`} stroke={dir > 0 ? YASHIL : "#FF8A80"} strokeWidth="3" fill="none" strokeLinecap="round" style={chiz(progress, from, to)} />
         {(() => { const tx = xb - mid, ty = h * 1.6, L = Math.hypot(tx, ty), ux = tx / L, uy = ty / L, bx = xb - ux * 11, by = 28 - uy * 11; return <path d={`M${bx - uy * 6} ${by + ux * 6} L${xb} 28 L${bx + uy * 6} ${by - ux * 6}`} stroke={dir > 0 ? YASHIL : "#FF8A80"} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" style={kor(progress, to)} />; })()}
         {j.yorliq && <text x={mid} y={28 - h * 0.8 - 6} textAnchor="middle" fill={dir > 0 ? YASHIL : "#FF8A80"} fontSize="17" fontWeight="700" style={kor(progress, to)}>{j.yorliq}</text>}
       </g>; })}
+    {yu.map((j, i) => {
+      const n = Math.round(Math.abs(j.b - j.a)), dir = j.b > j.a ? 1 : -1, from = 0.55, to = 0.97;
+      const q = Math.min(1, Math.max(0, (progress - from) / (to - from))), k = Math.min(n, Math.floor(q * n + 1e-9)), pos = j.a + dir * k;
+      const nolOtdi = k > 0 && Math.min(j.a, pos) < 0 && Math.max(j.a, pos) > 0, rang = dir > 0 ? YASHIL : "#FF8A80";
+      return <g key={`yu${i}`} style={{ opacity: progress >= from ? 1 : 0, transition: "opacity .25s" }}>
+        {Array.from({ length: k }, (_, z) => { const u = j.a + dir * (z + 0.5); return <path key={z} d={`M${X(j.a + dir * z)} 28 Q${X(u)} 6 ${X(j.a + dir * (z + 1))} 28`} stroke={rang} strokeWidth="2.5" fill="none" opacity={z === k - 1 ? 1 : 0.55} />; })}
+        {Array.from({ length: k }, (_, z) => <text key={`n${z}`} x={X(j.a + dir * (z + 0.5))} y="2" textAnchor="middle" fill={rang} fontSize="13" fontWeight="700">{z + 1}</text>)}
+        <circle cx={X(pos)} cy="34" r="9" fill={SARIQ} stroke="#fff" strokeWidth="2" style={{ transition: "cx .2s" }} />
+        <text x={X(pos)} y="38" textAnchor="middle" fill="#1C2926" fontSize="11" fontWeight="800">{pos}</text>
+        {nolOtdi && <text x={X(0)} y="-12" textAnchor="middle" fill={SARIQ} fontSize="15" fontWeight="800">0 dan o‘tdik!</text>}
+      </g>;
+    })}
     </g>
   </svg>;
 }
