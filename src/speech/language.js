@@ -67,5 +67,5 @@ export function selectBrowserVoice(voices, language, gender) {
 
 // REV80: ekranda til teglarini ko'rsatmaslik: "Qaysi [en]cat[/en]?" → "Qaysi cat?"
 export function stripSpeechTags(value) {
-  return String(value ?? '').replace(new RegExp(`\\[${TAG_PATTERN}\\]([\\s\\S]*?)\\[\\/\\1\\]`, 'gi'), '$2');
+  return String(value ?? '').replace(new RegExp(`\\[${TAG_PATTERN}\\]([\\s\\S]*?)\\[\\/\\1\\]`, 'gi'), '$2').replace(/\{(?:sekin|tez|past|baland|urgu|pauza)\}/gi, '');   // ustoz ovozi belgilari ko'rinmaydi
 }

@@ -574,6 +574,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     const ovozJinsi = kabuGapiradi ? "ogil" : kidRef.current ? (ustozGapiryapti() ? (USTOZLAR[ustozRef.current]?.lab === "erkak" ? "ogil" : "qiz") : "ogil")
       : USTOZLAR[ustozRef.current] ? (USTOZLAR[ustozRef.current].lab === "erkak" ? "ogil" : "qiz") : jins;   // REV169: erkak ustozlar (Sardor, Yusuf, Lukas, Karlos, Kenji) — erkak ovozi
     const params = new URLSearchParams({ matn: clean.slice(0, 1500), jins: ovozJinsi,
+      ...(!kidRef.current ? { jonli: "1" } : {}),   // maktab/OTM darsi: gap-gap ohang (savol, undov, pauza) va {sekin}/{tez} belgilari
       ...(["ru", "en"].includes(izohRef.current) ? { asosiy_til: izohRef.current } : {}),   // REV233: inglizcha/ruscha izohli dars — o'zbek talaffuzida o'qilmasin
       // REV122: ustoz — tabiiy (odam) ovozi: ohang ko'tarilmaydi, tezlik biroz tabiiyroq; robot Kabu — yuqoriroq ohang
       ...(kidRef.current ? (ustozGapiryapti() ? { tezlik: ustozRate(gradeRef.current) } : { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz }) : kabuGapiradi ? { tezlik: KABU_TV.tezlik, ohang: KABU_TV.iz }
@@ -623,7 +624,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
     const clean = speakableText(text);
     setBubble(stripSpeechTags(text || "").replace(/\s*⏸\s*/g, " ").trim());
     if (!clean.replace(/⏸/g, "").trim()) { done?.(); return; }
-    const words = String(text || "").replace(/⏸/g, " ").split(/\s+/).filter(Boolean);
+    const words = stripSpeechTags(String(text || "")).replace(/⏸/g, " ").split(/\s+/).filter(Boolean);
     sayWords.current = words;
     setNutqQism([]); setQismSoz(-1);
     setSpeaking(true);
