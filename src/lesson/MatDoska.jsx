@@ -11,7 +11,7 @@ import { rangBolaklar, rangsiz } from "./pedDoska.js";
 import { splitCourseMath } from "../courses/CourseText.jsx";
 import { stripSpeechTags } from "../speech/language.js";
 import {
-  bolishTahlil, buyruq, elakTahlil, ishTahlil, ketmaTahlil, chizTahlil, doiraKasrTahlil, grafikTahlil, kasrModelTahlil, qisqartTahlil, sonOqiTahlil, ustunTahlil,
+  bolishTahlil, buyruq, elakTahlil, ishTahlil, ketmaTahlil, chizTahlil, doiraKasrTahlil, grafikTahlil, kasrModelTahlil, qisqartTahlil, sonOqiTahlil, ustunTahlil, rasmTahlil,
 } from "./matDoska.js";
 
 const CHALK = "var(--dx-chalk)", SARIQ = "var(--dx-yellow)", KOK = "var(--dx-blue)", PUSHTI = "#F4A6A6", YASHIL = "#A8E6A1";
@@ -276,6 +276,27 @@ function SonOqi({ arg, progress }) {
     })}
     </g>
   </svg>;
+}
+
+// RASM: kutubxonadagi ~6000 rassom rasmidan so'z bo'yicha; har rasm o'z harakati bilan kiradi (kel, sakra, aylan, katta, tebran)
+let rasmModul = null;
+function RasmQator({ arg, progress }) {
+  const [, qayta] = React.useState(0);
+  const items = useMemo(() => rasmTahlil(arg), [arg]);
+  React.useEffect(() => {
+    if (rasmModul) return undefined;
+    let ok = true;
+    Promise.all([import("../kid/darsRasm.js"), import("../kid/rasmHarakat.js")]).then(([a, b]) => { rasmModul = { RASM_HAMMA: a.RASM_HAMMA, matnId: b.matnId, sozId: b.sozId }; if (ok) qayta((x) => x + 1); }).catch(() => {});
+    return () => { ok = false; };
+  }, []);
+  const topish = (soz) => { if (!rasmModul) return null; const id = rasmModul.matnId(soz) || rasmModul.sozId({ soz }); return id && rasmModul.RASM_HAMMA[id] ? rasmModul.RASM_HAMMA[id] : null; };
+  return <span className="mdx-rasmlar">{items.map((it, i) => {
+    const at = 0.08 + (i / Math.max(1, items.length)) * 0.7, kor_ = progress >= at, src = topish(it.soz);
+    return <span key={i} className={`mdx-rasm mdx-rasm-${it.effekt} ${kor_ ? "is-on" : ""}`}>
+      {src ? <img src={src} alt={it.soz} draggable="false" /> : <span className="mdx-rasm-yoq">{it.soz}</span>}
+      <b>{it.soz}</b>
+    </span>;
+  })}</span>;
 }
 
 function Tarozi({ arg, progress }) {
@@ -648,6 +669,7 @@ export function MatQator({ qator, progress = 1, Matn = BoardText }) {
     case "bolish": return <Bolish arg={b.arg} progress={p} />;
     case "qisqart": return <Qisqart arg={b.arg} progress={p} />;
     case "son_oqi": return <SonOqi arg={b.arg} progress={p} />;
+    case "rasm": return <RasmQator arg={b.arg} progress={p} />;
     case "tarozi": return <Tarozi arg={b.arg} progress={p} />;
     case "grafik": return <Grafik arg={b.arg} progress={p} />;
     case "chiz": return <Chizma arg={b.arg} progress={p} />;

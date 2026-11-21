@@ -1583,3 +1583,24 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .pdx-zanjir:not(.is-tik) .pdx-strelka{display:none}
   .pdx-tugun b{font-size:22px}.pdx-tugun small{font-size:16px}.pdx-jadval{font-size:16px}.pdx-jadval th{font-size:17px}
 }
+
+/* RASM: kutubxona rasmlari — harakatli kirish */
+.mdx-rasmlar{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;padding:6px 0}
+.mdx-rasm{display:inline-flex;flex-direction:column;align-items:center;gap:4px;opacity:0}
+.mdx-rasm img{width:clamp(70px,12vw,130px);height:auto;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+.mdx-rasm b{color:var(--dx-yellow);font-size:18px;font-weight:700}
+.mdx-rasm-yoq{padding:12px 16px;border:2px dashed var(--dx-chalk);border-radius:12px;color:var(--dx-chalk)}
+.mdx-rasm.is-on{opacity:1}
+.mdx-rasm-pop.is-on{animation:mdxRPop .55s cubic-bezier(.2,1.4,.4,1)}
+.mdx-rasm-kel.is-on{animation:mdxRKel .7s ease-out}
+.mdx-rasm-sakra.is-on img{animation:mdxRSakra .8s ease-in-out 3}
+.mdx-rasm-aylan.is-on img{animation:mdxRAylan 1.4s ease-in-out}
+.mdx-rasm-katta.is-on img{animation:mdxRKatta 1.2s ease-out}
+.mdx-rasm-tebran.is-on img{animation:mdxRTebran .5s ease-in-out infinite alternate}
+@keyframes mdxRPop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes mdxRKel{from{transform:translateX(-120px);opacity:0}to{transform:none;opacity:1}}
+@keyframes mdxRSakra{0%,100%{transform:translateY(0)}50%{transform:translateY(-22px)}}
+@keyframes mdxRAylan{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes mdxRKatta{from{transform:scale(.4)}to{transform:scale(1.15)}}
+@keyframes mdxRTebran{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
+@media (prefers-reduced-motion:reduce){.mdx-rasm *,.mdx-rasm{animation:none!important}}

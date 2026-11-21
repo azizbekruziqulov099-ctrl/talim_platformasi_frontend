@@ -1,4 +1,4 @@
-const CACHE = "samtm-shell-v26-rev676";   // REV398/REV439: ulashish (share target)
+const CACHE = "samtm-shell-v26-rev677";   // REV398/REV439: ulashish (share target)
 const SHELL = ["/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
 const STATIC_PREFIXES = ["/assets/", "/icons/"];
 

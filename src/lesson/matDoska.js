@@ -14,7 +14,7 @@ export const xbFanRejim = (fan) => XB_FAN_RE.test(String(fan || ""));
 export const jonliRejim = (fan) => matRejim(fan) || pedRejim(fan) || xbFanRejim(fan);
 
 const BUYRUQLAR = ["YOZ", "DAVOM", "QOIDA", "BELGILA", "USTUN", "BOLISH", "QISQART", "SON_OQI", "GRAFIK", "CHIZ", "KASR_MODEL", "DOIRA_KASR", "OCHIR",
-  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK", "AMAL", ...PED_BUYRUQLAR];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
+  "TAROZI", "ORIN_ALMASH", "ORINLASHTIR", "GURUHLASH", "VENN", "DARAXT", "OYIN", "ISH", "KETMA", "ELAK", "AMAL", "RASM", ...PED_BUYRUQLAR];   // REV429: OYIN — doskadagi o'yin   // REV425: formulaning kelib chiqishi — harakatli chizmalar
 const BUYRUQ_RE = new RegExp(`^\\s*(${BUYRUQLAR.join("|")})\\s*(?::|$)\\s*([\\s\\S]*)$`, "i");
 
 const MATN_BUYRUQ = new Set(["yoz", "davom", "qoida", "belgila"]);
@@ -537,4 +537,14 @@ export function amalIzoh(t, q) {
     return `${parts} = ${q.sum} → ${q.res} yoz${q.yodda ? ", 1 yodda" : ""}`;
   }
   return q.qarz ? `${q.da} kichik → 1 qarz: ${q.top} − ${q.db || 0} = ${q.res}` : `${q.top} − ${q.db || 0} = ${q.res}`;
+}
+
+/** «tarvuz | olma:sakra | quyosh:aylan» → [{soz, effekt}] (rasm kutubxonasidan so'z bo'yicha; effekt: kel, sakra, aylan, katta, tebran). */
+export function rasmTahlil(arg) {
+  const EFFEKT = new Set(["pop", "kel", "sakra", "aylan", "katta", "tebran"]);
+  return String(arg || "").split("|").map((x) => x.trim()).filter(Boolean).slice(0, 6).map((x) => {
+    const m = x.match(/^(.*?)(?:\s*:\s*([a-z]+))?$/i);
+    const e = m && m[2] && EFFEKT.has(m[2].toLowerCase()) ? m[2].toLowerCase() : "pop";
+    return { soz: (m && m[2] && !EFFEKT.has(m[2].toLowerCase()) ? x : m[1]).trim(), effekt: e };
+  });
 }
