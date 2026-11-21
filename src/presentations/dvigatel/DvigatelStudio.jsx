@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, Copy, Download, Eye, FileSpreadsheet, FileText, Film, FolderOpen, LayoutTemplate, Library, Lightbulb, ListChecks, ListTree, LoaderCircle, Palette, Plus, RefreshCw, RotateCcw, Save, Shuffle, SlidersHorizontal, Sparkles, Trash2, Type, Upload, Wand2, X } from 'lucide-react';
 import SahnaPlayer from './SahnaPlayer.jsx';
 import { dvSorov, yuklabOl } from './api.js';
+import { AiKutubxona, DarsRejasi, KutubxonaAdmin } from './Kutubxona.jsx';
 import './dvigatel.css';
 
 /* Taqdimot tayyorlash — 4 qadam: 1) mazmun (AI / tayyor mavzu / fayl / saqlanganlar) → 2) reja (ixtiyoriy)
@@ -15,7 +16,7 @@ const HAJMLAR = [['qisqa', 'Qisqa', '20–40 so‘z', '1–2 jumla yoki 3–4 pu
 const MISOLLAR = [['kam', 'Kam'], ['orta', 'O‘rta'], ['kop', 'Ko‘p']];
 const TEST_SONI = [['', 'Avto'], ['0', 'Yo‘q'], ['5', '5 ta'], ['10', '10 ta'], ['15', '15 ta'], ['20', '20 ta']];
 const QADAMLAR = [['Mazmun', 'Mavzu va manba'], ['Reja', 'Bo‘lim va slaydlar (ixtiyoriy)'], ['Dizayn', 'Uslub, rang, shrift, animatsiya'], ['Tayyor', 'Ko‘rish, saqlash, yuklab olish']];
-const MANBALAR = [['ai', Sparkles, 'AI yozsin', 'Mavzuni yozasiz — AI darsni o‘zi tuzadi'], ['tayyor', Library, 'Tayyor mavzular', 'Kafedra mavzulari, ma’ruza va amaliy'],
+const MANBALAR = [['ai', Sparkles, 'AI yozsin', 'Mavzuni yozasiz — AI darsni o‘zi tuzadi'], ['tayyor', Library, 'Tayyor mavzular', '1–11-sinf, bakalavr va magistratura mavzulari'],
   ['fayl', FileSpreadsheet, 'Fayldan', 'Excel shablon yoki ChatGPT JSON'], ['mening', FolderOpen, 'Mening taqdimotlarim', 'Saqlanganlar va AI yozganlar'], ['namuna', Eye, 'Namuna', 'Qanday ishlashini ko‘rish']];
 const GURUH_BELGI = { 'Ranglar va fon': Palette, Shrift: Type, Sahifa: LayoutTemplate, Animatsiya: Film, 'Qaysi qismlar bo‘lsin': ListChecks };
 const TILLAR = [['uz', 'O‘zbek'], ['ru', 'Rus'], ['en', 'Ingliz']];
@@ -309,6 +310,12 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
     catch (e) { setXato(e.message); } finally { setBusy(''); }
   }
 
+  async function aiTayyorOch(m) {
+    setXato('');
+    try { setMiya(await so(`/kutubxona-ai/${m.id}`)); setTanlangan({ toplam: 'ai', kod: m.id, nom: m.mavzu }); setSeed(yangiUrug()); setJoriyIsh(null); }
+    catch (e) { setXato(e.message); }
+  }
+
   async function tayyorHujjat(toplam, m, tur) {
     const nomlar = { oqituvchi: 'oqituvchi_matni.md', topshiriq: 'talaba_topshirigi.md', reja: 'reja.json', javoblar: 'javoblar.json' };
     try { yuklabOl(await so(`/kutubxona/${toplam}/${encodeURIComponent(m.kod)}/${tur}`, { binary: true }), `${m.kod}_${nomlar[tur]}`); }
@@ -423,8 +430,11 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
       </div>}
 
       {tab === 'tayyor' && <div className="dv-fayl">
+        <AiKutubxona so={so} admin={!!info?.admin} tanlanganId={tanlangan?.toplam === 'ai' ? tanlangan.kod : null} onOch={aiTayyorOch} xatoQoy={setXato} />
+        {info?.admin && <details className="dv-kadmin-wrap"><summary>Administrator: kutubxonani to‘ldirish (AI yozuvchi, darsliklar, fan dasturlari)</summary><KutubxonaAdmin so={so} /></details>}
+        <h4 className="dv-kutub-sarlavha">Kafedra to‘plamlari</h4>
         {!kutub && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}
-        {kutub && !kutub.length && <p className="dv-help">Hozircha tayyor mavzular yo‘q.</p>}
+        {kutub && !kutub.length && <p className="dv-help">Hozircha kafedra to‘plamlari yo‘q.</p>}
         {kutub && kutub.map(t => <div key={t.kod} className="dv-kutub">
           <p className="dv-help"><b>{t.nom}</b> · {t.mavzular.length} ta mavzu</p>
           <div className="dv-row dv-chips">
@@ -525,6 +535,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
         <p className="dv-ok"><Check size={16} /> Mazmun tayyor: <b>{miya.meta.mavzu}</b> · {miya.bolimlar.length} bo‘lim · {mazmunSoni} mazmun slaydi</p>
         <button type="button" className="dv-primary" onClick={() => setQadam(3)}>Keyingi: dizayn<ChevronRight size={16} /></button>
       </div>}
+      {miya && <DarsRejasi dars={miya.dars} mavzu={miya.meta.mavzu} />}
     </section>}
 
     {/* ---------------------------------------------------------------- 2. REJA */}

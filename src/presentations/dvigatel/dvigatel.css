@@ -192,3 +192,51 @@
 .dv-reja input { flex: 1 1 260px; border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 8px 10px; font: inherit; background: transparent; color: inherit; }
 .dv-reja .dv-reja-nom { font-weight: 700; }
 .dv-reja .dv-reja-qosh { border: 1px dashed rgba(127,127,127,.45); background: transparent; color: inherit; border-radius: 999px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: .86rem; margin-top: 4px; }
+
+/* tayyor mavzular: sinf → fan → mavzu (AI kutubxonasi) */
+.dv-kai { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.dv-kai .dv-chips button small { opacity: .7; font-size: .78em; margin-left: 2px; }
+.dv-kai .dv-chips button.is-active small { opacity: .9; }
+.dv-kai-fanlar { max-height: 190px; overflow-y: auto; }
+.dv-kai-check { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; }
+.dv-kai-qidir { display: flex; align-items: center; gap: 8px; border: 1px solid rgba(127,127,127,.35); border-radius: 12px; padding: 6px 10px; }
+.dv-kai-qidir input { flex: 1; border: 0; background: transparent; color: inherit; font: inherit; outline: none; min-width: 0; }
+.dv-kai-qidir button { border: 0; background: transparent; color: inherit; cursor: pointer; display: inline-flex; }
+.dv-mavzu-btn:disabled { cursor: default; }
+.dv-kutub-sarlavha { margin: 14px 0 4px; font-size: .95rem; }
+
+/* dars rejasi (ochiq dars uchun asos) */
+.dv-dars { margin-top: 12px; border: 1px solid rgba(127,127,127,.25); border-radius: 12px; padding: 8px 12px; }
+.dv-dars summary { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .92rem; }
+.dv-dars-ich { font-size: .9rem; }
+.dv-dars-ich p { margin: 6px 0; }
+.dv-dars-maqsad { margin: 6px 0; padding-left: 18px; }
+.dv-dars-jadval, .dv-kadmin-jadval { display: grid; gap: 1px; margin: 8px 0; border-radius: 8px; overflow: hidden; background: rgba(127,127,127,.2); }
+.dv-dars-jadval > div { display: grid; grid-template-columns: 1.1fr .45fr 2fr 2fr; }
+.dv-dars-jadval span, .dv-kadmin-jadval span { padding: 6px 8px; background: var(--kb-surface, #fff); }
+.dv-dars-jadval small { display: block; opacity: .7; }
+.dv-dars-bosh span { font-weight: 700; font-size: .82rem; }
+@media (max-width: 720px) { .dv-dars-jadval > div { grid-template-columns: 1fr 1fr; } }
+
+/* administrator: kutubxonani to'ldirish */
+.dv-kadmin-wrap { margin: 4px 0 10px; border: 1px dashed rgba(181,23,58,.45); border-radius: 12px; padding: 8px 12px; }
+.dv-kadmin-wrap > summary { cursor: pointer; font-weight: 600; font-size: .92rem; }
+.dv-kadmin { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.dv-kadmin h4 { margin: 0; display: flex; align-items: center; gap: 6px; }
+.dv-kadmin-son { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+.dv-kadmin-karta { border: 1px solid rgba(127,127,127,.25); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; }
+.dv-kadmin-karta b { font-size: 1.15rem; }
+.dv-kadmin-karta span { font-size: .8rem; opacity: .7; }
+.dv-kadmin-karta.dv-holat-tayyor b { color: #1f9d55; }
+.dv-kadmin-karta.dv-holat-xato b { color: #b3152a; }
+.dv-kadmin-soz { display: grid; grid-template-columns: 180px 1fr 1fr auto; gap: 10px; align-items: end; }
+.dv-kadmin-soz label { display: flex; flex-direction: column; gap: 4px; font-size: .85rem; }
+.dv-kadmin-soz input { border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 8px 10px; font: inherit; background: transparent; color: inherit; }
+.dv-kadmin-soz > button { border: 1px solid rgba(127,127,127,.3); background: transparent; color: inherit; border-radius: 999px; padding: 7px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.dv-kadmin-xato { margin: 4px 0 8px; padding-left: 18px; font-size: .88rem; }
+.dv-kadmin-fanlar summary { cursor: pointer; font-size: .9rem; }
+.dv-kadmin-jadval { max-height: 420px; overflow-y: auto; font-size: .85rem; }
+.dv-kadmin-jadval > div { display: grid; grid-template-columns: 1.3fr 2fr .6fr .7fr .5fr .8fr 1fr; }
+.dv-kadmin-jadval button { border: 1px solid rgba(127,127,127,.3); background: transparent; color: inherit; border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: .8rem; }
+.dv-kadmin fieldset button:not(.dv-primary), .dv-kadmin > .dv-row button:not(.dv-primary) { border: 1px solid rgba(127,127,127,.3); background: transparent; color: inherit; border-radius: 999px; padding: 7px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 720px) { .dv-kadmin-soz { grid-template-columns: 1fr; } .dv-kadmin-jadval > div { grid-template-columns: 1fr 1fr 1fr; } }
