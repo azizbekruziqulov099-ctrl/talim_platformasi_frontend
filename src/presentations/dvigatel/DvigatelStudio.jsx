@@ -15,6 +15,7 @@ const TILLAR = [['uz', 'O‘zbek'], ['ru', 'Rus'], ['en', 'Ingliz']];
 const OHANGLAR = [['', 'Avto'], ['ilmiy', 'Ilmiy'], ['oddiy', 'Oddiy'], ['oyinli', 'O‘yinli']];
 const yangiUrug = () => 1 + Math.floor(Math.random() * 2147483000);
 const TUR_NOM = { ai: 'AI', reja: 'Reja', saqlangan: 'Saqlangan' };
+const TIL_NOMI = { uz: 'o‘zbek', ru: 'rus', en: 'ingliz' };
 function sana(iso) {
   if (!iso) return '';
   try { return new Date(iso).toLocaleString('uz-UZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso.slice(0, 16); }
@@ -136,6 +137,18 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
       setOchirTasdiq('');
       royxatYukla();
     } catch (e) { setXato(e.message); }
+  }
+
+  // tanlangan tildan boshqa tilda qolgan matnni AI bilan to'g'rilash (saqlangan bo'lsa — bazada ham)
+  async function tilniTogrila(til) {
+    if (!miya) return;
+    setBusy('til');
+    setXato('');
+    try {
+      const r = await so('/til-togrila', { method: 'POST', json: { miya, til, ...(joriyIsh ? { ish: joriyIsh } : {}) }, timeout: 180000 });
+      if (r.soni) { setMiya(r.miya); alertMatn(`${r.soni} ta matn ${TIL_NOMI[til]} tiliga o‘girildi.`); }
+      else alertMatn(`Hamma matn allaqachon ${TIL_NOMI[til]} tilida.`);
+    } catch (e) { setXato(e.message); } finally { setBusy(''); }
   }
 
   async function saqla() {
@@ -453,6 +466,11 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
           : <button type="button" onClick={saqla} disabled={busy === 'saqla'}>{busy === 'saqla' ? <LoaderCircle className="dv-spin" size={16} /> : <Save size={16} />}Saqlash</button>}
         <button type="button" className="dv-primary" onClick={pptx} disabled={busy === 'pptx'}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}{busy === 'pptx' ? 'Fayl tayyorlanmoqda…' : 'PowerPoint (.pptx) yuklab olish'}</button></div>
       {pptxXato && <div className="dv-xato" role="alert">PowerPoint fayli tayyorlanmadi: {pptxXato}</div>}
+      {info?.ai && <div className="dv-row dv-chips">
+        <span className="dv-label">Til aralashib qolsa:</span>
+        {['uz', 'ru', 'en'].map(t => <button type="button" key={t} disabled={busy === 'til'} onClick={() => tilniTogrila(t)}
+          className={(miya?.meta?.til || 'uz') === t ? 'is-active' : ''}>{busy === 'til' ? <LoaderCircle className="dv-spin" size={15} /> : null}Hammasini {TIL_NOMI[t]}chaga</button>)}
+      </div>}
       <p className="dv-help">Slaydni bosing yoki → / bo‘sh joy — keyingi qadam. Reja kartalari, pastki nuqtalar, savol kartalari va test variantlari bosiladi. F — to‘liq ekran.</p>
       <SahnaPlayer sahna={sahna} apiBase={apiBase} />
       {sahna.rasm_hisobot && <RasmHisobot h={sahna.rasm_hisobot} nusxa={nusxa} setNusxa={setNusxa} />}
