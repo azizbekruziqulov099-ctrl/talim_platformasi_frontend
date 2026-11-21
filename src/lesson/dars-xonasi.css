@@ -1604,3 +1604,10 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 @keyframes mdxRKatta{from{transform:scale(.4)}to{transform:scale(1.15)}}
 @keyframes mdxRTebran{from{transform:rotate(-6deg)}to{transform:rotate(6deg)}}
 @media (prefers-reduced-motion:reduce){.mdx-rasm *,.mdx-rasm{animation:none!important}}
+
+/* REV679: kompyuterda doskalar qatori (1 2 3 … Qoralama) boshqa qatlamlar ostida qolib bosilmayotgan edi */
+@media (min-width:901px){
+  .dx-root.dx-sinf .dx-frame>.dx-doskalar{z-index:60!important;pointer-events:auto!important}
+  .dx-root.dx-sinf .dx-frame>.dx-doskalar button{pointer-events:auto!important;cursor:pointer}
+  .dx-root.dx-sinf .dx-frame>.dx-burchak-daftar{z-index:60!important;pointer-events:auto!important}
+}

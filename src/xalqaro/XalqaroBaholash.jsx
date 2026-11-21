@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { lazyQayta } from "../workspace/lazyQayta.js";
 import { useInterface } from "../interface/InterfacePreferences.jsx";
 import { T, tf, xbTil } from "./xbTil.js";   // REV270: uch til
@@ -96,7 +96,16 @@ function XalqaroBolim({ apiBase, token, user, jins = "qiz", cheklovsiz = false, 
   const tp = useMemo(() => kat?.toplamlar?.find((t) => t.kalit === toplam), [kat, toplam]);
   const ustoz = ustozFor(tp?.ustoz_fan || "Matematika");
   ovoz.ustozQoy(ustoz);   // REV402: ovoz ustozning jinsiga mos
-  const orqaga = useCallback(() => { setEkran(null); setYangila((n) => n + 1); }, []);
+  // REV679: dars/mashq/test/imtihondan chiqqanda — mavzu sahifasiga (Dars · Mashq · Test kartalari) qaytadi, bosh katalogga emas
+  const sonMavzu = useRef(null);
+  const ekranRef = useRef(null);
+  ekranRef.current = ekran;
+  useEffect(() => { if (ekran?.tur === "mavzu") sonMavzu.current = ekran; else if (!ekran) sonMavzu.current = null; }, [ekran]);
+  const orqaga = useCallback(() => {
+    setYangila((n) => n + 1);
+    const m = sonMavzu.current;
+    if (m && ekranRef.current && ekranRef.current.tur !== "mavzu") setEkran(m); else setEkran(null);
+  }, []);
   const darsYoz = (mavzu, tugadi = false) => { if (mavzu) xbFetch(apiBase, "/api/xalqaro/dars_kordi", token, { method: "POST", body: { mavzu, tugadi } }).catch(() => {}); };   // REV376
   const ochDars = (m) => { ovoz.hush(); darsYoz(m.kalit); setEkran({ tur: "dars", kod: m.dars_kodi, fan: m.fan || tp?.ustoz_fan, mavzu: m.kalit, sinf: m.sinf || tp?.sinf }); };
   const ochMashq = (m, extra = {}) => { ovoz.hush(); setEkran({ tur: "mashq", manba: { mavzu: m?.kalit || "", toplam, ...extra }, sarlavha: m?.nom ? `${T("Mashq")}: ${m.nom}` : T("Aralash mashq") }); };
