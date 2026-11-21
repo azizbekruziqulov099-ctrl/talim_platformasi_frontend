@@ -329,6 +329,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   const sahifaRef = useRef(0);
   const [sahifa, setSahifa] = useState({ n: 0, korish: false });
   const [arxiv, setArxiv] = useState(null);
+  const arxivJoriyRef = useRef(null); arxivJoriyRef.current = arxiv;   // REV678: scroll tinglovchisi eskirgan qiymat o'qimasin
   const [arxivP, setArxivP] = useState(null);   // REV599: doskani qayta o'ynatish (0..1), null = to'liq yozilgan
   const arxivRef = useRef(null); const arxivRaf = useRef(0);
   useEffect(() => { const el = arxivRef.current; if (el) el.scrollTo({ top: arxivP == null ? el.scrollHeight : el.scrollHeight, behavior: arxivP == null ? "auto" : "smooth" }); }, [arxiv, arxivP]);   // REV599: oxirgi yozuvlar ko'rinadigan joyga   // REV597: oldingi doskani to'liq yozilgan holda qayta ochish (doska indeksi)
@@ -1602,6 +1603,8 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       const jami = Math.max(1, Math.ceil((el.scrollHeight - 8) / h));
       const n = Math.min(jami, Math.max(1, Math.round(el.scrollTop / h) + 1));
       setDoskaSon((x) => (x.n === n && x.jami === jami ? x : { n, jami }));
+      // REV678: o'quvchi doskani pastga qaytarib tushirsa — dars o'zi davom etadi («Davom ettir» tugmasini qidirmaydi)
+      if (korishRef.current && arxivJoriyRef.current === null && el.scrollHeight - el.clientHeight - el.scrollTop <= 24) { korishRef.current = false; delete el.dataset.qolda; setKorish(false); }
     };
     el.addEventListener("scroll", doskaHisob, { passive: true });
     const sigdir0 = sigdir; // eslint-disable-line no-unused-vars
