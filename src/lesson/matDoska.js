@@ -160,21 +160,27 @@ const sonQiymat = (t) => {
   const k = s.match(/^(-?\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/);
   return k ? Number(k[1]) / Number(k[2]) : Number(s);
 };
-/** «-3..5; nuqta 2; nuqta 1/2 A» → {min, max, qadam, nuqtalar:[{x, yorliq}]}. */
+/** «-3..5; nuqta 2; nuqta 1/2 A; sakrash -3 2 +5» → {min, max, qadam, nuqtalar:[{x, yorliq}]}. */
 export function sonOqiTahlil(arg) {
   const [oraliq, ...qolgan] = String(arg || "").split(/[;\n]/).map((x) => x.trim()).filter(Boolean);
   const m = String(oraliq || "").replace(/−/g, "-").match(/^(-?\d+)\s*\.\.\s*(-?\d+)(?:\s*(?:qadam|step|шаг)\s*(\d+(?:[.,]\d+)?))?$/i);
   if (!m) return null;
   const min = Number(m[1]), max = Number(m[2]);
   if (!(max > min) || max - min > 40) return null;
-  const nuqtalar = [];
+  const nuqtalar = [], sakrashlar = [];
   for (const q of qolgan) {
+    const sk = q.match(/^(?:sakrash|jump)\s+(\S+)\s+(\S+)(?:\s+(.+))?$/i);
+    if (sk) {
+      const a = sonQiymat(sk[1]), b = sonQiymat(sk[2]);
+      if (Number.isFinite(a) && Number.isFinite(b) && a !== b && a >= min && a <= max && b >= min && b <= max) sakrashlar.push({ a, b, yorliq: (sk[3] || "").trim() });
+      continue;
+    }
     const p = q.match(/^(?:nuqta|точка|point)\s+(\S+)(?:\s+(.+))?$/i);
     if (!p) continue;
     const x = sonQiymat(p[1]);
     if (Number.isFinite(x) && x >= min && x <= max) nuqtalar.push({ x, yorliq: (p[2] || p[1]).trim() });
   }
-  return { min, max, qadam: m[3] ? Number(m[3].replace(",", ".")) : 1, nuqtalar };
+  return { min, max, qadam: m[3] ? Number(m[3].replace(",", ".")) : 1, nuqtalar, sakrashlar };
 }
 
 // ── xavfsiz ifoda hisoblagich (eval yo'q) ─────────────────────────

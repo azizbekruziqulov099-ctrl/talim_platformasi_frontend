@@ -48,3 +48,9 @@ test("REV674: xalqaro baholash fanlari jonli doskada, boshqa fanlar o'zgarmaydi"
   for (const f of ["Tabiiy fan", "Fan (fizika, kimyo, biologiya, geografiya)", "O‘qish savodxonligi", "Moliyaviy savodxonlik"]) assert.ok(jonliRejim(f), f);
   for (const f of ["Ingliz tili", "Tarix", "Biologiya", "Fizika", "Ona tili", "", null]) assert.ok(!jonliRejim(f), String(f));
 });
+
+import { sonOqiTahlil as __sot } from "./matDoska.js";
+{
+  const t = __sot("-2..7; nuqta -2 A; nuqta 7 B; sakrash -2 7 +9");
+  if (!t || t.nuqtalar.length !== 2 || t.sakrashlar.length !== 1 || t.sakrashlar[0].yorliq !== "+9") throw new Error("son oqi sakrash tahlili buzildi");
+}
