@@ -2202,10 +2202,10 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
           {mode === "end" && <div className="dx-test">
             <h3 className="dx-title">{__kbUi("Dars tugadi")}</h3>
             {voice?.jami > 0 && <p className="dx-voice-score">🎤 {__kbUi("Ovozli tekshiruv")}: {voice.togri} / {voice.jami}</p>}
-            <p className="dx-why">{__kbUi("Bilimingizni tekshiring. Savollar shu mavzuning Test bazasidan olinadi.")}</p>
+            <p className="dx-why">{__kbUi("Bilimingizni tekshiring: birinchi tugma — shu darsning testi. Savollar shu mavzuning Test bazasidan olinadi.")}</p>
+            {questions.length > 0 && <button type="button" className="dx-btn dx-primary dx-kabu-test" onClick={startQuiz}>📝 {__kbUi("Kabu testi")}: {questions.length} {__kbUi("ta savol — hozir boshlash")}</button>}
             <div className="dx-row">
               {darsTil && !kid && <button type="button" className="dx-btn dx-primary dx-mashqlar" onClick={() => { hush(); setMashqlar(true); }}>🏋️ {__kbUi("Dars mashqlari")}: {__kbUi("o‘qish, gapirish, diktant")}</button>}
-              {questions.length > 0 && <button type="button" className={`dx-btn ${darsTil ? "" : "dx-primary"}`} onClick={startQuiz}>{__kbUi(`Shu yerda ${questions.length} ta savol`)}</button>}
               {maktabSozlar.length > 0 && <button type="button" className="dx-btn dx-repetitor" onClick={() => { hush(); setRepetitor(true); }}>🤖 {__kbUi("Repetitor")}: {maktabSozlar.length} {__kbUi("ta yangi so‘z")}</button>}
               {onOpenTest && <button type="button" className="dx-btn" onClick={onOpenTest}>{__kbUi("Test bo‘limida to‘liq test")}</button>}
               {voiceReady && <button type="button" className="dx-btn" onClick={() => { hush(); setVoice(null); voiceRef.current = null; setMode("ovoz"); }}>🎤 {__kbUi("Ovozli tekshiruvni qayta o‘tish")}</button>}

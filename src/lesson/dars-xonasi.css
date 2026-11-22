@@ -1618,3 +1618,10 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-sinf .dx-room>.dx-teacher{pointer-events:none}
   .dx-root.dx-sinf .dx-room>.dx-teacher>*{pointer-events:auto}
 }
+
+/* REV681: «Dars tugadi» ekranida oq tugmalardagi yozuv ko'rinmasdi (doskaning oq rangi meros bo'lib o'tardi) */
+.dx-root .dx-test .dx-row .dx-btn:not(.dx-primary):not(.dx-next):not(.dx-repetitor){color:#10243f!important;background:#fff!important;-webkit-text-fill-color:#10243f!important}
+.dx-root .dx-test .dx-row .dx-btn.dx-primary,.dx-root .dx-test .dx-row .dx-btn.dx-next{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.dx-root .dx-test .dx-row .dx-btn.dx-repetitor{color:#4B1F8A!important;-webkit-text-fill-color:#4B1F8A!important}
+/* REV681: dars oxiridagi asosiy tugma — «Kabu testi» (hamma ko'radigan, katta) */
+.dx-root .dx-test .dx-kabu-test{display:block;width:100%;max-width:520px;margin:8px 0 12px;padding:14px 18px;font-size:clamp(16px,2.2cqw,20px);font-weight:800;border-radius:14px;background:#f7c948!important;color:#10243f!important;-webkit-text-fill-color:#10243f!important;border-color:#f7c948!important;box-shadow:0 4px 14px rgba(247,201,72,.35)}
