@@ -2,7 +2,7 @@
  * (O'zim tanlayman / Tezkor / AI yozsin) → 3) reja: har bosqich metodini almashtirish, guruhlash va birlashtirish,
  * Word ishlanma va PPTX taqdimot. Metodlar bazasi va mavzu masalliqlaridan rejani server tuzadi. */
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BookOpen, Check, CircleAlert, Download, FileText, Library, LoaderCircle, PenLine, Presentation, Search, Shuffle, Sparkles, Users, Wand2, X, Zap } from 'lucide-react';
+import { ArrowLeft, BookOpen, Check, CircleAlert, Download, FileText, ImagePlus, Library, LoaderCircle, PenLine, Search, Shuffle, Sparkles, Users, Wand2, X, Zap } from 'lucide-react';
 import { dvUrl, yuklabOl } from './api.js';
 import { sinfNomi } from './Kutubxona.jsx';
 
@@ -29,7 +29,7 @@ const oraliqda = (s, n) => {
   return b ? +b[0] === n : true;
 };
 
-export default function OchiqDars({ so, apiBase, token, onTaqdimot, onClose }) {
+export default function OchiqDars({ so, apiBase, token, onClose }) {
   const [katalog, setKatalog] = useState(null);
   const [qadam, setQadam] = useState(1);
   const [xato, setXato] = useState('');
@@ -185,7 +185,6 @@ export default function OchiqDars({ so, apiBase, token, onTaqdimot, onClose }) {
       {onClose && <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>}
       <div className="dv-head-matn"><h2><Users size={20} /> Ochiq dars tayyorlash</h2>
         <p>Sinf va mavzuni tanlang — metodlar, guruhlarga bo‘lish, o‘yinlar, ilovalar va Word ishlanma tayyor bo‘ladi.</p></div>
-      <button type="button" className="dv-back" onClick={onTaqdimot}><Presentation size={16} />Taqdimot tayyorlash</button>
     </header>
 
     <ol className="dv-qadamlar" aria-label="Ochiq dars qadamlari">
@@ -310,16 +309,54 @@ export default function OchiqDars({ so, apiBase, token, onTaqdimot, onClose }) {
     </section>}
 
     {qadam === 3 && dars && <Reja dars={dars} busy={busy} metodAlmashtir={metodAlmashtir} guruhAlmashtir={guruhAlmashtir}
-      boshqaVariant={boshqaVariant} yukla={yukla} apiBase={apiBase} orqaga={() => setQadam(2)} />}
+      boshqaVariant={boshqaVariant} yukla={yukla} apiBase={apiBase} orqaga={() => setQadam(2)} so={so}
+      titulRasm={k => setDars(d => ({ ...d, meta: { ...d.meta, rasm: k } }))}
+      bosqichRasm={(i, k) => setDars(d => ({ ...d, bosqichlar: d.bosqichlar.map((b, j) => (j === i ? { ...b, rasm: k } : b)) }))} />}
   </div>;
 }
 
-function Reja({ dars, busy, metodAlmashtir, guruhAlmashtir, boshqaVariant, yukla, apiBase, orqaga }) {
+// Rasm almashtirish: avtomatik tanlangan rasm yoqmasa — o'qituvchi qidirib (o'zbekcha, ruscha, inglizcha) boshqasini qo'yadi.
+function RasmTanla({ so, rasmUrl, joriy, sorov, fan, onTanla, onYop }) {
+  const [q, setQ] = useState(sorov || '');
+  const [royxat, setRoyxat] = useState(null);
+  const [xato, setXato] = useState('');
+  useEffect(() => {
+    let bekor = false;
+    const t = setTimeout(async () => {
+      try {
+        const r = await so(`/ochiq-dars/rasmlar?q=${encodeURIComponent(q.trim())}&fan=${encodeURIComponent(fan || '')}`);
+        if (!bekor) { setRoyxat(r.rasmlar || []); setXato(''); }
+      } catch (e) { if (!bekor) setXato(e.message); }
+    }, 350);
+    return () => { bekor = true; clearTimeout(t); };
+  }, [q, fan]);   // eslint-disable-line react-hooks/exhaustive-deps
+  return <div className="dv-rasm-tanla" role="dialog" aria-label="Rasm tanlash">
+    <div className="dv-rasm-tanla-bosh">
+      <label className="dv-rasm-qidiruv"><Search size={15} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Rasm qidirish: masalan, kasr, yurak, Registon" autoFocus /></label>
+      {joriy && <button type="button" onClick={() => onTanla('')}>Rasmsiz</button>}
+      <button type="button" aria-label="Yopish" onClick={onYop}><X size={16} /></button>
+    </div>
+    {xato && <p className="dv-ogoh">{xato}</p>}
+    {!royxat && !xato && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Rasmlar qidirilmoqda…</p>}
+    {royxat && royxat.length === 0 && <p className="dv-help">Mos rasm topilmadi — boshqa so‘z yozib ko‘ring.</p>}
+    {royxat && royxat.length > 0 && <div className="dv-rasm-tur">
+      {royxat.map(r => <button type="button" key={r.kalit} className={r.kalit === joriy ? 'is-active' : ''} title={r.nom} onClick={() => onTanla(r.kalit)}>
+        <img src={rasmUrl(r.kalit)} alt="" loading="lazy" /><span>{r.nom}</span></button>)}
+    </div>}
+  </div>;
+}
+
+function Reja({ dars, busy, metodAlmashtir, guruhAlmashtir, boshqaVariant, yukla, apiBase, orqaga, so, titulRasm, bosqichRasm }) {
   const mt = dars.meta;
   const rasmUrl = k => dvUrl(apiBase, `/rasm/${encodeURIComponent(k)}`);
+  const [tanlov, setTanlov] = useState(null);   // 'titul' | bosqich indeksi | null
   return <section className="dv-card dv-ochiq-reja">
     <div className="dv-ochiq-bosh">
-      {mt.rasm && <img src={rasmUrl(mt.rasm)} alt="" />}
+      <div className="dv-ochiq-titul-rasm">
+        {mt.rasm && <img src={rasmUrl(mt.rasm)} alt="" />}
+        <button type="button" className="dv-rasm-tugma" onClick={() => setTanlov(tanlov === 'titul' ? null : 'titul')}>
+          <ImagePlus size={14} />{mt.rasm ? 'Almashtirish' : 'Titul rasmi'}</button>
+      </div>
       <div>
         <h3>«{mt.mavzu}»</h3>
         <p className="dv-help">{mt.fan} · {mt.yosh_nom} · {mt.format_nom} · {mt.andoza_nom} · {mt.daqiqa} daqiqa · {mt.oquvchilar} nafar, {dars.guruhlash.guruhlar.length} guruh
@@ -329,6 +366,8 @@ function Reja({ dars, busy, metodAlmashtir, guruhAlmashtir, boshqaVariant, yukla
         {!mt.masalliq_bor && <p className="dv-help">Mavzu uchun tayyor masalliq yo‘q — materiallar mavzu matnidan olindi. To‘liqroq bo‘lishi uchun «AI yozsin» rejimini sinab ko‘ring.</p>}
       </div>
     </div>
+    {tanlov === 'titul' && <RasmTanla so={so} rasmUrl={rasmUrl} joriy={mt.rasm} sorov={mt.mavzu} fan={mt.fan}
+      onTanla={k => { titulRasm(k); setTanlov(null); }} onYop={() => setTanlov(null)} />}
     <div className="dv-row">
       <button type="button" className="dv-primary" disabled={!!busy} onClick={() => yukla('docx')}>{busy === 'docx' ? <LoaderCircle className="dv-spin" size={16} /> : <FileText size={16} />}Word ishlanma</button>
       <button type="button" className="dv-primary" disabled={!!busy} onClick={() => yukla('pptx')}>{busy === 'pptx' ? <LoaderCircle className="dv-spin" size={16} /> : <Download size={16} />}Taqdimot (PPTX)</button>
@@ -365,7 +404,13 @@ function Reja({ dars, busy, metodAlmashtir, guruhAlmashtir, boshqaVariant, yukla
         {b.nutq && <p className="dv-ochiq-nutq">«{b.nutq}»</p>}
         <p className="dv-help">{b.oquvchi}{b.material?.tur && b.material.tur !== 'yoq' ? ` · material: ${MATERIAL_NOM[b.material.tur] || b.material.tur}` : ''}
           {b.ilova_raqam?.length ? ` · ${b.ilova_raqam.map(n => `${n}-ilova`).join(', ')}` : ''}</p>
-        {b.rasm && <img className="dv-ochiq-rasm" src={rasmUrl(b.rasm)} alt="" />}
+        <div className="dv-ochiq-bosqich-rasm">
+          {b.rasm && <img className="dv-ochiq-rasm" src={rasmUrl(b.rasm)} alt="" />}
+          <button type="button" className="dv-rasm-tugma" onClick={() => setTanlov(tanlov === i ? null : i)}>
+            <ImagePlus size={14} />{b.rasm ? 'Rasmni almashtirish' : 'Rasm qo‘shish'}</button>
+        </div>
+        {tanlov === i && <RasmTanla so={so} rasmUrl={rasmUrl} joriy={b.rasm} sorov={mt.mavzu} fan={mt.fan}
+          onTanla={k => { bosqichRasm(i, k); setTanlov(null); }} onYop={() => setTanlov(null)} />}
       </li>)}
     </ol>
 

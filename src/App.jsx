@@ -13227,6 +13227,7 @@ function menyuBandlariniOl(rol, qoshimchaBand) {
       { kalit: "mehmon_bosh", nom: "Bosh sahifa", ikon: BugunIkon },
       { kalit: "kurslar", nom: "Kurslar", ikon: GraduationCap },
       { kalit: "taqdimotlar", nom: "Taqdimot tayyorlash", ikon: FileSpreadsheet },
+      { kalit: "ochiq_dars", nom: "Ochiq dars", ikon: Users },   // alohida bo'lim (taqdimot ichida emas)
       { kalit: "oyinlar", nom: "Bolalar uchun", ikon: Gamepad2 },
       { kalit: "test", nom: "Testlar", ikon: PencilLine },
       { kalit: "profil", nom: "Profil va rol tanlash", ikon: User },
@@ -13311,7 +13312,7 @@ function PastkiMenyu({
       { kalit: "hujjat_ochish", nom: "Hujjat ochish", ikon: Folder },   // REV439
       { kalit: "profil", nom: "Profil", ikon: User });
   }
-  if (taqdimotMavjud && rol !== "oqituvchi" && rol !== "mehmon") bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet });
+  if (taqdimotMavjud && rol !== "oqituvchi" && rol !== "mehmon") bandlar.splice(1, 0, { kalit: "taqdimotlar", nom: "Taqdimot yaratish", ikon: FileSpreadsheet }, { kalit: "ochiq_dars", nom: "Ochiq dars", ikon: Users });
   const profilBandi = bandlar.find((band) => band.kalit === "profil");
   const asosiyBandlar = bandlar.filter((band) => band.kalit !== "profil");
   const rolNomi = rol === "admin"
@@ -14709,7 +14710,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     setMembershipNotice(result?.joy_nomi ? `${result.joy_nomi} — muassasaga ulandingiz.` : "Muassasaga ulandingiz.");
     if (profile) {
       setFoydalanuvchi(profile);
-      setTab(!profile.is_admin && profile.learning_profile?.role === "mehmon" ? (["mehmon_bosh", "kurslar", "taqdimotlar", "oyinlar", "test", "profil"].includes(tab) ? tab : "mehmon_bosh") : profile.is_admin || ["oqituvchi", "ota-ona"].includes(profile.role) ? initialEducationTab(profile) : ["test", "mavzular", "ai_ustoz"].includes(tab) ? tab : initialEducationTab(profile));
+      setTab(!profile.is_admin && profile.learning_profile?.role === "mehmon" ? (["mehmon_bosh", "kurslar", "taqdimotlar", "ochiq_dars", "oyinlar", "test", "profil"].includes(tab) ? tab : "mehmon_bosh") : profile.is_admin || ["oqituvchi", "ota-ona"].includes(profile.role) ? initialEducationTab(profile) : ["test", "mavzular", "ai_ustoz"].includes(tab) ? tab : initialEducationTab(profile));
     } else setProfileReload((n) => n + 1);
     kabutarniOch(false);
   };
@@ -14766,10 +14767,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
 
   const tabTanlandi = (yangiTab) => {
     if (yangiTab === "kurslar") { openCourses("catalog"); return; }
-    if (yangiTab === "taqdimotlar") {
+    if (yangiTab === "taqdimotlar" || yangiTab === "ochiq_dars") {
       if (readOnly) return;
       if (!presentationsAllowed) { setMembershipNotice(presentationsReason || "Taqdimot yaratish hisobingiz uchun hali ochilmagan."); return; } // jim qolmasin
-      setPresentationsOpened(true); setIshxonaTanlash(null); setTab("taqdimotlar"); kabutarniOch(false); return;
+      setPresentationsOpened(true); setIshxonaTanlash(null); setTab(yangiTab); kabutarniOch(false); return;
     }
     if (yangiTab === "oqituvchi_muassasa" && muassasaBandi) {
       setOqituvchiBoshlanishKorinishi({ korinish: muassasaBandi.korinish, vaqt: Date.now() });
@@ -14787,6 +14788,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
 
   const tabMalumoti = {
     taqdimotlar: ["Taqdimot yaratish", "Mavzu, dizayn va tayyor slaydlar"],
+    ochiq_dars: ["Ochiq dars", "Dars rejasi, ishlanma va taqdimot"],
     kurslar: ["Kurslar va to‘garaklar", "Darslar, mashqlar va mustaqil o‘qish"],
     admin: ["Kontent boshqaruvi", "Shablon va import markazi"],
     admin_muassasalar: ["Muassasalar", "Ro'yxat, yaratish va boshqaruv markazi"],
@@ -15177,10 +15179,10 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       <SectionErrorBoundary resetKey={`${korinishRoli}:${tab}`}>
       {tab === "home" && <EducationHome onOpen={tabTanlandi}/>}
 
-      {presentationsOpened && !readOnly && <div hidden={tab !== "taqdimotlar"}>
+      {presentationsOpened && !readOnly && <div hidden={tab !== "taqdimotlar" && tab !== "ochiq_dars"}>
         <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Taqdimot ustaxonasi yuklanmoqda…")}</p>}>
           <PresentationStudio key={token} apiBase={API_BASE} token={token} user={foydalanuvchi}
-            active={tab === "taqdimotlar" && !kabutarOchiq}
+            active={(tab === "taqdimotlar" || tab === "ochiq_dars") && !kabutarOchiq} bolim={tab === "ochiq_dars" ? "ochiq" : "taqdimot"}
             onClose={() => setTab(korinishRoli === "oqituvchi" ? "oqituvchi" : korinishRoli === "ota-ona" ? "farzand" : korinishRoli === "admin" ? "admin" : "bilim")} />
         </React.Suspense>
       </div>}

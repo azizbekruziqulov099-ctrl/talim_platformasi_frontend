@@ -267,3 +267,20 @@
 .dv-ochiq-manba { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dv-ochiq-rejim { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 720px) { .dv-ochiq-manba, .dv-ochiq-rejim { grid-template-columns: 1fr; } }
+
+/* Ochiq dars: rasmni almashtirish */
+.dv-ochiq-titul-rasm { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: none; }
+.dv-ochiq-bosqich-rasm { display: flex; align-items: flex-end; gap: 10px; margin-top: 6px; }
+.dv-rasm-tugma { display: inline-flex; align-items: center; gap: 5px; border: 1px dashed rgba(127,127,127,.5); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: .78rem; background: transparent; color: inherit; cursor: pointer; opacity: .85; }
+.dv-rasm-tugma:hover { opacity: 1; border-style: solid; }
+.dv-rasm-tanla { border: 1px solid rgba(127,127,127,.3); border-radius: 14px; padding: 10px; margin: 8px 0 12px; background: rgba(127,127,127,.05); }
+.dv-rasm-tanla-bosh { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.dv-rasm-tanla-bosh button { border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 6px 10px; font: inherit; font-size: .85rem; background: transparent; color: inherit; cursor: pointer; display: inline-flex; align-items: center; }
+.dv-rasm-qidiruv { flex: 1; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(127,127,127,.35); border-radius: 10px; padding: 6px 10px; }
+.dv-rasm-qidiruv input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
+.dv-rasm-tur { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; max-height: 300px; overflow: auto; }
+.dv-rasm-tur button { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 2px solid transparent; border-radius: 12px; padding: 6px; background: rgba(255,255,255,.75); color: #1f2937; cursor: pointer; font: inherit; }
+.dv-rasm-tur button:hover { border-color: rgba(59,130,246,.45); }
+.dv-rasm-tur button.is-active { border-color: #2563eb; }
+.dv-rasm-tur img { width: 100%; height: 72px; object-fit: contain; }
+.dv-rasm-tur span { font-size: .72rem; line-height: 1.2; text-align: center; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

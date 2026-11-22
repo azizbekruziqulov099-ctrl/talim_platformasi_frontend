@@ -37,9 +37,8 @@ function holatMatn(t) {
   return 'xato bilan tugagan';
 }
 
-export default function DvigatelStudio({ apiBase = '', token, onClose }) {
+export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = 'taqdimot' }) {
   const [info, setInfo] = useState(null);
-  const [bolim, setBolim] = useState('taqdimot');   // 'taqdimot' | 'ochiq' (ochiq dars tayyorlash)
   const [tab, setTab] = useState('ai');
   const [royxat, setRoyxat] = useState(null);
   const [joriyIsh, setJoriyIsh] = useState(null);
@@ -379,7 +378,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
 
   if (bolim === 'ochiq') {
     return <React.Suspense fallback={<p className="dv-help" role="status"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}>
-      <OchiqDars so={so} apiBase={apiBase} token={token} onClose={onClose} onTaqdimot={() => setBolim('taqdimot')} />
+      <OchiqDars so={so} apiBase={apiBase} token={token} onClose={onClose} />
     </React.Suspense>;
   }
 
@@ -388,7 +387,6 @@ export default function DvigatelStudio({ apiBase = '', token, onClose }) {
       {onClose && <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>}
       <div className="dv-head-matn"><h2><Sparkles size={20} /> Taqdimot tayyorlash</h2>
         <p>Mazmunni bering, dizaynni sozlang — chizmalar, joylashuv va animatsiyani dastur o‘zi qiladi{info ? ` · ${info.jami.toLocaleString('uz')} xil uslub` : ''}.</p></div>
-      <button type="button" className="dv-back" onClick={() => setBolim('ochiq')}><Users size={16} />Ochiq dars tayyorlash</button>
       <button type="button" className="dv-back" onClick={() => { setTab('mening'); setQadam(1); royxatYukla(); }}><FolderOpen size={16} />Mening taqdimotlarim</button>
     </header>
 
