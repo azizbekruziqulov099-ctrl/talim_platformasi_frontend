@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
 import "./testGamesLight.css";
+import "./testGameImmersive.css";
 import {
   AGE_BANDS,
   GAME_AUTO_READ_MAX_WAIT_MS,
@@ -121,7 +122,7 @@ const GameText = React.memo(function GameText({ value }) {
   value=translation.text;
   useKbInterfaceLocale();
   const text = String(value || "")
-    .replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, "\$$1\$")
+    .replace(/\[lat\]([\s\S]*?)\[\/lat\]/gi, (_, ichi) => `$${ichi}$`)   // REV682: "$$1$" almashtirish satri «1» chiqarardi
     .replace(/\[\/?(?:uz|ru|en|de|fr|es|ar|tr|zh|ja|ko)\]/gi, "");   // REV182: hamma til teglari (nemis, fransuz, …) ham ko'rinmaydi
   const rawMathStart = text.search(/\\(?:lim|sum|prod|int|tfrac|dfrac|cfrac|frac|sqrt|begin|left|sin|cos|tan|log|ln)\b/);
   const normalized = !text.includes("$") && rawMathStart >= 0
@@ -1464,8 +1465,10 @@ export default function TestGameArena({
     if (transitionCommittedRef.current !== feedbackTransitionKey) {
       transitionCommittedRef.current = "";
     }
-    const deadline = gameClockNow() + GAME_FEEDBACK_HOLD_MS;
-    setFeedbackCountdown(gameFeedbackCountdownSeconds(GAME_FEEDBACK_HOLD_MS));
+    // REV682: Shisha ko'prikda to'g'ri javobdan keyin bola kutib qolmaydi (1,7 s); xatoda izoh uchun to'liq vaqt.
+    const holdMs = mode === "bridge" && feedbackTransition.kind === "next" && feedback?.correct === true ? 1700 : GAME_FEEDBACK_HOLD_MS;
+    const deadline = gameClockNow() + holdMs;
+    setFeedbackCountdown(gameFeedbackCountdownSeconds(holdMs));
 
     const updateCountdown = () => {
       const remaining = Math.max(0, deadline - gameClockNow());
@@ -1515,7 +1518,7 @@ export default function TestGameArena({
     };
 
     const intervalId = setInterval(updateCountdown, 250);
-    const timeoutId = setTimeout(commitTransition, GAME_FEEDBACK_HOLD_MS);
+    const timeoutId = setTimeout(commitTransition, holdMs);
     return () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
@@ -1603,7 +1606,7 @@ export default function TestGameArena({
   return (
     <div
       ref={arenaRef}
-      className={`test-game-arena game-readable game-restored game-calm game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
+      className={`test-game-arena game-readable game-restored game-calm ${mode === "bridge" ? "game-immersive" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
       <header className="game-topbar">
@@ -1660,9 +1663,10 @@ export default function TestGameArena({
 
         <div
           className={`game-options ${mode === "bridge" ? `bridge-answer-course is-${bridgeOutcome}` : ""}`}
-          style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%" } : undefined}
+          style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%", "--sk-c2": bridgeOptionIndex >= 0 ? bridgeOptionIndex % 2 : -1, "--sk-r2": bridgeOptionIndex >= 0 ? Math.floor(bridgeOptionIndex / 2) : 0 } : undefined}
           aria-label={isBoss ? __kbUi("Nazorat savoli variantlari") : __kbUi("Javob variantlari")}
         >
+          {mode === "bridge" ? <span className="bridge-choice-runner" aria-hidden="true"><GameAvatar variant="runner" profile={avatarProfile} /></span> : null}
           {(question.options || []).map((option) => (
             <button
               type="button"

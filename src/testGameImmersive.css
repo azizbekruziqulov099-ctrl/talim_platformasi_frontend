@@ -1,0 +1,129 @@
+/* REV682: «Shisha ko'prik» — savol va javoblar o'yin sahnasining ichida.
+   Faqat .game-immersive (bridge) uchun; boshqa rejimlarga tegmaydi. */
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage.game-stage-light{
+  display:block!important;position:relative!important;overflow:hidden!important;
+  padding:clamp(12px,2.4vw,26px)!important;border:0!important;border-radius:26px!important;
+  min-height:clamp(520px,72vh,720px)!important;
+  background:
+    linear-gradient(180deg,rgba(6,14,32,.80) 0%,rgba(6,14,32,.38) 38%,rgba(4,10,24,.30) 62%,rgba(2,6,16,.92) 100%),
+    url("./assets/game-scenes/bridge.webp") center/cover no-repeat!important;
+  box-shadow:0 22px 60px rgba(8,20,45,.35)!important;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:34%;pointer-events:none;z-index:0;
+  background:radial-gradient(120% 90% at 50% 100%,rgba(0,0,0,.75),transparent 70%);
+}
+.test-game-arena.game-readable.game-restored.game-immersive .game-mission-sidebar{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{position:relative;z-index:1;display:flex!important;flex-direction:column;gap:14px;min-height:inherit}
+.test-game-arena.game-readable.game-restored.game-immersive .game-timer{
+  background:rgba(8,18,40,.62)!important;border:1px solid rgba(170,235,255,.28)!important;color:#fff!important;
+  backdrop-filter:blur(10px);border-radius:16px!important;box-shadow:none!important;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .game-timer strong{color:#fff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-timer small{color:rgba(226,244,255,.72)!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-timer-track{background:rgba(255,255,255,.16)!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-card{
+  flex:1;display:flex!important;flex-direction:column;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-label span{background:#ffd95a!important;color:#3d2500!important;box-shadow:0 0 22px rgba(255,217,90,.55)!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-label small{color:#e8f6ff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-heading{
+  align-self:center;width:min(100%,860px);margin:6px auto 0!important;padding:clamp(14px,2.2vw,24px)!important;
+  background:rgba(7,16,38,.74)!important;border:1px solid rgba(170,235,255,.34)!important;border-radius:20px!important;
+  backdrop-filter:blur(12px);box-shadow:0 18px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.12)!important;
+  animation:sk-board-in .5s cubic-bezier(.2,.8,.2,1) both;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-heading h1{color:#fff!important;font-size:clamp(19px,2.3vw,28px)!important;line-height:1.4!important;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-heading .katex{color:#fff}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-image{display:block;margin:8px auto;max-height:230px;border-radius:14px;background:#fff}
+.test-game-arena.game-readable.game-restored.game-immersive .game-formula{color:#fff}
+.test-game-arena.game-readable.game-restored.game-immersive .game-read-button{background:rgba(255,255,255,.14)!important;color:#fff!important;border:1px solid rgba(255,255,255,.3)!important}
+
+/* Oynalar */
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{
+  margin-top:auto!important;padding-top:clamp(120px,17vh,160px)!important;gap:clamp(8px,1.6vw,18px)!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;perspective:900px;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button{
+  position:relative;min-height:clamp(92px,13vh,128px)!important;padding:12px 10px 14px!important;
+  display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;
+  border:2px solid rgba(214,250,255,.9)!important;border-radius:16px!important;color:#fff!important;cursor:pointer;
+  background:linear-gradient(135deg,rgba(255,255,255,.34),rgba(255,255,255,.04) 36%),linear-gradient(160deg,rgba(120,226,244,.50),rgba(10,70,100,.72))!important;
+  box-shadow:inset 0 0 26px rgba(255,255,255,.22),0 18px 26px rgba(0,12,28,.55),0 0 18px rgba(103,232,249,.25)!important;
+  transform:rotateX(14deg);transform-origin:center bottom;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+  backdrop-filter:blur(6px);animation:sk-pane-in .55s cubic-bezier(.2,.8,.2,1) both;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(2){animation-delay:.07s}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(3){animation-delay:.14s}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(4){animation-delay:.21s}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):hover,
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):focus-visible{
+  transform:rotateX(6deg) translateY(-5px);box-shadow:inset 0 0 30px rgba(255,255,255,.34),0 24px 30px rgba(0,12,28,.6),0 0 32px rgba(103,232,249,.6)!important;outline:none;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button > span{
+  width:30px;height:30px;display:grid;place-items:center;border-radius:50%;font-weight:900;font-size:14px;
+  background:rgba(4,16,36,.72)!important;color:#bff4ff!important;border:1px solid rgba(190,245,255,.6);
+}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button > b{color:#fff!important;font-size:clamp(15px,1.7vw,21px)!important;font-weight:800;line-height:1.3;text-shadow:0 2px 8px rgba(0,20,40,.7);overflow-wrap:anywhere}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button .katex{color:#fff;font-size:1.12em}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:disabled{opacity:1!important;cursor:default}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-hidden-option{opacity:.28!important;filter:grayscale(1)}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-selected-option{box-shadow:inset 0 0 30px rgba(255,255,255,.4),0 0 0 3px #ffd95a,0 0 36px rgba(255,217,90,.6)!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-bridge-safe{
+  border-color:#8dffc4!important;background:linear-gradient(160deg,rgba(120,255,190,.62),rgba(8,110,72,.82))!important;
+  box-shadow:inset 0 0 30px rgba(255,255,255,.35),0 0 0 3px rgba(141,255,196,.9),0 0 46px rgba(80,255,170,.75)!important;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-bridge-broken{border-color:#ff9c9c!important;background:linear-gradient(160deg,rgba(255,150,150,.5),rgba(110,16,24,.8))!important}
+
+/* Qahramon */
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{
+  top:clamp(4px,1.5vh,18px);left:var(--bridge-runner-left,-5%);width:clamp(64px,7vw,86px);height:clamp(108px,12vw,144px);z-index:14;
+}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner .game-avatar{width:100%;height:100%}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:50%;animation:sk-hero-idle 2.2s ease-in-out infinite}
+
+/* Javobdan keyingi izoh */
+.test-game-arena.game-readable.game-restored.game-immersive .game-feedback{position:relative;z-index:3;margin-top:12px}
+.test-game-arena.game-readable.game-restored.game-immersive .game-feedback > .is-correct{animation:sk-board-in .35s both}
+.test-game-arena.game-readable.game-restored.game-immersive .edu-feedback-actions{color:#e8f6ff}
+.test-game-arena.game-readable.game-restored.game-immersive .edu-feedback-actions small{color:#d7ecff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .edu-learning-tools,
+.test-game-arena.game-readable.game-restored.game-immersive details.edu-learning-tools{background:rgba(7,16,38,.55)!important;border-color:rgba(170,235,255,.25)!important;color:#e8f6ff!important;margin-top:12px}
+.test-game-arena.game-readable.game-restored.game-immersive .edu-learning-tools summary,.test-game-arena.game-readable.game-restored.game-immersive .edu-learning-tools p{color:#e8f6ff!important}
+
+@keyframes sk-board-in{from{opacity:0;transform:translateY(-14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes sk-pane-in{from{opacity:0;transform:rotateX(50deg) translateY(40px)}to{opacity:1;transform:rotateX(14deg)}}
+@keyframes sk-hero-idle{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
+
+@media(max-width:700px){
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage.game-stage-light{padding:10px!important;border-radius:18px!important;min-height:78vh!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{grid-template-columns:repeat(2,minmax(0,1fr))!important;padding-top:118px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button{min-height:84px!important;transform:rotateX(8deg)}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{left:calc(25% + var(--sk-c2,0) * 50%);top:calc(6px + var(--sk-r2,0) * 96px)}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:50%;top:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button,.test-game-arena.game-readable.game-restored.game-immersive .game-question-heading,.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{animation:none!important;transition:none!important}
+}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1,
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1 *{color:#fff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b,
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b *{color:#fff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .edu-learning-tools{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner .avatar-aura{display:none}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1,
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1 *,
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b,
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b *{-webkit-text-fill-color:#fff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .edu-study-tools{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button{display:flex!important;grid-template-columns:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button > b{width:100%;text-align:center!important;display:block}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button > span{margin:0 auto!important;flex:none}
+@media(max-width:700px){
+  .test-game-arena.game-readable.game-restored.game-immersive .game-timer small{display:none!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage.game-stage-light{min-height:0!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{padding-top:104px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button{min-height:74px!important;padding:8px!important;gap:4px}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{width:56px;height:94px;top:calc(4px + var(--sk-r2,0) * 84px)}
+}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course .bridge-choice-runner::before{height:54px!important}
