@@ -305,3 +305,11 @@
 /* REV617: tinch ustoz (6/7-poza) — poza almashganda «kirib kelish» sakramasin */
 .us-teacher.is-neytral{animation:us-breathe 3.6s ease-in-out infinite!important}
 .us-stage.is-speaking .us-teacher.is-neytral,.us-teacher.is-neytral.is-gapir{animation:us-talk .9s ease-in-out infinite alternate!important}
+
+/* REV694: gapirayotgan ustoz — og'iz yonida tovush to'lqinlari (yopishtirma og'iz o'rniga) */
+.us-tovush{position:absolute;width:9%;aspect-ratio:1;transform:translate(calc(55% * var(--oyna,1)),-50%) scaleX(var(--oyna,1));pointer-events:none}
+.us-tovush i{position:absolute;left:0;top:50%;border:2.5px solid rgba(255,255,255,.95);border-left-color:transparent;border-top-color:transparent;border-bottom-color:transparent;border-radius:50%;
+  transform:translateY(-50%);opacity:0;filter:drop-shadow(0 0 2px rgba(20,60,120,.55));animation:us-tovush 1.1s ease-out infinite}
+.us-tovush i:nth-child(1){width:36%;height:36%}.us-tovush i:nth-child(2){width:66%;height:66%;animation-delay:.18s}.us-tovush i:nth-child(3){width:100%;height:100%;animation-delay:.36s}
+@keyframes us-tovush{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.us-tovush i{animation:none;opacity:.8}}

@@ -52,6 +52,7 @@ export function havoJoyi(dz, doska) {
  * gapirayotganining og'zi ovozga mos qimirlaydi (avvalgidek), ikkinchisi jim turadi — boshqa qo'shimcha harakat yo'q.
  * rol — "til" (o'rganilayotgan til ustozi) | "iz" (izoh tili ustozi); jim — boshqasi gapiryapti.
  */
+const OG_QATLAM = false;   // REV694: yopishtirma og'iz qatlami (o'chirilgan)
 export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = false, mouth = null, soz = "", listening = false, hasPics = false, rol = "", jim = false, bayroq = "", neytral = false, onOchiq }) {
   const t = USTOZLAR[ustoz] || USTOZLAR.nilufar;
   const poza0 = neytral ? (/(^|\s)yozadi(\s|$)/.test(mood) && (USTOZLAR[ustoz]?.[7]?.og || USTOZLAR[ustoz]?.[7]?.yuz) ? 7 : 6) : pozaFor(mood, { hasPics, listening });   // REV604: telefonda qo'l yoymaydi — tinch tik poza
@@ -126,7 +127,11 @@ export function UstozFigura({ yashirin = false, ustoz, mood = "", speaking = fal
       {p.yuz && <img className="us-face" src={p.yuz.kadr[Math.max(1, kadr) - 1]} alt="" draggable="false"
         style={{ left: `${p.yuz.x}%`, top: `${p.yuz.y}%`, width: `${p.yuz.w}%`, height: `${p.yuz.h}%` }} />}
       {/* REV158: og'iz qatlami ustoz rasmi chegarasida qoladi (teri dog'i fonga chiqmaydi) */}
-      {p.og && og > 1 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
+      {/* REV694: yopishtirma og'iz (lab varag'i + teri yamog'i) O'CHIRILDI — u hech bir ustozning yuziga aniq tushmas edi
+          (ayniqsa bosh egilganda yoki ustoz qimirlaganda). Rassom chizgan og'iz qoladi; gapirayotgani tana tebranishi va
+          og'iz yonidagi tovush to'lqinlari bilan ko'rinadi. Rassomning o'z yuz kadrlari (p.yuz) bor pozalar avvalgidek ishlaydi. */}
+      {p.og && !p.yuz && speaking && ochiq && <span className="us-tovush" style={{ left: `${p.og.x}%`, top: `${p.og.y}%` }} aria-hidden="true"><i /><i /><i /></span>}
+      {OG_QATLAM && p.og && og > 1 && <span className="us-og-qatlam" style={{ WebkitMaskImage: `url(${p.src})`, maskImage: `url(${p.src})` }} aria-hidden="true">
         <span className="us-og" style={{ left: `${p.og.x}%`, top: `${p.og.y}%`, width: `${p.og.w * (p.og.k || OG_OLCHAM)}%`, "--teri": p.og.skin, "--og-r": `${p.og.r || 0}deg` }}>
           {/* REV552: yamoq o'lchami pozadan (tw — eni, th — bo'yi, tq — to'liq qoplaydigan qismi); berilmasa — eski umumiy o'lcham */}
           <i className="us-og-teri" style={p.og.tw || p.og.th || p.og.tq ? { ...(p.og.tw ? { width: `${p.og.tw * (p.og.k ? 1 : 0.95)}%` } : null), ...(p.og.th ? { height: `${p.og.th * (p.og.k ? 1 : 0.8)}%` } : null), ...(p.og.tq ? { "--teri-q": `${p.og.tq}%` } : null) } : undefined} />

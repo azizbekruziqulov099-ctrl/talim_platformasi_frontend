@@ -1405,10 +1405,11 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root.dx-root.dx-sinf>.dx-head .dx-btn,.dx-root.dx-root.dx-sinf>.dx-head .dx-chip{font-size:10.5px!important;padding:2px 6px!important;min-height:0!important;line-height:1.3}
 
 /* REV599: telefon tik holatida tugmalar chap-o'ng qator bo'lib pastda — kichik doskani to'smaydi */
+/* REV694: quyidagi «tik telefon — tugmalar pastki qatorda» qoidasi buralgan (dx-yotiq) darsga TEGMAYDI: aks holda bolalar darsida tugmalar butun ekranga yoyilib, doska yopilib qolardi. */
 @media (max-width:700px) and (orientation:portrait){
-  .dx-root.dx-root .dx-controls{left:6px!important;right:6px!important;width:auto!important;max-width:none!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto;gap:5px!important;padding:5px!important;border-radius:14px!important}
-  .dx-root.dx-root .dx-controls .dx-btn{flex:0 0 auto;width:auto!important;min-width:0;padding:6px 9px!important;font-size:12px!important;white-space:nowrap}
-  .dx-root.dx-root .dx-controls :is(label,select){flex:0 0 auto;font-size:11px}
+  .dx-root.dx-root:not(.dx-yotiq) .dx-controls{left:6px!important;right:6px!important;width:auto!important;max-width:none!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto;gap:5px!important;padding:5px!important;border-radius:14px!important}
+  .dx-root.dx-root:not(.dx-yotiq) .dx-controls .dx-btn{flex:0 0 auto;width:auto!important;min-width:0;padding:6px 9px!important;font-size:12px!important;white-space:nowrap}
+  .dx-root.dx-root:not(.dx-yotiq) .dx-controls :is(label,select){flex:0 0 auto;font-size:11px}
 }
 
 /* REV599: arxiv doska — oddiy doska bilan bir xil yorqin yozuv; raqamlar doim ko'rinadi */
@@ -1625,3 +1626,16 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
 .dx-root .dx-test .dx-row .dx-btn.dx-repetitor{color:#4B1F8A!important;-webkit-text-fill-color:#4B1F8A!important}
 /* REV681: dars oxiridagi asosiy tugma — «Kabu testi» (hamma ko'radigan, katta) */
 .dx-root .dx-test .dx-kabu-test{display:block;width:100%;max-width:520px;margin:8px 0 12px;padding:14px 18px;font-size:clamp(16px,2.2cqw,20px);font-weight:800;border-radius:14px;background:#f7c948!important;color:#10243f!important;-webkit-text-fill-color:#10243f!important;border-color:#f7c948!important;box-shadow:0 4px 14px rgba(247,201,72,.35)}
+/* REV694: bolalar darsi (buralgan telefon) — tugmalar ustuni ixcham, oq bo'sh joysiz */
+.dx-root.dx-root.dx-root.dx-yotiq.dx-aud-bogcha>.dx-controls{min-width:0!important;width:84px!important;max-width:84px!important}
+/* REV694: bolalar testi (buralgan telefon) — savol vaqti chizig'i panjarani buzmasin: Kabu/savol chapda, javoblar o'ngda, vaqt chizig'i tepada */
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask){grid-template-columns:minmax(0,38%) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);width:100%}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-savol-vaqt{grid-column:1/-1;grid-row:1;width:auto}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-kid-ask{grid-column:1;grid-row:2;min-height:0;max-height:100%;overflow:hidden}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-kid-opts{grid-column:2;grid-row:2;min-height:0;align-self:center}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask){padding-top:42px;box-sizing:border-box}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-kid-ask{justify-content:center;gap:6px}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-kid-ask .ks-stage{zoom:.6}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-kid-ask .dx-kid-qcard{zoom:.72}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-kid-ask .dx-listen-big{zoom:.8}
+.dx-root.dx-yotiq.dx-aud-bogcha .dx-test:has(>.dx-kid-ask)>.dx-kid-opts{max-height:100%}
