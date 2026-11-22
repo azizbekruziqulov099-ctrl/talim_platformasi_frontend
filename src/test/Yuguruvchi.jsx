@@ -16,6 +16,7 @@ const OVOZ = {
   sharKuy: ovoz("sharlar_loop"),
   stadionKuy: ovoz("stadion_loop"), arqon: [ovoz("arqon_tortildi_1"), ovoz("arqon_tortildi_2")], hushtak: [ovoz("hushtak")],
   raqibYiqildi: [ovoz("raqib_yiqildi")], tomoshabin: [ovoz("tomoshabinlar")], arqonAyt: [ovoz("ayt_arqonni_tort")],
+  kartaKuy: ovoz("kartalar_loop"), kartaAylandi: [ovoz("karta_aylandi")], juftTopildi: [ovoz("juft_topildi")], juftEmas: [ovoz("juft_emas")],
   minoraKuy: ovoz("qurilish_loop"), blokTushdi: [ovoz("blok_tushdi")], blokQiyshaydi: [ovoz("blok_qiyshaydi")], ilgak: [ovoz("kran_ilgagi")],
   sharYoril: [ovoz("shar_yorildi_1"), ovoz("shar_yorildi_2"), ovoz("shar_yorildi_3")], konfetti: [ovoz("konfetti")],
   sharAyt: [ovoz("ayt_sharni_tanla")],
@@ -66,7 +67,7 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
     if (!yoqiq) { if (kuyRef.current) kuyRef.current.pause(); return undefined; }
     const boshla = () => {
       try {
-        const manba = boss ? OVOZ.bossKuy : tur === "shar" ? OVOZ.sharKuy : tur === "minora" ? OVOZ.minoraKuy : tur === "bellashuv" ? OVOZ.stadionKuy : OVOZ.kuy;
+        const manba = boss ? OVOZ.bossKuy : tur === "shar" ? OVOZ.sharKuy : tur === "minora" ? OVOZ.minoraKuy : tur === "bellashuv" ? OVOZ.stadionKuy : tur === "karta" ? OVOZ.kartaKuy : OVOZ.kuy;
         if (kuyRef.current && kuyRef.current._manba !== manba) { kuyRef.current.pause(); kuyRef.current = null; }
         if (!kuyRef.current) { kuyRef.current = new Audio(manba); kuyRef.current._manba = manba; kuyRef.current.loop = true; kuyRef.current.volume = 0.16; }
         const p = kuyRef.current.play(); if (p && p.catch) p.catch(() => {});
@@ -89,6 +90,9 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
     if (boss && togri) {
       chal(OVOZ.yulduz); setTimeout(() => chal(OVOZ.bossZarba[boss - 1], 0.8), 380);
       setTimeout(() => chal(OVOZ.bossDost, 0.7), 1100); setTimeout(() => chal(OVOZ.galaba, 0.9), 1500);
+    } else if (tur === "karta") {
+      if (togri) { chal(OVOZ.juftTopildi, 0.9); setTimeout(() => chal(OVOZ.tanga, 0.6), 350); if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 700); }
+      else { chal(OVOZ.juftEmas, 0.9); setTimeout(() => chal(OVOZ.yana, 0.9), 700); }
     } else if (tur === "bellashuv") {
       chal(OVOZ.arqon, 0.8);
       if (togri) { setTimeout(() => chal(OVOZ.tanga, 0.6), 350); if (bellashuvMuvozanat(log) >= 3) { setTimeout(() => chal(OVOZ.raqibYiqildi, 0.9), 500); setTimeout(() => chal(OVOZ.tomoshabin, 0.7), 800); } else if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 700); }
@@ -111,6 +115,9 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
   useEffect(() => { if ((tur === "shar" || tur === "bellashuv") && yoqiq && log.length === 0) { const t = setTimeout(() => { if (tur === "bellashuv") chal(OVOZ.hushtak, 0.6); chal(tur === "shar" ? OVOZ.sharAyt : OVOZ.arqonAyt, 0.9); }, 900); return () => clearTimeout(t); } return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tur]);
+  useEffect(() => { if (tur === "karta" && yoqiq && !yakun) { const t = setTimeout(() => chal(OVOZ.kartaAylandi, 0.6), 500); return () => clearTimeout(t); } return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tur, log.length, yakun]);
   const almashtir = () => setYoqiq((v) => { const n = !v; try { localStorage.setItem(KALIT, n ? "1" : "0"); } catch { /* xotira yo'q */ } return n; });
 
   return (
@@ -120,6 +127,8 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
           <div className="yg-boss"><i className="yg-boss-sog" /><i className="yg-boss-zarba" /><i className="yg-boss-yengildi" /></div>
           <i className="yg-yulduz" />
         </div>
+      ) : tur === "karta" ? (
+        <div className="yg-world yg-stol" aria-hidden="true" />
       ) : tur === "bellashuv" ? (
         <BellashuvSahna log={log} feedback={feedback} gender={gender} />
       ) : tur === "minora" ? (

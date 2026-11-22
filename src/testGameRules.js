@@ -25,8 +25,8 @@ export const GAME_MODES = [
   {
     id: "detective",
     icon: "⌕",
-    name: "Sirli izlar",
-    short: "To'rtta dalilni topib, Boss jumboqni yeching",
+    name: "Kartalar",
+    short: "Kartalar ochiladi — to'g'ri javoblisini top",
     colors: ["#9A3412", "#FDBA74"],
   },
   {

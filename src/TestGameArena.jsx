@@ -195,7 +195,7 @@ const EDUCATIONAL_GAMES = {
   bridge: { icon: "🏃", goal: "Yugur va to‘g‘ri darvozaga kir", mechanic: "O‘qi → darvozani tanla → tanga yig‘", description: "Har to‘g‘ri javob tanga beradi, ketma-ket to‘g‘ri javoblar ko‘proq. Xato joylar qayta mashq uchun belgilanadi.", steps: ["Poydevor", "Tayanch", "Oraliq", "Mustahkamlik", "Darvoza"], tip: "Avval nima berilgani va nimani topish kerakligini ajrating." },
   millionaire: { icon: "🪢", goal: "Arqonni o‘z tomoningga tort", mechanic: "To‘g‘ri javob — sen tortasan · 50/50 yordam", description: "Har to‘g‘ri javob arqonni sen tomonga, xato javob raqib tomonga suradi. Uch qadam oldinga chiqsang, raqib yiqiladi. Zarur bo‘lsa 50/50 yordamidan foydalan.", steps: ["1-pog‘ona", "2-pog‘ona", "3-pog‘ona", "4-pog‘ona", "Yakuniy pog‘ona"], tip: "Yordam ishlatishdan oldin variantlarni o‘zingiz solishtiring." },
   space: { icon: "🎈", goal: "To‘g‘ri sharni yor", mechanic: "O‘qi → sharni tanla → tanga yig‘", description: "Javoblar sharlarda uchib chiqadi. To‘g‘risini yorsang tanga olasan, ketma-ket to‘g‘ri javoblar ko‘proq beradi.", steps: ["Uchish", "Orbita", "Oy bekati", "Mars yo‘li", "Stansiya"], tip: "Javobni topgach, shartga mos kelishini yana bir tekshiring." },
-  detective: { icon: "🔎", goal: "Dalillar bilan sirni oching", mechanic: "Mos kelmaydigan variantlarni belgilash", description: "Avval taxminiy xato variantlarni belgilang. Javob berilgach, haqiqiy savol va izoh dalillar doskasida saqlanadi.", steps: ["Birinchi iz", "Tekshiruv", "Bog‘lanish", "Dalil", "Xulosa"], tip: "Taxminni dalildan ajrating: nima sababdan bu variant mos kelmaydi?" },
+  detective: { icon: "🃏", goal: "To‘g‘ri kartani top", mechanic: "O‘qi → kartalar ochiladi → to‘g‘risini tanla", description: "Javoblar kartalarda ochiladi. To‘g‘ri kartani topsang tanga olasan, ketma-ket to‘g‘ri javoblar ko‘proq beradi.", steps: ["Birinchi iz", "Tekshiruv", "Bog‘lanish", "Dalil", "Xulosa"], tip: "Taxminni dalildan ajrating: nima sababdan bu variant mos kelmaydi?" },
   city: { icon: "🏗️", goal: "Minorani qavatma-qavat qur", mechanic: "O‘yla → javobni tanla → qavat qo‘sh", description: "Shoshilish yo‘q: har to‘g‘ri javob minoraga bir qavat qo‘shadi. Xato javobda blok qulaydi va izoh chiqadi.", steps: ["Maktab", "Kutubxona", "Ustaxona", "Laboratoriya", "Bilim markazi"], tip: "Javobingizning sababini bitta gap bilan tushuntirishga urinib ko‘ring." },
 };
 
@@ -1493,7 +1493,7 @@ export default function TestGameArena({
       transitionCommittedRef.current = "";
     }
     // REV682: Shisha ko'prikda to'g'ri javobdan keyin bola kutib qolmaydi (1,7 s); xatoda izoh uchun to'liq vaqt.
-    const tezOyin = mode === "bridge" || mode === "space" || mode === "city" || mode === "millionaire";
+    const tezOyin = true;   // REV691: beshala o'yin ham yangi ko'rinishda
     const holdMs = tezOyin && feedback?.correct === true && (feedbackTransition.kind === "next" || (mode === "bridge" && isBoss)) ? (mode === "bridge" && isBoss ? 3000 : 1700) : GAME_FEEDBACK_HOLD_MS;
     const deadline = gameClockNow() + holdMs;
     setFeedbackCountdown(gameFeedbackCountdownSeconds(holdMs));
@@ -1636,7 +1636,7 @@ export default function TestGameArena({
   return (
     <div
       ref={arenaRef}
-      className={`test-game-arena game-readable game-restored ${mode === "bridge" ? "game-immersive" : mode === "space" ? "game-immersive game-sharlar" : mode === "city" ? "game-immersive game-minora" : mode === "millionaire" ? "game-immersive game-bellashuv" : "game-calm"} ${mode === "bridge" && isBoss ? "yg-is-boss" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
+      className={`test-game-arena game-readable game-restored ${mode === "bridge" ? "game-immersive" : mode === "space" ? "game-immersive game-sharlar" : mode === "city" ? "game-immersive game-minora" : mode === "millionaire" ? "game-immersive game-bellashuv" : mode === "detective" ? "game-immersive game-kartalar" : "game-calm"} ${mode === "bridge" && isBoss ? "yg-is-boss" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
       <header className="game-topbar">
@@ -1658,6 +1658,7 @@ export default function TestGameArena({
         {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} mavzu={ygMavzu(session?.session_id, question?.round)} boss={isBoss ? ygBoss(question?.round, question?.round_step) : 0} /> : null}
         {mode === "space" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} tur="shar" /> : null}
         {mode === "city" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} tur="minora" /> : null}
+        {mode === "detective" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} tur="karta" /> : null}
         {mode === "millionaire" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} tur="bellashuv" gender={avatarProfile.gender} /> : null}
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
