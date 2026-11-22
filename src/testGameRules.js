@@ -18,8 +18,8 @@ export const GAME_MODES = [
   {
     id: "space",
     icon: "✦",
-    name: "Raketa missiyasi",
-    short: "Har to'g'ri javob bilan yangi orbitaga o'ting",
+    name: "Sharlar",
+    short: "To'g'ri javob yozilgan sharni yor, tanga yig'",
     colors: ["#1D4ED8", "#93C5FD"],
   },
   {
