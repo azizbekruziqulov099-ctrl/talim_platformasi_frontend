@@ -11,8 +11,8 @@ export const GAME_MODES = [
   {
     id: "millionaire",
     icon: "₿",
-    name: "Bilim millioneri",
-    short: "Pog'onalarga chiqing, 50/50 dan foydalaning",
+    name: "Arqon tortish",
+    short: "To'g'ri javob bilan arqonni o'z tomoningga tort",
     colors: ["#5B21B6", "#C4B5FD"],
   },
   {

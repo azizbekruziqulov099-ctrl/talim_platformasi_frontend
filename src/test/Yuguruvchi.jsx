@@ -14,6 +14,8 @@ const OVOZ = {
   kuy: ovoz("yugurish_loop"),
   bossKuy: ovoz("arena_loop"),
   sharKuy: ovoz("sharlar_loop"),
+  stadionKuy: ovoz("stadion_loop"), arqon: [ovoz("arqon_tortildi_1"), ovoz("arqon_tortildi_2")], hushtak: [ovoz("hushtak")],
+  raqibYiqildi: [ovoz("raqib_yiqildi")], tomoshabin: [ovoz("tomoshabinlar")], arqonAyt: [ovoz("ayt_arqonni_tort")],
   minoraKuy: ovoz("qurilish_loop"), blokTushdi: [ovoz("blok_tushdi")], blokQiyshaydi: [ovoz("blok_qiyshaydi")], ilgak: [ovoz("kran_ilgagi")],
   sharYoril: [ovoz("shar_yorildi_1"), ovoz("shar_yorildi_2"), ovoz("shar_yorildi_3")], konfetti: [ovoz("konfetti")],
   sharAyt: [ovoz("ayt_sharni_tanla")],
@@ -50,7 +52,7 @@ export function ygHisob(log = []) {
   return { kombo, tanga };
 }
 
-export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0, tur = "yugur" }) {
+export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0, tur = "yugur", gender = "boy" }) {
   const [yoqiq, setYoqiq] = useState(ovozYoqiqmi);
   const kuyRef = useRef(null);
   const { kombo, tanga } = useMemo(() => ygHisob(log), [log]);
@@ -63,7 +65,7 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
     if (!yoqiq) { if (kuyRef.current) kuyRef.current.pause(); return undefined; }
     const boshla = () => {
       try {
-        const manba = boss ? OVOZ.bossKuy : tur === "shar" ? OVOZ.sharKuy : tur === "minora" ? OVOZ.minoraKuy : OVOZ.kuy;
+        const manba = boss ? OVOZ.bossKuy : tur === "shar" ? OVOZ.sharKuy : tur === "minora" ? OVOZ.minoraKuy : tur === "bellashuv" ? OVOZ.stadionKuy : OVOZ.kuy;
         if (kuyRef.current && kuyRef.current._manba !== manba) { kuyRef.current.pause(); kuyRef.current = null; }
         if (!kuyRef.current) { kuyRef.current = new Audio(manba); kuyRef.current._manba = manba; kuyRef.current.loop = true; kuyRef.current.volume = 0.16; }
         const p = kuyRef.current.play(); if (p && p.catch) p.catch(() => {});
@@ -86,6 +88,10 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
     if (boss && togri) {
       chal(OVOZ.yulduz); setTimeout(() => chal(OVOZ.bossZarba[boss - 1], 0.8), 380);
       setTimeout(() => chal(OVOZ.bossDost, 0.7), 1100); setTimeout(() => chal(OVOZ.galaba, 0.9), 1500);
+    } else if (tur === "bellashuv") {
+      chal(OVOZ.arqon, 0.8);
+      if (togri) { setTimeout(() => chal(OVOZ.tanga, 0.6), 350); if (bellashuvMuvozanat(log) >= 3) { setTimeout(() => chal(OVOZ.raqibYiqildi, 0.9), 500); setTimeout(() => chal(OVOZ.tomoshabin, 0.7), 800); } else if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 700); }
+      else setTimeout(() => chal(OVOZ.yana, 0.9), 700);
     } else if (tur === "minora") {
       if (togri) { chal(OVOZ.ilgak, 0.5); setTimeout(() => chal(OVOZ.blokTushdi, 0.9), 420); setTimeout(() => chal(OVOZ.tanga, 0.6), 700); if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 950); }
       else { chal(OVOZ.blokQiyshaydi, 0.9); setTimeout(() => chal(OVOZ.yana, 0.9), 800); }
@@ -101,7 +107,7 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yakun, log.length]);
 
-  useEffect(() => { if (tur === "shar" && yoqiq && log.length === 0) { const t = setTimeout(() => chal(OVOZ.sharAyt, 0.9), 900); return () => clearTimeout(t); } return undefined;
+  useEffect(() => { if ((tur === "shar" || tur === "bellashuv") && yoqiq && log.length === 0) { const t = setTimeout(() => { if (tur === "bellashuv") chal(OVOZ.hushtak, 0.6); chal(tur === "shar" ? OVOZ.sharAyt : OVOZ.arqonAyt, 0.9); }, 900); return () => clearTimeout(t); } return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tur]);
   const almashtir = () => setYoqiq((v) => { const n = !v; try { localStorage.setItem(KALIT, n ? "1" : "0"); } catch { /* xotira yo'q */ } return n; });
@@ -113,6 +119,8 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
           <div className="yg-boss"><i className="yg-boss-sog" /><i className="yg-boss-zarba" /><i className="yg-boss-yengildi" /></div>
           <i className="yg-yulduz" />
         </div>
+      ) : tur === "bellashuv" ? (
+        <BellashuvSahna log={log} feedback={feedback} gender={gender} />
       ) : tur === "minora" ? (
         <MinoraSahna log={log} feedback={feedback} />
       ) : tur === "shar" ? (
@@ -131,6 +139,29 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0,
         {oxirgi ? <b className="yg-plus" key={`p${log.length}`}>+{oxirgi}</b> : null}
       </div>
     </>
+  );
+}
+
+// REV689: Bellashuv — arqon tortish. To'g'ri javob arqonni bola tomonga, xato javob raqib tomonga suradi (−3…+3).
+export function bellashuvMuvozanat(log = []) {
+  let m = 0;
+  for (const x of log) m = Math.max(-3, Math.min(3, m + (x.correct === true ? 1 : -1)));
+  return m;
+}
+function BellashuvSahna({ log = [], feedback, gender = "boy" }) {
+  const m = bellashuvMuvozanat(log);
+  const jins = gender === "girl" ? "qiz" : "ogil";
+  const yakun = Boolean(feedback?.finalized);
+  const yutdi = m >= 3;
+  return (
+    <div className="yg-world yg-maydon" aria-hidden="true">
+      <div className="yg-tarozi">{[3, 2, 1, 0, -1, -2, -3].map((k) => <i key={k} className={`${k === m ? "is-joriy" : ""} ${k > 0 ? "is-men" : k < 0 ? "is-raqib" : ""}`} />)}</div>
+      <div className={`yg-arqon-guruh ${yakun ? (feedback.correct ? "is-tortdi" : "is-berdi") : ""}`} style={{ "--yg-m": m }}>
+        <i className={`yg-tortuvchi yg-men yg-${jins} ${yakun && feedback.correct ? "" : ""}`} />
+        <i className="yg-arqon" />
+        <i className={`yg-tortuvchi yg-raqib ${yutdi ? "is-yiqildi" : ""}`} />
+      </div>
+    </div>
   );
 }
 

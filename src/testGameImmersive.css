@@ -259,3 +259,43 @@
 .yg-qavat-soni{top:auto;bottom:4%;margin-top:0}
 .yg-ilgak{top:9%}
 @media(max-width:700px){.yg-qavat-soni{margin-top:0}.yg-ilgak{top:12%}}
+
+/* ── REV689: «Bellashuv» (millionaire rejimi) — arqon tortish ── */
+.yg-maydon{background:url("./assets/kabu-olami/bellashuv/maydon.webp") center bottom/cover no-repeat}
+.yg-arqon-guruh{position:absolute;left:0;right:0;bottom:3%;height:clamp(120px,22vh,170px);transform:translateX(calc(var(--yg-m,0) * -5%));transition:transform .6s cubic-bezier(.3,1.4,.5,1)!important}
+.yg-tortuvchi{position:absolute;bottom:0;height:100%;aspect-ratio:240/220;background:center bottom/contain no-repeat}
+.yg-tortuvchi.yg-men{left:18%}.yg-tortuvchi.yg-raqib{right:18%}
+.yg-tortuvchi.yg-ogil{background-image:url("./assets/kabu-olami/bellashuv/ogil_tort.webp")}.yg-tortuvchi.yg-qiz{background-image:url("./assets/kabu-olami/bellashuv/qiz_tort.webp")}
+.yg-tortuvchi.yg-raqib{background-image:url("./assets/kabu-olami/bellashuv/raqib_tort.webp")}
+.yg-tortuvchi.yg-raqib.is-yiqildi{background-image:url("./assets/kabu-olami/bellashuv/raqib_yiqil.webp")}
+.yg-arqon{position:absolute;left:calc(18% + clamp(118px,21.6vh,167px) * .9);right:calc(18% + clamp(118px,21.6vh,167px) * .86);top:44%;height:10%;background:url("./assets/kabu-olami/bellashuv/arqon.webp") center/100% 100% no-repeat}
+.yg-arqon-guruh.is-tortdi .yg-men,.yg-arqon-guruh.is-berdi .yg-raqib{animation:yg-tort .5s ease-in-out 2!important}
+.yg-tarozi{position:absolute;left:50%;bottom:calc(3% + clamp(126px,23vh,180px));transform:translateX(-50%);display:flex;gap:6px;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.85);box-shadow:0 3px 0 rgba(0,0,0,.15)}
+.yg-tarozi i{width:14px;height:14px;border-radius:50%;background:#cfd8e3}
+.yg-tarozi i.is-men{background:#bfe8c8}.yg-tarozi i.is-raqib{background:#f3c4c4}
+.yg-tarozi i.is-joriy{background:#ffb300;box-shadow:0 0 0 3px #fff,0 0 10px #ffb300;transform:scale(1.25)}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options{position:relative;margin:12px auto 0!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:min(100%,720px);gap:12px!important;padding:0 0 clamp(170px,30vh,230px)!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage-light .game-options > button{display:flex!important;align-items:center;justify-content:center;min-height:62px!important;padding:11px 14px!important;border:0!important;border-radius:16px!important;cursor:pointer;
+  background:linear-gradient(180deg,#ffffff,#dff3ff)!important;box-shadow:0 6px 0 #1f7fc4,0 12px 20px rgba(0,40,80,.25)!important;animation:yg-drop .4s both!important;transition:transform .12s ease!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options > button::before,.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options > button::after{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options > button > span{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage-light .game-options > button > b{display:block;text-align:center!important;font-size:clamp(15px,1.8vw,21px)!important;font-weight:900;line-height:1.25}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage-light .game-options button b,.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage-light .game-options button b *{color:#12304a!important;-webkit-text-fill-color:#12304a!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options > button:not(:disabled):hover,.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options > button:not(:disabled):active{transform:translateY(-3px)}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options > button:disabled{opacity:1!important;cursor:default}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options > button.is-hidden-option{opacity:.3!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage-light .game-options > button.is-bridge-safe{background:linear-gradient(180deg,#eaffd9,#8be36a)!important;box-shadow:0 6px 0 #2f8f1f,0 0 30px rgba(140,255,120,.8)!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage-light .game-options > button.is-bridge-broken{background:linear-gradient(180deg,#ffe1e1,#ff9a9a)!important;box-shadow:0 6px 0 #b02a2a!important;animation:yg-shake .5s both!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-lifelines{position:relative;z-index:5;display:flex;gap:8px;justify-content:center}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-lifelines button{border:0;border-radius:99px;padding:7px 16px;font-weight:900;background:#fff;color:#12304a;box-shadow:0 4px 0 rgba(0,0,0,.18);cursor:pointer}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-lifelines button:disabled{opacity:.45;cursor:not-allowed}
+.test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage:not(.is-scene-playing) .game-options{padding-bottom:10px!important}
+@keyframes yg-tort{0%,100%{transform:rotate(0)}50%{transform:rotate(-7deg)}}
+@media(max-width:700px){
+  .yg-arqon-guruh{height:110px}.yg-tortuvchi.yg-men{left:2%}.yg-tortuvchi.yg-raqib{right:2%}
+  .yg-arqon{left:calc(2% + 108px);right:calc(2% + 103px)}
+  .yg-tarozi{bottom:calc(3% + 116px)}
+  .test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-options{grid-template-columns:1fr!important;gap:8px!important;padding-bottom:170px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive.game-bellashuv .game-stage-light .game-options > button{min-height:48px!important;padding:8px 10px!important}
+}
+@media(max-width:700px){.yg-arqon-guruh{transform:translateX(calc(var(--yg-m,0) * -2.2%))}.yg-tortuvchi.yg-men{left:7%}.yg-tortuvchi.yg-raqib{right:7%}.yg-arqon{left:calc(7% + 108px);right:calc(7% + 103px)}}
