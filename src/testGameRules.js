@@ -32,8 +32,8 @@ export const GAME_MODES = [
   {
     id: "city",
     icon: "▦",
-    name: "Bilim shahri",
-    short: "Javoblar bilan shahringizni bosqichma-bosqich quring",
+    name: "Minora",
+    short: "Har to'g'ri javob bilan minorani bir qavat ko'tar",
     colors: ["#166534", "#86EFAC"],
   },
 ];

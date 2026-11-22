@@ -219,3 +219,43 @@
   font-size:clamp(13px,1.7vw,21px)!important;overflow-wrap:normal;word-break:normal;hyphens:auto}
 @media(max-width:700px){.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button > b{font-size:14px!important}}
 .test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button > b .katex{font-size:1.35em}
+
+/* ── REV688: «Minora» (city rejimi) — har to'g'ri javob bitta qavat ── */
+.yg-minora-fon{background:url("./assets/kabu-olami/minora/fon.webp") center bottom/cover no-repeat}
+.yg-minora{position:absolute;right:5%;bottom:0;width:min(34%,330px);height:100%}
+.yg-qavatlar{position:absolute;left:0;right:0;bottom:3%;display:flex;flex-direction:column-reverse;align-items:center}
+.yg-blok{display:block;width:100%;aspect-ratio:420/113;background:center/100% 100% no-repeat;margin-top:-1.5%;filter:drop-shadow(0 4px 3px rgba(0,0,0,.25))}
+.yg-blok-1{background-image:url("./assets/kabu-olami/minora/blok1.webp")}.yg-blok-2{background-image:url("./assets/kabu-olami/minora/blok2.webp")}.yg-blok-3{background-image:url("./assets/kabu-olami/minora/blok3.webp")}.yg-blok-4{background-image:url("./assets/kabu-olami/minora/blok4.webp")}.yg-blok-5{background-image:url("./assets/kabu-olami/minora/blok5.webp")}
+.yg-blok.is-yangi{animation:yg-blok-tush .65s cubic-bezier(.3,.1,.4,1.3) both!important}
+.yg-blok.is-qiyshiq{position:absolute;left:0;top:18%;animation:yg-blok-qula 1.3s ease-in both!important;filter:grayscale(.6)}
+.yg-ilgak{position:absolute;left:50%;top:-4%;width:16%;aspect-ratio:233/453;margin-left:-8%;background:url("./assets/kabu-olami/minora/ilgak.webp") center/contain no-repeat;transform-origin:50% 0;animation:yg-ilgak 3s ease-in-out infinite!important}
+.yg-ilgak.is-tushdi{animation:yg-ilgak-tush .9s ease-in-out both!important}
+.yg-qavat-soni{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:3;padding:5px 14px;border-radius:99px;background:#fff;color:#12304a;font-weight:900;font-size:16px;box-shadow:0 4px 0 rgba(0,0,0,.18);white-space:nowrap;margin-top:44px}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options{position:relative;margin-top:auto!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:min(56%,560px);gap:12px!important;padding:16px 0 18px!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-question-heading{align-self:flex-start;width:min(58%,600px);margin-left:0!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-stage-light .game-options > button{display:flex!important;align-items:center;justify-content:center;min-height:68px!important;padding:12px 14px!important;border:0!important;border-radius:16px!important;cursor:pointer;
+  background:linear-gradient(180deg,#ffffff,#ffe9c2)!important;box-shadow:0 6px 0 #d08a1e,0 12px 20px rgba(60,30,0,.25)!important;animation:yg-drop .4s both!important;transition:transform .12s ease!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button:nth-of-type(2){animation-delay:.06s!important}.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button:nth-of-type(3){animation-delay:.12s!important}.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button:nth-of-type(4){animation-delay:.18s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button::before,.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button::after{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button > span{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-stage-light .game-options > button > b{display:block;text-align:center!important;font-size:clamp(15px,1.8vw,21px)!important;font-weight:900;line-height:1.25}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-stage-light .game-options button b,.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-stage-light .game-options button b *{color:#3d2500!important;-webkit-text-fill-color:#3d2500!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button:not(:disabled):hover,.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button:not(:disabled):active{transform:translateY(-3px)}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button:disabled{opacity:1!important;cursor:default}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options > button.is-hidden-option{opacity:.3!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-stage-light .game-options > button.is-bridge-safe{background:linear-gradient(180deg,#eaffd9,#8be36a)!important;box-shadow:0 6px 0 #2f8f1f,0 0 30px rgba(140,255,120,.8)!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-stage-light .game-options > button.is-bridge-broken{background:linear-gradient(180deg,#ffe1e1,#ff9a9a)!important;box-shadow:0 6px 0 #b02a2a!important;animation:yg-shake .5s both!important}
+@keyframes yg-blok-tush{from{transform:translateY(-340px)}to{transform:translateY(0)}}
+@keyframes yg-blok-qula{0%{transform:translateY(-120px) rotate(0);opacity:1}45%{transform:translateY(60px) rotate(-9deg);opacity:1}100%{transform:translate(-70%,520px) rotate(-70deg);opacity:0}}
+@keyframes yg-ilgak{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+@keyframes yg-ilgak-tush{0%{transform:translateY(0)}45%{transform:translateY(70px)}100%{transform:translateY(0)}}
+@media(max-width:700px){
+  .yg-minora{right:2%;width:40%}
+  .yg-qavat-soni{font-size:13px;padding:3px 10px;margin-top:58px}
+  .test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-options{grid-template-columns:1fr!important;width:55%;gap:9px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-question-heading{width:100%}
+  .test-game-arena.game-readable.game-restored.game-immersive.game-minora .game-stage-light .game-options > button{min-height:52px!important;padding:8px 10px!important}
+}
+.yg-qavat-soni{top:auto;bottom:4%;margin-top:0}
+.yg-ilgak{top:9%}
+@media(max-width:700px){.yg-qavat-soni{margin-top:0}.yg-ilgak{top:12%}}

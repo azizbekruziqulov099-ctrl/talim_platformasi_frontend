@@ -196,7 +196,7 @@ const EDUCATIONAL_GAMES = {
   millionaire: { icon: "🏆", goal: "Bilim pog‘onalariga ko‘tariling", mechanic: "Ishonchni bahola · 50/50 yordam", description: "Javobdan oldin ishonchingizni baholang. Zarur bo‘lsa, mavjud 50/50 yordamidan foydalaning. Yutuq — bilim ochkolari.", steps: ["1-pog‘ona", "2-pog‘ona", "3-pog‘ona", "4-pog‘ona", "Yakuniy pog‘ona"], tip: "Yordam ishlatishdan oldin variantlarni o‘zingiz solishtiring." },
   space: { icon: "🎈", goal: "To‘g‘ri sharni yor", mechanic: "O‘qi → sharni tanla → tanga yig‘", description: "Javoblar sharlarda uchib chiqadi. To‘g‘risini yorsang tanga olasan, ketma-ket to‘g‘ri javoblar ko‘proq beradi.", steps: ["Uchish", "Orbita", "Oy bekati", "Mars yo‘li", "Stansiya"], tip: "Javobni topgach, shartga mos kelishini yana bir tekshiring." },
   detective: { icon: "🔎", goal: "Dalillar bilan sirni oching", mechanic: "Mos kelmaydigan variantlarni belgilash", description: "Avval taxminiy xato variantlarni belgilang. Javob berilgach, haqiqiy savol va izoh dalillar doskasida saqlanadi.", steps: ["Birinchi iz", "Tekshiruv", "Bog‘lanish", "Dalil", "Xulosa"], tip: "Taxminni dalildan ajrating: nima sababdan bu variant mos kelmaydi?" },
-  city: { icon: "🏙️", goal: "O‘z bilim shahringizni quring", mechanic: "Javobni o‘z so‘zing bilan asoslash", description: "To‘g‘ri javob maktab, kutubxona yoki laboratoriyani quradi. Xato javob — mustahkamlash kerak bo‘lgan bilim joyi.", steps: ["Maktab", "Kutubxona", "Ustaxona", "Laboratoriya", "Bilim markazi"], tip: "Javobingizning sababini bitta gap bilan tushuntirishga urinib ko‘ring." },
+  city: { icon: "🏗️", goal: "Minorani qavatma-qavat qur", mechanic: "O‘yla → javobni tanla → qavat qo‘sh", description: "Shoshilish yo‘q: har to‘g‘ri javob minoraga bir qavat qo‘shadi. Xato javobda blok qulaydi va izoh chiqadi.", steps: ["Maktab", "Kutubxona", "Ustaxona", "Laboratoriya", "Bilim markazi"], tip: "Javobingizning sababini bitta gap bilan tushuntirishga urinib ko‘ring." },
 };
 
 function learningSteps(subjectName = "") {
@@ -1493,7 +1493,7 @@ export default function TestGameArena({
       transitionCommittedRef.current = "";
     }
     // REV682: Shisha ko'prikda to'g'ri javobdan keyin bola kutib qolmaydi (1,7 s); xatoda izoh uchun to'liq vaqt.
-    const tezOyin = mode === "bridge" || mode === "space";
+    const tezOyin = mode === "bridge" || mode === "space" || mode === "city";
     const holdMs = tezOyin && feedback?.correct === true && (feedbackTransition.kind === "next" || (mode === "bridge" && isBoss)) ? (mode === "bridge" && isBoss ? 3000 : 1700) : GAME_FEEDBACK_HOLD_MS;
     const deadline = gameClockNow() + holdMs;
     setFeedbackCountdown(gameFeedbackCountdownSeconds(holdMs));
@@ -1636,7 +1636,7 @@ export default function TestGameArena({
   return (
     <div
       ref={arenaRef}
-      className={`test-game-arena game-readable game-restored ${mode === "bridge" ? "game-immersive" : mode === "space" ? "game-immersive game-sharlar" : "game-calm"} ${mode === "bridge" && isBoss ? "yg-is-boss" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
+      className={`test-game-arena game-readable game-restored ${mode === "bridge" ? "game-immersive" : mode === "space" ? "game-immersive game-sharlar" : mode === "city" ? "game-immersive game-minora" : "game-calm"} ${mode === "bridge" && isBoss ? "yg-is-boss" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
       <header className="game-topbar">
@@ -1657,6 +1657,7 @@ export default function TestGameArena({
       <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
         {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} mavzu={ygMavzu(session?.session_id, question?.round)} boss={isBoss ? ygBoss(question?.round) : 0} /> : null}
         {mode === "space" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} tur="shar" /> : null}
+        {mode === "city" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} tur="minora" /> : null}
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
