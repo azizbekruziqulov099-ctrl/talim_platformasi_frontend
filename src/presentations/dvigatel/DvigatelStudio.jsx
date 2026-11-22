@@ -13,6 +13,17 @@ const OchiqDars = React.lazy(() => import('./OchiqDars.jsx'));
 
 const DARAJALAR = [['maktab', 'Maktab'], ['bakalavr', 'Bakalavr'], ['magistr', 'Magistr'], ['bogcha', 'Bog‘cha']];
 const TURLAR = [['dars', 'Dars'], ['ma’ruza', 'Ma’ruza'], ['amaliy', 'Amaliy'], ['seminar', 'Seminar']];
+// Yoshga mos tavsiya (server ai.YOSH_TAVSIYA bilan bir xil): 1-sinf va 11-sinf yoki magistr uchun bir xil «yupqa» taqdimot bo'lmasin
+const YOSH_TAVSIYA = { bogcha: ['qisqa', 8], '1-2': ['qisqa', 10], '3-4': ['orta', 12], '5-6': ['orta', 14], '7-9': ['batafsil', 16], '10-11': ['batafsil', 18], 'b1-2': ['toliq', 20], 'b3-4': ['toliq', 22], m: ['toliq', 24] };
+function yoshBand(daraja, sinf) {
+  const sm = String(sinf || '').toLowerCase();
+  const n = Number((sm.match(/\d+/) || [0])[0]);
+  if (daraja === 'magistr' || sm.includes('magistr')) return 'm';
+  if (daraja === 'bakalavr' || sm.includes('kurs')) return n >= 3 ? 'b3-4' : 'b1-2';
+  if (daraja === 'bogcha' || sm.includes('bog')) return 'bogcha';
+  if (!n) return '';
+  return n <= 2 ? '1-2' : n <= 4 ? '3-4' : n <= 6 ? '5-6' : n <= 9 ? '7-9' : '10-11';
+}
 const HAJMLAR = [['qisqa', 'Qisqa', '20–40 so‘z', '1–2 jumla yoki 3–4 punkt'], ['orta', 'O‘rta', '40–70 so‘z', '2–3 jumla yoki 4–5 punkt'],
   ['batafsil', 'Batafsil', '70–110 so‘z', '3–4 jumla, har tushunchaga misol'], ['toliq', 'To‘liq', '110–160 so‘z', 'ta’rif + izoh + misol, slayd to‘la']];
 const MISOLLAR = [['kam', 'Kam'], ['orta', 'O‘rta'], ['kop', 'Ko‘p']];
@@ -48,6 +59,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = '
   const [kutubTur, setKutubTur] = useState('');
   const [tanlangan, setTanlangan] = useState(null);
   const [form, setForm] = useState({ mavzu: '', fan: '', daraja: 'maktab', sinf: '', tur: 'dars', qoshimcha: '', manba: '' });
+  const hajmQolda = React.useRef(false);   // foydalanuvchi hajm yoki slayd sonini o'zi o'zgartirgan bo'lsa — tavsiya ustidan yozilmaydi
   const [miya, setMiya] = useState(null);
   const [miyalar, setMiyalar] = useState([]);
   const [oila, setOila] = useState('');
@@ -372,6 +384,10 @@ export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = '
   const ruxsat = [true, !!reja || tab === 'ai', !!miya, !!miya && !!sahna];
   const ozgargan = Object.keys(soz).length + (oila ? 1 : 0) + (anim ? 1 : 0) + Object.keys(dizayn).length + (bolimTitul !== null ? 1 : 0) + (rasmAvto ? 0 : 1);
   const guruhSoni = g => g.sozlamalar.filter(s => soz[s.kalit] !== undefined).length;
+  const tavsiya = YOSH_TAVSIYA[yoshBand(form.daraja, form.sinf)] || null;
+  useEffect(() => {   // sinf/kurs tanlanganda hajm va slaydlar soni yoshga moslanadi (o'zi o'zgartirmagan bo'lsa)
+    if (tavsiya && !hajmQolda.current) setSozlama(z => (z.hajm === tavsiya[0] && z.slayd_soni === tavsiya[1] ? z : { ...z, hajm: tavsiya[0], slayd_soni: tavsiya[1] }));
+  }, [form.daraja, form.sinf]);   // eslint-disable-line react-hooks/exhaustive-deps
   const ochQoy = id => setOchiq(o => { const n = new Set(o); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const aiTayyor = info?.ai !== false;
   const aiBand = busy === 'ai';
@@ -486,14 +502,16 @@ export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = '
           <div className="dv-soz">
             <div className="dv-soz-nom"><b>Slaydlar soni: {sozlama.slayd_soni} ta</b><small>Mazmun slaydlari (titul, reja, test va xulosa qo‘shimcha chiqadi). 5 dan 40 gacha.</small></div>
             <div className="dv-row dv-soni-tanla">
-              <input type="range" min={5} max={40} value={sozlama.slayd_soni} onChange={e => setSozlama({ ...sozlama, slayd_soni: Number(e.target.value) })} aria-label="Slaydlar soni" />
-              <input type="number" min={5} max={40} value={sozlama.slayd_soni} onChange={e => setSozlama({ ...sozlama, slayd_soni: Math.max(5, Math.min(40, Number(e.target.value) || 5)) })} aria-label="Slaydlar soni (raqam)" />
+              <input type="range" min={5} max={40} value={sozlama.slayd_soni} onChange={e => { hajmQolda.current = true; setSozlama({ ...sozlama, slayd_soni: Number(e.target.value) }); }} aria-label="Slaydlar soni" />
+              <input type="number" min={5} max={40} value={sozlama.slayd_soni} onChange={e => { hajmQolda.current = true; setSozlama({ ...sozlama, slayd_soni: Math.max(5, Math.min(40, Number(e.target.value) || 5)) }); }} aria-label="Slaydlar soni (raqam)" />
             </div>
           </div>
           <div className="dv-soz">
             <div className="dv-soz-nom"><b>Har slayddagi matn</b><small>Slaydlar bo‘sh ko‘rinmasin desangiz — «Batafsil» yoki «To‘liq».</small></div>
             <div className="dv-hajmlar">{HAJMLAR.map(([k, n, soz_, izoh]) => <button type="button" key={k} className={sozlama.hajm === k ? 'is-active' : ''} aria-pressed={sozlama.hajm === k}
-              onClick={() => setSozlama({ ...sozlama, hajm: k })}><b>{n}</b><span>{soz_}</span><small>{izoh}</small></button>)}</div>
+              onClick={() => { hajmQolda.current = true; setSozlama({ ...sozlama, hajm: k }); }}><b>{n}</b><span>{soz_}</span><small>{izoh}</small></button>)}</div>
+            {tavsiya && <p className="dv-help">Tavsiya ({form.sinf || DARAJALAR.find(d => d[0] === form.daraja)?.[1]}): {tavsiya[1]} slayd, «{HAJMLAR.find(h => h[0] === tavsiya[0])?.[1]}» hajm
+              {(sozlama.hajm !== tavsiya[0] || sozlama.slayd_soni !== tavsiya[1]) && <> · <button type="button" className="dv-link" onClick={() => { hajmQolda.current = false; setSozlama(z => ({ ...z, hajm: tavsiya[0], slayd_soni: tavsiya[1] })); }}>tavsiyani qo‘llash</button></>}</p>}
           </div>
           <div className="dv-form">
             <label>Misollar<select value={sozlama.misollar} onChange={e => setSozlama({ ...sozlama, misollar: e.target.value })}>{MISOLLAR.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></label>
