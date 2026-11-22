@@ -1493,7 +1493,8 @@ export default function TestGameArena({
       transitionCommittedRef.current = "";
     }
     // REV682: Shisha ko'prikda to'g'ri javobdan keyin bola kutib qolmaydi (1,7 s); xatoda izoh uchun to'liq vaqt.
-    const holdMs = mode === "bridge" && feedback?.correct === true && (feedbackTransition.kind === "next" || isBoss) ? (isBoss ? 3000 : 1700) : GAME_FEEDBACK_HOLD_MS;
+    const tezOyin = mode === "bridge" || mode === "space";
+    const holdMs = tezOyin && feedback?.correct === true && (feedbackTransition.kind === "next" || (mode === "bridge" && isBoss)) ? (mode === "bridge" && isBoss ? 3000 : 1700) : GAME_FEEDBACK_HOLD_MS;
     const deadline = gameClockNow() + holdMs;
     setFeedbackCountdown(gameFeedbackCountdownSeconds(holdMs));
 
@@ -1635,7 +1636,7 @@ export default function TestGameArena({
   return (
     <div
       ref={arenaRef}
-      className={`test-game-arena game-readable game-restored ${mode === "bridge" ? "game-immersive" : "game-calm"} ${mode === "bridge" && isBoss ? "yg-is-boss" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
+      className={`test-game-arena game-readable game-restored ${mode === "bridge" ? "game-immersive" : mode === "space" ? "game-immersive game-sharlar" : "game-calm"} ${mode === "bridge" && isBoss ? "yg-is-boss" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
       <header className="game-topbar">
@@ -1655,6 +1656,7 @@ export default function TestGameArena({
 
       <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
         {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} mavzu={ygMavzu(session?.session_id, question?.round)} boss={isBoss ? ygBoss(question?.round) : 0} /> : null}
+        {mode === "space" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} tur="shar" /> : null}
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 

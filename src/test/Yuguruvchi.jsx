@@ -13,6 +13,9 @@ const OVOZ = {
   yana: [ovoz("ayt_yana_urinib_kor")],
   kuy: ovoz("yugurish_loop"),
   bossKuy: ovoz("arena_loop"),
+  sharKuy: ovoz("sharlar_loop"),
+  sharYoril: [ovoz("shar_yorildi_1"), ovoz("shar_yorildi_2"), ovoz("shar_yorildi_3")], konfetti: [ovoz("konfetti")],
+  sharAyt: [ovoz("ayt_sharni_tanla")],
   bossKeldi: [ovoz("boss_keldi")], bossAyt: [ovoz("ayt_boss_keldi")],
   yulduz: [ovoz("yulduz_uchdi")],
   bossZarba: [[ovoz("robot_zarba")], [ovoz("bulut_zarba")], [ovoz("ajdar_zarba")], [ovoz("soat_zarba")]],
@@ -46,7 +49,7 @@ export function ygHisob(log = []) {
   return { kombo, tanga };
 }
 
-export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0 }) {
+export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0, tur = "yugur" }) {
   const [yoqiq, setYoqiq] = useState(ovozYoqiqmi);
   const kuyRef = useRef(null);
   const { kombo, tanga } = useMemo(() => ygHisob(log), [log]);
@@ -59,7 +62,7 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0 
     if (!yoqiq) { if (kuyRef.current) kuyRef.current.pause(); return undefined; }
     const boshla = () => {
       try {
-        const manba = boss ? OVOZ.bossKuy : OVOZ.kuy;
+        const manba = boss ? OVOZ.bossKuy : tur === "shar" ? OVOZ.sharKuy : OVOZ.kuy;
         if (kuyRef.current && kuyRef.current._manba !== manba) { kuyRef.current.pause(); kuyRef.current = null; }
         if (!kuyRef.current) { kuyRef.current = new Audio(manba); kuyRef.current._manba = manba; kuyRef.current.loop = true; kuyRef.current.volume = 0.16; }
         const p = kuyRef.current.play(); if (p && p.catch) p.catch(() => {});
@@ -82,6 +85,9 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0 
     if (boss && togri) {
       chal(OVOZ.yulduz); setTimeout(() => chal(OVOZ.bossZarba[boss - 1], 0.8), 380);
       setTimeout(() => chal(OVOZ.bossDost, 0.7), 1100); setTimeout(() => chal(OVOZ.galaba, 0.9), 1500);
+    } else if (togri && tur === "shar") {
+      chal(OVOZ.sharYoril, 0.9); setTimeout(() => chal(OVOZ.konfetti, 0.6), 180); setTimeout(() => chal(OVOZ.tanga, 0.6), 420);
+      if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 700);
     } else if (togri) {
       chal(OVOZ.togri); setTimeout(() => chal(OVOZ.tanga, 0.6), 260);
       if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 520);
@@ -91,6 +97,9 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yakun, log.length]);
 
+  useEffect(() => { if (tur === "shar" && yoqiq && log.length === 0) { const t = setTimeout(() => chal(OVOZ.sharAyt, 0.9), 900); return () => clearTimeout(t); } return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tur]);
   const almashtir = () => setYoqiq((v) => { const n = !v; try { localStorage.setItem(KALIT, n ? "1" : "0"); } catch { /* xotira yo'q */ } return n; });
 
   return (
@@ -100,6 +109,8 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0 
           <div className="yg-boss"><i className="yg-boss-sog" /><i className="yg-boss-zarba" /><i className="yg-boss-yengildi" /></div>
           <i className="yg-yulduz" />
         </div>
+      ) : tur === "shar" ? (
+        <div className="yg-world yg-osmon" aria-hidden="true"><i className="yg-bulut yg-bulut-1" /><i className="yg-bulut yg-bulut-2" /><i className="yg-bulut yg-bulut-3" /></div>
       ) : (
         <div className={`yg-world yg-t-${mavzu}`} aria-hidden="true">
           <div className="yg-fon"><i /></div>

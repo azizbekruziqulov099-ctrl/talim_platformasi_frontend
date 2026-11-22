@@ -179,3 +179,43 @@
 .game-orol-tugma{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;width:100%;margin:10px 0;padding:12px 16px;border:0;border-radius:16px;cursor:pointer;text-align:left;
   color:#3d2500;background:linear-gradient(180deg,#fff3b0,#ffd35a);box-shadow:0 5px 0 #c9912a}
 .game-orol-tugma span{grid-row:1/3;font-size:30px}.game-orol-tugma b{font-size:17px}.game-orol-tugma small{font-weight:700;opacity:.8}
+
+/* ── REV687: «Sharlar» (space rejimi) — javoblar sharlarda, to'g'risi yoriladi ── */
+.yg-osmon{background:url("./assets/kabu-olami/sharlar/osmon.webp") center bottom/cover no-repeat}
+.yg-bulut{position:absolute;width:160px;height:40px;border-radius:99px;background:rgba(255,255,255,.75);box-shadow:46px -16px 0 6px rgba(255,255,255,.7),-38px 8px 0 -4px rgba(255,255,255,.6);animation:yg-bulut 46s linear infinite!important}
+.yg-bulut-1{top:14%}.yg-bulut-2{top:30%;transform:scale(.7);animation-duration:62s!important;animation-delay:-25s!important}.yg-bulut-3{top:46%;transform:scale(.5);animation-duration:80s!important;animation-delay:-50s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options{position:relative;margin-top:auto!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(4px,1.4vw,18px)!important;padding:18px 0 8px!important;align-items:end}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button{position:relative;display:flex!important;align-items:center;justify-content:center;aspect-ratio:256/320;width:100%;max-width:210px;justify-self:center;min-height:0!important;
+  padding:0 16% 34%!important;border:0!important;border-radius:0!important;box-shadow:none!important;cursor:pointer;background:center/contain no-repeat!important;
+  filter:drop-shadow(0 10px 8px rgba(0,30,70,.3));animation:yg-shar-kel .7s cubic-bezier(.2,1.2,.4,1) both,yg-shar-suz 3.2s ease-in-out .7s infinite!important;transition:transform .15s ease!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button:nth-of-type(1){background-image:url("./assets/kabu-olami/sharlar/shar_kok.webp")!important;animation-delay:0.00s,0.70s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button:nth-of-type(2){background-image:url("./assets/kabu-olami/sharlar/shar_toq_sariq.webp")!important;animation-delay:0.09s,1.05s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button:nth-of-type(3){background-image:url("./assets/kabu-olami/sharlar/shar_binafsha.webp")!important;animation-delay:0.18s,1.40s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button:nth-of-type(4){background-image:url("./assets/kabu-olami/sharlar/shar_yashil.webp")!important;animation-delay:0.27s,1.75s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button:nth-of-type(5){background-image:url("./assets/kabu-olami/sharlar/shar_qizil.webp")!important;animation-delay:0.36s,2.10s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button:nth-of-type(6){background-image:url("./assets/kabu-olami/sharlar/shar_sariq.webp")!important;animation-delay:0.45s,2.45s!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button::before,.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button::after{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button > span{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button > b{display:block;text-align:center!important;font-size:clamp(14px,1.9vw,23px)!important;font-weight:900;line-height:1.2;overflow-wrap:anywhere;text-shadow:0 2px 0 rgba(0,0,0,.28),0 0 10px rgba(0,0,0,.3)}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options button b,.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options button b *{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button:not(:disabled):hover,.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button:not(:disabled):active{transform:scale(1.08)}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button:disabled{opacity:1!important;cursor:default}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button.is-hidden-option{opacity:.25!important;filter:grayscale(1)}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button.is-bridge-safe{background-image:url("./assets/kabu-olami/sharlar/yoril.webp")!important;animation:yg-shar-yoril .6s ease-out both!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button.is-bridge-safe > b{animation:yg-yoq .2s both!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button.is-bridge-broken{animation:yg-shake .5s both!important;filter:grayscale(.85) drop-shadow(0 10px 8px rgba(0,30,70,.3))}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage.is-scene-correct .game-options > button:not(.is-bridge-safe),.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage.is-scene-wrong .game-options > button:not(.is-bridge-broken){animation:yg-shar-suz 3.2s ease-in-out infinite!important;opacity:.55!important}
+@keyframes yg-bulut{from{left:-25%}to{left:115%}}
+@keyframes yg-shar-kel{from{opacity:0;transform:translateY(260px)}to{opacity:1;transform:translateY(0)}}
+@keyframes yg-shar-suz{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-14px) rotate(1.5deg)}}
+@keyframes yg-shar-yoril{0%{transform:scale(1);opacity:1}35%{transform:scale(1.35);opacity:1}100%{transform:scale(1.7);opacity:0}}
+@media(max-width:700px){
+  .test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:0 10px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button{max-width:150px}
+}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button{padding:0!important;outline:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button.is-selected-option{box-shadow:none!important;border:0!important;outline:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button > b{position:absolute;left:19%;right:19%;top:12%;height:46%;display:flex!important;align-items:center;justify-content:center;
+  font-size:clamp(13px,1.7vw,21px)!important;overflow-wrap:normal;word-break:normal;hyphens:auto}
+@media(max-width:700px){.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-stage-light .game-options > button > b{font-size:14px!important}}
+.test-game-arena.game-readable.game-restored.game-immersive.game-sharlar .game-options > button > b .katex{font-size:1.35em}
