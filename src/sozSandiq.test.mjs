@@ -49,3 +49,32 @@ test("REV695 so'z sandig'i: tanga, daraja, ovoz matni va xotira", () => {
   let h = xotiraOl("en", x); assert.deepEqual(h.korilgan, ["a", "b"]); assert.deepEqual(h.xatolar, ["b"]); assert.equal(h.jami, 1);
   xotiraYoz("en", { korildi: ["b"], togri: ["b"] }, x); h = xotiraOl("en", x); assert.deepEqual(h.xatolar, []); assert.equal(xotiraOl("de", x).jami, 0);
 });
+
+import { gapOyinYasa, gapTokenlar, gapMatn, gapTogri, gapAralash } from "./games/sozSandiq/sozRules.js";
+const gaplar = yukla("gaplar");
+
+test("REV696 gap bazasi: har gap 11 tilda, rasmli so'zga bog'langan, token takrorlanmaydi", () => {
+  const kalit = new Set([...bolalar, ...maktab].map((x) => x.k));
+  assert.equal(new Set(gaplar.map((g) => g.k)).size, gaplar.length);
+  for (const g of gaplar) {
+    assert.ok(kalit.has(g.k), g.k); assert.equal(g.g.length, TILLAR.length, g.k);
+    for (const tok of g.g) { assert.ok(tok.length >= 2 && tok.length <= 7, g.k); assert.equal(new Set(tok).size, tok.length, g.k); }
+  }
+});
+
+test("REV696 gap o'yini: aralash tartib asl emas, tekshiruv matn bo'yicha, zh/ja bo'shliqsiz, mavhum so'z — faqat tarjima", () => {
+  const g = { k: "x", g: TILLAR.map((t) => (t === "zh" ? ["我", "吃", "苹果"] : ["I", "eat", "apples"])) };
+  assert.equal(gapMatn(gapTokenlar(g, "zh"), "zh"), "我吃苹果"); assert.equal(gapMatn(gapTokenlar(g, "en"), "en"), "I eat apples");
+  for (let s = 1; s < 30; s += 1) assert.notDeepEqual(gapAralash(["I", "eat", "apples"], rng(s)), ["I", "eat", "apples"]);
+  assert.ok(gapTogri(["I", "eat", "apples"], g, "en")); assert.ok(!gapTogri(["eat", "I", "apples"], g, "en"));
+  if (gaplar.length >= 20) for (const til of ["en", "ar", "ja"]) {
+    const r = gapOyinYasa(gaplar, bolalar, { til, rng: rng(9) });
+    assert.ok(r.length >= 8); assert.ok(r.some((x) => x.tur === "tuz") && r.some((x) => x.tur === "gaprasm"));
+    assert.equal(new Set(r.map((x) => x.nishon.k)).size, r.length);
+  }
+  const pool = bolalar.slice(0, 40).map((x, i) => (i < 12 ? { ...x, m: 1 } : x));
+  for (let s = 1; s < 20; s += 1) for (const r of oyinYasa(pool, { til: "de", rng: rng(s) })) {
+    if (r.nishon.m) assert.equal(r.tur, "tarjima");
+    else for (const v of r.variantlar || r.juftlar) assert.ok(!v.m, "rasmli variantda mavhum so'z yo'q");
+  }
+});

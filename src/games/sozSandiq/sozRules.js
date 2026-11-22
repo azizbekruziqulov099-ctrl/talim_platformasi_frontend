@@ -24,7 +24,8 @@ export function saralash(pool, { daraja = 0 } = {}) {
 }
 
 /** Chalg'ituvchilar: avval o'sha turkum va so'z turidan; nishon bilan (va o'zaro) bir xil YOZILADIGAN yoki bir xil rasmli so'z olinmaydi. */
-export function chalgituvchilar(pool, nishon, til, izoh, soni = 3, rng = Math.random) {
+export function chalgituvchilar(pool0, nishon, til, izoh, soni = 3, rng = Math.random, rasmli = true) {
+  const pool = rasmli ? pool0.filter((x) => !x.m) : pool0;
   const band = new Set([norm(soz(nishon, til)), norm(soz(nishon, izoh))]);
   const rasm = new Set([nishon.f]);
   const out = [];
@@ -53,7 +54,13 @@ export function oyinYasa(pool, { til = "en", izoh = "uz", korilgan = [], xatolar
   const raundlar = [];
   for (let i = 0; i < nishonlar.length; i += 1) {
     const n = nishonlar[i];
-    const t = tur || TURLAR[i % TURLAR.length];
+    // REV696: mavhum rasmli so'z (m) — rasmdan topib bo'lmaydi: faqat «tarjima» turi (o'zbekcha so'z → o'rganilayotgan tildagi so'z)
+    const t = n.m ? "tarjima" : tur || TURLAR[i % TURLAR.length];
+    if (t === "tarjima") {
+      const ch = chalgituvchilar(pool, n, til, izoh, 3, rng, false);
+      if (ch.length >= 2) raundlar.push({ tur: t, nishon: n, variantlar: aralashtir([n, ...ch], rng) });
+      continue;
+    }
     if (t === "juft") {
       const sherik = chalgituvchilar(pool, n, til, izoh, 3, rng);
       if (sherik.length < 3) continue;
@@ -91,4 +98,40 @@ export function xotiraYoz(til, { korildi = [], xato = [], togri = [] }, xotira =
     hammasi[til] = { kun: bugun(), korilgan, xatolar, jami: (d.jami || 0) + togri.length };
     xotira.setItem(KALIT, JSON.stringify(hammasi));
   } catch { /* xotira yo'q */ }
+}
+
+// ── REV696: gaplar. Gap: { k: kalit (rasmli so'z), g: [11 tilda tokenlar ro'yxati] } ──
+const BOSHLIQSIZ = new Set(["zh", "ja"]);
+export const gapTokenlar = (x, til) => x?.g?.[TILLAR.indexOf(til)] || [];
+export const gapMatn = (tok, til) => (tok || []).join(BOSHLIQSIZ.has(til) ? "" : " ");
+/** Tartib tekshiruvi matn bo'yicha — bir xil yoziladigan tokenlar o'rni almashsa ham to'g'ri. */
+export const gapTogri = (tanlov, x, til) => gapMatn(tanlov, til) === gapMatn(gapTokenlar(x, til), til);
+/** Aralashtirish: asl tartib bilan bir xil chiqmasin (2+ token bo'lsa). */
+export function gapAralash(tok, rng = Math.random) {
+  if (tok.length < 2) return [...tok];
+  for (let u = 0; u < 8; u += 1) { const a = aralashtir(tok, rng); if (a.some((t, i) => t !== tok[i])) return a; }
+  return [...tok].reverse();
+}
+/** Gap o'yini: «tuz» (rasm + aralash so'zlar → gap) va «gaprasm» (gapni eshit/o'qi → 4 rasmdan top) navbatlashadi. */
+export function gapOyinYasa(gaplar, pool, { til = "en", izoh = "uz", korilgan = [], xatolar = [], soni = RAUND_SONI, rng = Math.random } = {}) {
+  const sozMap = new Map(pool.map((x) => [x.k, x]));
+  const yaroqli = gaplar.filter((x) => sozMap.has(x.k) && gapTokenlar(x, til).length >= 2);
+  const bor = new Map(yaroqli.map((x) => [x.k, x]));
+  const kor = new Set(korilgan);
+  const qayta = aralashtir(xatolar.filter((k) => bor.has(k)), rng).slice(0, Math.ceil(soni / 3)).map((k) => bor.get(k));
+  const yangi = aralashtir(yaroqli.filter((x) => !kor.has(x.k) && !qayta.includes(x)), rng);
+  const eski = korilgan.filter((k) => bor.has(k)).map((k) => bor.get(k)).filter((x) => !qayta.includes(x));
+  const raundlar = [];
+  [...qayta, ...yangi, ...eski].slice(0, soni).forEach((gap, i) => {
+    const nishon = sozMap.get(gap.k);
+    if (i % 2 === 1) {
+      // gapda tilga olingan boshqa narsa (it — «It suyak kemiradi») chalg'ituvchi rasm bo'lmaydi
+      const matn = ` ${[til, izoh].map((t) => gapTokenlar(gap, t).join(" ")).join(" ")} `.toLowerCase();
+      const toza = pool.filter((x) => x.k === nishon.k || ![til, izoh].some((t) => { const w = norm(soz(x, t)).replace(/^(the|der|die|das|le|la|les|l’|el|los|las|ال)\s*/i, ""); return w.length >= 2 && matn.includes(w); }));
+      const ch = chalgituvchilar(toza, nishon, til, izoh, 3, rng);
+      if (ch.length >= 2) { raundlar.push({ tur: "gaprasm", nishon, gap, variantlar: aralashtir([nishon, ...ch], rng) }); return; }
+    }
+    raundlar.push({ tur: "tuz", nishon, gap, aralash: gapAralash(gapTokenlar(gap, til), rng) });
+  });
+  return raundlar;
 }

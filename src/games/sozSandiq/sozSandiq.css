@@ -51,3 +51,21 @@
 @keyframes ss-silkin{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
 @media(max-width:560px){.ss-variantlar.is-rasm,.ss-juft-rasm{grid-template-columns:1fr 1fr}.ss-tillar button{font-size:11.5px}}
 @media(prefers-reduced-motion:reduce){.ss-root *{animation:none!important}}
+
+/* REV696: gaplar va tarjima */
+.ss-oyin-turi{margin-top:0}
+.ss-tarjima{cursor:default}
+.ss-nishon-soz b{padding:0 8px;text-align:center}
+.ss-gap-rasm .ss-rasm{width:min(44vw,190px);height:min(44vw,190px)}
+.ss-gap-izoh{text-align:center;margin:0 0 10px;color:#5b6f83;font-weight:700}
+.ss-gap-qator{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;min-height:62px;padding:8px;border-radius:16px;border:3px dashed #b9c9e2;background:#fff}
+.ss-gap-qator i{color:#8a9bb0;font-style:normal;font-weight:700}
+.ss-gap-qator b{font-size:clamp(18px,4.4vw,26px);color:#1f9d43}
+.ss-gap-qator.is-togri{border-style:solid;border-color:#34c759;background:#eafbee}
+.ss-gap-qator.is-xato{border-color:#e5484d;animation:ss-silkin .4s}
+.ss-gap-qator.is-korsat{border-style:solid;border-color:#f0a52f;background:#fff6d6}.ss-gap-qator.is-korsat b{color:#12304a}
+.ss-gap-sozlar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0}
+.ss-gap-qator button,.ss-gap-sozlar button{border:3px solid #dbe5f3;border-radius:14px;background:#fff;padding:9px 14px;font:inherit;font-weight:900;font-size:clamp(17px,4.2vw,24px);color:#12304a;cursor:pointer;box-shadow:0 4px 0 rgba(20,40,90,.12)}
+.ss-gap-qator button{border-color:#2f7df0;background:#eaf2ff}
+.ss-gap-sozlar button:disabled{opacity:.25;box-shadow:none}
+.ss-gap-tugma{display:grid;grid-template-columns:1fr 2fr;gap:10px}.ss-gap-tugma .ss-ikkinchi{margin-top:0}
