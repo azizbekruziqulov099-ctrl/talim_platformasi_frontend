@@ -125,3 +125,16 @@ button.bm-pick:disabled{opacity:.4;cursor:not-allowed}
 .bm-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
 .bm-old{font-size:12.5px;color:#9a958a;font-weight:700}
 .bm-tarif em.bm-off,.bm-off{font-style:normal;font-size:11.5px;font-weight:900;color:#fff;background:#e2483d;border-radius:999px;padding:2px 6px}
+
+/* REV693: «O'sish» bo'limi */
+.os-root{display:grid;gap:10px}
+.os-skelet{min-height:140px;background:linear-gradient(90deg,#f3f1ec,#faf9f6,#f3f1ec);background-size:200% 100%;animation:os-yalt 1.2s linear infinite}
+.os-qator{display:grid;gap:6px;padding:10px 0;border-top:1px solid #efece5}.os-qator:first-of-type{border-top:0}
+.os-bosh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.os-bosh b{font-size:15.5px}.os-bosh strong{font-size:20px;color:#12755c}
+.os-chiziq{height:10px;border-radius:99px;background:#eef1f4;overflow:hidden}.os-chiziq i{display:block;height:100%;border-radius:99px}
+.os-qator p{margin:0;font-size:13.5px;color:#3d4a57}.os-qator small{color:#8a8578;font-size:12px}
+.os-bosqich{display:flex;gap:6px;flex-wrap:wrap}
+.os-bosqich span{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:#f1f3f5;color:#9aa4ae}
+.os-bosqich span.is-on{background:#dff7ee;color:#12755c}
+.os-izoh{margin:0;font-size:12px;color:#8a8578}
+@keyframes os-yalt{to{background-position:-200% 0}}

@@ -8,6 +8,7 @@ import {
   KUN_QISQA, KUNLAR, KURS, KURSLAR, haftalikReja, tarifRuxsati, xatoMatni, ovozMatni, qoshsaBoladimi, sinovSavollari, sum, tanlovChegarasi, tanlovXatosi,
 } from "./bogchaReja.js";
 import "./bolaMarkazi.css";
+import OsishBolim from "./OsishBolim.jsx";
 
 // REV162: ota-ona uchun bitta joy — farzandning kundaligi, haftalik rejasi, kurslar (narx, rozilik, to'lov) va «O'zingiz sinab ko'ring».
 const BASE = (apiBase) => String(apiBase || "").replace(/\/+$/, "");
@@ -31,6 +32,7 @@ async function api(apiBase, token, path, { method = "GET", body } = {}) {
 
 const TABS = [
   ["kundalik", "📒", "Kundalik"],
+  ["osish", "📈", "O‘sish"],
   ["reja", "📅", "Reja"],
   ["kurslar", "🎓", "Kurslar"],
   ["sinov", "🧪", "Sinab ko‘ring"],
@@ -466,6 +468,7 @@ export default function BolaMarkazi({ apiBase, token, childId, initialTab = "kun
     </nav>}
     {!bogcha && <React.Suspense fallback={null}><MaktabOtaOna apiBase={apiBase} token={token} childId={childId} /></React.Suspense>}
     {tab === "kundalik" || !bogcha ? <FarzandFaollik apiBase={apiBase} token={token} childId={childId} onSinov={bogcha ? () => setTab("sinov") : undefined} />
+      : tab === "osish" ? <OsishBolim apiBase={apiBase} token={token} childId={childId} />
       : tab === "reja" ? <RejaBolim holat={holat} apiBase={apiBase} token={token} onHolat={setHolat} goKurslar={() => setTab("kurslar")} />
       : tab === "kurslar" ? <KurslarBolim holat={holat} apiBase={apiBase} token={token} onHolat={setHolat} reload={load} />
       : <SinovBolim apiBase={apiBase} token={token} childId={childId} />}
