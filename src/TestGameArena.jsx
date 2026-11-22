@@ -299,6 +299,30 @@ function LearningReview({ entries, apiBase }) {
 }
 
 
+// REV683: «Yuguruvchi» — yo'l, tepaliklar va tanga/kombo hisobi (hammasi CSS, serverga so'rov yo'q).
+function YuguruvchiDunyo({ log = [], feedback }) {
+  useKbInterfaceLocale();
+  let kombo = 0;
+  for (let i = log.length - 1; i >= 0 && log[i].correct === true; i -= 1) kombo += 1;
+  let tanga = 0, ketma = 0;
+  for (const item of log) { if (item.correct === true) { ketma += 1; tanga += 10 + Math.min(4, ketma - 1) * 5; } else ketma = 0; }
+  const oxirgi = feedback?.finalized && feedback.correct === true ? 10 + Math.min(4, kombo - 1) * 5 : 0;
+  return (
+    <>
+      <div className="yg-world" aria-hidden="true">
+        <i className="yg-sun" /><i className="yg-cloud yg-cloud-1" /><i className="yg-cloud yg-cloud-2" />
+        <i className="yg-hills yg-hills-far" /><i className="yg-hills yg-hills-near" />
+        <div className="yg-road"><i /><i /><i /></div>
+      </div>
+      <div className="yg-hud" role="status">
+        <span className="yg-coin" key={`t${tanga}`}>🪙 {tanga}</span>
+        {kombo >= 2 ? <span className="yg-combo" key={`k${kombo}`}>🔥 ×{kombo}</span> : null}
+        {oxirgi ? <b className="yg-plus" key={`p${log.length}`}>+{oxirgi}</b> : null}
+      </div>
+    </>
+  );
+}
+
 function sceneStateClass(feedback) {
   if (feedback?.type === "timeout") return "is-scene-timeout";
   if (feedback?.correct === true) return "is-scene-correct";
@@ -1625,6 +1649,7 @@ export default function TestGameArena({
       <GameJourney total={question.total} log={learningLog} currentPosition={question.position} band={gradeBand} level={level} grade={playerProfile?.class || question?.grade} />
 
       <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
+        {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} /> : null}
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
