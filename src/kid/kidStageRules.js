@@ -169,7 +169,7 @@ export function kindCue(kind, prevKind, text = "", topicName = "", izoh = "uz") 
 
 // ── REV121: doska kartalari va «Top-chi» o'yini ──
 const TAGS_ALL = /\[\/?(?:uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]/gi;
-const LEAD_MARK = /^[\s🔁🕊✨️]+/u;
+const LEAD_MARK = /^[\s🔁🕊🤖✨️]+/u;
 const PIC_PREFIX = /^((?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[#*0-9]️?⃣|️|‍|\p{Emoji_Modifier}|[+=?❓])+)\s+(.+)$/u;
 
 /** Doskadagi rasm-belgilar (emoji, son, ishora) — har qator yoki guruh («  » bilan ajratilgan) alohida karta.
