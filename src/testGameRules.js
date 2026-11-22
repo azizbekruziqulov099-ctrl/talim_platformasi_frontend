@@ -4,8 +4,8 @@ export const GAME_MODES = [
   {
     id: "bridge",
     icon: "◆",
-    name: "Oltin ko'prik",
-    short: "To'g'ri oynaga sakrab yo'lni oching",
+    name: "Yuguruvchi",
+    short: "Yugur, to'g'ri darvozaga kir, tanga yig'",
     colors: ["#0E7490", "#67E8F9"],
   },
   {
@@ -41,7 +41,7 @@ export const GAME_MODES = [
 const JUNIOR_AGE_BAND = {
     label: "1–4-sinf",
     bossName: "Sehrli darvoza",
-    bridgeName: "Sehrli toshlar",
+    bridgeName: "Yuguruvchi",
     bossAttempts: 1,
     helper: "Katta tugmalar, savolni avtomatik ovozli o'qish va ko'rinarli vaqt",
 };
@@ -49,7 +49,7 @@ const JUNIOR_AGE_BAND = {
 const MIDDLE_AGE_BAND = {
     label: "5–9-sinf",
     bossName: "Boss bosqichi",
-    bridgeName: "Oltin ko'prik",
+    bridgeName: "Yuguruvchi",
     bossAttempts: 1,
     helper: "Sarguzasht, qo'lda ovozli o'qish va 4 variantli bosqich",
 };
@@ -60,14 +60,14 @@ export const AGE_BANDS = {
   grade_10_11: {
     label: "10–11-sinf",
     bossName: "Final topshiriq",
-    bridgeName: "Oyna yo'li",
+    bridgeName: "Yuguruvchi",
     bossAttempts: 1,
     helper: "Strategik ko'rinish, murakkab savol va aniq izoh",
   },
   applicant: {
     label: "Abituriyent",
     bossName: "Imtihon finali",
-    bridgeName: "Grant yo'li",
+    bridgeName: "Yuguruvchi",
     bossAttempts: 1,
     helper: "Sokin professional dizayn va imtihonga yaqin ritm",
   },

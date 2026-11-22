@@ -37,8 +37,8 @@ test("age bands match 1-4, 5-9, 10-11 and applicants", () => {
   assert.equal(gradeBandForClass("9"), "grade_5_9");
   assert.equal(gradeBandForClass("10-sinf"), "grade_10_11");
   assert.equal(gradeBandForClass("Abituriyent"), "applicant");
-  assert.equal(modeNameForBand("bridge", "grade_1_4"), "Sehrli toshlar");
-  assert.equal(modeNameForBand("bridge", "grade_10_11"), "Oyna yo'li");
+  assert.equal(modeNameForBand("bridge", "grade_1_4"), "Yuguruvchi");
+  assert.equal(modeNameForBand("bridge", "grade_10_11"), "Yuguruvchi");
   assert.equal(normalizeGradeBand("grade_1_5"), "grade_1_4");
   assert.equal(normalizeGradeBand("grade_6_9"), "grade_5_9");
   assert.equal(resolveGameGradeBand({ grade_band: "grade_1_5", grade: 5 }), "grade_5_9");
