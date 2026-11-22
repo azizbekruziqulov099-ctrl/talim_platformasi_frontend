@@ -9,9 +9,9 @@
 /* Dunyo: fon va yer ikki nusxada yonma-yon, chapga suriladi (uzluksiz) */
 .yg-world{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .yg-fon{position:absolute;left:0;top:0;bottom:0}
-.yg-fon i{display:block;height:100%;aspect-ratio:5.3333/1;background-size:50% 100%;background-repeat:repeat-x;animation:yg-slide 42s linear infinite;will-change:transform}
+.yg-fon i{display:block;height:100%;aspect-ratio:5.3333/1;background-size:50% 100%;background-repeat:repeat-x;animation:yg-slide 42s linear infinite!important;will-change:transform}
 .yg-yer{position:absolute;left:0;bottom:0;height:clamp(64px,10vh,88px)}
-.yg-yer i{display:block;height:100%;aspect-ratio:var(--yg-yar,17.8)/1;background-size:50% 100%;background-repeat:repeat-x;animation:yg-slide 5.5s linear infinite;will-change:transform}
+.yg-yer i{display:block;height:100%;aspect-ratio:calc(var(--yg-yar,17.8) * 3)/1;background-size:16.6667% 100%;background-repeat:repeat-x;animation:yg-slide6 5.5s linear infinite!important;will-change:transform}
 .yg-world::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,20,50,.28),rgba(10,20,50,0) 42%)}
 .yg-t-ormon .yg-fon i{background-image:url("./assets/kabu-olami/yuguruvchi/ormon_fon.webp")}.yg-t-ormon .yg-yer i{background-image:url("./assets/kabu-olami/yuguruvchi/ormon_yer.webp")}
 .yg-t-shahar .yg-fon i{background-image:url("./assets/kabu-olami/yuguruvchi/shahar_fon.webp")}.yg-t-shahar .yg-yer i{background-image:url("./assets/kabu-olami/yuguruvchi/shahar_yer.webp")}
@@ -19,22 +19,22 @@
 .yg-t-sahro .yg-fon i{background-image:url("./assets/kabu-olami/yuguruvchi/sahro_fon.webp")}.yg-t-sahro .yg-yer i{background-image:url("./assets/kabu-olami/yuguruvchi/sahro_yer.webp")}
 .yg-t-koinot .yg-yer,.yg-t-sahro .yg-yer{--yg-yar:16.2}
 .test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-fon i,
-.test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-yer i{animation-play-state:paused}
+.test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-yer i{animation-play-state:paused!important}
 
 /* Hisob va ovoz tugmasi */
 .yg-hud{position:absolute;z-index:30;right:14px;top:12px;display:flex;gap:8px;align-items:center}
-.yg-hud span{display:inline-flex;align-items:center;gap:6px;padding:6px 13px 6px 8px;border-radius:99px;font-weight:900;font-size:17px;color:#3d2500;background:#fff;box-shadow:0 4px 0 rgba(0,0,0,.18),0 8px 18px rgba(0,0,0,.2);animation:yg-pop .35s cubic-bezier(.2,1.6,.4,1)}
+.yg-hud span{display:inline-flex;align-items:center;gap:6px;padding:6px 13px 6px 8px;border-radius:99px;font-weight:900;font-size:17px;color:#3d2500;background:#fff;box-shadow:0 4px 0 rgba(0,0,0,.18),0 8px 18px rgba(0,0,0,.2);animation:yg-pop .35s cubic-bezier(.2,1.6,.4,1)!important}
 .yg-coin-ic{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3a8,#ffc21f 60%,#d98a00);box-shadow:inset 0 0 0 2px #b97a00}
 .yg-hud .yg-combo{padding-left:12px;color:#fff;background:linear-gradient(180deg,#ff7a3d,#e23d6d)}
 .yg-sound{width:38px;height:38px;border-radius:50%;border:0;background:#fff;font-size:17px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.18)}
-.yg-plus{position:absolute;right:54px;top:44px;font-size:28px;font-weight:900;color:#fff;text-shadow:0 2px 0 #b97a00,0 0 14px #ffd35a;animation:yg-plus 1.2s ease-out both;pointer-events:none}
+.yg-plus{position:absolute;right:54px;top:44px;font-size:28px;font-weight:900;color:#fff;text-shadow:0 2px 0 #b97a00,0 0 14px #ffd35a;animation:yg-plus 1.2s ease-out both!important;pointer-events:none}
 
 .test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{position:relative;z-index:2;display:flex!important;flex-direction:column;gap:10px;min-height:clamp(520px,70vh,670px)!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-timer{align-self:flex-start;width:min(52%,380px);background:rgba(255,255,255,.92)!important;border:0!important;border-radius:99px!important;box-shadow:0 4px 0 rgba(0,0,0,.14)!important;padding:5px 14px!important;min-height:0!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-timer small{display:none!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-question-card{flex:1;display:flex!important;flex-direction:column;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-question-heading{align-self:center;width:min(100%,820px);margin:2px auto 0!important;padding:clamp(12px,2vw,20px) clamp(14px,2.4vw,26px)!important;
-  background:#fff!important;border:0!important;border-radius:22px!important;box-shadow:0 7px 0 rgba(20,40,90,.28),0 20px 36px rgba(20,40,90,.25)!important;animation:yg-drop .45s cubic-bezier(.2,1.4,.4,1) both}
+  background:#fff!important;border:0!important;border-radius:22px!important;box-shadow:0 7px 0 rgba(20,40,90,.28),0 20px 36px rgba(20,40,90,.25)!important;animation:yg-drop .45s cubic-bezier(.2,1.4,.4,1) both!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1,.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1 *{color:#172554!important;-webkit-text-fill-color:#172554!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-question-heading h1{font-size:clamp(18px,2.2vw,26px)!important;line-height:1.4!important;text-align:center}
 .test-game-arena.game-readable.game-restored.game-immersive .game-question-image{display:block;margin:8px auto;max-height:190px;border-radius:14px;background:#fff}
@@ -46,11 +46,11 @@
   aspect-ratio:354/270;min-height:0!important;width:100%;max-width:300px;justify-self:center;padding:18% 17% 12%!important;cursor:pointer;
   border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none;transform:none;
   background:url("./assets/kabu-olami/yuguruvchi/darvoza.webp") center/100% 100% no-repeat!important;
-  transition:transform .15s ease,filter .15s ease;animation:yg-gate .55s cubic-bezier(.2,1.3,.4,1) both;filter:drop-shadow(0 8px 6px rgba(0,0,0,.3))}
+  transition:transform .15s ease,filter .15s ease!important;animation:yg-gate .55s cubic-bezier(.2,1.3,.4,1) both!important;filter:drop-shadow(0 8px 6px rgba(0,0,0,.3))}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button::after,.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button::before{display:none!important}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(2){animation-delay:.07s}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(3){animation-delay:.14s}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(4){animation-delay:.21s}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(2){animation-delay:.07s!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(3){animation-delay:.14s!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(4){animation-delay:.21s!important}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):hover,.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):active{transform:translateY(-5px) scale(1.05);filter:drop-shadow(0 12px 10px rgba(0,0,0,.35)) brightness(1.12)}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button > span{display:none!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b,.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b *{color:#fff!important;-webkit-text-fill-color:#fff!important}
@@ -63,14 +63,14 @@
 
 /* Qahramon */
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{top:auto!important;bottom:clamp(30px,5vh,46px);left:var(--bridge-runner-left,12%);width:clamp(96px,11vw,132px);height:auto;aspect-ratio:240/220;z-index:14;
-  transform:translateX(-50%);transition:left .42s cubic-bezier(.4,.1,.3,1);animation:none!important;filter:drop-shadow(0 8px 5px rgba(0,0,0,.35));pointer-events:none}
+  transform:translateX(-50%);transition:left .42s cubic-bezier(.4,.1,.3,1)!important;animation:none!important;filter:drop-shadow(0 8px 5px rgba(0,0,0,.35));pointer-events:none}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner::before{display:none!important}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:9%;transform:translateX(-50%)}
 .yg-hero{display:block;width:100%;height:100%;overflow:hidden}
-.yg-hero i{display:block;height:100%;width:400%;background-size:100% 100%;background-repeat:no-repeat;animation:yg-kadr .42s steps(4) infinite}
+.test-game-arena.game-immersive .game-stage-content .yg-hero i{display:block;height:100%;width:400%;background-size:100% 100%;background-repeat:no-repeat;animation:yg-kadr .42s steps(4) infinite!important}
 .yg-hero.yg-ogil i{background-image:url("./assets/kabu-olami/yuguruvchi/ogil_yugur.webp")}
 .yg-hero.yg-qiz i{background-image:url("./assets/kabu-olami/yuguruvchi/qiz_yugur.webp")}
-.yg-hero.yg-p-qoqil i{width:100%;animation:none}
+.test-game-arena.game-immersive .game-stage-content .yg-hero.yg-p-qoqil i{width:100%;animation:none!important}
 .yg-hero.yg-ogil.yg-p-qoqil i{background-image:url("./assets/kabu-olami/yuguruvchi/ogil_qoqil.webp")}
 .yg-hero.yg-qiz.yg-p-qoqil i{background-image:url("./assets/kabu-olami/yuguruvchi/qiz_qoqil.webp")}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-safe .bridge-choice-runner{animation:yg-kir .75s .25s cubic-bezier(.3,.7,.3,1) both!important}
@@ -126,3 +126,51 @@
   .test-game-arena.game-readable.game-restored.game-immersive .game-timer{padding:3px 12px!important}
   .yg-plus{top:40px;right:20px}
 }
+
+/* ── REV685: Boss jangi (har raund oxiridagi nazorat savoli) ── */
+.yg-arena{background:url("./assets/kabu-olami/boss/arena.webp") center/cover no-repeat}
+.yg-arena::after{background:linear-gradient(180deg,rgba(10,10,40,.45),rgba(10,10,40,.05) 45%,rgba(10,10,40,.35))}
+.yg-boss{position:absolute;right:4%;bottom:8%;width:min(34%,340px);aspect-ratio:1;animation:yg-boss-in .7s cubic-bezier(.2,1.4,.4,1) both!important}
+.yg-boss i{position:absolute;inset:0;background-size:contain;background-repeat:no-repeat;background-position:center bottom;opacity:0}
+.yg-boss .yg-boss-sog{opacity:1;animation:yg-boss-idle 2.2s ease-in-out infinite!important}
+.yg-boss-1 .yg-boss-sog{background-image:url("./assets/kabu-olami/boss/boss1_sog.webp")}.yg-boss-1.is-yutdi .yg-boss-zarba{background-image:url("./assets/kabu-olami/boss/boss1_zarba.webp")}.yg-boss-1.is-yutdi .yg-boss-yengildi{background-image:url("./assets/kabu-olami/boss/boss1_yengildi.webp")}
+.yg-boss-2 .yg-boss-sog{background-image:url("./assets/kabu-olami/boss/boss2_sog.webp")}.yg-boss-2.is-yutdi .yg-boss-zarba{background-image:url("./assets/kabu-olami/boss/boss2_zarba.webp")}.yg-boss-2.is-yutdi .yg-boss-yengildi{background-image:url("./assets/kabu-olami/boss/boss2_yengildi.webp")}
+.yg-boss-3 .yg-boss-sog{background-image:url("./assets/kabu-olami/boss/boss3_sog.webp")}.yg-boss-3.is-yutdi .yg-boss-zarba{background-image:url("./assets/kabu-olami/boss/boss3_zarba.webp")}.yg-boss-3.is-yutdi .yg-boss-yengildi{background-image:url("./assets/kabu-olami/boss/boss3_yengildi.webp")}
+.yg-boss-4 .yg-boss-sog{background-image:url("./assets/kabu-olami/boss/boss4_sog.webp")}.yg-boss-4.is-yutdi .yg-boss-zarba{background-image:url("./assets/kabu-olami/boss/boss4_zarba.webp")}.yg-boss-4.is-yutdi .yg-boss-yengildi{background-image:url("./assets/kabu-olami/boss/boss4_yengildi.webp")}
+.yg-arena.is-yutdi .yg-boss-sog{animation:yg-yoq .1s .42s both!important}
+.yg-arena.is-yutdi .yg-boss-zarba{animation:yg-zarba .75s .42s both!important}
+.yg-arena.is-yutdi .yg-boss-yengildi{animation:yg-kel .4s 1.15s both!important}
+.yg-arena.is-yutqazdi .yg-boss-sog{animation:yg-kuladi .5s 3 both!important}
+.yg-yulduz{position:absolute;left:18%;bottom:30%;width:64px;height:64px;background:url("./assets/kabu-olami/boss/yulduz.webp") center/contain no-repeat;opacity:0}
+.yg-arena.is-yutdi .yg-yulduz{animation:yg-uch .45s ease-in both!important}
+.yg-boss-nom{position:absolute;z-index:6;left:50%;top:12px;transform:translateX(-50%);padding:6px 16px;border-radius:99px;font-weight:900;font-size:15px;color:#fff;background:linear-gradient(180deg,#7a3df0,#4a1fb0);box-shadow:0 4px 0 rgba(0,0,0,.25);white-space:nowrap;animation:yg-pop .4s cubic-bezier(.2,1.6,.4,1)!important}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-bridge .bridge-answer-course{grid-template-columns:repeat(2,minmax(0,1fr))!important;width:min(58%,560px);margin-left:0;padding:16px 0 clamp(120px,18vh,150px) 0!important;gap:10px!important}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-light .bridge-answer-course > button{aspect-ratio:auto;max-width:none;min-height:64px!important;padding:12px 14px!important;justify-content:center;
+  background:linear-gradient(180deg,#ffffff,#e9e4ff)!important;border-radius:18px!important;box-shadow:0 6px 0 #5b3bc4,0 12px 20px rgba(20,10,60,.35)!important;filter:none;animation:yg-drop .4s both!important}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-light .bridge-answer-course > button > b{background:none;padding:0;text-shadow:none;font-size:clamp(15px,1.8vw,21px)!important}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-light .game-options button b,.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-light .game-options button b *{color:#231650!important;-webkit-text-fill-color:#231650!important}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-light .bridge-answer-course > button.is-bridge-safe{background:linear-gradient(180deg,#eaffd9,#8be36a)!important;box-shadow:0 6px 0 #2f8f1f,0 0 30px rgba(140,255,120,.8)!important;filter:none}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-light .bridge-answer-course > button.is-bridge-broken{background:linear-gradient(180deg,#ffe1e1,#ff9a9a)!important;box-shadow:0 6px 0 #b02a2a!important}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .bridge-choice-runner,.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .bridge-answer-course.is-ready .bridge-choice-runner{left:16%!important;bottom:6px;transition:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .bridge-answer-course.is-safe .bridge-choice-runner{animation:none!important}
+.test-game-arena.game-immersive .game-stage-content .yg-hero.yg-p-tur i,.test-game-arena.game-immersive .game-stage-content .yg-hero.yg-p-zarba i{width:100%;animation:none!important}
+.yg-hero.yg-ogil.yg-p-tur i{background-image:url("./assets/kabu-olami/yuguruvchi/ogil_tur.webp")}.yg-hero.yg-qiz.yg-p-tur i{background-image:url("./assets/kabu-olami/yuguruvchi/qiz_tur.webp")}
+.yg-hero.yg-ogil.yg-p-zarba i{background-image:url("./assets/kabu-olami/boss/ogil_zarba.webp")}.yg-hero.yg-qiz.yg-p-zarba i{background-image:url("./assets/kabu-olami/boss/qiz_zarba.webp")}
+.yg-coin-ic{background:url("./assets/kabu-olami/yuguruvchi/tanga.webp") center/contain no-repeat;box-shadow:none;border-radius:0}
+@keyframes yg-boss-in{from{opacity:0;transform:translateX(60%) scale(.6)}to{opacity:1;transform:none}}
+@keyframes yg-boss-idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes yg-yoq{to{opacity:0}}
+@keyframes yg-zarba{0%{opacity:1;transform:translateX(0) rotate(0)}30%{transform:translateX(18px) rotate(8deg)}90%{opacity:1}100%{opacity:0;transform:translateX(0)}}
+@keyframes yg-kel{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:none}}
+@keyframes yg-kuladi{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-12px) rotate(-5deg)}}
+@keyframes yg-uch{0%{opacity:1;left:18%;transform:rotate(0) scale(.7)}100%{opacity:1;left:74%;transform:rotate(540deg) scale(1.3)}}
+@media(max-width:700px){
+  .yg-boss{right:0;bottom:16%;width:46%}
+  .yg-boss-nom{top:auto;bottom:calc(16% + 46vw);left:auto;right:6px;transform:none;font-size:12px;padding:4px 10px}
+  .test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-bridge .bridge-answer-course{width:56%;grid-template-columns:1fr!important;gap:8px!important;padding-bottom:110px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .game-stage-light .bridge-answer-course > button{min-height:48px!important;padding:8px 10px!important;max-width:none}
+  .test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .bridge-choice-runner,.test-game-arena.game-readable.game-restored.game-immersive.yg-is-boss .bridge-answer-course.is-ready .bridge-choice-runner{left:24%!important;width:84px}
+}
+
+@keyframes yg-slide6{to{transform:translateX(-16.6667%)}}
+.yg-boss-nom{left:auto;right:14px;top:58px;transform:none}

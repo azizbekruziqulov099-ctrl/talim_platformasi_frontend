@@ -12,7 +12,14 @@ const OVOZ = {
   maqtov: [ovoz("ayt_barakalla"), ovoz("ayt_azamat"), ovoz("ayt_juda_yaxshi")],
   yana: [ovoz("ayt_yana_urinib_kor")],
   kuy: ovoz("yugurish_loop"),
+  bossKuy: ovoz("arena_loop"),
+  bossKeldi: [ovoz("boss_keldi")], bossAyt: [ovoz("ayt_boss_keldi")],
+  yulduz: [ovoz("yulduz_uchdi")],
+  bossZarba: [[ovoz("robot_zarba")], [ovoz("bulut_zarba")], [ovoz("ajdar_zarba")], [ovoz("soat_zarba")]],
+  bossDost: [ovoz("boss_dost")], galaba: [ovoz("ayt_galaba")],
 };
+export const YG_BOSSLAR = ["Chalkash robot", "Unutuvchi bulut", "Xato ajdar", "Vaqt o'g'risi"];
+export function ygBoss(round = 1) { return ((Math.max(1, Number(round) || 1) - 1) % 4) + 1; }
 export const YG_MAVZULAR = ["ormon", "shahar", "koinot", "sahro"];
 const KALIT = "kb_oyin_ovoz";
 
@@ -39,7 +46,7 @@ export function ygHisob(log = []) {
   return { kombo, tanga };
 }
 
-export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon" }) {
+export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon", boss = 0 }) {
   const [yoqiq, setYoqiq] = useState(ovozYoqiqmi);
   const kuyRef = useRef(null);
   const { kombo, tanga } = useMemo(() => ygHisob(log), [log]);
@@ -52,19 +59,30 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon" }) {
     if (!yoqiq) { if (kuyRef.current) kuyRef.current.pause(); return undefined; }
     const boshla = () => {
       try {
-        if (!kuyRef.current) { kuyRef.current = new Audio(OVOZ.kuy); kuyRef.current.loop = true; kuyRef.current.volume = 0.16; }
+        const manba = boss ? OVOZ.bossKuy : OVOZ.kuy;
+        if (kuyRef.current && kuyRef.current._manba !== manba) { kuyRef.current.pause(); kuyRef.current = null; }
+        if (!kuyRef.current) { kuyRef.current = new Audio(manba); kuyRef.current._manba = manba; kuyRef.current.loop = true; kuyRef.current.volume = 0.16; }
         const p = kuyRef.current.play(); if (p && p.catch) p.catch(() => {});
       } catch { /* ovozsiz */ }
     };
     boshla();
     window.addEventListener("pointerdown", boshla, { once: true });
     return () => window.removeEventListener("pointerdown", boshla);
-  }, [yoqiq]);
+  }, [yoqiq, boss]);
+  // Boss chiqqanda: signal va «Boss keldi!»
+  useEffect(() => {
+    if (!boss || !yoqiq) return;
+    chal(OVOZ.bossKeldi, 0.7); setTimeout(() => chal(OVOZ.bossAyt, 0.9), 450);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [boss]);
   useEffect(() => () => { if (kuyRef.current) { kuyRef.current.pause(); kuyRef.current = null; } }, []);
 
   useEffect(() => {
     if (!yakun || !yoqiq) return;
-    if (togri) {
+    if (boss && togri) {
+      chal(OVOZ.yulduz); setTimeout(() => chal(OVOZ.bossZarba[boss - 1], 0.8), 380);
+      setTimeout(() => chal(OVOZ.bossDost, 0.7), 1100); setTimeout(() => chal(OVOZ.galaba, 0.9), 1500);
+    } else if (togri) {
       chal(OVOZ.togri); setTimeout(() => chal(OVOZ.tanga, 0.6), 260);
       if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 520);
     } else {
@@ -77,10 +95,18 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon" }) {
 
   return (
     <>
-      <div className={`yg-world yg-t-${mavzu}`} aria-hidden="true">
-        <div className="yg-fon"><i /></div>
-        <div className="yg-yer"><i /></div>
-      </div>
+      {boss ? (
+        <div className={`yg-world yg-arena yg-boss-${boss} ${yakun ? (togri ? "is-yutdi" : "is-yutqazdi") : ""}`} aria-hidden="true">
+          <div className="yg-boss"><i className="yg-boss-sog" /><i className="yg-boss-zarba" /><i className="yg-boss-yengildi" /></div>
+          <i className="yg-yulduz" />
+        </div>
+      ) : (
+        <div className={`yg-world yg-t-${mavzu}`} aria-hidden="true">
+          <div className="yg-fon"><i /></div>
+          <div className="yg-yer"><i /></div>
+        </div>
+      )}
+      {boss ? <div className="yg-boss-nom" role="status">⚔️ {__kbUi(YG_BOSSLAR[boss - 1])}</div> : null}
       <div className="yg-hud">
         <span className="yg-coin" key={`t${tanga}`} role="status" aria-label={__kbUi(`${tanga} tanga`)}><i className="yg-coin-ic" aria-hidden="true" />{tanga}</span>
         {kombo >= 2 ? <span className="yg-combo" key={`k${kombo}`}>🔥 ×{kombo}</span> : null}
@@ -91,8 +117,8 @@ export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon" }) {
   );
 }
 
-export function YuguruvchiQahramon({ gender = "boy", holat = "ready" }) {
+export function YuguruvchiQahramon({ gender = "boy", holat = "ready", boss = 0 }) {
   const jins = gender === "girl" ? "qiz" : "ogil";
-  const poza = holat === "broken" || holat === "timeout" ? "qoqil" : "yugur";
+  const poza = holat === "broken" || holat === "timeout" ? "qoqil" : boss ? (holat === "ready" ? "tur" : "zarba") : "yugur";
   return <span className={`yg-hero yg-${jins} yg-p-${poza}`} aria-hidden="true"><i /></span>;
 }

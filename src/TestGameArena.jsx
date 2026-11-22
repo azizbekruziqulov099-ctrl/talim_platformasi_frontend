@@ -2,7 +2,7 @@ import {useTranslatedContent,ContentTranslationStatus} from './interface/Transla
 import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import GameJourney from "./test/GameJourney.jsx";
-import { YuguruvchiDunyo, YuguruvchiQahramon, ygMavzu } from "./test/Yuguruvchi.jsx";
+import { YuguruvchiDunyo, YuguruvchiQahramon, ygMavzu, ygBoss } from "./test/Yuguruvchi.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
@@ -1467,7 +1467,7 @@ export default function TestGameArena({
       transitionCommittedRef.current = "";
     }
     // REV682: Shisha ko'prikda to'g'ri javobdan keyin bola kutib qolmaydi (1,7 s); xatoda izoh uchun to'liq vaqt.
-    const holdMs = mode === "bridge" && feedbackTransition.kind === "next" && feedback?.correct === true ? 1700 : GAME_FEEDBACK_HOLD_MS;
+    const holdMs = mode === "bridge" && feedback?.correct === true && (feedbackTransition.kind === "next" || isBoss) ? (isBoss ? 3000 : 1700) : GAME_FEEDBACK_HOLD_MS;
     const deadline = gameClockNow() + holdMs;
     setFeedbackCountdown(gameFeedbackCountdownSeconds(holdMs));
 
@@ -1607,7 +1607,7 @@ export default function TestGameArena({
   return (
     <div
       ref={arenaRef}
-      className={`test-game-arena game-readable game-restored game-calm ${mode === "bridge" ? "game-immersive" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
+      className={`test-game-arena game-readable game-restored ${mode === "bridge" ? "game-immersive" : "game-calm"} ${mode === "bridge" && isBoss ? "yg-is-boss" : ""} game-${mode} game-age-${gradeBand} game-avatar-${avatarProfile.gender} game-avatar-age-${avatarProfile.ageKey}`}
       style={{ "--mode-dark": meta.colors[0], "--mode-light": meta.colors[1], "--game-accent": accent }}
     >
       <header className="game-topbar">
@@ -1626,7 +1626,7 @@ export default function TestGameArena({
       <GameJourney total={question.total} log={learningLog} currentPosition={question.position} band={gradeBand} level={level} grade={playerProfile?.class || question?.grade} />
 
       <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
-        {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} mavzu={ygMavzu(session?.session_id, question?.round)} /> : null}
+        {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} mavzu={ygMavzu(session?.session_id, question?.round)} boss={isBoss ? ygBoss(question?.round) : 0} /> : null}
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
@@ -1668,7 +1668,7 @@ export default function TestGameArena({
           style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%", "--sk-c2": bridgeOptionIndex >= 0 ? bridgeOptionIndex % 2 : -1, "--sk-r2": bridgeOptionIndex >= 0 ? Math.floor(bridgeOptionIndex / 2) : 0 } : undefined}
           aria-label={isBoss ? __kbUi("Nazorat savoli variantlari") : __kbUi("Javob variantlari")}
         >
-          {mode === "bridge" ? <span className="bridge-choice-runner" aria-hidden="true"><YuguruvchiQahramon gender={avatarProfile.gender} holat={bridgeOutcome} /></span> : null}
+          {mode === "bridge" ? <span className="bridge-choice-runner" aria-hidden="true"><YuguruvchiQahramon gender={avatarProfile.gender} holat={bridgeOutcome} boss={isBoss ? 1 : 0} /></span> : null}
           {(question.options || []).map((option) => (
             <button
               type="button"
