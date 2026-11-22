@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { joriyProfil, yukla as orolYukla, orolFoizi } from "./orolHolat.js";
 const LazyKabuOroli = React.lazy(() => import("./KabuOroli.jsx"));
+const LazySozSandiq = React.lazy(() => import("./sozSandiq/SozSandiq.jsx"));
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import "./boardGame.css";
@@ -26,6 +27,7 @@ const GAMES = [
 export default function OyinlarMarkazi({ onOpen, kid = false, admin = false }) {
   useKbInterfaceLocale();
   const [orol, setOrol] = useState(false);
+  const [sozSandiq, setSozSandiq] = useState(false);
   const orolHolati = orolYukla(joriyProfil());
   return <section className="sh-root og-hub">
     <header className="sh-hero"><span className="og-hero-emoji" aria-hidden="true">🎮</span>
@@ -37,6 +39,13 @@ export default function OyinlarMarkazi({ onOpen, kid = false, admin = false }) {
       <em>🪙 {orolHolati.tanga} · {orolFoizi(orolHolati)}%</em>
     </button>
     {orol ? <React.Suspense fallback={null}><LazyKabuOroli profil={joriyProfil()} onClose={() => setOrol(false)} /></React.Suspense> : null}
+    {/* REV695: So'z sandig'i — rasmli so'z bazasidan 10 tilda so'z o'yinlari */}
+    <button type="button" className="og-orol og-soz" onClick={() => setSozSandiq(true)}>
+      <span aria-hidden="true">🧰</span>
+      <div><b>{__kbUi("So‘z sandig‘i")}</b><small>{__kbUi("10 til, 1000 ga yaqin rasmli so‘z: eshit, top, juftla — takrorlanmaydi")}</small></div>
+      <em>{__kbUi("Yangi")}</em>
+    </button>
+    {sozSandiq ? <React.Suspense fallback={null}><LazySozSandiq onClose={() => setSozSandiq(false)} /></React.Suspense> : null}
     <div className="og-grid">
       {GAMES.filter((g) => !(kid && g.katta) && !(g.bola && !kid && !admin)).map((g) => <button key={g.key} type="button" className={`og-card ${g.soon ? "is-soon" : ""}`} style={{ "--og": g.color }}
         disabled={g.soon} onClick={() => onOpen?.(g.key)}>

@@ -208,3 +208,5 @@ body:has(.sh-game) #samtm-install-app { display: none !important; }
   background:linear-gradient(120deg,#12a5d8,#1fbf8f);box-shadow:0 6px 0 #0c7fa6}
 .og-orol>span{font-size:38px}.og-orol>div{flex:1;min-width:0}.og-orol b{display:block;font-size:19px}.og-orol small{opacity:.92;font-weight:600}
 .og-orol em{font-style:normal;font-weight:900;background:rgba(255,255,255,.22);padding:6px 12px;border-radius:99px;white-space:nowrap}
+
+.og-orol.og-soz{background:linear-gradient(120deg,#6c3ce0,#2f7df0);box-shadow:0 6px 0 #4a27a8}
