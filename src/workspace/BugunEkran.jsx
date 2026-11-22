@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from "react";
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import "./bugunEkran.css";
+import { davomOl, qachon } from "./davomEt.js";
+import { joriyProfil, yukla as orolYukla, orolFoizi, sandiqTayyor } from "../games/orolHolat.js";
+const LazyKabuOroli = React.lazy(() => import("../games/KabuOroli.jsx"));
 
 const kursNomi = (k) => { const p = String(k || "").split("|"); return p.length > 2 ? `${p[1]} · ${/^\d{1,2}$/.test(p[2]) ? `${p[2]}-sinf` : p[2]}` : p[1] || k; };
 const salom = () => { const s = new Date().getHours(); return s < 11 ? "Xayrli tong" : s < 17 ? "Xayrli kun" : "Xayrli kech"; };
@@ -21,7 +24,30 @@ function Muassasalar({ list, onMuassasa }) {
       <button type="button" onClick={() => onMuassasa(m)}>{__kbUi("Ochish")} →</button></div>; })}</>;
 }
 
-export default function BugunEkran({ apiBase, token, rol, ism = "", onTab, muassasalar = [], onMuassasa = null }) {
+/** REV692: «Davom et» — oxirgi bo'lim (testlar, o'yinlar, …) bir bosishda. */
+function DavomEt({ hisobId, rol, onTab }) {
+  const x = davomOl(hisobId, rol);
+  if (!x) return null;
+  return <button type="button" className="bg-davom" onClick={() => onTab(x.tab)}>
+    <span aria-hidden="true">{x.ikon}</span>
+    <div><small>▶ {__kbUi("Davom et")} · {__kbUi(qachon(x.vaqt))}</small><b>{__kbUi(x.nom)}</b></div>
+    <em aria-hidden="true">→</em></button>;
+}
+
+/** REV692: «Kabu oroli» kartasi — tanga, orol foizi va kunlik sandiq. */
+function OrolKarta() {
+  const [ochiq, setOchiq] = useState(false);
+  const h = orolYukla(joriyProfil());
+  return <>
+    <button type="button" className="bg-orol" onClick={() => setOchiq(true)}>
+      <span aria-hidden="true">🏝️</span>
+      <div><b>{__kbUi("Kabu oroli")}</b><small>🪙 {h.tanga} · {orolFoizi(h)}%{sandiqTayyor(h) ? ` · 🎁 ${__kbUi("sandiq tayyor")}` : ""}</small></div>
+      <em aria-hidden="true">→</em></button>
+    {ochiq ? <React.Suspense fallback={null}><LazyKabuOroli profil={joriyProfil()} onClose={() => setOchiq(false)} /></React.Suspense> : null}
+  </>;
+}
+
+export default function BugunEkran({ apiBase, token, rol, ism = "", onTab, muassasalar = [], onMuassasa = null, hisobId = "" }) {
   const [d, setD] = useState(null), [xato, setXato] = useState("");
   useEffect(() => {
     fetch(`${String(apiBase).replace(/\/+$/, "")}/api/bugun?${new URLSearchParams({ token, rol })}`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -33,6 +59,7 @@ export default function BugunEkran({ apiBase, token, rol, ism = "", onTab, muass
   if (!d) return <section className="bg-root">{bosh}<div className="bg-karta bg-skelet" /><div className="bg-karta bg-skelet" /></section>;
 
   if (d.rol === "oqituvchi") return <section className="bg-root">{bosh}
+    <DavomEt hisobId={hisobId} rol={rol} onTab={onTab} />
     <Muassasalar list={muassasalar} onMuassasa={onMuassasa} />
     {!d.guruhlar.length ? <div className="bg-karta bg-asosiy"><b>👥 {__kbUi("Hali guruh yo‘q")}</b><p>{__kbUi("Kurs sahifasida guruh oching — o‘quvchilarga havola yuborasiz.")}</p>
       <button type="button" onClick={() => onTab("kurslar")}>{__kbUi("Kurslarga o‘tish")} →</button></div>
@@ -47,6 +74,7 @@ export default function BugunEkran({ apiBase, token, rol, ism = "", onTab, muass
   </section>;
 
   if (d.rol === "ota-ona") return <section className="bg-root">{bosh}
+    <DavomEt hisobId={hisobId} rol={rol} onTab={onTab} />
     {!d.bolalar.length ? <div className="bg-karta bg-asosiy"><b>👧 {__kbUi("Farzand qo‘shilmagan")}</b><p>{__kbUi("Profil → «Farzandlarim» bo‘limida farzandingizni qo‘shing.")}</p>
       <button type="button" onClick={() => onTab("profil")}>{__kbUi("Profilga o‘tish")} →</button></div>
       : d.bolalar.map((b) => <div key={b.id} className={`bg-karta ${b.bugun ? "is-yashil" : ""}`}>
@@ -58,6 +86,7 @@ export default function BugunEkran({ apiBase, token, rol, ism = "", onTab, muass
 
   const asosiy = d.kurslar[0];
   return <section className="bg-root">{bosh}
+    <DavomEt hisobId={hisobId} rol={rol} onTab={onTab} />
     {asosiy ? <div className={`bg-karta bg-asosiy ${asosiy.bugun ? "is-yashil" : ""}`}>
       <b>📚 {kursNomi(asosiy.kalit)}</b>
       <p>{asosiy.bugun ? `✅ ${__kbUi("Bugungi dars o‘tildi — barakalla! Keyingisi ertaga ochiladi.")}` : `▶ ${__kbUi("Bugungi darsingiz sizni kutyapti.")}`} · {asosiy.otilgan} {__kbUi("ta dars o‘tilgan")}</p>
@@ -71,6 +100,7 @@ export default function BugunEkran({ apiBase, token, rol, ism = "", onTab, muass
       <button type="button" onClick={() => onTab("oyinlar")}>🎮 {__kbUi("O‘yinlar")}</button>
       <button type="button" onClick={() => onTab("test")}>📝 {__kbUi("Testlar")}</button>
     </div>
+    <OrolKarta />
     {d.nazoratlar.length > 0 && <div className="bg-karta"><b>📝 {__kbUi("Oxirgi nazoratlar")}</b>
       {d.nazoratlar.map((n, i) => <p key={i} className="bg-izoh">{kursNomi(n.kalit)} · {n.togri}/{n.jami} {n.otdi ? "✅" : "❌"}</p>)}</div>}
     {(d.kuchli || d.zaif) && <div className="bg-karta"><b>📊 {__kbUi("Ko‘nikmalarim")}</b>

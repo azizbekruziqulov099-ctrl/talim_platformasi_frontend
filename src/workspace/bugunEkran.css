@@ -25,3 +25,12 @@
 .bg-tugmalar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.bg-tugmalar button{background:#eef6ff;color:#13314f;border:0;border-radius:12px;padding:9px 12px;font:700 14px system-ui;cursor:pointer}
 .bg-tugmalar button.is-on{background:#1B4B7A;color:#fff}
 .bg-muassasa{border-left:5px solid #0D7A77}
+
+/* REV692: «Davom et» va «Kabu oroli» kartalari */
+.bg-davom,.bg-orol{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 12px;padding:14px 16px;border:0;border-radius:18px;cursor:pointer;text-align:left;color:#fff;font:inherit}
+.bg-davom{background:linear-gradient(120deg,#1b4b7a,#2f7df0);box-shadow:0 6px 0 #123a63}
+.bg-orol{background:linear-gradient(120deg,#12a5d8,#1fbf8f);box-shadow:0 6px 0 #0c7fa6;margin-top:12px}
+.bg-davom>span,.bg-orol>span{font-size:34px;line-height:1}
+.bg-davom>div,.bg-orol>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bg-davom b,.bg-orol b{font-size:18px}.bg-davom small,.bg-orol small{opacity:.9;font-weight:700;font-size:13px}
+.bg-davom em,.bg-orol em{font-style:normal;font-size:22px;font-weight:900}

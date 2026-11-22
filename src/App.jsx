@@ -8,6 +8,7 @@ import { captureTelegramArrival, clearTelegramLinkIntent, readTelegramLinkIntent
 import { splitSpeechText, selectBrowserVoice, stripSpeechTags } from "./speech/language.js";
 import {EducationHome} from './workspace/EducationSetup.jsx';
 import {educationRole, initialEducationTab, needsEducation, roleDetail} from './workspace/educationRules.js';
+import { davomSaqla } from './workspace/davomEt.js';
 import {useTranslatedContent,ContentTranslationStatus} from './interface/TranslatedContent.jsx';
 import {setTranslationSession} from './interface/interfaceRuntime.js';
 import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
@@ -14641,6 +14642,12 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
     () => { const x = navSnapRef.current; return x && x.tab ? { key: `${x.tab}|${x.adminKorinish}|${x.oqituvchiBoshlanishKorinishi}|${x.kabutar ? 1 : 0}`, snap: { ...x } } : null; },
     (x) => { setAdminKorinish(x.adminKorinish); setOqituvchiBoshlanishKorinishi(x.oqituvchiBoshlanishKorinishi); setTab(x.tab); kabutarniOch(Boolean(x.kabutar)); }), [kabutarniOch]);
   useEffect(() => { if (tab) navYoz(); }, [adminKorinish, oqituvchiBoshlanishKorinishi, tab, kabutarOchiq]);
+  // REV692: «Davom et» — oxirgi o'quv bo'limi eslab qolinadi («Bugun» ekranidagi karta)
+  useEffect(() => {
+    if (!tab || !foydalanuvchi) return;
+    const rol = foydalanuvchi.is_admin ? adminKorinish : (foydalanuvchi.learning_profile?.role === "mehmon" ? "mehmon" : (foydalanuvchi.role || "oquvchi"));
+    davomSaqla(foydalanuvchi.id ?? foydalanuvchi.telegram_id ?? "men", rol, tab);
+  }, [tab, foydalanuvchi, adminKorinish]);
 
   useEffect(() => registerPhoneBackHandler("kabinet-tab", () => {
     // Test ketayotgan paytda tasodifiy telefon "orqaga" tugmasi testni
@@ -15321,7 +15328,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli !== "ota-ona" && tab === "mat_bank" && lazyPanel(LazyMatBank, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "mantiq_oyinlari" && lazyPanel(LazyMantiqOyinlari, { sinf: foydalanuvchi?.class || "", apiBase: API_BASE, onClose: () => setTab("oyinlar") })}
       {korinishRoli !== "ota-ona" && tab === "ekspeditsiya" && lazyPanel(LazyEkspeditsiya, { apiBase: API_BASE, token, onClose: () => setTab("oyinlar") })}
-      {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi, muassasalar: muassasalarim, onMuassasa: muassasaniTanla })}
+      {tab === "bugun" && korinishRoli !== "admin" && lazyPanel(LazyBugun, { apiBase: API_BASE, token, rol: korinishRoli, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi, hisobId: foydalanuvchi?.id ?? foydalanuvchi?.telegram_id ?? "men", muassasalar: muassasalarim, onMuassasa: muassasaniTanla })}
       {tab === "mehmon_bosh" && lazyPanel(LazyMehmonBosh, { ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
       {tab === "men" && lazyPanel(LazyMen, { apiBase: API_BASE, token, ism: foydalanuvchi?.full_name || "", onTab: tabTanlandi })}
       {tab === "guruhlarim" && lazyPanel(LazyGuruhlarim, { apiBase: API_BASE, token, onTab: tabTanlandi })}
