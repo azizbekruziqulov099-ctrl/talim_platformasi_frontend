@@ -94,7 +94,7 @@ test("every regular and Boss question renders four-choice gameplay inside the sc
   assert.doesNotMatch(arena, /className="game-written-answer"/);
   assert.doesNotMatch(arena, /if \(question\.is_boss\) return String\(question\.question/);
   assert.doesNotMatch(`${app}\n${arena}\n${rules}`, /yozma Boss|imkonli yozma|qisqa yozma javob/);
-  assert.match(arena, /Har 5-savol — nazorat savoli/);   // «Boss» endi «nazorat savoli» deb ataladi
+  assert.match(arena, /Har 5 savolda 2 ta nazorat savoli bor/);   // REV690: raundda 2 ta   // «Boss» endi «nazorat savoli» deb ataladi
   assert.match(rules, /bossAttempts: 1/g);
 });
 

@@ -228,7 +228,7 @@ export function GameModePicker({ value, onChange, gradeBand = "applicant", accen
     <div className="edu-game-detail" style={{ "--edu-color": chosen.colors[0], "--edu-tint": `${chosen.colors[1]}28` }}>
       <header><strong>{__kbUi(plan.icon)} {chosen.name}</strong><span>{__kbUi(age.label)}</span></header><p>{__kbUi(plan.description)}</p>
       <ol className="edu-game-steps">{learningSteps(subjectName).map(step => <li key={step}>{step}</li>)}</ol>
-      <small>{__kbUi("Har 5 savolda 2 ta boss savoli bor (3- va 5-savol). Savollar tanlangan fan va mavzu bazasidan olinadi.")}</small>
+      <small>{__kbUi("Har 5 savolda 2 ta nazorat savoli bor (3- va 5-savol). Savollar tanlangan fan va mavzu bazasidan olinadi.")}</small>
       {availableQuestions !== null && Number(availableQuestions) < 25 ? <p className="edu-study-note">{__kbUi("Hozir ")}{Math.max(0, Number(availableQuestions) || 0)}{__kbUi(" ta mos savol bor. Pastda shu songa yetadigan o‘yin uzunliklari ko‘rinadi.")}</p> : null}
     </div>
     <div className="game-avatar-choice"><img src={avatar.src} alt={__kbUi(`${avatar.label} qahramoni`)} width="58" height="76" loading="lazy" /><div><strong>{__kbUi("Sizning qahramoningiz")}</strong><small>{__kbUi(avatar.label)}</small></div><div className="game-avatar-gender" aria-label={__kbUi("Qahramon tanlash")}><button type="button" aria-pressed={avatar.gender === "girl"} className={avatar.gender === "girl" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("qiz")}>{__kbUi("Qiz")}</button><button type="button" aria-pressed={avatar.gender === "boy"} className={avatar.gender === "boy" ? "is-active" : ""} onClick={() => onPlayerGenderChange?.("ogil")}>{__kbUi("O‘g‘il")}</button></div></div>
