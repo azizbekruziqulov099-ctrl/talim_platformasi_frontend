@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import { joriyProfil, yukla as orolYukla, orolFoizi } from "./orolHolat.js";
+const LazyKabuOroli = React.lazy(() => import("./KabuOroli.jsx"));
 import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
 import { useInterface as useKbInterfaceLocale } from "../interface/InterfacePreferences.jsx";
 import "./boardGame.css";
@@ -23,9 +25,18 @@ const GAMES = [
 /** REV83: O'yinlar markazi — bellashuv, shashka va keyingi o'yinlar bir joyda. */
 export default function OyinlarMarkazi({ onOpen, kid = false, admin = false }) {
   useKbInterfaceLocale();
+  const [orol, setOrol] = useState(false);
+  const orolHolati = orolYukla(joriyProfil());
   return <section className="sh-root og-hub">
     <header className="sh-hero"><span className="og-hero-emoji" aria-hidden="true">🎮</span>
       <div><h2>{__kbUi("O‘yinlar")}</h2><p>{__kbUi("O‘ynab o‘rgan: aql, tezlik va mantiq o‘yinlari")}</p></div></header>
+    {/* REV686: Kabu oroli — test va o'yinlardan yig'ilgan tanga shu yerda sarflanadi */}
+    <button type="button" className="og-orol" onClick={() => setOrol(true)}>
+      <span aria-hidden="true">🏝️</span>
+      <div><b>{__kbUi("Kabu oroli")}</b><small>{__kbUi("Test yech, tanga yig', o'z orolingni qur")}</small></div>
+      <em>🪙 {orolHolati.tanga} · {orolFoizi(orolHolati)}%</em>
+    </button>
+    {orol ? <React.Suspense fallback={null}><LazyKabuOroli profil={joriyProfil()} onClose={() => setOrol(false)} /></React.Suspense> : null}
     <div className="og-grid">
       {GAMES.filter((g) => !(kid && g.katta) && !(g.bola && !kid && !admin)).map((g) => <button key={g.key} type="button" className={`og-card ${g.soon ? "is-soon" : ""}`} style={{ "--og": g.color }}
         disabled={g.soon} onClick={() => onOpen?.(g.key)}>

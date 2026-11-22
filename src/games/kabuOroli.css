@@ -1,0 +1,46 @@
+/* REV686: Kabu oroli */
+.ko-root{position:fixed;inset:0;z-index:4000;display:flex;flex-direction:column;background:linear-gradient(180deg,#1aa7d6,#0b6fb0);font-family:inherit;color:#12304a}
+.ko-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;flex:none}
+.ko-yop{width:40px;height:40px;border-radius:50%;border:0;background:#fff;font-size:20px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.18)}
+.ko-nom{flex:1;color:#fff;font-size:18px;text-shadow:0 2px 0 rgba(0,0,0,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ko-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px 5px 6px;border-radius:99px;background:#fff;font-weight:900;font-size:16px;box-shadow:0 4px 0 rgba(0,0,0,.18)}
+.ko-chip img{width:24px;height:24px}
+.ko-sandiq{width:46px;height:46px;border:0;border-radius:14px;background:#fff;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.18);padding:4px}
+.ko-sandiq img{width:100%;height:100%;object-fit:contain}
+.ko-sandiq.is-tayyor{animation:ko-sakra 1s ease-in-out infinite;background:#fff3b0}
+.ko-sahna{flex:1;min-height:0;display:grid;place-items:center;padding:0 6px}
+.ko-orol{position:relative;width:min(100%,calc(100vh - 250px));aspect-ratio:1;background-size:cover;background-position:center;border-radius:28px;box-shadow:0 18px 40px rgba(0,30,60,.35)}
+.ko-bino{position:absolute;width:19%;aspect-ratio:1;transform:translate(-50%,-58%);border:0;background:none;padding:0;cursor:pointer;transition:transform .15s ease;-webkit-tap-highlight-color:transparent}
+.ko-bino img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 5px rgba(0,0,0,.35));pointer-events:none}
+.ko-bino.is-bosh{width:11%;transform:translate(-50%,-50%)}
+.ko-bino.is-bosh span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,.85);color:#1b7a3b;font-size:clamp(16px,3.4vw,26px);font-weight:900;box-shadow:0 4px 0 rgba(0,0,0,.2);animation:ko-nafas 1.6s ease-in-out infinite}
+.ko-bino:hover,.ko-bino.is-tanlangan{transform:translate(-50%,-62%) scale(1.08)}
+.ko-bino.is-bosh:hover,.ko-bino.is-bosh.is-tanlangan{transform:translate(-50%,-50%) scale(1.15)}
+.ko-bino.is-yangi img{animation:ko-qurildi .8s cubic-bezier(.2,1.6,.4,1)}
+.ko-hamroh-sahna{position:absolute;left:46%;top:47%;width:11%;transform:translate(-50%,-50%);filter:drop-shadow(0 4px 3px rgba(0,0,0,.35));animation:ko-nafas 1.4s ease-in-out infinite;pointer-events:none}
+.ko-past{flex:none;background:#fff;border-radius:22px 22px 0 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,30,60,.25)}
+.ko-maslahat{margin:4px 0 10px;text-align:center;font-weight:700;color:#4a5f73;font-size:14px}
+.ko-karta{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ko-karta>img{width:62px;height:62px;object-fit:contain}
+.ko-karta>div{flex:1;min-width:0}.ko-karta b{display:block;font-size:17px}.ko-karta small{color:#5b6f83;font-weight:700}
+.ko-qur{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:14px;padding:11px 16px;font-weight:900;font-size:15px;color:#fff;background:linear-gradient(180deg,#34c759,#1f9d43);box-shadow:0 5px 0 #157a32;cursor:pointer}
+.ko-qur img{width:22px;height:22px}.ko-qur:disabled{background:#c9d3dc;box-shadow:0 5px 0 #a3b0bc;color:#5b6f83;cursor:not-allowed}
+.ko-tola{font-weight:900;color:#c58b19}
+.ko-hamrohlar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.ko-hamrohlar button{position:relative;border:2px solid #dbe5ee;border-radius:14px;background:#f4f8fb;padding:4px;cursor:pointer;aspect-ratio:1}
+.ko-hamrohlar button>img{width:100%;height:100%;object-fit:contain;filter:grayscale(1) opacity(.45)}
+.ko-hamrohlar button.is-bor>img{filter:none}
+.ko-hamrohlar button.is-tanlangan{border-color:#34c759;background:#eafbee}
+.ko-hamrohlar small{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:900;background:#fff;border-radius:99px;padding:1px 6px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.ko-hamrohlar small img{width:12px;height:12px}
+.ko-xabar{position:fixed;left:50%;bottom:190px;transform:translateX(-50%);z-index:4001;background:#12304a;color:#fff;font-weight:800;padding:10px 16px;border-radius:14px;box-shadow:0 8px 20px rgba(0,0,0,.3);animation:ko-qurildi .35s;max-width:90vw;text-align:center}
+@keyframes ko-nafas{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.1)}}
+.ko-bino.is-bosh span{animation-name:ko-nafas2}
+@keyframes ko-nafas2{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes ko-sakra{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes ko-qurildi{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@media(min-width:900px){.ko-past{align-self:center;width:min(720px,100%)}}
+@media(prefers-reduced-motion:reduce){.ko-root *{animation:none!important}}
+.ko-orol{width:min(100%,calc(100vh - 330px),720px)}
+.ko-hamrohlar{max-width:520px;margin:0 auto}
+.ko-sahna{overflow:hidden}

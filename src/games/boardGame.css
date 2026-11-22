@@ -202,3 +202,9 @@
 @media (min-width: 900px) { .sh-arena { scroll-margin-top: 200px; } }
 body:has(.sh-game) #samtm-install-app { display: none !important; }
 .sh-ver { opacity: .55; font-weight: 600; }
+
+/* REV686: «Kabu oroli» kirish tugmasi */
+.og-orol{display:flex;align-items:center;gap:12px;width:100%;margin:0 0 14px;padding:14px 16px;border:0;border-radius:18px;cursor:pointer;text-align:left;color:#fff;
+  background:linear-gradient(120deg,#12a5d8,#1fbf8f);box-shadow:0 6px 0 #0c7fa6}
+.og-orol>span{font-size:38px}.og-orol>div{flex:1;min-width:0}.og-orol b{display:block;font-size:19px}.og-orol small{opacity:.92;font-weight:600}
+.og-orol em{font-style:normal;font-weight:900;background:rgba(255,255,255,.22);padding:6px 12px;border-radius:99px;white-space:nowrap}

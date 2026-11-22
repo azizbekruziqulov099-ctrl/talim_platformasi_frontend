@@ -2,7 +2,9 @@ import {useTranslatedContent,ContentTranslationStatus} from './interface/Transla
 import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import GameJourney from "./test/GameJourney.jsx";
-import { YuguruvchiDunyo, YuguruvchiQahramon, ygMavzu, ygBoss } from "./test/Yuguruvchi.jsx";
+import { YuguruvchiDunyo, YuguruvchiQahramon, ygMavzu, ygBoss, ygHisob } from "./test/Yuguruvchi.jsx";
+import { yukla as orolYukla, saqla as orolSaqla, tangaQosh as orolTangaQosh, profilniEsla as orolProfilniEsla } from "./games/orolHolat.js";
+const LazyKabuOroli = React.lazy(() => import("./games/KabuOroli.jsx"));
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
@@ -732,7 +734,30 @@ function GameTerminalScreen({ terminal, mode, gradeBand, onSetup, onTopics, lear
 }
 
 
-function ResultScreen({ result, mode, gradeBand, onSetup, onTopics, learningLog = [], apiBase }) {
+// REV686: o'yin tugagach yig'ilgan tanga «Kabu oroli»ga o'tadi (sessiya bir marta hisoblanadi).
+function OrolMukofot({ log = [], sessiyaId = "", profil = "men" }) {
+  useKbInterfaceLocale();
+  const [ochiq, setOchiq] = useState(false);
+  const [qoshildi, setQoshildi] = useState(0);
+  const [jami, setJami] = useState(0);
+  useEffect(() => {
+    orolProfilniEsla(profil);
+    const r = orolTangaQosh(orolYukla(profil), sessiyaId, ygHisob(log).tanga);
+    if (r.qoshildi) orolSaqla(profil, r.holat);
+    setQoshildi(r.qoshildi || ygHisob(log).tanga); setJami(r.holat.tanga);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessiyaId]);
+  return <>
+    <button type="button" className="game-orol-tugma" onClick={() => setOchiq(true)}>
+      <span aria-hidden="true">🏝️</span>
+      <b>{__kbUi("Kabu oroli")}: +{qoshildi} {__kbUi("tanga")}</b>
+      <small>{__kbUi("Jami")} {jami} · {__kbUi("orolni qurish")} →</small>
+    </button>
+    {ochiq ? <React.Suspense fallback={null}><LazyKabuOroli profil={profil} onClose={() => { setOchiq(false); setJami(orolYukla(profil).tanga); }} /></React.Suspense> : null}
+  </>;
+}
+
+function ResultScreen({ result, mode, gradeBand, onSetup, onTopics, learningLog = [], apiBase, sessiyaId = "", profil = "men" }) {
   useKbInterfaceLocale();
   const meta = modeForId(mode);
   const color = result.score_1000 >= 850 ? "#C58B19" : result.score_1000 >= 600 ? meta.colors[0] : "#9A3412";
@@ -752,6 +777,7 @@ function ResultScreen({ result, mode, gradeBand, onSetup, onTopics, learningLog 
           <span><b>{result.completion_points || 0}</b>{__kbUi(" yakun")}</span>
           <span><b>{result.mastery_bonus || 0}</b>{__kbUi(" bonus")}</span>
         </div>
+        <OrolMukofot log={learningLog} sessiyaId={sessiyaId} profil={profil} />
         <div className="game-earned-points">
           <span>{__kbUi("Hisobga qo'shildi")}</span>
           <strong>+{result.awarded_points || 0}{__kbUi(" ochko")}</strong>
@@ -1539,6 +1565,8 @@ export default function TestGameArena({
           apiBase={apiBase}
           mode={mode}
           gradeBand={gradeBand}
+          sessiyaId={session?.session_id || ""}
+          profil={String(playerProfile?.id ?? playerProfile?.user_id ?? playerProfile?.telegram_id ?? "men")}
           onSetup={() => { if (stopReadRef.current) stopReadRef.current(); onBackToSetup(); }}
           onTopics={() => { if (stopReadRef.current) stopReadRef.current(); onBackToTopics(); }}
         />
