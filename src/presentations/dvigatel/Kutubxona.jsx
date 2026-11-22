@@ -235,6 +235,8 @@ export function KutubxonaAdmin({ so }) {
       {[['kutmoqda', 'Navbatda'], ['yozilmoqda', 'Yozilmoqda'], ['tayyor', 'Tayyor'], ['xato', 'Xato'], ['otkazildi', 'O‘tkazilgan']].map(([k, n]) =>
         <div key={k} className={`dv-kadmin-karta dv-holat-${k}`}><b>{(j[k] || 0).toLocaleString('uz')}</b><span>{n}</span></div>)}
       <div className="dv-kadmin-karta"><b>{h.sarf ?? h.bugun} / {h.sozlama?.kunlik}</b><span>Oxirgi 24 soat</span></div>
+      {h.dars_mazmuni && <div className="dv-kadmin-karta" title="Ochiq dars uchun darsning o‘zi: bayon, yechimli misollar, guruh topshiriqlari, loyiha, ekskursiya. Navbat bo‘shaganda tayyor mavzularga yoziladi.">
+        <b>{(h.dars_mazmuni.tayyor || 0).toLocaleString('uz')} / {Object.values(h.dars_mazmuni).reduce((a, b) => a + b, 0).toLocaleString('uz')}</b><span>Dars mazmuni</span></div>}
     </div>
 
     <div className="dv-row">

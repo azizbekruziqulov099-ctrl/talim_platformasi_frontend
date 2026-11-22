@@ -89,10 +89,12 @@ export default function OchiqDars({ so, apiBase, token, onTaqdimot, onClose }) {
     return () => { bekor = true; clearTimeout(t); };
   }, [manbaTur, guruhlarK, fan, q, daraja, sinfN]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // qo'lda yozilgan, tekshirilgan to'liq darslar (AI'siz ham to'liq ochiq dars)
+  const qoldaDarslar = useMemo(() => (katalog?.darslar || []).filter(m => m.daraja === daraja && sinfN && oraliqda(m.sinf, sinfN)), [katalog, daraja, sinfN]);
   const fanlarKat = useMemo(() => (katalog?.fanlar || []).filter(f => f.yosh.includes(yk)), [katalog, yk]);
   const andozalar = useMemo(() => {
-    const fk = (katalog?.fanlar || []).find(f => [f.nom, ...f.nomlar].some(n => n.toLowerCase() === (tanlangan?.fan || ozFan).toLowerCase()))?.kod;
-    return (katalog?.andozalar || []).filter(a => a.yosh.includes(yk) && (!a.fan.length || (fk && a.fan.includes(fk))));
+    const f = (katalog?.fanlar || []).find(x => [x.nom, ...x.nomlar].some(n => n.toLowerCase() === (tanlangan?.fan || ozFan).trim().toLowerCase()));
+    return (katalog?.andozalar || []).filter(a => a.yosh.includes(yk) && (f ? f.andozalar.includes(a.kod) : !a.fan.length));
   }, [katalog, yk, tanlangan, ozFan]);
   useEffect(() => { if (andoza && !andozalar.some(a => a.kod === andoza)) setAndoza(''); }, [andozalar]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -100,7 +102,7 @@ export default function OchiqDars({ so, apiBase, token, onTaqdimot, onClose }) {
   const fanNom = manbaTur === 'tayyor' ? tanlangan?.fan : ozFan.trim();
   const birinchiTayyor = !!sinf && !!mavzu && mavzu.length >= 3;
 
-  const manba = () => (manbaTur === 'tayyor' && tanlangan ? { manba: { kutubxona: tanlangan.id } } : {});
+  const manba = () => (manbaTur === 'tayyor' && tanlangan?.id ? { manba: { kutubxona: tanlangan.id } } : {});
   const sorov = (ust = {}) => ({
     daraja, sinf, fan: fanNom || '', mavzu: mavzu || '', format, andoza: andoza || undefined, oquvchilar: +oquvchilar || 25,
     guruhlar: +guruhlar || undefined, metodik_maqsad: metodik.trim() || undefined, ...ust,
@@ -221,8 +223,24 @@ export default function OchiqDars({ so, apiBase, token, onTaqdimot, onClose }) {
         </div>
 
         {manbaTur === 'tayyor' && <div className="dv-kai">
+          {qoldaDarslar.length > 0 && <>
+            <p className="dv-label">To‘liq yozilgan darslar <small>(mavzu bayoni, yechimli misollar, guruh topshiriqlari — tekshirilgan)</small></p>
+            <div className="dv-mavzular dv-ochiq-qolda">
+              {qoldaDarslar.map(m => {
+                const faol = tanlangan?.qolda && tanlangan.mavzu === m.mavzu;
+                return <div key={`${m.fan}|${m.mavzu}`} className={`dv-mavzu${faol ? ' is-active' : ''}`}>
+                  <button type="button" className="dv-mavzu-btn" onClick={() => setTanlangan({ id: null, mavzu: m.mavzu, fan: m.fan, qolda: true })}>
+                    <span className="dv-mavzu-kod">{faol ? <Check size={14} /> : <BookOpen size={14} />}</span>
+                    <span className="dv-mavzu-nom">{m.mavzu}</span>
+                    <span className="dv-mavzu-info">{m.fan} · {sinfNomi(m.daraja, m.sinf)} · to‘liq dars</span>
+                  </button>
+                </div>;
+              })}
+            </div>
+            {fanlarK.length > 0 && <p className="dv-label">Kutubxonadagi mavzular</p>}
+          </>}
           {!daraxt && <p className="dv-help"><LoaderCircle className="dv-spin" size={15} /> Yuklanmoqda…</p>}
-          {daraxt && !fanlarK.length && <p className="dv-help">{sinfNomi(daraja, sinf)} uchun tayyor mavzular hali yo‘q — «O‘z mavzuim»ni tanlang.</p>}
+          {daraxt && !fanlarK.length && !qoldaDarslar.length && <p className="dv-help">{sinfNomi(daraja, sinf)} uchun tayyor mavzular hali yo‘q — «O‘z mavzuim»ni tanlang.</p>}
           {fanlarK.length > 0 && <>
             <label className="dv-kai-qidir"><Search size={16} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Mavzu nomi bo‘yicha qidirish" aria-label="Mavzu qidirish" />
               {q && <button type="button" onClick={() => setQ('')} aria-label="Tozalash"><X size={15} /></button>}</label>
@@ -307,6 +325,7 @@ function Reja({ dars, busy, metodAlmashtir, guruhAlmashtir, boshqaVariant, yukla
         <p className="dv-help">{mt.fan} · {mt.yosh_nom} · {mt.format_nom} · {mt.andoza_nom} · {mt.daqiqa} daqiqa · {mt.oquvchilar} nafar, {dars.guruhlash.guruhlar.length} guruh
           {' · '}{mt.rejim === 'ai' ? 'AI yozgan' : mt.rejim === 'qolda' ? 'o‘zingiz tanlagan' : 'tezkor'}</p>
         {mt.ogohlantirish && <p className="dv-ogoh">{mt.ogohlantirish}</p>}
+        {mt.mazmun_manbasi === 'qolda' && <p className="dv-help"><Check size={14} /> Dars mazmuni qo‘lda yozilgan va tekshirilgan manbadan.</p>}
         {!mt.masalliq_bor && <p className="dv-help">Mavzu uchun tayyor masalliq yo‘q — materiallar mavzu matnidan olindi. To‘liqroq bo‘lishi uchun «AI yozsin» rejimini sinab ko‘ring.</p>}
       </div>
     </div>
