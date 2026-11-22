@@ -25,7 +25,8 @@ const OVOZ = {
   bossDost: [ovoz("boss_dost")], galaba: [ovoz("ayt_galaba")],
 };
 export const YG_BOSSLAR = ["Chalkash robot", "Unutuvchi bulut", "Xato ajdar", "Vaqt o'g'risi"];
-export function ygBoss(round = 1) { return ((Math.max(1, Number(round) || 1) - 1) % 4) + 1; }
+// REV690: raundda ikki boss (3- va 5-savol) — har boss galma-gal chiqadi: robot, bulut, ajdar, vaqt o'g'risi.
+export function ygBoss(round = 1, step = 5) { return (((Math.max(1, Number(round) || 1) - 1) * 2 + (Number(step) >= 5 ? 1 : 0)) % 4) + 1; }
 export const YG_MAVZULAR = ["ormon", "shahar", "koinot", "sahro"];
 const KALIT = "kb_oyin_ovoz";
 
