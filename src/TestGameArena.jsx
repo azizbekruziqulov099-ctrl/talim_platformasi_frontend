@@ -2,6 +2,7 @@ import {useTranslatedContent,ContentTranslationStatus} from './interface/Transla
 import {uiText as __kbUi, interfaceLocaleTag as __kbLocaleTag} from './interface/interfaceRuntime.js';
 import {useInterface as useKbInterfaceLocale} from './interface/InterfacePreferences.jsx';
 import GameJourney from "./test/GameJourney.jsx";
+import { YuguruvchiDunyo, YuguruvchiQahramon, ygMavzu } from "./test/Yuguruvchi.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import katex from "katex";
 import "./testGames.css";
@@ -298,30 +299,6 @@ function LearningReview({ entries, apiBase }) {
   </section>;
 }
 
-
-// REV683: «Yuguruvchi» — yo'l, tepaliklar va tanga/kombo hisobi (hammasi CSS, serverga so'rov yo'q).
-function YuguruvchiDunyo({ log = [], feedback }) {
-  useKbInterfaceLocale();
-  let kombo = 0;
-  for (let i = log.length - 1; i >= 0 && log[i].correct === true; i -= 1) kombo += 1;
-  let tanga = 0, ketma = 0;
-  for (const item of log) { if (item.correct === true) { ketma += 1; tanga += 10 + Math.min(4, ketma - 1) * 5; } else ketma = 0; }
-  const oxirgi = feedback?.finalized && feedback.correct === true ? 10 + Math.min(4, kombo - 1) * 5 : 0;
-  return (
-    <>
-      <div className="yg-world" aria-hidden="true">
-        <i className="yg-sun" /><i className="yg-cloud yg-cloud-1" /><i className="yg-cloud yg-cloud-2" />
-        <i className="yg-hills yg-hills-far" /><i className="yg-hills yg-hills-near" />
-        <div className="yg-road"><i /><i /><i /></div>
-      </div>
-      <div className="yg-hud" role="status">
-        <span className="yg-coin" key={`t${tanga}`}>🪙 {tanga}</span>
-        {kombo >= 2 ? <span className="yg-combo" key={`k${kombo}`}>🔥 ×{kombo}</span> : null}
-        {oxirgi ? <b className="yg-plus" key={`p${log.length}`}>+{oxirgi}</b> : null}
-      </div>
-    </>
-  );
-}
 
 function sceneStateClass(feedback) {
   if (feedback?.type === "timeout") return "is-scene-timeout";
@@ -1649,7 +1626,7 @@ export default function TestGameArena({
       <GameJourney total={question.total} log={learningLog} currentPosition={question.position} band={gradeBand} level={level} grade={playerProfile?.class || question?.grade} />
 
       <div className={`game-stage game-stage-${mode} game-stage-light game-question-layout ${sceneStateClass(feedback)}`}>
-        {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} /> : null}
+        {mode === "bridge" ? <YuguruvchiDunyo log={learningLog} feedback={feedback} mavzu={ygMavzu(session?.session_id, question?.round)} /> : null}
         <div className="game-stage-content">
           <GameTimer timer={{ ...timer, onRetry: stopConfirm ? null : retryReady }} />
 
@@ -1691,7 +1668,7 @@ export default function TestGameArena({
           style={mode === "bridge" ? { "--bridge-runner-left": bridgeOptionIndex >= 0 ? `${12.5 + bridgeOptionIndex * 25}%` : "-5%", "--sk-c2": bridgeOptionIndex >= 0 ? bridgeOptionIndex % 2 : -1, "--sk-r2": bridgeOptionIndex >= 0 ? Math.floor(bridgeOptionIndex / 2) : 0 } : undefined}
           aria-label={isBoss ? __kbUi("Nazorat savoli variantlari") : __kbUi("Javob variantlari")}
         >
-          {mode === "bridge" ? <span className="bridge-choice-runner" aria-hidden="true"><GameAvatar variant="runner" profile={avatarProfile} /></span> : null}
+          {mode === "bridge" ? <span className="bridge-choice-runner" aria-hidden="true"><YuguruvchiQahramon gender={avatarProfile.gender} holat={bridgeOutcome} /></span> : null}
           {(question.options || []).map((option) => (
             <button
               type="button"

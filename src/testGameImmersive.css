@@ -1,154 +1,128 @@
-/* REV683: «Yuguruvchi» — bridge rejimining yangi ko'rinishi. Qahramon yo'lda yuguradi, javoblar — darvozalar.
-   Hammasi CSS transform/opacity (GPU), rasm yuklanmaydi — kuchsiz telefonda ham qotmaydi. */
-.test-game-arena.game-readable.game-restored.game-immersive{--yg-p:.test}
+/* REV684: «Yuguruvchi» — yon ko'rinishli yugurish o'yini (Kabu olami rasmlari bilan).
+   Faqat .game-immersive (bridge) uchun. Hammasi transform/opacity — kuchsiz telefonda ham qotmaydi. */
 .test-game-arena.game-readable.game-restored.game-immersive .game-stage.game-stage-light{
   display:block!important;position:relative!important;overflow:hidden!important;isolation:isolate;
-  padding:clamp(10px,2vw,22px)!important;border:0!important;border-radius:26px!important;
-  min-height:clamp(540px,74vh,720px)!important;
-  background:linear-gradient(180deg,#3b2a8c 0%,#7a4fd6 26%,#ff8fb1 52%,#ffd27a 64%,#ffd27a 100%)!important;
-  box-shadow:0 22px 60px rgba(40,20,90,.35)!important;
-}
-.test-game-arena.game-readable.game-restored.game-immersive .game-mission-sidebar,
-.test-game-arena.game-readable.game-restored.game-immersive .edu-study-tools{display:none!important}
+  padding:clamp(10px,2vw,20px)!important;border:0!important;border-radius:26px!important;
+  min-height:clamp(540px,74vh,700px)!important;background:#8fd3ff!important;box-shadow:0 22px 60px rgba(20,40,90,.3)!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-mission-sidebar,.test-game-arena.game-readable.game-restored.game-immersive .edu-study-tools,.test-game-arena.game-readable.game-restored.game-immersive > .gj-root,.test-game-arena.game-readable.game-restored.game-immersive .game-question-label{display:none!important}
 
-/* Dunyo */
+/* Dunyo: fon va yer ikki nusxada yonma-yon, chapga suriladi (uzluksiz) */
 .yg-world{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.yg-sun{position:absolute;left:50%;top:40%;width:210px;height:210px;margin-left:-105px;border-radius:50%;background:radial-gradient(circle,#fff6c8 0 38%,#ffd35a 60%,rgba(255,180,80,0) 72%);filter:blur(.5px)}
-.yg-cloud{position:absolute;top:16%;width:150px;height:38px;border-radius:99px;background:rgba(255,255,255,.55);box-shadow:44px -14px 0 4px rgba(255,255,255,.5),-36px 8px 0 -4px rgba(255,255,255,.4);animation:yg-drift 38s linear infinite}
-.yg-cloud-2{top:28%;transform:scale(.7);animation-duration:55s;animation-delay:-22s}
-.yg-hills{position:absolute;left:-10%;right:-10%;bottom:36%;height:120px;background-repeat:repeat-x;background-size:520px 120px;animation:yg-scroll 26s linear infinite}
-.yg-hills-far{background-image:radial-gradient(ellipse 260px 110px at 260px 120px,#6b46c1 98%,transparent 100%);opacity:.75}
-.yg-hills-near{bottom:34%;height:90px;background-size:380px 90px;background-image:radial-gradient(ellipse 190px 82px at 190px 90px,#2f9e6e 98%,transparent 100%);animation-duration:13s}
-.yg-road{position:absolute;left:50%;bottom:0;width:150%;height:40%;margin-left:-75%;
-  background:linear-gradient(180deg,#3a3f5c,#22263c);clip-path:polygon(38% 0,62% 0,100% 100%,0 100%);overflow:hidden}
-.yg-road::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(180deg,rgba(255,255,255,.07) 0 22px,transparent 22px 60px);animation:yg-road 0.5s linear infinite}
-.yg-road i{position:absolute;top:0;bottom:0;width:6px;left:50%;margin-left:-3px;transform-origin:50% 0;
-  background:repeating-linear-gradient(180deg,#ffe27a 0 34px,transparent 34px 78px);animation:yg-lane .45s linear infinite}
-.yg-road i:nth-child(1){transform:rotate(9.5deg)}.yg-road i:nth-child(3){transform:rotate(-9.5deg)}
-.test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-road::before,
-.test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-road i,
-.test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-hills{animation-play-state:paused}
+.yg-fon{position:absolute;left:0;top:0;bottom:0}
+.yg-fon i{display:block;height:100%;aspect-ratio:5.3333/1;background-size:50% 100%;background-repeat:repeat-x;animation:yg-slide 42s linear infinite;will-change:transform}
+.yg-yer{position:absolute;left:0;bottom:0;height:clamp(64px,10vh,88px)}
+.yg-yer i{display:block;height:100%;aspect-ratio:var(--yg-yar,17.8)/1;background-size:50% 100%;background-repeat:repeat-x;animation:yg-slide 5.5s linear infinite;will-change:transform}
+.yg-world::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,20,50,.28),rgba(10,20,50,0) 42%)}
+.yg-t-ormon .yg-fon i{background-image:url("./assets/kabu-olami/yuguruvchi/ormon_fon.webp")}.yg-t-ormon .yg-yer i{background-image:url("./assets/kabu-olami/yuguruvchi/ormon_yer.webp")}
+.yg-t-shahar .yg-fon i{background-image:url("./assets/kabu-olami/yuguruvchi/shahar_fon.webp")}.yg-t-shahar .yg-yer i{background-image:url("./assets/kabu-olami/yuguruvchi/shahar_yer.webp")}
+.yg-t-koinot .yg-fon i{background-image:url("./assets/kabu-olami/yuguruvchi/koinot_fon.webp")}.yg-t-koinot .yg-yer i{background-image:url("./assets/kabu-olami/yuguruvchi/koinot_yer.webp")}
+.yg-t-sahro .yg-fon i{background-image:url("./assets/kabu-olami/yuguruvchi/sahro_fon.webp")}.yg-t-sahro .yg-yer i{background-image:url("./assets/kabu-olami/yuguruvchi/sahro_yer.webp")}
+.yg-t-koinot .yg-yer,.yg-t-sahro .yg-yer{--yg-yar:16.2}
+.test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-fon i,
+.test-game-arena.game-immersive .game-stage:not(.is-scene-playing) .yg-yer i{animation-play-state:paused}
 
-/* Hisob */
-.yg-hud{position:absolute;z-index:6;right:16px;top:14px;display:flex;gap:8px;align-items:center;pointer-events:none}
-.yg-hud span{padding:7px 13px;border-radius:99px;font-weight:900;font-size:16px;color:#3d2500;background:#ffe27a;box-shadow:0 4px 0 #c9912a,0 8px 18px rgba(0,0,0,.25);animation:yg-pop .35s cubic-bezier(.2,1.6,.4,1)}
-.yg-hud .yg-combo{color:#fff;background:linear-gradient(180deg,#ff7a3d,#e23d6d);box-shadow:0 4px 0 #a82349,0 8px 18px rgba(0,0,0,.25)}
-.yg-plus{position:absolute;right:8px;top:44px;font-size:26px;font-weight:900;color:#fff;text-shadow:0 2px 0 #c9912a,0 0 14px #ffd35a;animation:yg-plus 1.2s ease-out both}
+/* Hisob va ovoz tugmasi */
+.yg-hud{position:absolute;z-index:30;right:14px;top:12px;display:flex;gap:8px;align-items:center}
+.yg-hud span{display:inline-flex;align-items:center;gap:6px;padding:6px 13px 6px 8px;border-radius:99px;font-weight:900;font-size:17px;color:#3d2500;background:#fff;box-shadow:0 4px 0 rgba(0,0,0,.18),0 8px 18px rgba(0,0,0,.2);animation:yg-pop .35s cubic-bezier(.2,1.6,.4,1)}
+.yg-coin-ic{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3a8,#ffc21f 60%,#d98a00);box-shadow:inset 0 0 0 2px #b97a00}
+.yg-hud .yg-combo{padding-left:12px;color:#fff;background:linear-gradient(180deg,#ff7a3d,#e23d6d)}
+.yg-sound{width:38px;height:38px;border-radius:50%;border:0;background:#fff;font-size:17px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.18)}
+.yg-plus{position:absolute;right:54px;top:44px;font-size:28px;font-weight:900;color:#fff;text-shadow:0 2px 0 #b97a00,0 0 14px #ffd35a;animation:yg-plus 1.2s ease-out both;pointer-events:none}
 
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{position:relative;z-index:2;display:flex!important;flex-direction:column;gap:10px;min-height:inherit}
-.test-game-arena.game-readable.game-restored.game-immersive .game-timer{
-  align-self:flex-start;width:min(60%,420px);background:rgba(30,16,70,.55)!important;border:1px solid rgba(255,255,255,.28)!important;
-  backdrop-filter:blur(8px);border-radius:99px!important;box-shadow:none!important;padding:6px 14px!important;min-height:0!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-timer strong{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{position:relative;z-index:2;display:flex!important;flex-direction:column;gap:10px;min-height:clamp(520px,70vh,670px)!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-timer{align-self:flex-start;width:min(52%,380px);background:rgba(255,255,255,.92)!important;border:0!important;border-radius:99px!important;box-shadow:0 4px 0 rgba(0,0,0,.14)!important;padding:5px 14px!important;min-height:0!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-timer small{display:none!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-timer-track{background:rgba(255,255,255,.2)!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-question-card{flex:1;display:flex!important;flex-direction:column;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-question-label{display:none!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-question-heading{
-  align-self:center;width:min(100%,820px);margin:2px auto 0!important;padding:clamp(12px,2vw,20px) clamp(14px,2.4vw,26px)!important;
-  background:#fff!important;border:0!important;border-radius:22px!important;box-shadow:0 8px 0 rgba(40,20,90,.35),0 22px 40px rgba(40,20,90,.3)!important;
-  animation:yg-drop .45s cubic-bezier(.2,1.4,.4,1) both}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1,
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1 *{color:#231650!important;-webkit-text-fill-color:#231650!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-heading{align-self:center;width:min(100%,820px);margin:2px auto 0!important;padding:clamp(12px,2vw,20px) clamp(14px,2.4vw,26px)!important;
+  background:#fff!important;border:0!important;border-radius:22px!important;box-shadow:0 7px 0 rgba(20,40,90,.28),0 20px 36px rgba(20,40,90,.25)!important;animation:yg-drop .45s cubic-bezier(.2,1.4,.4,1) both}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1,.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-question-card h1 *{color:#172554!important;-webkit-text-fill-color:#172554!important}
 .test-game-arena.game-readable.game-restored.game-immersive .game-question-heading h1{font-size:clamp(18px,2.2vw,26px)!important;line-height:1.4!important;text-align:center}
-.test-game-arena.game-readable.game-restored.game-immersive .game-question-image{display:block;margin:8px auto;max-height:200px;border-radius:14px;background:#fff}
+.test-game-arena.game-readable.game-restored.game-immersive .game-question-image{display:block;margin:8px auto;max-height:190px;border-radius:14px;background:#fff}
 
 /* Darvozalar */
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{
-  position:relative;margin-top:auto!important;padding:0 0 clamp(150px,22vh,190px)!important;gap:clamp(8px,1.6vw,18px)!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;perspective:none!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button{
-  position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;
-  min-height:clamp(96px,14vh,132px)!important;padding:14px 8px 12px!important;cursor:pointer;
-  border:4px solid #fff!important;border-bottom-width:0!important;border-radius:60px 60px 10px 10px!important;
-  background:linear-gradient(180deg,var(--yg-a,#5ad1ff),var(--yg-b,#2f7df0))!important;
-  box-shadow:0 8px 0 rgba(20,10,60,.35),0 0 0 4px rgba(255,255,255,.18),0 18px 30px rgba(20,10,60,.35)!important;
-  transform:none;backdrop-filter:none;transition:transform .15s ease,filter .15s ease;
-  animation:yg-gate .6s cubic-bezier(.2,1.3,.4,1) both,yg-breathe 1.6s ease-in-out .6s infinite}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button::after,
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button::before{display:none!important}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(1){--yg-a:#5ad1ff;--yg-b:#2f7df0}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(2){--yg-a:#ffb14a;--yg-b:#f0692f;animation-delay:.06s,.7s}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(3){--yg-a:#b98bff;--yg-b:#7a3df0;animation-delay:.12s,.8s}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(4){--yg-a:#5fe0a0;--yg-b:#17a567;animation-delay:.18s,.9s}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):hover,
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):active{transform:translateY(-6px) scale(1.04);filter:brightness(1.1)}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button > span{
-  width:28px;height:28px;display:grid;place-items:center;border-radius:50%;margin:0 auto!important;flex:none;font-weight:900;font-size:13px;
-  background:rgba(255,255,255,.92)!important;color:#231650!important;-webkit-text-fill-color:#231650!important;border:0}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b,
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b *{color:#fff!important;-webkit-text-fill-color:#fff!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button > b{
-  display:block;width:100%;text-align:center!important;font-size:clamp(15px,1.8vw,22px)!important;font-weight:900;line-height:1.25;text-shadow:0 2px 0 rgba(0,0,0,.25);overflow-wrap:anywhere}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:disabled{opacity:1!important;cursor:default;animation:none}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{position:relative;margin-top:auto!important;padding:20px 0 clamp(56px,8.5vh,76px)!important;gap:clamp(4px,1vw,14px)!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;perspective:none!important;--yg-rise:0px}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;
+  aspect-ratio:354/270;min-height:0!important;width:100%;max-width:300px;justify-self:center;padding:18% 17% 12%!important;cursor:pointer;
+  border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none;transform:none;
+  background:url("./assets/kabu-olami/yuguruvchi/darvoza.webp") center/100% 100% no-repeat!important;
+  transition:transform .15s ease,filter .15s ease;animation:yg-gate .55s cubic-bezier(.2,1.3,.4,1) both;filter:drop-shadow(0 8px 6px rgba(0,0,0,.3))}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button::after,.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button::before{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(2){animation-delay:.07s}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(3){animation-delay:.14s}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:nth-of-type(4){animation-delay:.21s}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):hover,.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:not(:disabled):active{transform:translateY(-5px) scale(1.05);filter:drop-shadow(0 12px 10px rgba(0,0,0,.35)) brightness(1.12)}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button > span{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b,.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .game-options button b *{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button > b{display:block;width:100%;text-align:center!important;font-size:clamp(14px,1.9vw,23px)!important;font-weight:900;line-height:1.2;
+  text-shadow:0 2px 0 rgba(0,20,60,.75),0 0 10px rgba(0,20,60,.8);overflow-wrap:anywhere}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button:disabled{opacity:1!important;cursor:default}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-hidden-option{opacity:.3!important;filter:grayscale(1)}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-bridge-safe{
-  --yg-a:#fff27a;--yg-b:#ffb300;animation:yg-win .7s cubic-bezier(.2,1.5,.4,1) both!important;
-  box-shadow:0 8px 0 #b97a00,0 0 0 6px rgba(255,240,150,.7),0 0 60px 18px rgba(255,220,90,.85)!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button.is-bridge-safe > b,
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button.is-bridge-safe > b *{color:#3d2500!important;-webkit-text-fill-color:#3d2500!important;text-shadow:none}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-bridge-broken{
-  --yg-a:#ff8a8a;--yg-b:#c81e3a;animation:yg-shake .5s both!important;border-color:#ffd0d0!important}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button.is-bridge-broken::after{
-  content:"✕"!important;display:grid!important;place-items:center;position:absolute;inset:0;font-size:54px;font-weight:900;color:rgba(255,255,255,.9);border:0;background:repeating-linear-gradient(45deg,rgba(0,0,0,.18) 0 12px,transparent 12px 24px);border-radius:inherit}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button.is-bridge-safe{background-image:url("./assets/kabu-olami/yuguruvchi/darvoza_togri.webp")!important;animation:yg-win .6s cubic-bezier(.2,1.5,.4,1) both!important;filter:drop-shadow(0 0 22px rgba(120,255,120,.95))}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button.is-bridge-broken{background-image:url("./assets/kabu-olami/yuguruvchi/darvoza_xato.webp")!important;animation:yg-shake .5s both!important}
 
 /* Qahramon */
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{
-  top:auto!important;bottom:6px;left:var(--bridge-runner-left,50%);width:clamp(70px,8vw,96px);height:clamp(118px,13.5vw,162px);z-index:14;
-  transform:translateX(-50%);transition:left .32s cubic-bezier(.3,.9,.3,1.2);animation:none!important;filter:drop-shadow(0 10px 8px rgba(0,0,0,.4))}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{top:auto!important;bottom:clamp(30px,5vh,46px);left:var(--bridge-runner-left,12%);width:clamp(96px,11vw,132px);height:auto;aspect-ratio:240/220;z-index:14;
+  transform:translateX(-50%);transition:left .42s cubic-bezier(.4,.1,.3,1);animation:none!important;filter:drop-shadow(0 8px 5px rgba(0,0,0,.35));pointer-events:none}
 .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner::before{display:none!important}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner .game-avatar{width:100%;height:100%;display:block;animation:yg-run .34s ease-in-out infinite alternate}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner .avatar-render{animation:none!important;object-position:center!important}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner .avatar-aura{display:none}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:50%;transform:translateX(-50%)}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-jumping .bridge-choice-runner,
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-safe .bridge-choice-runner{animation:yg-dash .7s cubic-bezier(.3,.7,.3,1) both!important}
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-broken .bridge-choice-runner,
-.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-timeout .bridge-choice-runner{animation:yg-bump .8s cubic-bezier(.3,.7,.3,1) both!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:9%;transform:translateX(-50%)}
+.yg-hero{display:block;width:100%;height:100%;overflow:hidden}
+.yg-hero i{display:block;height:100%;width:400%;background-size:100% 100%;background-repeat:no-repeat;animation:yg-kadr .42s steps(4) infinite}
+.yg-hero.yg-ogil i{background-image:url("./assets/kabu-olami/yuguruvchi/ogil_yugur.webp")}
+.yg-hero.yg-qiz i{background-image:url("./assets/kabu-olami/yuguruvchi/qiz_yugur.webp")}
+.yg-hero.yg-p-qoqil i{width:100%;animation:none}
+.yg-hero.yg-ogil.yg-p-qoqil i{background-image:url("./assets/kabu-olami/yuguruvchi/ogil_qoqil.webp")}
+.yg-hero.yg-qiz.yg-p-qoqil i{background-image:url("./assets/kabu-olami/yuguruvchi/qiz_qoqil.webp")}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-safe .bridge-choice-runner{animation:yg-kir .75s .25s cubic-bezier(.3,.7,.3,1) both!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-broken .bridge-choice-runner,.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-timeout .bridge-choice-runner{animation:yg-bump .7s .2s cubic-bezier(.3,.7,.3,1) both!important}
 
-.test-game-arena.game-readable.game-restored.game-immersive .game-feedback{position:relative;z-index:20;margin-top:-140px}
-.test-game-arena.game-readable.game-restored.game-immersive .game-feedback:empty{margin-top:0}
+.test-game-arena.game-readable.game-restored.game-immersive .game-feedback{position:relative;z-index:20;margin-top:8px}
 .test-game-arena.game-readable.game-restored.game-immersive .game-feedback > .is-correct{display:none}
-.test-game-arena.game-readable.game-restored.game-immersive .edu-feedback-actions{background:rgba(255,255,255,.92);border-radius:14px;padding:8px 12px;margin-top:8px}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage.is-scene-correct .edu-feedback-actions{display:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .edu-feedback-actions{background:rgba(255,255,255,.94);border-radius:14px;padding:8px 12px;margin-top:8px}
 
-@keyframes yg-scroll{to{background-position-x:-520px}}
-@keyframes yg-drift{from{left:-20%}to{left:110%}}
-@keyframes yg-road{to{background-position-y:60px}}
-@keyframes yg-lane{to{background-position-y:78px}}
+@keyframes yg-slide{to{transform:translateX(-50%)}}
+@keyframes yg-kadr{to{transform:translateX(-100%)}}
 @keyframes yg-pop{from{transform:scale(.6)}to{transform:scale(1)}}
 @keyframes yg-plus{0%{opacity:0;transform:translateY(10px) scale(.6)}20%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-46px) scale(1)}}
 @keyframes yg-drop{from{opacity:0;transform:translateY(-40px) scale(.9)}to{opacity:1;transform:none}}
-@keyframes yg-gate{from{opacity:0;transform:translateY(-30px) scale(.4)}to{opacity:1;transform:none}}
-@keyframes yg-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
-@keyframes yg-run{from{transform:translateY(0) rotate(-3deg)}to{transform:translateY(-9px) rotate(4deg)}}
-@keyframes yg-dash{0%{transform:translateX(-50%) translateY(0) scale(1)}60%{transform:translateX(-50%) translateY(-150px) scale(.72)}100%{transform:translateX(-50%) translateY(-176px) scale(.62);opacity:.0}}
-@keyframes yg-bump{0%{transform:translateX(-50%) translateY(0)}40%{transform:translateX(-50%) translateY(-120px) scale(.78)}55%{transform:translateX(-50%) translateY(-104px) scale(.8) rotate(-14deg)}100%{transform:translateX(-50%) translateY(0) rotate(0)}}
+@keyframes yg-gate{from{opacity:0;transform:translateX(120px) scale(.6)}to{opacity:1;transform:none}}
+@keyframes yg-kir{0%{transform:translateX(-50%) translateY(0) scale(1);opacity:1}70%{opacity:1}100%{transform:translateX(-50%) translateY(calc(-34px - var(--yg-rise))) scale(.5);opacity:0}}
+@keyframes yg-bump{0%{transform:translateX(-50%)}35%{transform:translateX(-50%) translateY(calc(-18px - var(--yg-rise) * .5)) rotate(8deg)}100%{transform:translateX(-90%) rotate(0)}}
 @keyframes yg-win{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1.06)}}
 @keyframes yg-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
 
 @media(max-width:700px){
-  .test-game-arena.game-readable.game-restored.game-immersive .game-stage.game-stage-light{padding:8px!important;border-radius:18px!important;min-height:76vh!important}
-  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{grid-template-columns:repeat(2,minmax(0,1fr))!important;padding-bottom:128px!important}
-  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button{min-height:78px!important;padding:8px 6px!important;border-radius:36px 36px 8px 8px!important}
-  .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{width:62px;height:104px;left:calc(25% + var(--sk-c2,0) * 50%)}
-  .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:50%}
-  .test-game-arena.game-readable.game-restored.game-immersive .game-timer{width:62%}
-  .test-game-arena.game-readable.game-restored.game-immersive .game-feedback{margin-top:-118px}
-  .yg-hud{top:10px;right:10px}.yg-hud span{font-size:13px;padding:5px 10px}
-  .yg-sun{width:150px;height:150px;margin-left:-75px}
-}
-@media(prefers-reduced-motion:reduce){
-  .yg-world *,.test-game-arena.game-immersive .bridge-answer-course > button,.test-game-arena.game-immersive .bridge-choice-runner .game-avatar{animation:none!important}
-}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{min-height:clamp(520px,70vh,690px)!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{margin-top:auto!important;padding-top:26px!important}
-.test-game-arena.game-readable.game-restored.game-immersive .game-stage.is-scene-correct .edu-feedback-actions{display:none!important}
-.yg-road i{display:block;height:100%}
-@media(max-width:700px){.test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{min-height:70vh!important}}
-/* Yuguruvchida «Bilim shahri» yo'lagi o'rniga sahnadagi tanga/kombo hisobi ishlaydi */
-.test-game-arena.game-readable.game-restored.game-immersive > .gj-root{display:none!important}
-@media(max-width:700px){
-  .test-game-arena.game-readable.game-restored.game-immersive .game-feedback{margin-top:8px!important}
-  .test-game-arena.game-readable.game-restored.game-immersive .game-stage:not(.is-scene-playing) .bridge-answer-course{padding-bottom:12px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage.game-stage-light{padding:8px!important;border-radius:18px!important;min-height:0!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{min-height:68vh!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-bridge .bridge-answer-course{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:2px 8px!important;padding-bottom:62px!important;--yg-rise:calc((1 - var(--sk-r2,0)) * 30vw)}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button{max-width:190px}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{width:86px;bottom:26px;left:calc(25% + var(--sk-c2,0) * 50%)}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:14%}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-timer{width:50%}
+  .yg-hud{top:9px;right:9px;gap:5px}.yg-hud span{font-size:14px;padding:4px 10px 4px 6px}.yg-sound{width:32px;height:32px;font-size:14px}
   .test-game-arena.game-readable.game-restored.game-immersive .game-stage.is-scene-wrong .bridge-choice-runner{display:none}
+}
+@media(prefers-reduced-motion:reduce){.yg-fon i,.yg-yer i{animation:none!important}.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course > button{animation:none!important}}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button{justify-content:flex-start;padding:22% 16% 0!important;outline:none!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button.is-selected-option{box-shadow:none!important;outline:none!important;border:0!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button > b{
+  width:auto;max-width:100%;padding:4px 10px;border-radius:12px;background:rgba(8,18,56,.62);font-size:clamp(15px,2vw,24px)!important}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{width:clamp(110px,13vw,156px)}
+.test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:6%}
+@media(max-width:700px){
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-choice-runner{width:92px}
+  .test-game-arena.game-readable.game-restored.game-immersive .bridge-answer-course.is-ready .bridge-choice-runner{left:50%}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button > b{font-size:15px!important;padding:3px 8px}
+}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button{align-items:center!important;padding:26% 15% 0!important}
+.test-game-arena.game-readable.game-restored.game-immersive .game-stage-light .bridge-answer-course > button > b{margin:0 auto!important;align-self:center}
+@media(max-width:700px){
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{padding-top:48px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-timer{position:absolute!important;top:0;left:0}
+}
+@media(max-width:700px){
+  .test-game-arena.game-readable.game-restored.game-immersive .game-stage-content{padding-top:64px!important}
+  .test-game-arena.game-readable.game-restored.game-immersive .game-timer{padding:3px 12px!important}
+  .yg-plus{top:40px;right:20px}
 }

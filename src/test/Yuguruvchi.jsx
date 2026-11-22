@@ -1,0 +1,98 @@
+// REV684: «Yuguruvchi» — Kabu olami o'yini. Rasm va ovozlar src/assets/kabu-olami/ ichida.
+// Hammasi qurilmada ishlaydi (CSS transform + <audio>), serverga faqat javob ketadi.
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { uiText as __kbUi } from "../interface/interfaceRuntime.js";
+
+const ovoz = (nom) => new URL(`../assets/kabu-olami/ovoz/${nom}.mp3`, import.meta.url).href;
+const OVOZ = {
+  togri: [ovoz("darvoza_togri"), ovoz("togri_1"), ovoz("togri_3")],
+  tanga: [ovoz("tanga_1"), ovoz("tanga_2")],
+  xato: [ovoz("darvoza_xato")],
+  toqinish: [ovoz("toqinish")],
+  maqtov: [ovoz("ayt_barakalla"), ovoz("ayt_azamat"), ovoz("ayt_juda_yaxshi")],
+  yana: [ovoz("ayt_yana_urinib_kor")],
+  kuy: ovoz("yugurish_loop"),
+};
+export const YG_MAVZULAR = ["ormon", "shahar", "koinot", "sahro"];
+const KALIT = "kb_oyin_ovoz";
+
+function ovozYoqiqmi() { try { return localStorage.getItem(KALIT) !== "0"; } catch { return true; } }
+function chal(royxat, balandlik = 0.7) {
+  try {
+    const a = new Audio(royxat[Math.floor(Math.random() * royxat.length)]);
+    a.volume = balandlik;
+    const p = a.play(); if (p && p.catch) p.catch(() => {});
+  } catch { /* ovozsiz qurilma */ }
+}
+
+export function ygMavzu(sessionId = "", round = 1) {
+  let h = 0;
+  for (const ch of String(sessionId)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return YG_MAVZULAR[(h + Math.max(0, Number(round) - 1)) % YG_MAVZULAR.length];
+}
+
+export function ygHisob(log = []) {
+  let kombo = 0;
+  for (let i = log.length - 1; i >= 0 && log[i].correct === true; i -= 1) kombo += 1;
+  let tanga = 0, ketma = 0;
+  for (const item of log) { if (item.correct === true) { ketma += 1; tanga += 10 + Math.min(4, ketma - 1) * 5; } else ketma = 0; }
+  return { kombo, tanga };
+}
+
+export function YuguruvchiDunyo({ log = [], feedback, mavzu = "ormon" }) {
+  const [yoqiq, setYoqiq] = useState(ovozYoqiqmi);
+  const kuyRef = useRef(null);
+  const { kombo, tanga } = useMemo(() => ygHisob(log), [log]);
+  const yakun = Boolean(feedback?.finalized);
+  const togri = feedback?.correct === true;
+  const oxirgi = yakun && togri ? 10 + Math.min(4, kombo - 1) * 5 : 0;
+
+  // Fon kuyi: brauzer qoidasi bo'yicha faqat birinchi bosishdan keyin boshlanadi.
+  useEffect(() => {
+    if (!yoqiq) { if (kuyRef.current) kuyRef.current.pause(); return undefined; }
+    const boshla = () => {
+      try {
+        if (!kuyRef.current) { kuyRef.current = new Audio(OVOZ.kuy); kuyRef.current.loop = true; kuyRef.current.volume = 0.16; }
+        const p = kuyRef.current.play(); if (p && p.catch) p.catch(() => {});
+      } catch { /* ovozsiz */ }
+    };
+    boshla();
+    window.addEventListener("pointerdown", boshla, { once: true });
+    return () => window.removeEventListener("pointerdown", boshla);
+  }, [yoqiq]);
+  useEffect(() => () => { if (kuyRef.current) { kuyRef.current.pause(); kuyRef.current = null; } }, []);
+
+  useEffect(() => {
+    if (!yakun || !yoqiq) return;
+    if (togri) {
+      chal(OVOZ.togri); setTimeout(() => chal(OVOZ.tanga, 0.6), 260);
+      if (kombo >= 3 && kombo % 2 === 1) setTimeout(() => chal(OVOZ.maqtov, 0.9), 520);
+    } else {
+      chal(OVOZ.xato); setTimeout(() => chal(OVOZ.toqinish, 0.7), 200); setTimeout(() => chal(OVOZ.yana, 0.9), 700);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yakun, log.length]);
+
+  const almashtir = () => setYoqiq((v) => { const n = !v; try { localStorage.setItem(KALIT, n ? "1" : "0"); } catch { /* xotira yo'q */ } return n; });
+
+  return (
+    <>
+      <div className={`yg-world yg-t-${mavzu}`} aria-hidden="true">
+        <div className="yg-fon"><i /></div>
+        <div className="yg-yer"><i /></div>
+      </div>
+      <div className="yg-hud">
+        <span className="yg-coin" key={`t${tanga}`} role="status" aria-label={__kbUi(`${tanga} tanga`)}><i className="yg-coin-ic" aria-hidden="true" />{tanga}</span>
+        {kombo >= 2 ? <span className="yg-combo" key={`k${kombo}`}>🔥 ×{kombo}</span> : null}
+        <button type="button" className="yg-sound" onClick={almashtir} aria-pressed={yoqiq} aria-label={__kbUi(yoqiq ? "Ovozni o'chirish" : "Ovozni yoqish")}>{yoqiq ? "🔊" : "🔇"}</button>
+        {oxirgi ? <b className="yg-plus" key={`p${log.length}`}>+{oxirgi}</b> : null}
+      </div>
+    </>
+  );
+}
+
+export function YuguruvchiQahramon({ gender = "boy", holat = "ready" }) {
+  const jins = gender === "girl" ? "qiz" : "ogil";
+  const poza = holat === "broken" || holat === "timeout" ? "qoqil" : "yugur";
+  return <span className={`yg-hero yg-${jins} yg-p-${poza}`} aria-hidden="true"><i /></span>;
+}
