@@ -1611,3 +1611,10 @@ body:has(.dx-repetitor-oyna){overflow:hidden}
   .dx-root.dx-sinf .dx-frame>.dx-doskalar button{pointer-events:auto!important;cursor:pointer}
   .dx-root.dx-sinf .dx-frame>.dx-burchak-daftar{z-index:60!important;pointer-events:auto!important}
 }
+
+/* REV680: kompyuterda «Doskalar 1 2 3 + Qoralama» paneli o'qituvchi paneli (.dx-teacher) tagida qolib, bosilmasdi —
+   o'qituvchi paneli o'zi bosishni ushlamaydi, ichidagi bo'laklari (xabar, tugmalar) ushlaydi */
+@media (min-width:901px){
+  .dx-root.dx-sinf .dx-room>.dx-teacher{pointer-events:none}
+  .dx-root.dx-sinf .dx-room>.dx-teacher>*{pointer-events:auto}
+}

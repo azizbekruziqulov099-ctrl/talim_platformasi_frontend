@@ -286,10 +286,10 @@ function RasmQator({ arg, progress }) {
   React.useEffect(() => {
     if (rasmModul) return undefined;
     let ok = true;
-    Promise.all([import("../kid/darsRasm.js"), import("../kid/rasmHarakat.js")]).then(([a, b]) => { rasmModul = { RASM_HAMMA: a.RASM_HAMMA, matnId: b.matnId, sozId: b.sozId }; if (ok) qayta((x) => x + 1); }).catch(() => {});
+    Promise.all([import("../kid/darsRasm.js"), import("../kid/rasmHarakat.js")]).then(([a, b]) => { rasmModul = { RASM_HAMMA: a.RASM_HAMMA, matnId: b.matnId, sozId: b.sozId, birinchi: b.matnIdBirinchi }; if (ok) qayta((x) => x + 1); }).catch(() => {});
     return () => { ok = false; };
   }, []);
-  const topish = (soz) => { if (!rasmModul) return null; const id = rasmModul.matnId(soz) || rasmModul.sozId({ soz }); return id && rasmModul.RASM_HAMMA[id] ? rasmModul.RASM_HAMMA[id] : null; };
+  const topish = (soz) => { if (!rasmModul) return null; const id = rasmModul.matnId(soz) || rasmModul.sozId({ soz }) || rasmModul.birinchi(soz); return id && rasmModul.RASM_HAMMA[id] ? rasmModul.RASM_HAMMA[id] : null; };
   return <span className="mdx-rasmlar">{items.map((it, i) => {
     const at = 0.08 + (i / Math.max(1, items.length)) * 0.7, kor_ = progress >= at, src = topish(it.soz);
     return <span key={i} className={`mdx-rasm mdx-rasm-${it.effekt} ${kor_ ? "is-on" : ""}`}>

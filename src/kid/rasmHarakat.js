@@ -133,6 +133,16 @@ export function matnId(...matnlar) {
   return null;
 }
 
+
+/** REV680: noaniq so'z (bir nechta rasmga to'g'ri keladi, masalan «pul») uchun — katalogdagi BIRINCHI mos rasm (doska RASM buyrug'i uchun). */
+export function matnIdBirinchi(t) {
+  const a = matnNorm(t);
+  if (!a) return null;
+  for (const d of DARS_RASM_META) { if (d.past) continue; for (const w of [...(d.soz || []), ...(d.uz || [])]) if (matnNorm(w) === a) return `d_${d.id}`; }
+  for (const d of DARS_RASM_META) { for (const w of [...(d.soz || []), ...(d.uz || [])]) if (matnNorm(w) === a) return `d_${d.id}`; }
+  return null;
+}
+
 const OXSHASH = { "🐇": "🐰", "🐈": "🐱", "🐕": "🐶", "🐩": "🐶", "🐎": "🐴", "🐄": "🐮", "🚆": "🚂", "🚃": "🚂", "🌞": "☀", "🌤": "☀",
   "💚": "🟢", "💜": "🟣", "🩵": "🔵", "💙": "🔵", "🐒": "🐵", "🐠": "🐟", "🍰": "🎂", "🐈⬛": "🐱" };
 

@@ -1585,6 +1585,13 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
       el.classList.toggle("is-sigmas", sigmas);
       if (sigmas) {   // yangi yozuv ko'rinsin: doska ichida pastga silliq suriladi (sahifa o'zi siljimaydi)
         const h = el.querySelector(".dx-line.is-hozir") || [...el.querySelectorAll(".dx-line, .mdx-line")].pop();
+        // REV680: o'quvchi qo'lda tepaga surgan, keyin doska o'sib pastdan uzoqlashdi — yozuv ko'rinmay yozilardi: dars pauzaga tushadi («Darsni davom ettir»);
+        // pastdan 60 px ichida bo'lsa — qo'l bilan surish tugagan hisoblanadi, doska yana o'zi suriladi
+        if (el.dataset.qolda) {
+          const uzoq = el.scrollHeight - el.clientHeight - el.scrollTop > 60;
+          if (uzoq && !korishRef.current) { korishRef.current = true; setKorish(true); }
+          else if (!uzoq && !korishRef.current) delete el.dataset.qolda;
+        }
         if (h && !el.dataset.qolda) {
           const pastki = h.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom;
           if (pastki > -8) el.scrollTo({ top: el.scrollTop + pastki + 24, behavior: "smooth" });
@@ -2101,7 +2108,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
                 const tegliQatorlar = steps[i].doskaTeg ? String(steps[i].doskaTeg).split(/\n+/).map((x) => x.trim()).filter(Boolean) : null;
                 const qatorlar = cue.lines.slice(0, shown).map((line, n) => { const kim = qatorKimi(tegliQatorlar && tegliQatorlar.length === cue.lines.length ? tegliQatorlar[n] : line);
                   return <div key={`${steps[i].id}-${n}`}
-                    className={`dx-line ${i === idx ? "is-new" : ""} ${i === idx && speaking && !doskaYozilmoqda && nutqQatorda(line) ? "is-nutq" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}{juftDoska && kim === "til" ? <BosiladiganQator text={line} onSoz={sozBosildi} /> : (i === idx && n === shown - 1 && speaking && !stepFinished
+                    className={`dx-line ${i === idx ? "is-new" : ""} ${i === idx && speaking && (!doskaYozilmoqda || n < shown - 1) && nutqQatorda(line) ? "is-nutq" : ""} ${["qoida", "xulosa"].includes(steps[i].turi) ? "dx-rule" : ""} ${kim ? `is-kim-${kim}` : ""} ${kim && i === idx && speaking && ustozKim === kim && n === shown - 1 ? "is-hozir" : ""}`}>{kimBelgi(kim)}{juftDoska && kim === "til" ? <BosiladiganQator text={line} onSoz={sozBosildi} /> : (i === idx && n === shown - 1 && speaking && !stepFinished
                       ? <ChalkText text={line} progress={lineProgress(cue.cues, n, word, cue.spoken.split(/\s+/).filter(Boolean).length)} />
                       : <BoardText text={line} />)}</div>; });
                 if (!juftDoska || i !== idx) return qatorlar;
