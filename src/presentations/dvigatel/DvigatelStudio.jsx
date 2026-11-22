@@ -274,11 +274,11 @@ export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = '
   // AI uchun mazmun sozlamalari: test soni («Avto» — AI o'zi), o'chirilgan qismlar dizayn bilan umumiy
   const aiSozlama = () => ({ ...sozlama, test_soni: sozlama.test_soni === '' ? undefined : Number(sozlama.test_soni), qismlar: soz.qismlar || {} });
   function aiYoz(rejaBilan = false) {
-    return aiIsh({ ...form, sozlama: aiSozlama(), ...(rejaBilan && reja ? { reja } : {}) }, (m, ish) => { setMiya(m); setSeed(yangiUrug()); setJoriyIsh(ish); setTanlangan(null); royxatYukla(); setQadam(3); });
+    return aiIsh({ ...form, sozlama: aiSozlama(), ...(rejaBilan && reja ? { reja } : {}) }, (m, ish) => { zaxiraXabar(m); setMiya(m); setSeed(yangiUrug()); setJoriyIsh(ish); setTanlangan(null); royxatYukla(); setQadam(3); });
   }
 
   function aiReja() {
-    return aiIsh({ ...form, sozlama: aiSozlama(), faqat_reja: true }, r => { setReja(r); setQadam(2); });
+    return aiIsh({ ...form, sozlama: aiSozlama(), faqat_reja: true }, r => { zaxiraXabar(r); setReja(r); setQadam(2); });
   }
 
   async function faylYukla(file) {
@@ -354,7 +354,9 @@ export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = '
     } catch (e) { setXato(e.message || 'Nusxalab bo‘lmadi'); }
   }
   const [xabar, setXabar] = useState('');
-  function alertMatn(t) { setXabar(t); setTimeout(() => setXabar(''), 5000); }
+  function alertMatn(t, ms = 5000) { setXabar(t); setTimeout(() => setXabar(''), ms); }
+  // AI javob bermaganda server taqdimotni o‘z bazasidan beradi — foydalanuvchi buni bilsin
+  const zaxiraXabar = m => { if (m?._zaxira?.xabar) alertMatn(m._zaxira.xabar, 15000); };
 
   // xato sahifaning tepasida chiqadi — pastda ishlayotgan odam ko'rmay qolmasin
   useEffect(() => { if (xato) xatoRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }); }, [xato]);

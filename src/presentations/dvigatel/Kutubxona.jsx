@@ -230,6 +230,10 @@ export function KutubxonaAdmin({ so }) {
     {xato && <div className="dv-xato" role="alert"><CircleAlert size={16} /> {xato}</div>}
     {xabar && <div className="dv-xabar" role="status">{xabar}</div>}
     {h.ai === false && <div className="dv-xato">AI kaliti serverda sozlanmagan — yozuvchi ishlamaydi.</div>}
+    {h.kalitlar?.kalitlar?.length > 0 && <p className="dv-help"><b>AI kalitlari: {h.kalitlar.ishlayotgan} / {h.kalitlar.kalitlar.length} tasi ishlayapti.</b>{' '}
+      {h.kalitlar.kalitlar.map((k, i) => <span key={i}>{i ? '; ' : ''}{k.provayder} {k.kalit} — {k.ishlayapti ? 'tayyor' : `limitda (${Math.ceil(k.dam / 60)} daq.)`}{k.xato ? ` · ${k.xato}` : ''}</span>)}.
+      {' '}Biri limitga yetsa, keyingisi ishlaydi; hammasi tugasa, foydalanuvchiga taqdimot tayyor mavzular bazasidan beriladi.
+      {h.kalitlar.topilmagan_modellar?.length > 0 && <> Topilmagan model: {h.kalitlar.topilmagan_modellar.join(', ')} — zaxira model ishlatilmoqda.</>}</p>}
 
     <div className="dv-kadmin-son">
       {[['kutmoqda', 'Navbatda'], ['yozilmoqda', 'Yozilmoqda'], ['tayyor', 'Tayyor'], ['xato', 'Xato'], ['otkazildi', 'O‘tkazilgan']].map(([k, n]) =>
@@ -255,6 +259,8 @@ export function KutubxonaAdmin({ so }) {
           const bor = (z.daraja || []).includes(k);
           return <button type="button" key={k} className={bor ? 'is-active' : ''} aria-pressed={bor} onClick={() => setZ({ ...z, daraja: bor ? z.daraja.filter(x => x !== k) : [...(z.daraja || []), k] })}>{n}</button>;
         })}</div></div>
+      <label className="dv-row" style={{ gap: 8 }}><input type="checkbox" checked={!!z.tun} onChange={e => setZ({ ...z, tun: e.target.checked })} />
+        Faqat kechasi yozsin (22:00–07:00) — kunduzi AI limiti foydalanuvchilarga qoladi{z.tun && h.tun_hozir === false ? ' · hozir kunduz, yozuvchi kutmoqda' : ''}</label>
       <button type="button" onClick={() => saqla()} disabled={band === 'soz'}><Check size={15} />Sozlamalarni saqlash</button>
     </div>}
 
