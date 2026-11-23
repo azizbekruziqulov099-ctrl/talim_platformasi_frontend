@@ -42,7 +42,7 @@ export default function OyinlarMarkazi({ onOpen, kid = false, admin = false }) {
     {/* REV695: So'z sandig'i — rasmli so'z bazasidan 10 tilda so'z o'yinlari */}
     <button type="button" className="og-orol og-soz" onClick={() => setSozSandiq(true)}>
       <span aria-hidden="true">🧰</span>
-      <div><b>{__kbUi("So‘z sandig‘i")}</b><small>{__kbUi("10 til, 1600 dan ortiq rasmli so‘z: eshit, top, juftla — takrorlanmaydi")}</small></div>
+      <div><b>{__kbUi("So‘z sandig‘i")}</b><small>{__kbUi("10 til, 2000 dan ortiq rasmli so‘z: eshit, top, juftla — takrorlanmaydi")}</small></div>
       <em>{__kbUi("Yangi")}</em>
     </button>
     {sozSandiq ? <React.Suspense fallback={null}><LazySozSandiq onClose={() => setSozSandiq(false)} /></React.Suspense> : null}
