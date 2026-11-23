@@ -113,6 +113,19 @@ export function gapAralash(tok, rng = Math.random) {
   for (let u = 0; u < 8; u += 1) { const a = aralashtir(tok, rng); if (a.some((t, i) => t !== tok[i])) return a; }
   return [...tok].reverse();
 }
+/** «Bo'sh joy»: gapdan bitta mazmunli token olib tashlanadi, 4 tokendan to'g'risi topiladi. Chalg'ituvchilar — boshqa gaplardan, to'g'ri javobdan farqli. */
+export function gapToldir(gap, gaplar, til, rng = Math.random) {
+  const tok = gapTokenlar(gap, til);
+  if (tok.length < 3) return null;
+  const nomzod = tok.map((t, n) => [t, n]).filter(([t, n]) => n > 0 && String(t).length >= (BOSHLIQSIZ.has(til) ? 1 : 3));
+  if (!nomzod.length) return null;
+  const [togri, bosh] = nomzod.reduce((a, b) => (String(b[0]).length > String(a[0]).length ? b : a));
+  const bor = new Set(tok.map((t) => String(t).toLowerCase()));
+  const havo = [...new Set(gaplar.flatMap((x) => (x === gap ? [] : gapTokenlar(x, til))).filter((t) => !bor.has(String(t).toLowerCase()) && Math.abs(String(t).length - String(togri).length) <= 3 && t[0] === t[0].toLowerCase() === (togri[0] === togri[0].toLowerCase())))];
+  const ch = aralashtir(havo, rng).slice(0, 3);
+  if (ch.length < 3) return null;
+  return { bosh, togri, variantlar: aralashtir([togri, ...ch], rng) };
+}
 /** Gap o'yini: «tuz» (rasm + aralash so'zlar → gap) va «gaprasm» (gapni eshit/o'qi → 4 rasmdan top) navbatlashadi. */
 export function gapOyinYasa(gaplar, pool, { til = "en", izoh = "uz", korilgan = [], xatolar = [], soni = RAUND_SONI, rng = Math.random } = {}) {
   const sozMap = new Map(pool.map((x) => [x.k, x]));
@@ -132,6 +145,7 @@ export function gapOyinYasa(gaplar, pool, { til = "en", izoh = "uz", korilgan = 
       const ch = chalgituvchilar(toza, nishon, til, izoh, 3, rng);
       if (ch.length >= 2) { raundlar.push({ tur: "gaprasm", nishon, gap, variantlar: aralashtir([nishon, ...ch], rng) }); return; }
     }
+    if (i % 3 === 2) { const t = gapToldir(gap, yaroqli, til, rng); if (t) { raundlar.push({ tur: "toldir", nishon, gap, ...t }); return; } }
     raundlar.push({ tur: "tuz", nishon, gap, aralash: gapAralash(gapTokenlar(gap, til), rng) });
   });
   return raundlar;
@@ -170,7 +184,11 @@ export function darsYasa(pool, holat, { til = "en", izoh = "uz", bugun = kunRaqa
     const ch = chalgituvchilar(pool, n, til, izoh, 3, rng, t !== "tarjima");
     if (ch.length >= 2) mashq.push({ tur: t, nishon: n, variantlar: aralashtir([n, ...ch], rng) });
   };
-  yangi.forEach((n, i) => { qosh(n, i % 2 ? "eshit" : "rasm"); qosh(n, "soz"); });
+  yangi.forEach((n, i) => {
+    qosh(n, i % 2 ? "eshit" : "rasm"); qosh(n, "soz");
+    const g = gapMap.get(n.k); const t = g && !n.m ? gapToldir(g, gaplar, til, rng) : null;
+    if (t) mashq.push({ tur: "toldir", nishon: n, gap: g, ...t });
+  });
   takror.forEach((n, i) => {
     const g = gapMap.get(n.k);
     if (g && !n.m && gapTokenlar(g, til).length >= 2 && i % 2 === 0) mashq.push({ tur: "tuz", nishon: n, gap: g, aralash: gapAralash(gapTokenlar(g, til), rng) });

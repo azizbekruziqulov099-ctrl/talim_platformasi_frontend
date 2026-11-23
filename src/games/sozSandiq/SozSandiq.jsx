@@ -50,6 +50,19 @@ function Juft({ r, til, onTugadi, ayt }) {
 }
 
 // REV696: «Gap tuz» — rasm va aralash so'zlar; bola so'zlarni bosib gapni teradi
+// «Bo'sh joy»: gap ko'rinadi, bitta so'z o'rni bo'sh — to'g'risini tanlaydi
+function GapToldir({ r, til, ayt, onTugadi }) {
+  const [tanlangan, setTanlangan] = useState(null);
+  const tok = gapTokenlar(r.gap, til);
+  const bosh = tok.map((t, n) => (n === r.bosh ? "＿＿＿" : t));
+  const tanla = (v) => { if (tanlangan !== null) return; setTanlangan(v); const togri = v === r.togri; if (togri) ayt(gapMatn(tok, til), til); setTimeout(() => onTugadi(togri), togri ? 1300 : 1900); };
+  return <div className="ss-gap">
+    <div className="ss-nishon-rasm ss-gap-rasm"><Rasm x={r.nishon} /></div>
+    <p className="ss-gap-izoh">{gapMatn(gapTokenlar(r.gap, "uz"), "uz")}</p>
+    <div className="ss-gap-qator" dir={til === "ar" ? "rtl" : "ltr"}><b dir="auto">{gapMatn(tanlangan === null ? bosh : tok, til)}</b></div>
+    <div className="ss-gap-sozlar" dir={til === "ar" ? "rtl" : "ltr"}>{r.variantlar.map((v) => <button key={v} type="button" disabled={tanlangan !== null} className={tanlangan === null ? "" : v === r.togri ? "is-togri" : v === tanlangan ? "is-xato" : "is-ochiq"} onClick={() => tanla(v)}>{v}</button>)}</div>
+  </div>;
+}
 function GapTuz({ r, til, ayt, onTugadi }) {
   const [tanlov, setTanlov] = useState([]);          // aralash ro'yxatdagi indekslar
   const [holat, setHolat] = useState("");
@@ -193,6 +206,7 @@ export default function SozSandiq({ onClose, token = "" }) {
           <button type="button" className="ss-asosiy" onClick={() => keyingi(true)}>{__kbUi("Tushundim")} →</button>
         </div>
         : r.tur === "juft" ? <><p className="ss-savol">{__kbUi("So‘zni bos, keyin rasmini top")}</p><Juft r={r} til={til} ayt={ayt} onTugadi={keyingi} /></>
+        : r.tur === "toldir" ? <><p className="ss-savol">{__kbUi("Gapni to‘ldir")}</p><GapToldir r={r} til={til} ayt={ayt} onTugadi={keyingi} /></>
         : r.tur === "tuz" ? <><p className="ss-savol">{__kbUi("Rasmga qarab gap tuz")}</p><GapTuz r={r} til={til} ayt={ayt} onTugadi={keyingi} /></>
         : <>
           {r.tur === "soz" ? <div className="ss-nishon-rasm"><Rasm x={r.nishon} /></div>

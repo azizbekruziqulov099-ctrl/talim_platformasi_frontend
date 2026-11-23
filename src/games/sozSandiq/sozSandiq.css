@@ -82,3 +82,6 @@
 .ss-sinflar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
 .ss-sinflar button{width:38px;height:38px;border:2px solid #dbe5f3;border-radius:12px;background:#fff;font:inherit;font-weight:900;color:#12304a;cursor:pointer}
 .ss-sinflar small{font-weight:700;color:#5b6f83}
+/* REV704: «Gapni to'ldir» */
+.ss-gap-sozlar button.is-togri{opacity:1;border-color:#22a559;background:#e4f8ec}
+.ss-gap-sozlar button.is-xato{opacity:1;border-color:#e0524b;background:#fdeaea}

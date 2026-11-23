@@ -113,3 +113,12 @@ test("REV702 sinflar: har maktab so'zida sinf (1..11) bor; dars yangi so'zni faq
   const d = darsYasa(maktab, { s: {} }, { til: "de", bugun: 5, sinf: 7, rng: rng(11) });
   assert.equal(d.yangi.length, DARS_YANGI); assert.ok(d.yangi.every((x) => x.n === 7));
 });
+
+test("gapToldir: bo'sh joy, 4 variant, to'g'ri javob ichida", async () => {
+  const { gapToldir, gapTokenlar } = await import("./games/sozSandiq/sozRules.js");
+  const mk = (k, en) => ({ k, g: [["a"], ["b"], en, ["d"], ["f"], ["e"], ["x"], ["t"], ["z"], ["j"], ["k"]] });
+  const gaplar = [mk("a", ["The", "dog", "eats", "bones"]), mk("b", ["A", "cat", "drinks", "milk"]), mk("c", ["My", "mother", "bakes", "bread"]), mk("d", ["The", "girl", "reads", "books"])];
+  const t = gapToldir(gaplar[0], gaplar, "en");
+  assert.ok(t); assert.equal(t.variantlar.length, 4);
+  assert.ok(t.variantlar.includes(t.togri)); assert.equal(gapTokenlar(gaplar[0], "en")[t.bosh], t.togri); assert.ok(t.bosh > 0);
+});
