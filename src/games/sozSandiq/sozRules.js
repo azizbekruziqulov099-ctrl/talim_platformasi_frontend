@@ -154,7 +154,10 @@ export function darsStat(pool, holat, bugun = kunRaqami()) {
 /** Dars: yangi so'zlar (hovuz tartibida — oson darajadan), tanishuv kartalari, so'ng yangi + takror so'zlarga aralash mashq. */
 export function darsYasa(pool, holat, { til = "en", izoh = "uz", bugun = kunRaqami(), gaplar = [], rng = Math.random, yangiSoni = DARS_YANGI, takrorSoni = DARS_TAKROR } = {}) {
   const s = holat?.s || {};
-  const tartib = [...pool].sort((a, b) => a.d - b.d);            // barqaror: daraja ichida fayldagi tartib
+  // daraja → rasmi aniq so'zlar → aniq narsa otlari (hayvon, meva, uy...) → fe'l → sifat → qolganlari; ichida fayldagi tartib
+  const TUR = { ot: 0, fel: 1, sifat: 2, son: 2, ravish: 3, ibora: 4 };
+  const og = (x) => x.d * 100 + (x.m ? 50 : 0) + (TUR[x.s] ?? 4) * 10 + (x.t === "boshqa" ? 5 : 0);
+  const tartib = pool.map((x, i) => [x, i]).sort((a, b) => og(a[0]) - og(b[0]) || a[1] - b[1]).map((p) => p[0]);
   const yangi = tartib.filter((x) => !s[x.k]).slice(0, yangiSoni);
   const takror = tartib.filter((x) => s[x.k] && s[x.k][1] <= bugun).sort((a, b) => s[a.k][1] - s[b.k][1] || s[a.k][0] - s[b.k][0]).slice(0, takrorSoni);
   const gapMap = new Map(gaplar.map((g) => [g.k, g]));
