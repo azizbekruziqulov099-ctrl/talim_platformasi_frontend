@@ -15316,7 +15316,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
         />
       )}
       {korinishRoli !== "ota-ona" && tab === "oyinlar" && (
-        <OyinlarMarkazi kid={korinishRoli === "mehmon" || (korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha")} admin={Boolean(foydalanuvchi?.is_admin)} onOpen={(key) => {
+        <OyinlarMarkazi token={token} kid={korinishRoli === "mehmon" || (korinishRoli !== "oqituvchi" && _kbAccountRole(foydalanuvchi) === "bogcha")} admin={Boolean(foydalanuvchi?.is_admin)} onOpen={(key) => {
           if (key === "bellashuv") setBellashuv({ kod: "", createFrom: null, nonce: Date.now() });
           if (key === "shashka") setShashka({ kod: "", nonce: Date.now() });
           if (key === "shaxmat" || key === "shaxmat_maktab") setShaxmat({ kod: "", nonce: Date.now(), maktab: key === "shaxmat_maktab" });

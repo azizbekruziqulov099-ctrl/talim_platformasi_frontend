@@ -98,3 +98,18 @@ test("REV699 dars: yangi so'zlar oson darajadan, takror vaqti kelganda qaytadi, 
   let hh = h; for (let kun = 102, i = 0; i < 3; i += 1, kun += 20) { const d = darsYasa(maktab, hh, { til: "en", bugun: kun, yangiSoni: 0, rng: rng(5 + i) }); hh = darsYakun(hh, d.raundlar, d.raundlar.map(() => true), kun); }
   assert.ok(darsStat(maktab, hh, 200).organilgan >= DARS_YANGI - 1);
 });
+
+import { darsBirlashtir } from "./games/sozSandiq/sozRules.js";
+test("REV702 dars holati: qurilma va server birlashadi — keyinroq o'ynalgani qoladi", () => {
+  const a = { s: { apple: [3, 110], cat: [1, 100] } }, b = { s: { apple: [2, 104], cat: [2, 102], dog: [2, 103], bad: "x" } };
+  assert.deepEqual(darsBirlashtir(a, b).s, { apple: [3, 110], cat: [2, 102], dog: [2, 103] });
+  assert.deepEqual(darsBirlashtir(b, a).s, darsBirlashtir(a, b).s); assert.deepEqual(darsBirlashtir(null, null), { s: {} });
+});
+
+test("REV702 sinflar: har maktab so'zida sinf (1..11) bor; dars yangi so'zni faqat tanlangan sinfdan oladi", () => {
+  assert.ok(maktab.every((x) => Number.isInteger(x.n) && x.n >= 1 && x.n <= 11));
+  for (let n = 1; n <= 11; n += 1) assert.ok(saralash(maktab, { sinf: n, aniq: true }).length >= 60, `${n}-sinf so'zlari kam`);
+  assert.ok(saralash(maktab, { sinf: 3 }).every((x) => x.n <= 3));
+  const d = darsYasa(maktab, { s: {} }, { til: "de", bugun: 5, sinf: 7, rng: rng(11) });
+  assert.equal(d.yangi.length, DARS_YANGI); assert.ok(d.yangi.every((x) => x.n === 7));
+});

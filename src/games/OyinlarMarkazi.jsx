@@ -24,7 +24,7 @@ const GAMES = [
 ];
 
 /** REV83: O'yinlar markazi — bellashuv, shashka va keyingi o'yinlar bir joyda. */
-export default function OyinlarMarkazi({ onOpen, kid = false, admin = false }) {
+export default function OyinlarMarkazi({ onOpen, kid = false, admin = false, token = "" }) {
   useKbInterfaceLocale();
   const [orol, setOrol] = useState(false);
   const [sozSandiq, setSozSandiq] = useState(false);
@@ -45,7 +45,7 @@ export default function OyinlarMarkazi({ onOpen, kid = false, admin = false }) {
       <div><b>{__kbUi("So‘z sandig‘i")}</b><small>{__kbUi("10 til, 2000 dan ortiq rasmli so‘z: eshit, top, juftla — takrorlanmaydi")}</small></div>
       <em>{__kbUi("Yangi")}</em>
     </button>
-    {sozSandiq ? <React.Suspense fallback={null}><LazySozSandiq onClose={() => setSozSandiq(false)} /></React.Suspense> : null}
+    {sozSandiq ? <React.Suspense fallback={null}><LazySozSandiq token={token} onClose={() => setSozSandiq(false)} /></React.Suspense> : null}
     <div className="og-grid">
       {GAMES.filter((g) => !(kid && g.katta) && !(g.bola && !kid && !admin)).map((g) => <button key={g.key} type="button" className={`og-card ${g.soon ? "is-soon" : ""}`} style={{ "--og": g.color }}
         disabled={g.soon} onClick={() => onOpen?.(g.key)}>

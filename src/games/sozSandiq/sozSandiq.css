@@ -77,3 +77,8 @@
 .ss-tanish{display:grid;gap:4px;text-align:center}.ss-tanish-uz{font-size:22px;font-weight:800;margin:0 0 14px;color:#2f5f9e}
 .ss-tanish .ss-nishon-rasm .ss-rasm{width:min(54vw,220px);height:min(54vw,220px)}
 .ss-darajalar[hidden]{display:none}
+
+/* REV702: sinf tanlash */
+.ss-sinflar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.ss-sinflar button{width:38px;height:38px;border:2px solid #dbe5f3;border-radius:12px;background:#fff;font:inherit;font-weight:900;color:#12304a;cursor:pointer}
+.ss-sinflar small{font-weight:700;color:#5b6f83}

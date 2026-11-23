@@ -1,7 +1,7 @@
 // REV695: «So'z sandig'i» — rasmli so'z bazasidan til o'yini (10 til). Hammasi qurilmada; serverdan faqat rasm va ovoz olinadi.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { uiText as __kbUi } from "../../interface/interfaceRuntime.js";
-import { ORGANISH_TILLARI, oyinYasa, gapOyinYasa, gapTokenlar, gapMatn, gapTogri, saralash, soz, ovozMatni, tangaHisobi, xotiraOl, xotiraYoz, darsYasa, darsYakun, darsStat, darsOl, darsYoz } from "./sozRules.js";
+import { ORGANISH_TILLARI, oyinYasa, gapOyinYasa, gapTokenlar, gapMatn, gapTogri, saralash, soz, ovozMatni, tangaHisobi, xotiraOl, xotiraYoz, darsYasa, darsYakun, darsStat, darsOl, darsYoz, darsBirlashtir } from "./sozRules.js";
 import { joriyProfil, yukla as orolYukla, saqla as orolSaqla, tangaQosh } from "../orolHolat.js";
 import "./sozSandiq.css";
 
@@ -76,13 +76,20 @@ function GapTuz({ r, til, ayt, onTugadi }) {
   </div>;
 }
 
-export default function SozSandiq({ onClose }) {
+// REV702: holat serverda ham saqlanadi (faqat kalit → [quti, kun]); tarmoq bo'lmasa qurilmadagi holat ishlayveradi
+const sozApi = (token, yol, body) => fetch(`${API}/api/soz/holat${yol}`, { method: body ? "POST" : "GET", cache: "no-store",
+  headers: { Authorization: `Bearer ${token}`, ...(body ? { "Content-Type": "application/json" } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) })
+  .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
+
+export default function SozSandiq({ onClose, token = "" }) {
   const [til, setTil] = useState(() => { try { return localStorage.getItem("kb_soz_til") || "en"; } catch { return "en"; } });
   const [toplam, setToplam] = useState("bolalar");
   const [oyin, setOyin] = useState("dars");          // dars | soz | gap
   const [gaplar, setGaplar] = useState(null);
   useEffect(() => { if (!gaplar) import("./data/gaplar.json").then((m) => setGaplar(m.default || m)).catch(() => setGaplar([])); }, [oyin, gaplar]);
   const [daraja, setDaraja] = useState(3);
+  const [sinf, setSinf] = useState(() => { try { return Math.min(11, Math.max(1, Number(localStorage.getItem("kb_soz_sinf")) || 1)); } catch { return 1; } });
+  const maktabmi = toplam === "maktab";
   const [pool, setPool] = useState(null);
   const [raundlar, setRaundlar] = useState(null);
   const [i, setI] = useState(0);
@@ -92,16 +99,23 @@ export default function SozSandiq({ onClose }) {
   const ayt = useOvoz();
 
   useEffect(() => { let bekor = false; setPool(null); yuklaToplam(toplam).then((d) => { if (!bekor) setPool(d); }).catch(() => { if (!bekor) setPool([]); }); return () => { bekor = true; }; }, [toplam]);
-  const tayyor = useMemo(() => (pool ? saralash(pool, { daraja: oyin === "dars" || (daraja === 3 && toplam === "bolalar") ? 0 : daraja }) : []), [pool, daraja, toplam, oyin]);
+  const tayyor = useMemo(() => (pool ? saralash(pool, maktabmi ? (oyin === "dars" ? {} : { sinf }) : { daraja: oyin === "dars" || daraja === 3 ? 0 : daraja }) : []), [pool, daraja, toplam, oyin, sinf, maktabmi]);
   const xKalit = oyin === "gap" ? `${til}:gap` : til;
-  const dStat = useMemo(() => darsStat(tayyor, darsOl(til)), [tayyor, til, yakun]);
+  const [sinx, setSinx] = useState(0);
+  useEffect(() => {   // tilni ochganda: serverdagi holat qurilmadagisi bilan birlashadi
+    if (!token) return undefined; let bekor = false;
+    sozApi(token, `?${new URLSearchParams({ til })}`).then((d) => { if (bekor) return; darsYoz(til, darsBirlashtir(darsOl(til), { s: d.s || {} })); setSinx((n) => n + 1); }).catch(() => {});
+    return () => { bekor = true; };
+  }, [token, til]);
+  const darsHovuz = useMemo(() => (maktabmi ? saralash(tayyor, { sinf, aniq: true }) : tayyor), [tayyor, sinf, maktabmi]);
+  const dStat = useMemo(() => darsStat(darsHovuz, darsOl(til)), [darsHovuz, til, yakun, sinx]);
   const xotira = useMemo(() => xotiraOl(xKalit), [xKalit, yakun]);
   const gapSoni = useMemo(() => (gaplar && pool ? gaplar.filter((g) => tayyor.some((x) => x.k === g.k)).length : 0), [gaplar, pool, tayyor]);
 
   const boshla = () => {
-    try { localStorage.setItem("kb_soz_til", til); } catch { /* */ }
+    try { localStorage.setItem("kb_soz_til", til); localStorage.setItem("kb_soz_sinf", String(sinf)); } catch { /* */ }
     const h = xotiraOl(xKalit);
-    setRaundlar(oyin === "dars" ? darsYasa(tayyor, darsOl(til), { til, izoh: "uz", gaplar: gaplar || [] }).raundlar : oyin === "gap" ? gapOyinYasa(gaplar || [], tayyor, { til, izoh: "uz", korilgan: h.korilgan, xatolar: h.xatolar })
+    setRaundlar(oyin === "dars" ? darsYasa(tayyor, darsOl(til), { til, izoh: "uz", gaplar: gaplar || [], sinf: maktabmi ? sinf : 0 }).raundlar : oyin === "gap" ? gapOyinYasa(gaplar || [], tayyor, { til, izoh: "uz", korilgan: h.korilgan, xatolar: h.xatolar })
       : oyinYasa(tayyor, { til, izoh: "uz", korilgan: h.korilgan, xatolar: h.xatolar })); setI(0); setJavob(null); setNatijalar([]); setYakun(null);
   };
   const r = raundlar?.[i];
@@ -115,7 +129,8 @@ export default function SozSandiq({ onClose }) {
     setNatijalar(yangi); setJavob(null);
     if (i + 1 < raundlar.length) { setI(i + 1); return; }
     if (oyin === "dars") {
-      darsYoz(til, darsYakun(darsOl(til), raundlar, yangi));
+      const dh = darsYakun(darsOl(til), raundlar, yangi); darsYoz(til, dh);
+      if (token) sozApi(token, "", { til, s: dh.s }).catch(() => {});
       const baho = yangi.filter((_, n) => raundlar[n].tur !== "tanish");
       const tangaD = tangaHisobi(baho); const profilD = joriyProfil();
       const qd = tangaQosh(orolYukla(profilD), `soz-dars-${til}-${Date.now()}`, tangaD); if (qd.qoshildi) orolSaqla(profilD, qd.holat);
@@ -156,8 +171,9 @@ export default function SozSandiq({ onClose }) {
     <h3>{__kbUi("So‘zlar")}</h3>
     <div className="ss-toplamlar">{TOPLAMLAR.map(([k, e, nom, izoh]) => <button key={k} type="button" className={toplam === k ? "is-on" : ""} aria-pressed={toplam === k} onClick={() => { setToplam(k); setDaraja(k === "maktab" ? 1 : 3); }}>
       <span aria-hidden="true">{e}</span><b>{__kbUi(nom)}</b><small>{__kbUi(izoh)}</small></button>)}</div>
-    <div className="ss-darajalar" hidden={oyin === "dars"}>{DARAJALAR[toplam].map(([d, nom]) => <button key={d} type="button" className={daraja === d ? "is-on" : ""} aria-pressed={daraja === d} onClick={() => setDaraja(d)}>{__kbUi(nom)}</button>)}</div>
-    {oyin === "dars" && pool ? <div className="ss-dars-stat"><b>{dStat.dars}-{__kbUi("dars")}</b><span>{__kbUi("O‘rganildi")}: {dStat.organilgan} / {dStat.jami}</span><span>{__kbUi("Bugun takrorga")}: {dStat.takror}</span>
+    {maktabmi ? <div className="ss-sinflar" role="group" aria-label={__kbUi("Sinf")}>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => <button key={n} type="button" className={sinf === n ? "is-on" : ""} aria-pressed={sinf === n} onClick={() => setSinf(n)}>{n}</button>)}<small>{__kbUi("sinf")}</small></div> : null}
+    <div className="ss-darajalar" hidden={oyin === "dars" || maktabmi}>{DARAJALAR[toplam].map(([d, nom]) => <button key={d} type="button" className={daraja === d ? "is-on" : ""} aria-pressed={daraja === d} onClick={() => setDaraja(d)}>{__kbUi(nom)}</button>)}</div>
+    {oyin === "dars" && pool ? <div className="ss-dars-stat"><b>{maktabmi ? `${sinf}-${__kbUi("sinf")} · ` : ""}{dStat.dars}-{__kbUi("dars")}</b><span>{__kbUi("O‘rganildi")}: {dStat.organilgan} / {dStat.jami}</span><span>{__kbUi("Bugun takrorga")}: {dStat.takror}</span>
       <div className="ss-yol"><i style={{ width: `${dStat.jami ? (dStat.boshlangan / dStat.jami) * 100 : 0}%` }} /></div>
       <small>{__kbUi("Har darsda 6 ta yangi so‘z va eskilarining takrori. Kuniga 1–2 dars yetarli.")}</small></div> : null}
     <p className="ss-izoh">{oyin === "dars" ? "" : !pool || (oyin === "gap" && !gaplar) ? __kbUi("Yuklanmoqda…") : oyin === "gap" ? `${gapSoni} ${__kbUi("ta gap")} · ${__kbUi("bugun ko‘rilgan")}: ${xotira.korilgan.length}` : `${tayyor.length} ${__kbUi("ta so‘z")} · ${__kbUi("bugun ko‘rilgan")}: ${xotira.korilgan.length}`}</p>

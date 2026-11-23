@@ -19,8 +19,9 @@ export function aralashtir(list, rng = Math.random) {
   return a;
 }
 
-export function saralash(pool, { daraja = 0 } = {}) {
-  return (pool || []).filter((x) => x && x.f && (!daraja || x.d <= daraja));
+/** daraja — bolalar to'plami pog'onasi; sinf — maktab so'zlari (n: 1..11): shu sinfgacha (aniq=true bo'lsa faqat shu sinf). */
+export function saralash(pool, { daraja = 0, sinf = 0, aniq = false } = {}) {
+  return (pool || []).filter((x) => x && x.f && (!daraja || x.d <= daraja) && (!sinf || !x.n || (aniq ? x.n === sinf : x.n <= sinf)));
 }
 
 /** Chalg'ituvchilar: avval o'sha turkum va so'z turidan; nishon bilan (va o'zaro) bir xil YOZILADIGAN yoki bir xil rasmli so'z olinmaydi. */
@@ -152,13 +153,14 @@ export function darsStat(pool, holat, bugun = kunRaqami()) {
 }
 
 /** Dars: yangi so'zlar (hovuz tartibida — oson darajadan), tanishuv kartalari, so'ng yangi + takror so'zlarga aralash mashq. */
-export function darsYasa(pool, holat, { til = "en", izoh = "uz", bugun = kunRaqami(), gaplar = [], rng = Math.random, yangiSoni = DARS_YANGI, takrorSoni = DARS_TAKROR } = {}) {
+export function darsYasa(pool, holat, { til = "en", izoh = "uz", bugun = kunRaqami(), gaplar = [], rng = Math.random, yangiSoni = DARS_YANGI, takrorSoni = DARS_TAKROR, sinf = 0 } = {}) {
   const s = holat?.s || {};
   // daraja → rasmi aniq so'zlar → aniq narsa otlari (hayvon, meva, uy...) → fe'l → sifat → qolganlari; ichida fayldagi tartib
   const TUR = { ot: 0, fel: 1, sifat: 2, son: 2, ravish: 3, ibora: 4 };
-  const og = (x) => x.d * 100 + (x.m ? 50 : 0) + (TUR[x.s] ?? 4) * 10 + (x.t === "boshqa" ? 5 : 0);
+  const og = (x) => (x.n || x.d) * 100 + (x.m ? 50 : 0) + (TUR[x.s] ?? 4) * 10 + (x.t === "boshqa" ? 5 : 0);
   const tartib = pool.map((x, i) => [x, i]).sort((a, b) => og(a[0]) - og(b[0]) || a[1] - b[1]).map((p) => p[0]);
-  const yangi = tartib.filter((x) => !s[x.k]).slice(0, yangiSoni);
+  // yangi so'zlar — tanlangan sinfniki (sinf berilgan bo'lsa); takrorlar — boshlangan hamma so'zlardan
+  const yangi = tartib.filter((x) => !s[x.k] && (!sinf || !x.n || x.n === sinf)).slice(0, yangiSoni);
   const takror = tartib.filter((x) => s[x.k] && s[x.k][1] <= bugun).sort((a, b) => s[a.k][1] - s[b.k][1] || s[a.k][0] - s[b.k][0]).slice(0, takrorSoni);
   const gapMap = new Map(gaplar.map((g) => [g.k, g]));
   const raundlar = yangi.map((n) => ({ tur: "tanish", nishon: n }));
@@ -196,4 +198,15 @@ const DARS_KALIT = "kb_soz_dars_v1";
 export function darsOl(til, xotira = globalThis.localStorage) { try { return JSON.parse(xotira.getItem(DARS_KALIT) || "{}")[til] || { s: {} }; } catch { return { s: {} }; } }
 export function darsYoz(til, holat, xotira = globalThis.localStorage) {
   try { const h = JSON.parse(xotira.getItem(DARS_KALIT) || "{}"); h[til] = holat; xotira.setItem(DARS_KALIT, JSON.stringify(h)); } catch { /* xotira yo'q */ }
+}
+
+/** REV702: ikki manba holatini birlashtirish (qurilma + server): har so'z uchun keyinroq o'ynalgani qoladi. */
+export function darsBirlashtir(a, b) {
+  const s = {};
+  for (const src of [a, b]) for (const [k, v] of Object.entries(src?.s || {})) {
+    if (!Array.isArray(v) || v.length !== 2) continue;
+    const e = s[k];
+    if (!e || v[1] > e[1] || (v[1] === e[1] && v[0] > e[0])) s[k] = v;
+  }
+  return { s };
 }

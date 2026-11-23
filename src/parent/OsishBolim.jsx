@@ -10,6 +10,13 @@ function Chiziq({ foiz, rang }) {
 
 export default function OsishBolim({ apiBase, token, childId }) {
   const [d, setD] = useState(null), [xato, setXato] = useState("");
+  const [soz, setSoz] = useState([]);   // REV702: So'z sandig'i — tillar bo'yicha yodlangan so'zlar
+  useEffect(() => {
+    let bekor = false; setSoz([]);
+    fetch(`${BASE(apiBase)}/api/ota/bola_soz?${new URLSearchParams({ bola_id: childId })}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : { tillar: [] })).then((x) => { if (!bekor) setSoz(x.tillar || []); }).catch(() => {});
+    return () => { bekor = true; };
+  }, [apiBase, token, childId]);
   useEffect(() => {
     let bekor = false; setD(null); setXato("");
     fetch(`${BASE(apiBase)}/api/ota/bola_til?${new URLSearchParams({ bola_id: childId })}`, { cache: "no-store", headers: { Authorization: `Bearer ${token}` } })
@@ -18,7 +25,7 @@ export default function OsishBolim({ apiBase, token, childId }) {
   }, [apiBase, token, childId]);
   if (xato) return <div className="bm-card"><p>{__kbUi("Ma’lumot yuklanmadi — internetni tekshiring.")}</p></div>;
   if (!d) return <div className="bm-card os-skelet" />;
-  const bosh = !d.tillar.length && !d.fanlar.length;
+  const bosh = !d.tillar.length && !d.fanlar.length && !soz.length;
   return <div className="os-root">
     {bosh && <div className="bm-card"><h4>📈 {__kbUi("O‘sish")}</h4><p>{__kbUi("Hali ma’lumot yo‘q. Farzandingiz birinchi darslarni tugatgach, shu yerda o‘sishi ko‘rinadi.")}</p></div>}
     {d.tillar.length > 0 && <div className="bm-card">
@@ -31,6 +38,14 @@ export default function OsishBolim({ apiBase, token, childId }) {
         <small>{t.darslar} {__kbUi("dars")} · {t.kunlar} {__kbUi("kun shug‘ullandi")}</small>
       </div>)}
       <p className="os-izoh">{__kbUi("«Mustahkam» — so‘z kamida 3 marta, kamida 2 xil kunda uchragan. Foiz — o‘rgangan so‘zlarning qanchasi mustahkamlangani.")}</p>
+    </div>}
+    {soz.length > 0 && <div className="bm-card">
+      <div className="bm-card-head"><h4>🧰 {__kbUi("So‘z sandig‘i")}</h4><small>{__kbUi("yodlangan so‘zlar")}</small></div>
+      {soz.map((t) => <div key={t.til} className="os-qator">
+        <div className="os-bosh"><b>{__kbUi(t.nom)} {__kbUi("tili")}</b><strong>{t.organilgan}</strong></div>
+        <Chiziq foiz={t.boshlangan ? Math.round((t.organilgan / t.boshlangan) * 100) : 0} rang="linear-gradient(90deg,#6c3ce0,#2f7df0)" />
+        <small>{t.boshlangan} {__kbUi("so‘z boshlangan")} · {t.organilgan} {__kbUi("tasi o‘rganilgan (kamida 2 marta, turli kunlarda to‘g‘ri topgan)")}</small>
+      </div>)}
     </div>}
     {d.fanlar.length > 0 && <div className="bm-card">
       <div className="bm-card-head"><h4>📚 {__kbUi("Fanlar")}</h4><small>{__kbUi("Kabu testlaridagi to‘g‘ri javoblar")}</small></div>
