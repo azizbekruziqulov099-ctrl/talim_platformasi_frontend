@@ -66,9 +66,9 @@ function saralashBosqichlari(nom) {
   const maks = Math.max(...d.narsa.map((n) => n.length));
   for (let i = 0; i < maks; i += 1) d.narsa.forEach((n, gi) => { if (n[i]) navbat.push({ w: n[i], gi }); });
   const out = [];
-  for (let i = 0; i < navbat.length; i += 4) {
-    const yangi = navbat.slice(i, i + 4);
-    const takror = toldir(navbat, i, 4, BOSQICH_RAUND);   // REV522: 10 ta har xil narsa
+  for (let i = 0; i < navbat.length; i += 6) {
+    const yangi = navbat.slice(i, i + 6);
+    const takror = toldir(navbat, i, 6, BOSQICH_RAUND);   // REV522: 10 ta har xil narsa
     const items = [...yangi, ...takror].map(({ w }) => ({ e: w.e, s: w.s, r: w.s?.r, sarA: w.s.uz }));
     out.push({ toplam: nom, belgi: yangi[0].w.e, nom: yangi.map(({ w }) => w.s.uz).join(", "), items });
   }
