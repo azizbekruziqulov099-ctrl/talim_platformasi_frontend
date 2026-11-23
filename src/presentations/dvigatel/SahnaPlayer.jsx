@@ -78,7 +78,10 @@ function Element({ el, apiBase }) {
       return <Matn el={el} />;
     case 'img': {
       const src = el.src.startsWith('rasm:') ? dvUrl(apiBase, `/rasm/${encodeURIComponent(el.src.slice(5))}`) : el.src;
-      return <image href={src} x={el.x} y={el.y} width={el.w} height={el.h} preserveAspectRatio={el.fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'} />;
+      const rasm = <image href={src} x={el.x} y={el.y} width={el.w} height={el.h} preserveAspectRatio={el.fit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'} />;
+      if (el.shakl !== 'doira') return rasm;
+      const kesim = `dv-doira-${Math.round(el.x)}-${Math.round(el.y)}-${Math.round(el.w)}`;
+      return <g><clipPath id={kesim}><ellipse cx={el.x + el.w / 2} cy={el.y + el.h / 2} rx={el.w / 2} ry={el.h / 2} /></clipPath><g clipPath={`url(#${kesim})`}>{rasm}</g></g>;
     }
     default:
       return null;
