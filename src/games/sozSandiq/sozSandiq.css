@@ -69,3 +69,11 @@
 .ss-gap-qator button{border-color:#2f7df0;background:#eaf2ff}
 .ss-gap-sozlar button:disabled{opacity:.25;box-shadow:none}
 .ss-gap-tugma{display:grid;grid-template-columns:1fr 2fr;gap:10px}.ss-gap-tugma .ss-ikkinchi{margin-top:0}
+
+/* REV699: dars */
+.ss-dars-stat{display:grid;gap:6px;margin:12px 0;padding:12px;border-radius:16px;background:#fff;box-shadow:0 4px 0 rgba(20,40,90,.1)}
+.ss-dars-stat b{font-size:20px}.ss-dars-stat span{font-weight:700;font-size:14px}.ss-dars-stat .ss-yol{margin:2px 0}.ss-dars-stat small{color:#5b6f83}
+.ss-oyin-turi button{font-size:13px;padding:9px 4px}
+.ss-tanish{display:grid;gap:4px;text-align:center}.ss-tanish-uz{font-size:22px;font-weight:800;margin:0 0 14px;color:#2f5f9e}
+.ss-tanish .ss-nishon-rasm .ss-rasm{width:min(54vw,220px);height:min(54vw,220px)}
+.ss-darajalar[hidden]{display:none}

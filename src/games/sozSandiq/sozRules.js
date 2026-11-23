@@ -135,3 +135,62 @@ export function gapOyinYasa(gaplar, pool, { til = "en", izoh = "uz", korilgan = 
   });
   return raundlar;
 }
+
+// ── REV699: «Dars» — kunlik yo'l: har darsda bir nechta YANGI so'z + vaqti kelgan TAKRORLAR (Leitner qutilari) ──
+// Holat (til bo'yicha): { s: { kalit: [quti 1..5, qaytish kuni] } }. To'g'ri javob — keyingi quti (oraliq 1,2,4,8,16 kun), xato — 1-quti.
+export const DARS_YANGI = 6;
+export const DARS_TAKROR = 8;
+export const QUTI_KUN = [0, 1, 2, 4, 8, 16];
+export const ORGANILDI_QUTI = 3;
+export const kunRaqami = (d = new Date()) => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+
+export function darsStat(pool, holat, bugun = kunRaqami()) {
+  const s = holat?.s || {};
+  let boshlangan = 0, organilgan = 0, takror = 0;
+  for (const x of pool) { const h = s[x.k]; if (!h) continue; boshlangan += 1; if (h[0] >= ORGANILDI_QUTI) organilgan += 1; if (h[1] <= bugun) takror += 1; }
+  return { jami: pool.length, boshlangan, organilgan, takror, dars: Math.floor(boshlangan / DARS_YANGI) + 1, darsJami: Math.ceil(pool.length / DARS_YANGI) };
+}
+
+/** Dars: yangi so'zlar (hovuz tartibida — oson darajadan), tanishuv kartalari, so'ng yangi + takror so'zlarga aralash mashq. */
+export function darsYasa(pool, holat, { til = "en", izoh = "uz", bugun = kunRaqami(), gaplar = [], rng = Math.random, yangiSoni = DARS_YANGI, takrorSoni = DARS_TAKROR } = {}) {
+  const s = holat?.s || {};
+  const tartib = [...pool].sort((a, b) => a.d - b.d);            // barqaror: daraja ichida fayldagi tartib
+  const yangi = tartib.filter((x) => !s[x.k]).slice(0, yangiSoni);
+  const takror = tartib.filter((x) => s[x.k] && s[x.k][1] <= bugun).sort((a, b) => s[a.k][1] - s[b.k][1] || s[a.k][0] - s[b.k][0]).slice(0, takrorSoni);
+  const gapMap = new Map(gaplar.map((g) => [g.k, g]));
+  const raundlar = yangi.map((n) => ({ tur: "tanish", nishon: n }));
+  const mashq = [];
+  const qosh = (n, t) => {
+    if (n.m && t !== "tarjima") t = "tarjima";
+    const ch = chalgituvchilar(pool, n, til, izoh, 3, rng, t !== "tarjima");
+    if (ch.length >= 2) mashq.push({ tur: t, nishon: n, variantlar: aralashtir([n, ...ch], rng) });
+  };
+  yangi.forEach((n, i) => { qosh(n, i % 2 ? "eshit" : "rasm"); qosh(n, "soz"); });
+  takror.forEach((n, i) => {
+    const g = gapMap.get(n.k);
+    if (g && !n.m && gapTokenlar(g, til).length >= 2 && i % 2 === 0) mashq.push({ tur: "tuz", nishon: n, gap: g, aralash: gapAralash(gapTokenlar(g, til), rng) });
+    else qosh(n, ["soz", "eshit", "tarjima", "rasm"][i % 4]);
+  });
+  // bir so'z ketma-ket ikki marta kelmasin
+  let ar = aralashtir(mashq, rng);
+  for (let u = 0; u < 20 && ar.some((r, i) => i && r.nishon.k === ar[i - 1].nishon.k); u += 1) ar = aralashtir(mashq, rng);
+  return { yangi, takror, raundlar: [...raundlar, ...ar] };
+}
+
+/** Dars yakuni: so'z bo'yicha natija (bitta xato ham — xato). Yangi so'z to'g'ri bo'lsa 2-qutidan boshlaydi. */
+export function darsYakun(holat, raundlar, natijalar, bugun = kunRaqami()) {
+  const s = { ...(holat?.s || {}) };
+  const ok = new Map();
+  raundlar.forEach((r, i) => { if (r.tur === "tanish") return; ok.set(r.nishon.k, (ok.has(r.nishon.k) ? ok.get(r.nishon.k) : true) && Boolean(natijalar[i])); });
+  for (const [k, togri] of ok) {
+    const quti = togri ? Math.min(5, (s[k]?.[0] || 1) + 1) : 1;
+    s[k] = [quti, bugun + (togri ? QUTI_KUN[quti] : 0)];   // xato — shu kuniyoq keyingi darsda qaytadi
+  }
+  return { ...holat, s };
+}
+
+const DARS_KALIT = "kb_soz_dars_v1";
+export function darsOl(til, xotira = globalThis.localStorage) { try { return JSON.parse(xotira.getItem(DARS_KALIT) || "{}")[til] || { s: {} }; } catch { return { s: {} }; } }
+export function darsYoz(til, holat, xotira = globalThis.localStorage) {
+  try { const h = JSON.parse(xotira.getItem(DARS_KALIT) || "{}"); h[til] = holat; xotira.setItem(DARS_KALIT, JSON.stringify(h)); } catch { /* xotira yo'q */ }
+}

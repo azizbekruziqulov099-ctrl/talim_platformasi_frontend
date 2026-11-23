@@ -78,3 +78,23 @@ test("REV696 gap o'yini: aralash tartib asl emas, tekshiruv matn bo'yicha, zh/ja
     else for (const v of r.variantlar || r.juftlar) assert.ok(!v.m, "rasmli variantda mavhum so'z yo'q");
   }
 });
+
+import { darsYasa, darsYakun, darsStat, DARS_YANGI, QUTI_KUN } from "./games/sozSandiq/sozRules.js";
+test("REV699 dars: yangi so'zlar oson darajadan, takror vaqti kelganda qaytadi, xato 1-qutiga tushadi", () => {
+  let h = { s: {} };
+  const d1 = darsYasa(maktab, h, { til: "en", bugun: 100, gaplar, rng: rng(2) });
+  assert.equal(d1.yangi.length, DARS_YANGI); assert.ok(d1.yangi.every((x) => x.d === 1)); assert.equal(d1.takror.length, 0);
+  assert.equal(d1.raundlar.filter((r) => r.tur === "tanish").length, DARS_YANGI);
+  const mashq = d1.raundlar.filter((r) => r.tur !== "tanish");
+  assert.ok(mashq.length >= DARS_YANGI * 2 - 2); assert.ok(!mashq.some((r, i) => i && r.nishon.k === mashq[i - 1].nishon.k));
+  const xatoK = d1.yangi[0].k;
+  h = darsYakun(h, d1.raundlar, d1.raundlar.map((r) => r.nishon.k !== xatoK), 100);
+  assert.deepEqual(h.s[xatoK], [1, 100]); assert.deepEqual(h.s[d1.yangi[1].k], [2, 100 + QUTI_KUN[2]]);
+  const d2 = darsYasa(maktab, h, { til: "en", bugun: 100, gaplar, rng: rng(3) });
+  assert.ok(d2.yangi.every((x) => !d1.yangi.includes(x)), "yangi so'zlar takrorlanmaydi"); assert.deepEqual(d2.takror.map((x) => x.k), [xatoK]);
+  const d3 = darsYasa(maktab, h, { til: "en", bugun: 102, gaplar, rng: rng(4) });
+  assert.equal(d3.takror.length, DARS_YANGI);
+  const st = darsStat(maktab, h, 102); assert.equal(st.boshlangan, DARS_YANGI); assert.equal(st.takror, DARS_YANGI); assert.equal(st.organilgan, 0); assert.equal(st.dars, 2);
+  let hh = h; for (let kun = 102, i = 0; i < 3; i += 1, kun += 20) { const d = darsYasa(maktab, hh, { til: "en", bugun: kun, yangiSoni: 0, rng: rng(5 + i) }); hh = darsYakun(hh, d.raundlar, d.raundlar.map(() => true), kun); }
+  assert.ok(darsStat(maktab, hh, 200).organilgan >= DARS_YANGI - 1);
+});
