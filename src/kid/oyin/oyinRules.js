@@ -614,7 +614,10 @@ const YASOVCHI = {
     const guruhlar = gs.map((g, gi) => sozEl(g, izoh, `g${gi}`));
     const hamma = gs.flatMap((_, gi) => (d.narsa[gi] || []).map((w, j) => ({ w, gi, j })));
     const tanlov = new Set((els || []).map((e) => e.sarA).filter(Boolean));   // REV455: bosqich o'z narsalari bilan
-    const hovuz = tanlov.size ? (hamma.filter(({ w }) => tanlov.has(w.s.uz)).length >= 2 ? hamma.filter(({ w }) => tanlov.has(w.s.uz)) : hamma) : hamma;
+    let hovuz = tanlov.size ? (hamma.filter(({ w }) => tanlov.has(w.s.uz)).length >= 2 ? hamma.filter(({ w }) => tanlov.has(w.s.uz)) : hamma) : hamma;
+    // REV-HOVUZ: bosqich narsalari raund sonidan kam bo'lsa (2–3 yoshda faqat 2 guruh; oxirgi to'liqmas bosqich) — bir narsa ikki marta
+    // chiqmasin: yetmaganini o'yinning boshqa narsalaridan to'ldiramiz (bosqichning o'z narsalari hammasi qoladi).
+    if (hovuz !== hamma && hovuz.length < R) hovuz = [...hovuz, ...aralash(hamma.filter(({ w }) => !tanlov.has(w.s.uz)), rnd).slice(0, R - hovuz.length)];
     // REV451: narsa bir nechta guruhga to'g'ri kelsa (w.ham), o'sha boshqa guruhlar shu raundda ko'rsatilmaydi — javob bitta bo'ladi
     return navbat(hovuz, R, rnd).map(({ w, gi, j }) => ({ tur: "tanlov", savol: { el: sozEl(w, izoh, `n${gi}_${j}`) },
       variantlar: guruhlar.filter((_, x) => !(w.ham || []).includes(x)).map((g) => ({ k: g.k, el: g })), togri: `g${gi}` }));

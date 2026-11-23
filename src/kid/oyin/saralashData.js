@@ -2149,7 +2149,9 @@ ULASH.uyiQayerda.juft.push(
 }
 
 // REV459: rasmli juftlar va saralash narsalari (rasmliData.js)
-import { ULASH_QOSH, SARALASH_QOSH } from "./rasmliData.js";
+import { ULASH_QOSH, SARALASH_QOSH, FASL_MEVA_QOSH } from "./rasmliData.js";
+// REV-HOVUZ: «Fasl mevasi» hovuzi — har faslga 3 ta o'rniga 7–8 ta
+for (const [f, list] of Object.entries(FASL_MEVA_QOSH)) { const bor = new Set(FASL_MEVA.narsa[f].map((w) => w.s.uz)); for (const w of list) if (!bor.has(w.s.uz)) FASL_MEVA.narsa[f].push(w); }
 for (const [k, list] of Object.entries(ULASH_QOSH)) {
   const bor = new Set(ULASH[k].juft.map(([a, b]) => `${a.s.uz}|${b.s.uz}`));
   for (const [a, b] of list) if (!bor.has(`${a.s.uz}|${b.s.uz}`)) ULASH[k].juft.push([a, b]);

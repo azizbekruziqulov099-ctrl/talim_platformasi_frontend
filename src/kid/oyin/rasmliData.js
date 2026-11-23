@@ -2,6 +2,8 @@ import { de as _de, es as _es } from "./ozgaTillar.js";   // REV523: nemischa va
 // REV459: Azizjon yuborgan 140 ta rasm bilan o'yinlar boyitildi — ketma-ketliklar (A), juftlar (C), saralash (D), teskarisi (F).
 // Rasm — OYIN_RASM kaliti «o_<fayl>» (rasm_yangi papkasi). Har so'z 5 tilda.
 const W = (e, uz, ru, en, fayl, qo) => ({ e, s: { uz, ru, en, de: _de(en), es: _es(en), ...(fayl ? { r: `o_${fayl}` } : {}) }, ...(qo || {}) });
+const D = (w, r) => ({ ...w, s: { ...w.s, r } });   // REV-HOVUZ: kutubxonadagi rasm (to'liq kalit: «d_…»)
+const E = { faqatEmoji: true };                        // REV-HOVUZ: faqat emoji (kutubxonadagi o'xshash nomli/belgili rasm mos emas)
 
 /** A. Ketma-ketliklar: har o'yinda bir nechta xil ketma-ketlik (har raundda boshqasi). */
 export const TARTIB_TOPLAM = {
@@ -71,7 +73,51 @@ export const SARALASH_QOSH = [
   ["transport", 2, [W("🎈", "dirijabl", "дирижабль", "airship", "dirijabl"), W("🪂", "paraplan", "параплан", "paraglider", "paraplan"), W("🚀", "kosmik kema", "космический корабль", "spaceship", "kosmik_kema")]],
   ["harakatTuri", { guruh: W("🐍", "sudraladi", "ползает", "crawls", "sudraladi_guruh") }, [W("🐍", "ilon", "змея", "snake", "ilon_sudralish")]],
   ["harakatTuri", { guruh: W("🦘", "sakraydi", "прыгает", "jumps", "sakraydi_guruh") }, [W("🦘", "kenguru", "кенгуру", "kangaroo", "kenguru")]],
+  // REV-HOVUZ: kichik guruhlar kengaytirildi (takror kamayadi). Rasm: W ning 5-argumenti — «o_» rasm; D(…, kalit) — kutubxonadagi to'liq kalit;
+  // ko'rsatilmasa — so'zi/emojisi bo'yicha kutubxonadan topiladi. E — kutubxonadagi o'xshash rasm noto'g'ri, faqat emoji chiqsin.
+  // `ham` — narsa to'g'ri keladigan boshqa guruh indekslari (o'sha guruh shu raundda variant bo'lib chiqmaydi).
+  ["uyYovvoyi", 0, [W("🐂", "buqa", "бык", "bull", null, E), W("🐏", "qo‘chqor", "баран", "ram"), W("🐤", "jo‘ja", "цыплёнок", "chick"), W("🐮", "buzoq", "телёнок", "calf"), W("🐶", "kuchukcha", "щенок", "puppy")]],
+  ["mevaSabzavot", 1, [W("🫑", "bulg‘or qalampiri", "болгарский перец", "bell pepper"), W("🎃", "qovoq", "тыква", "pumpkin", null, E), W("🥦", "brokkoli", "брокколи", "broccoli", null, E),
+    W("🌶️", "achchiq qalampir", "острый перец", "chili pepper"), W("🫛", "ko‘k no‘xat", "зелёный горошек", "green peas", null, E), W("🥬", "sholg‘om", "репа", "turnip")]],
+  ["xavfli", 0, [W("🪆", "qo‘g‘irchoq", "кукла", "doll"), W("🥁", "nog‘oracha", "барабан", "toy drum"), W("📒", "rasm albomi", "альбом для рисования", "sketchbook"),
+    W("🧦", "paypoq", "носки", "socks"), W("🪣", "chelakcha", "ведёрко", "toy bucket", null, E)]],
+  ["chiqindi", 0, [W("✉️", "konvert", "конверт", "envelope", "konvert"), W("📅", "eski kalendar", "старый календарь", "old calendar"), W("🎫", "chipta", "билет", "ticket"),
+    W("🗞️", "eski jurnal", "старый журнал", "old magazine", null, E)]],
+  ["chiqindi", 1, [W("🪣", "plastik chelak", "пластиковое ведро", "plastic bucket", null, E), W("🧴", "shampun idishi", "флакон от шампуня", "shampoo bottle", null, E),
+    W("🪥", "eski tish cho‘tkasi", "старая зубная щётка", "old toothbrush"), W("🖊️", "siyohi tugagan ruchka", "исписанная ручка", "empty pen")]],
+  ["chiqindi", 2, [W("🦴", "suyak", "косточка", "bone"), W("🍉", "tarvuz po‘chog‘i", "арбузная корка", "watermelon rind", null, E), W("🥖", "qotgan non", "чёрствый хлеб", "stale bread", null, E)]],
+  ["chiqindi", { guruh: W("🟩", "shisha", "стекло", "glass", "shisha_guruh") }, [W("🥛", "shisha stakan", "стеклянный стакан", "drinking glass", null, E), D(W("🫙", "murabbo bankasi", "банка от варенья", "jam jar"), "d_glass-jar"),
+    D(W("🍾", "limonad shishasi", "бутылка от лимонада", "lemonade bottle"), "d_glass-bottle"), W("🧪", "dori shishachasi", "пузырёк от лекарства", "medicine bottle", null, E),
+    W("🫙", "kompot bankasi", "банка от компота", "compote jar", null, E), W("🍾", "sharbat shishasi", "бутылка от сока", "juice bottle", null, E)]],
+  ["transport", 1, [W("⛴️", "parom", "паром", "ferry", null, E), W("🚣", "eshkakli qayiq", "вёсельная лодка", "rowing boat", null, E), W("🛥️", "yaxta", "яхта", "yacht", null, E), W("🚢", "yuk kemasi", "грузовое судно", "cargo ship", null, E)]],
+  ["transport", 2, [W("🪂", "parashyut", "парашют", "parachute", null, E), W("🛩️", "kichik samolyot", "маленький самолёт", "small plane", null, E), W("🚁", "tez yordam vertolyoti", "вертолёт скорой помощи", "rescue helicopter")]],
+  // harakatTuri guruhlari: 0 uchadi, 1 suzadi, 2 yuradi, 3 sudraladi, 4 sakraydi
+  ["harakatTuri", 1, [W("🪼", "meduza", "медуза", "jellyfish", null, E), W("🐠", "masxaraboz baliq", "рыба-клоун", "clownfish"), W("🦑", "kalmar", "кальмар", "squid", null, E), W("🦭", "tyulen", "тюлень", "seal", null, { ham: [3], ...E }),
+    W("🐧", "pingvin", "пингвин", "penguin", null, { ham: [2] }), W("🦐", "krevetka", "креветка", "shrimp", null, E)]],
+  ["harakatTuri", { guruh: W("🐍", "sudraladi", "ползает", "crawls", "sudraladi_guruh") }, [W("🐌", "shilliqqurt", "улитка", "snail"), W("🪱", "chuvalchang", "червяк", "worm"), W("🐛", "qurt", "гусеница", "caterpillar", "qurtcha"),
+    W("🦎", "kaltakesak", "ящерица", "lizard", null, { ham: [2] }), W("🐊", "timsoh", "крокодил", "crocodile", null, { ham: [1, 2] })]],
+  ["harakatTuri", { guruh: W("🦘", "sakraydi", "прыгает", "jumps", "sakraydi_guruh") }, [W("🐸", "qurbaqa", "лягушка", "frog", null, { ham: [1] }), W("🐇", "quyon", "кролик", "rabbit", null, { ham: [2] }),
+    W("🦗", "chigirtka", "кузнечик", "grasshopper", null, { ham: [0] }), W("🐿️", "olmaxon", "белка", "squirrel", null, { ham: [2] }), W("🐒", "maymun", "обезьяна", "monkey", null, { ham: [2] })]],
+  // faslKiyim guruhlari: 0 qish, 1 yoz, 2 bahor, 3 kuz — bahor va kuz kiyimi deyarli bir xil, shuning uchun hammasida `ham`
+  ["faslKiyim", 2, [W("👟", "krossovka", "кроссовки", "sneakers", null, { ham: [1, 3] }), D(W("👔", "uzun yengli ko‘ylak", "рубашка с длинным рукавом", "long-sleeved shirt", null, { ham: [3] }), "d_m-koylak"),
+    W("👞", "tufli", "туфли", "shoes", null, { ham: [3] })]],
+  ["faslKiyim", 3, [W("🥾", "botinka", "ботинки", "ankle boots", null, { ham: [0, 2], ...E }), W("👚", "kofta", "кофта", "blouse", null, { ham: [2] }), W("👖", "jinsi shim", "джинсы", "jeans", "shim", { ham: [0, 2] }),
+    W("🦺", "nimcha", "жилет", "vest", null, { ham: [2] }), W("🧦", "issiq paypoq", "тёплые носки", "warm socks", null, { ham: [0, 2] })]],
+  ["yeyiladi", 0, [W("🥚", "tuxum", "яйцо", "egg"), W("🍯", "asal", "мёд", "honey"), W("🥟", "somsa", "самса", "samsa", null, E), W("🍉", "tarvuz", "арбуз", "watermelon"), W("🥣", "bo‘tqa", "каша", "porridge"),
+    W("🍦", "muzqaymoq", "мороженое", "ice cream")]],
+  ["yeyiladi", 1, [W("🪙", "tanga", "монета", "coin"), W("🔨", "bolg‘a", "молоток", "hammer", "bolga"), W("🪑", "stul", "стул", "chair"), W("📱", "telefon", "телефон", "phone"), W("⚽", "to‘p", "мяч", "ball"),
+    W("🕯️", "sham", "свеча", "candle")]],
 ];
+
+/** REV-HOVUZ: «Fasl mevasi» — har faslga qo'shimcha meva-sabzavot (O'zbekistonda o'sha faslda pishadi/yeyiladi). r — kutubxonadagi to'liq rasm kaliti. */
+const M = (e, uz, ru, en, r, qo) => ({ e, s: { ...(r ? { r } : {}), uz, ru, en, de: _de(en), es: _es(en) }, ...(qo || {}) });
+export const FASL_MEVA_QOSH = {
+  bahor: [M("🥬", "ismaloq", "шпинат", "spinach", "d_m-ismaloq"), M("🫛", "ko‘k no‘xat", "зелёный горошек", "green peas", null, E), M("🌿", "shivit", "укроп", "dill", "d_m-shivit"), M("🌿", "yalpiz", "мята", "mint", null, E)],
+  yoz: [M("🍑", "o‘rik", "абрикос", "apricot", "d_m-orik"), M("🍒", "olcha", "вишня", "sour cherry", "d_m-olcha"), M("🟣", "olxo‘ri", "слива", "plum", "d_m-olxori"), M("🥒", "bodring", "огурец", "cucumber"),
+    M("🌽", "makkajo‘xori", "кукуруза", "corn", "d_m-makkajoxori")],
+  kuz: [M("🔴", "anor", "гранат", "pomegranate", "d_m-anor"), M("🍐", "nok", "груша", "pear", "d_pear"), M("🥬", "sholg‘om", "репа", "turnip", "d_turnip-with-green-leaves"), M("🥬", "karam", "капуста", "cabbage", "d_m-karam")],
+  qish: [M("🍊", "apelsin", "апельсин", "orange", "orange")],
+};
 
 /** F. Teskarisi: rasmli juftlar. */
 export const TESKARI_QOSH = [
