@@ -26,7 +26,7 @@ export default function GapirYol({ til = "en", izoh = "uz", ayt, jim, cheklovsiz
     b.style.overflow = "hidden";
     return () => { b.style.overflow = eski; };
   }, [ochiq]);
-  const lang = ["uz", "ru", "en"].includes(izoh) ? izoh : "uz";
+  const lang = ["uz", "ru", "en", "de", "es"].includes(izoh) ? izoh : "uz";
   const yulduzJami = Object.values(natija).reduce((s, v) => s + (Number(v) || 0), 0);
 
   const boshla = (n) => { if (!gapirOchiq(n, natija, cheklovsiz)) return; jim?.(); setTugadi(null); setOchiq(n); setOyinK((k) => k + 1); };

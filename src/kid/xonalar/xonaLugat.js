@@ -219,22 +219,22 @@ export const GAPLAR = {
 
 /** Ustozning izoh tilidagi gaplari (faqat uz/ru/en). {t} — o'rganiladigan tildagi so'z, {i} — izoh tilidagi ma'nosi. */
 export const IZOH = {
-  manosi: { uz: "{t} — bu {i}.", ru: "{t} — это {i}.", en: "{t} means “{i}”." },
-  kashf: { uz: "Istagan narsangni bos — nomini aytaman!", ru: "Нажми на любой предмет — я скажу, как он называется!", en: "Tap anything — I’ll tell you its name!" },
-  top: { uz: "Men aytaman, sen topib bos!", ru: "Я говорю слово — ты находишь и нажимаешь!", en: "I say a word — you find it and tap it!" },
-  ayt: { uz: "Men ko‘rsataman, sen nomini aytasan!", ru: "Я показываю — ты называешь!", en: "I show you something — you say its name!" },
-  yordam: { uz: "Yordam kerak! Eshit va kerakli narsani bos!", ru: "Нужна помощь! Послушай и нажми на нужный предмет!", en: "Someone needs help! Listen and tap the right thing!" },
-  buyruq: { uz: "Ustoz aytganini bajar, keyin mos rasmni bos!", ru: "Сделай то, что говорит учитель, и нажми на картинку!", en: "Do what the teacher says, then tap the picture!" },
-  marhamatAyt: { uz: "Endi sen ayt: {t}", ru: "Теперь скажи ты: {t}", en: "Now you say: {t}" },
-  mikYoq: { uz: "Ovoz chiqarib ayt, keyin yashil tugmani bos.", ru: "Скажи вслух и нажми зелёную кнопку.", en: "Say it out loud, then tap the green button." },
-  xotira: { uz: "Kartalarni och va bir xil rasmlarni top!", ru: "Открывай карточки и находи одинаковые картинки!", en: "Turn over the cards and find matching pictures!" },
-  yoqoldi: { uz: "Yaxshilab qara, eslab qol — keyin nima yo‘qolganini top!", ru: "Посмотри и запомни — потом найди, чего не хватает!", en: "Look and remember — then find what’s missing!" },
-  ortiqcha: { uz: "Bittasi boshqalarga o‘xshamaydi — o‘shani top!", ru: "Одна картинка не подходит к остальным — найди её!", en: "One picture doesn’t go with the others — find it!" },
-  tartib: { uz: "Men bir nechta so‘z aytaman — xuddi shu tartibda bos!", ru: "Я скажу несколько слов — нажимай в том же порядке!", en: "I’ll say a few words — tap them in the same order!" },
-  tanaffus: { uz: "Bir soat o‘ynading. Endi ko‘zlaring dam olsin — biroz yurib kel!", ru: "Ты играл целый час. Пусть глазки отдохнут — немного подвигайся!", en: "You’ve played for an hour. Let your eyes rest — go and move around a bit!" },
-  kunTugadi: { uz: "Bugungi o‘yin vaqti tugadi. Barakalla! Ertaga yana o‘ynaymiz.", ru: "Время игр на сегодня закончилось. Молодец! Завтра поиграем снова.", en: "Playtime is over for today. Well done! We’ll play again tomorrow." },
-  ogohlantir: { uz: "5 daqiqadan keyin dam olamiz.", ru: "Через 5 минут отдохнём.", en: "We’ll take a break in 5 minutes." },
-  tugadi: { uz: "Zo‘r o‘ynading! Yulduzchalar seniki!", ru: "Отлично поиграли! Звёздочки твои!", en: "Great playing! The stars are yours!" },
+  manosi: { uz: "{t} — bu {i}.", ru: "{t} — это {i}.", en: "{t} means “{i}”.", de: "{t} bedeutet „{i}“.", es: "{t} significa «{i}»."},
+  kashf: { uz: "Istagan narsangni bos — nomini aytaman!", ru: "Нажми на любой предмет — я скажу, как он называется!", en: "Tap anything — I’ll tell you its name!", de: "Tipp auf irgendetwas – ich sage dir, wie es heißt!", es: "¡Toca lo que quieras: te digo cómo se llama!"},
+  top: { uz: "Men aytaman, sen topib bos!", ru: "Я говорю слово — ты находишь и нажимаешь!", en: "I say a word — you find it and tap it!", de: "Ich sage ein Wort – du suchst es und tippst darauf!", es: "Yo digo una palabra: ¡tú la buscas y la tocas!"},
+  ayt: { uz: "Men ko‘rsataman, sen nomini aytasan!", ru: "Я показываю — ты называешь!", en: "I show you something — you say its name!", de: "Ich zeige dir etwas – du sagst, wie es heißt!", es: "Yo te enseño algo: ¡tú dices cómo se llama!"},
+  yordam: { uz: "Yordam kerak! Eshit va kerakli narsani bos!", ru: "Нужна помощь! Послушай и нажми на нужный предмет!", en: "Someone needs help! Listen and tap the right thing!", de: "Jemand braucht Hilfe! Hör zu und tipp auf das Richtige!", es: "¡Alguien necesita ayuda! ¡Escucha y toca lo correcto!"},
+  buyruq: { uz: "Ustoz aytganini bajar, keyin mos rasmni bos!", ru: "Сделай то, что говорит учитель, и нажми на картинку!", en: "Do what the teacher says, then tap the picture!", de: "Mach, was die Lehrerin sagt, und tipp dann auf das Bild!", es: "¡Haz lo que dice la maestra y toca el dibujo!"},
+  marhamatAyt: { uz: "Endi sen ayt: {t}", ru: "Теперь скажи ты: {t}", en: "Now you say: {t}", de: "Jetzt sagst du: {t}", es: "Ahora tú dices: {t}"},
+  mikYoq: { uz: "Ovoz chiqarib ayt, keyin yashil tugmani bos.", ru: "Скажи вслух и нажми зелёную кнопку.", en: "Say it out loud, then tap the green button.", de: "Sag es laut und tipp dann auf den grünen Knopf.", es: "Dilo en voz alta y toca el botón verde."},
+  xotira: { uz: "Kartalarni och va bir xil rasmlarni top!", ru: "Открывай карточки и находи одинаковые картинки!", en: "Turn over the cards and find matching pictures!", de: "Deck die Karten auf und finde gleiche Bilder!", es: "¡Da la vuelta a las cartas y encuentra los dibujos iguales!"},
+  yoqoldi: { uz: "Yaxshilab qara, eslab qol — keyin nima yo‘qolganini top!", ru: "Посмотри и запомни — потом найди, чего не хватает!", en: "Look and remember — then find what’s missing!", de: "Schau genau hin und merk dir alles – dann finde, was fehlt!", es: "¡Mira y recuerda! Después encuentra lo que falta."},
+  ortiqcha: { uz: "Bittasi boshqalarga o‘xshamaydi — o‘shani top!", ru: "Одна картинка не подходит к остальным — найди её!", en: "One picture doesn’t go with the others — find it!", de: "Ein Bild passt nicht zu den anderen – finde es!", es: "Un dibujo no es como los demás: ¡encuéntralo!"},
+  tartib: { uz: "Men bir nechta so‘z aytaman — xuddi shu tartibda bos!", ru: "Я скажу несколько слов — нажимай в том же порядке!", en: "I’ll say a few words — tap them in the same order!", de: "Ich sage ein paar Wörter – tipp sie in derselben Reihenfolge an!", es: "Voy a decir unas palabras: ¡tócalas en el mismo orden!"},
+  tanaffus: { uz: "Bir soat o‘ynading. Endi ko‘zlaring dam olsin — biroz yurib kel!", ru: "Ты играл целый час. Пусть глазки отдохнут — немного подвигайся!", en: "You’ve played for an hour. Let your eyes rest — go and move around a bit!", de: "Du hast eine Stunde gespielt. Lass deine Augen ausruhen – beweg dich ein bisschen!", es: "Has jugado una hora. Deja descansar tus ojos: ¡muévete un poco!"},
+  kunTugadi: { uz: "Bugungi o‘yin vaqti tugadi. Barakalla! Ertaga yana o‘ynaymiz.", ru: "Время игр на сегодня закончилось. Молодец! Завтра поиграем снова.", en: "Playtime is over for today. Well done! We’ll play again tomorrow.", de: "Die Spielzeit ist für heute vorbei. Super gemacht! Morgen spielen wir wieder.", es: "Se acabó el tiempo de juego por hoy. ¡Muy bien! Mañana jugamos otra vez."},
+  ogohlantir: { uz: "5 daqiqadan keyin dam olamiz.", ru: "Через 5 минут отдохнём.", en: "We’ll take a break in 5 minutes.", de: "In 5 Minuten machen wir eine Pause.", es: "Dentro de 5 minutos descansamos."},
+  tugadi: { uz: "Zo‘r o‘ynading! Yulduzchalar seniki!", ru: "Отлично поиграли! Звёздочки твои!", en: "Great playing! The stars are yours!", de: "Toll gespielt! Die Sternchen gehören dir!", es: "¡Qué bien has jugado! ¡Las estrellitas son tuyas!"},
 };
 
 /** Xonalar (REV128: rassom fonlari bilan; REV144: yangi chizilgan fonlar — fondagi narsa va odamlar «hs» bosiladigan joy). fon — fon rasmi (bo'lmasa CSS bezak), nisbat — kenglik/balandlik.

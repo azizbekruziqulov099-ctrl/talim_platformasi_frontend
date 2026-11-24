@@ -3,7 +3,7 @@
 import { HARAKATLAR, BOLIMLAR, BOLIM_XONA, IZOH_H } from "./harakatLugat.js";
 import { izohTeg } from "../izohTil.js";
 
-export const IZOH_TILLARI = ["uz", "ru", "en"];
+export const IZOH_TILLARI = ["uz", "ru", "en", "de", "es"];
 const izohOl = (izoh) => (IZOH_TILLARI.includes(izoh) ? izoh : "uz");
 export const harakat = (id) => HARAKATLAR.find((h) => h.id === id) || null;
 export const bolimHarakatlari = (bolim) => HARAKATLAR.filter((h) => h.bolim === bolim);

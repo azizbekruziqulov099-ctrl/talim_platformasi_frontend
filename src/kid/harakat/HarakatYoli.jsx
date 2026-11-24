@@ -296,7 +296,7 @@ export default function HarakatYoli({ til = "en", izoh = "uz", grade = "", ayt, 
     {BOLIMLAR.map((b, bi) => {
       const bt = tugunlar.filter((t) => t.bolim === b.id || (t.tur === "takror" && t.gacha === bi + 1));
       return <section key={b.id} className={`hy-bolim hy-bolim--${b.id}`}>
-        <h3><span aria-hidden="true">{HR[`bolim_${b.id}`] ? <img className="hy-bolim-belgi" src={HR[`bolim_${b.id}`].src} alt="" draggable="false" /> : b.emoji}</span> {b.nom[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"]}
+        <h3><span aria-hidden="true">{HR[`bolim_${b.id}`] ? <img className="hy-bolim-belgi" src={HR[`bolim_${b.id}`].src} alt="" draggable="false" /> : b.emoji}</span> {b.nom[["uz", "ru", "en", "de", "es"].includes(izoh) ? izoh : "uz"]}
           <small>{bolimHarakatlari(b.id).map((h) => <span key={h.id} dir="auto">{buyruq(h.id, til, false)}</span>)}</small></h3>
         <div className="hy-tugunlar">{bt.map((t, i) => <Tugun key={t.id} t={t} i={i} p={p} til={til} izoh={izoh} onBos={() => tugunBos(t)} xonaYulduz={xonaYulduz} />)}</div>
       </section>;

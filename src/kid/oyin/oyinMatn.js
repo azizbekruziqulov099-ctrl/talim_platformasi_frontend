@@ -59,7 +59,7 @@ export const UMUMIY_MATN = {
     ru: ["Давай поиграем: «{mavzu}»!", "Кабу нашёл игру про «{mavzu}»!", "«{mavzu}» — теперь проверим в игре!", "Ну-ка, как хорошо ты знаешь «{mavzu}»?", "Волшебная игра: «{mavzu}»!", "Готов? Игра «{mavzu}» начинается!"],
     en: ["Let's play: “{mavzu}”!", "Kabu found a game about “{mavzu}”!", "“{mavzu}” — now let's check it in a game!", "How well do you know “{mavzu}”?", "Magic game: “{mavzu}”!", "Ready? The “{mavzu}” game begins!"],
     de: ["Lass uns spielen: „{mavzu}“!", "Kabu hat ein Spiel zu „{mavzu}“ gefunden!", "„{mavzu}“ — jetzt prüfen wir es im Spiel!", "Wie gut kennst du „{mavzu}“?", "Zauberspiel: „{mavzu}“!", "Bereit? Das Spiel „{mavzu}“ beginnt!"],
-    es: ["¡Vamos a jugar: «{mavzu}»!", "¡Kabu encontró un juego sobre «{mavzu}»!", "«{mavzu}»: ¡ahora lo comprobamos jugando!", "¿Cuánto sabes de «{mavzu}»?", "Juego mágico: «{mavzu}»!", "¿Listo? ¡Empieza el juego «{mavzu}»!"],
+    es: ["¡Vamos a jugar: «{mavzu}»!", "¡Kabu encontró un juego sobre «{mavzu}»!", "«{mavzu}»: ¡ahora lo comprobamos jugando!", "¿Cuánto sabes de «{mavzu}»?", "¡Juego mágico: «{mavzu}»!", "¿Listo? ¡Empieza el juego «{mavzu}»!"],
   },
   // REV347: shu darsda bo'lgan o'yin — qayta tushuntirilmaydi
   tanishKirish: {

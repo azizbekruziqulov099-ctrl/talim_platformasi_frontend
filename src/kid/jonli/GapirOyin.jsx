@@ -24,7 +24,7 @@ function SahnaFoto({ rasm, bajar, onDemo }) {
   </div>;
 }
 
-const IZOH = ["uz", "ru", "en"];
+const IZOH = ["uz", "ru", "en", "de", "es"];
 /** Iboraning chizilgan rasmi: narsa — o'zi, sinf/tana buyrug'i — rassom chizgan harakat yoki a'zo rasmi (emoji emas). */
 const rasmId = (ib) => (ib?.tur === "narsa" ? ib.id : ib?.tur === "buyruq" ? String(ib.id).replace(/^men_/, "") : null);
 // ustoz gapi davomiyligi (taxminiy) — ovoz tugaganini bildirmasa ham mikrofon ustoz gapi ustiga ochilmasin

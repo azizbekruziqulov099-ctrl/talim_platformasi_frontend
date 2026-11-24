@@ -4,7 +4,7 @@ import { SOZLAR, GAPLAR, IZOH, XONALAR, VAZIFALAR, BUYRUQLAR, BUYRUQ_XONA, TURKU
 import { izohTeg } from "../izohTil.js";
 import { gradeSpeech } from "../../speech/speakRules.js";
 
-export const IZOH_TILLARI = ["uz", "ru", "en"];
+export const IZOH_TILLARI = ["uz", "ru", "en", "de", "es"];
 
 /** So'z o'rganiladigan tilda (bo'lmasa inglizcha). */
 export function soz(id, til) {

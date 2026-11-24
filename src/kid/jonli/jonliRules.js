@@ -17,26 +17,26 @@ export const JAMI = TURLAR.length * POGONA;   // 120
 
 /** O'yin turi nomi va ko'rsatmasi — izoh tilida (uz | ru | en). */
 export const JONLI_MATN = {
-  ushla: { nom: { uz: "Ushla!", ru: "Лови!", en: "Catch!" },
-    k: { uz: "Tushayotgan narsalarni barmog‘ing bilan ushla!", ru: "Лови падающие предметы пальчиком!", en: "Catch the falling things with your finger!" } },
-  yarim: { nom: { uz: "Yarim ko‘rinadi", ru: "Кто спрятался?", en: "Peekaboo" },
-    k: { uz: "Kim yashirindi? To‘g‘ri rasmni bos!", ru: "Кто спрятался? Нажми на правильную картинку!", en: "Who is hiding? Tap the right picture!" } },
-  qutiga: { nom: { uz: "Qutiga sol", ru: "Положи в коробку", en: "Into the box" },
-    k: { uz: "Aytilgan narsani ushlab, qutiga olib bor!", ru: "Перетащи названный предмет в коробку!", en: "Drag the named thing into the box!" } },
-  pufak: { nom: { uz: "Pufaklar", ru: "Пузыри", en: "Bubbles" },
-    k: { uz: "Aytilgan narsa turgan pufakni yor!", ru: "Лопни пузырь с названным предметом!", en: "Pop the bubble with the named thing!" } },
-  soya: { nom: { uz: "Soyasi kimniki?", ru: "Чья тень?", en: "Whose shadow?" },
-    k: { uz: "Bu kimning soyasi? Rasmini bos!", ru: "Чья это тень? Нажми на картинку!", en: "Whose shadow is it? Tap the picture!" } },
-  aylantir: { nom: { uz: "To‘g‘rila", ru: "Поверни", en: "Turn it" },
-    k: { uz: "Rasm teskari! Barmog‘ing bilan aylantirib to‘g‘rila!", ru: "Картинка перевёрнута! Поверни её пальчиком!", en: "It’s upside down! Turn it with your finger!" } },
-  tozala: { nom: { uz: "Tozala", ru: "Протри", en: "Clean it" },
-    k: { uz: "Rasm loy bo‘lib qolibdi — barmog‘ing bilan artib tozala!", ru: "Картинка в грязи — протри её пальчиком!", en: "It’s muddy — rub it clean with your finger!" } },
-  kattalashtir: { nom: { uz: "Kattalashtir", ru: "Надуй", en: "Make it big" },
-    k: { uz: "Barmog‘ingni bosib tur — rasm kattalashadi!", ru: "Держи пальчик — картинка растёт!", en: "Hold your finger — it grows bigger!" } },
+  ushla: { nom: { uz: "Ushla!", ru: "Лови!", en: "Catch!", de: "Fang!", es: "¡Atrapa!"},
+    k: { uz: "Tushayotgan narsalarni barmog‘ing bilan ushla!", ru: "Лови падающие предметы пальчиком!", en: "Catch the falling things with your finger!", de: "Fang die fallenden Dinge mit dem Finger!", es: "¡Atrapa con el dedo las cosas que caen!"} },
+  yarim: { nom: { uz: "Yarim ko‘rinadi", ru: "Кто спрятался?", en: "Peekaboo", de: "Wer versteckt sich?", es: "¿Quién se esconde?"},
+    k: { uz: "Kim yashirindi? To‘g‘ri rasmni bos!", ru: "Кто спрятался? Нажми на правильную картинку!", en: "Who is hiding? Tap the right picture!", de: "Wer versteckt sich? Tipp auf das richtige Bild!", es: "¿Quién se esconde? ¡Toca el dibujo correcto!"} },
+  qutiga: { nom: { uz: "Qutiga sol", ru: "Положи в коробку", en: "Into the box", de: "In die Kiste", es: "A la caja"},
+    k: { uz: "Aytilgan narsani ushlab, qutiga olib bor!", ru: "Перетащи названный предмет в коробку!", en: "Drag the named thing into the box!", de: "Zieh das genannte Ding in die Kiste!", es: "¡Arrastra a la caja lo que te digan!"} },
+  pufak: { nom: { uz: "Pufaklar", ru: "Пузыри", en: "Bubbles", de: "Blasen", es: "Burbujas"},
+    k: { uz: "Aytilgan narsa turgan pufakni yor!", ru: "Лопни пузырь с названным предметом!", en: "Pop the bubble with the named thing!", de: "Lass die Blase mit dem genannten Ding platzen!", es: "¡Explota la burbuja que tiene lo que te digan!"} },
+  soya: { nom: { uz: "Soyasi kimniki?", ru: "Чья тень?", en: "Whose shadow?", de: "Wessen Schatten?", es: "¿De quién es la sombra?"},
+    k: { uz: "Bu kimning soyasi? Rasmini bos!", ru: "Чья это тень? Нажми на картинку!", en: "Whose shadow is it? Tap the picture!", de: "Wessen Schatten ist das? Tipp auf das Bild!", es: "¿De quién es esta sombra? ¡Toca el dibujo!"} },
+  aylantir: { nom: { uz: "To‘g‘rila", ru: "Поверни", en: "Turn it", de: "Dreh es um", es: "Dale la vuelta"},
+    k: { uz: "Rasm teskari! Barmog‘ing bilan aylantirib to‘g‘rila!", ru: "Картинка перевёрнута! Поверни её пальчиком!", en: "It’s upside down! Turn it with your finger!", de: "Das Bild steht auf dem Kopf! Dreh es mit dem Finger!", es: "¡El dibujo está al revés! ¡Gíralo con el dedo!"} },
+  tozala: { nom: { uz: "Tozala", ru: "Протри", en: "Clean it", de: "Putz es", es: "Límpialo"},
+    k: { uz: "Rasm loy bo‘lib qolibdi — barmog‘ing bilan artib tozala!", ru: "Картинка в грязи — протри её пальчиком!", en: "It’s muddy — rub it clean with your finger!", de: "Das Bild ist ganz schmutzig – wisch es mit dem Finger sauber!", es: "¡Está lleno de barro! Límpialo frotando con el dedo."} },
+  kattalashtir: { nom: { uz: "Kattalashtir", ru: "Надуй", en: "Make it big", de: "Mach es groß", es: "Hazlo grande"},
+    k: { uz: "Barmog‘ingni bosib tur — rasm kattalashadi!", ru: "Держи пальчик — картинка растёт!", en: "Hold your finger — it grows bigger!", de: "Halt den Finger drauf – das Bild wird größer!", es: "¡Mantén el dedo apretado y se hace más grande!"} },
 };
 export const jonliMatn = (tur, kalit, izoh) => {
   const m = JONLI_MATN[tur]?.[kalit] || {};
-  return m[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"] || m.uz || "";
+  return m[["uz", "ru", "en", "de", "es"].includes(izoh) ? izoh : "uz"] || m.uz || "";
 };
 
 /** Takrorlanadigan tasodif (bosqich raqamidan) — har safar bir xil bosqich bir xil narsalar bilan. */

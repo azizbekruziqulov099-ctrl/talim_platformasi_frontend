@@ -138,6 +138,8 @@ const TIL_NOMI_UCHUN = {
   uz: { en: "ingliz tilini", ru: "rus tilini", de: "nemis tilini", fr: "fransuz tilini", es: "ispan tilini", ar: "arab tilini", tr: "turk tilini", zh: "xitoy tilini", ja: "yapon tilini", ko: "koreys tilini" },
   ru: { en: "английскому языку", ru: "русскому языку", de: "немецкому языку", fr: "французскому языку", es: "испанскому языку", ar: "арабскому языку", tr: "турецкому языку", zh: "китайскому языку", ja: "японскому языку", ko: "корейскому языку" },
   en: { en: "English", ru: "Russian", de: "German", fr: "French", es: "Spanish", ar: "Arabic", tr: "Turkish", zh: "Chinese", ja: "Japanese", ko: "Korean" },
+  de: { en: "Englisch", ru: "Russisch", de: "Deutsch", fr: "Französisch", es: "Spanisch", ar: "Arabisch", tr: "Türkisch", zh: "Chinesisch", ja: "Japanisch", ko: "Koreanisch" },
+  es: { en: "inglés", ru: "ruso", de: "alemán", fr: "francés", es: "español", ar: "árabe", tr: "turco", zh: "chino", ja: "japonés", ko: "coreano" },
 };
 export function tanishtiruv(ustoz, til, izoh = "uz") {
   const i = ISMLAR[ustoz];
@@ -146,6 +148,8 @@ export function tanishtiruv(ustoz, til, izoh = "uz") {
   const [uz, lat, ru, , , , , erkak] = i;
   if (izoh === "ru") return `Сегодня со мной ${ru} — ${erkak ? "он" : "она"} научит нас ${tn}.`;
   if (izoh === "en") return `Today ${lat} is here with me — ${erkak ? "he" : "she"} will teach us ${tn}.`;
+  if (izoh === "de") return `Heute ist ${lat} bei mir – ${erkak ? "er" : "sie"} bringt uns ${tn} bei.`;
+  if (izoh === "es") return `Hoy ${lat} está conmigo: ${erkak ? "él" : "ella"} nos enseñará ${tn}.`;
   return `Bugun yonimda ${uz} ${erkak ? "aka" : "opa"} — u bizga ${tn} o'rgatadi.`;
 }
 

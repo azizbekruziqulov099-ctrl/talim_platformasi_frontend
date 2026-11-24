@@ -13,7 +13,8 @@ const TAGS = /\[(uz|en|ru|de|fr|es|ar|tr|zh|ja|ko)\]([\s\S]*?)\[\/\1\]/gi;
  *  3) birinchi qadam faqat o'rganiladigan tilda bo'lsa (koreyscha salom) — butun dars bo'yicha: tegsiz o'zbekcha matn
  *  deyarli yo'q, [en]/[ru] izohlar bor — demak izoh shu til. Avval bunday darslar «uz» deb topilib, ustoz o'zbekcha gapirardi. */
 const IZOH_FAN = /\(\s*izoh\s*:\s*([^)]+)\)/i;
-const IZOH_NOM = { rus: "ru", ruscha: "ru", ru: "ru", ingliz: "en", inglizcha: "en", en: "en", english: "en", "o'zbek": "uz", uz: "uz" };
+const IZOH_NOM = { rus: "ru", ruscha: "ru", ru: "ru", ingliz: "en", inglizcha: "en", en: "en", english: "en", nemis: "de", nemischa: "de", german: "de", de: "de",
+  ispan: "es", ispancha: "es", spanish: "es", es: "es", "o'zbek": "uz", uz: "uz" };
 const harflar = (t) => (String(t).match(/\p{L}/gu) || []).length;
 export function darsIzohi(steps = [], fan = "") {
   const fm = IZOH_FAN.exec(String(fan || ""));
@@ -22,10 +23,10 @@ export function darsIzohi(steps = [], fan = "") {
   if (!s) return "uz";
   const text = String(s.ovoz);
   const target = fanTili(fan);
-  const m = /^\s*\[(ru|en)\]/i.exec(text);
+  const m = /^\s*\[(ru|en|de|es)\]/i.exec(text);
   if (m && m[1].toLowerCase() !== target && !/\p{L}/u.test(text.replace(TAGS, " "))) return m[1].toLowerCase();
   let tegsiz = 0;
-  const izohda = { ru: 0, en: 0 };
+  const izohda = { ru: 0, en: 0, de: 0, es: 0 };
   for (const x of steps) {
     const t = String(x?.ovoz || "");
     tegsiz += harflar(t.replace(TAGS, " "));

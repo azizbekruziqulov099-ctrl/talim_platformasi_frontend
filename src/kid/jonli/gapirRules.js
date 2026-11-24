@@ -90,7 +90,7 @@ export function iboraMatn(ib, til) {
   const b = BUYRUQ_HAMMA.find((y) => y.id === ib.id);
   return b?.w?.[til] || b?.w?.en || "";
 }
-export const iboraManosi = (ib, izoh) => iboraMatn(ib, ["uz", "ru", "en"].includes(izoh) ? izoh : "uz");
+export const iboraManosi = (ib, izoh) => iboraMatn(ib, ["uz", "ru", "en", "de", "es"].includes(izoh) ? izoh : "uz");
 export const iboraEmoji = (ib) => (ib?.tur === "buyruq" ? BUYRUQ_HAMMA.find((y) => y.id === ib.id)?.emoji
   : ib?.tur === "narsa" ? SOZLAR[ib.id]?.emoji : "") || "⭐";
 
@@ -114,16 +114,16 @@ export function gapirBaho(alternatives, ib, til, urinish = 0) {
 
 /** Ustozning izoh tilidagi gaplari. {t} — o'rganilayotgan tildagi ibora, {i} — ma'nosi. */
 export const GAPIR_IZOH = {
-  intro: { uz: "Sehrli so‘zlar o‘yini! Men aytaman, sen takrorla — to‘g‘ri aytsang, hammasi o‘zi bo‘ladi!", ru: "Игра волшебных слов! Я говорю, ты повторяешь — скажешь правильно, и всё случится само!", en: "Magic words game! I say it, you repeat it — say it right and it will happen!" },
-  harakat: { uz: "«{i}» — {t}. Sen ayt — men bajaraman!", ru: "«{i}» — {t}. Скажи — и я сделаю!", en: "{t} Say it — and I’ll do it!" },
-  narsa: { uz: "{i} — {t}. Sen ayt — u jonlanadi!", ru: "{i} — {t}. Скажи — и он оживёт!", en: "This is {t}. Say it — and it comes alive!" },
-  buyruq: { uz: "«{i}» — {t}. Sen ayt!", ru: "«{i}» — {t}. Скажи!", en: "{t} Now you say it!" },
-  yana: { uz: "Yana bir bor, aniqroq: {t}", ru: "Ещё раз, чуть чётче: {t}", en: "Once more, a bit clearer: {t}" },
-  mana: { uz: "Mana shunday aytiladi: {t}. Keyingi safar albatta chiqadi!", ru: "Говорят вот так: {t}. В следующий раз получится!", en: "We say it like this: {t}. You’ll get it next time!" },
-  mikYoq: { uz: "Mikrofon ishlamayapti — aytib bo‘lgach «Aytdim» tugmasini bos.", ru: "Микрофон не работает — скажи и нажми «Я сказал».", en: "The microphone isn’t working — say it, then tap “I said it”." },
+  intro: { uz: "Sehrli so‘zlar o‘yini! Men aytaman, sen takrorla — to‘g‘ri aytsang, hammasi o‘zi bo‘ladi!", ru: "Игра волшебных слов! Я говорю, ты повторяешь — скажешь правильно, и всё случится само!", en: "Magic words game! I say it, you repeat it — say it right and it will happen!", de: "Das Zauberwörter-Spiel! Ich sage es, du sprichst nach – wenn du es richtig sagst, passiert es von selbst!", es: "¡El juego de las palabras mágicas! Yo lo digo, tú lo repites: ¡si lo dices bien, sucede solo!"},
+  harakat: { uz: "«{i}» — {t}. Sen ayt — men bajaraman!", ru: "«{i}» — {t}. Скажи — и я сделаю!", en: "{t} Say it — and I’ll do it!", de: "{t} Sag es – und ich mache es!", es: "{t} ¡Dilo y yo lo hago!"},
+  narsa: { uz: "{i} — {t}. Sen ayt — u jonlanadi!", ru: "{i} — {t}. Скажи — и он оживёт!", en: "This is {t}. Say it — and it comes alive!", de: "Das ist {t}. Sag es – und es wird lebendig!", es: "Esto es {t}. ¡Dilo y cobra vida!"},
+  buyruq: { uz: "«{i}» — {t}. Sen ayt!", ru: "«{i}» — {t}. Скажи!", en: "{t} Now you say it!", de: "{t} Jetzt sagst du es!", es: "{t} ¡Ahora lo dices tú!"},
+  yana: { uz: "Yana bir bor, aniqroq: {t}", ru: "Ещё раз, чуть чётче: {t}", en: "Once more, a bit clearer: {t}", de: "Noch einmal, etwas deutlicher: {t}", es: "Otra vez, un poco más claro: {t}"},
+  mana: { uz: "Mana shunday aytiladi: {t}. Keyingi safar albatta chiqadi!", ru: "Говорят вот так: {t}. В следующий раз получится!", en: "We say it like this: {t}. You’ll get it next time!", de: "So sagt man es: {t}. Beim nächsten Mal klappt es bestimmt!", es: "Se dice así: {t}. ¡La próxima vez te saldrá!"},
+  mikYoq: { uz: "Mikrofon ishlamayapti — aytib bo‘lgach «Aytdim» tugmasini bos.", ru: "Микрофон не работает — скажи и нажми «Я сказал».", en: "The microphone isn’t working — say it, then tap “I said it”.", de: "Das Mikrofon funktioniert nicht – sag es und tipp dann auf „Ich habe es gesagt“.", es: "El micrófono no funciona: dilo y toca «Ya lo dije»."},
 };
 export const gapirIzohMatn = (key, izoh, { t = "", i = "" } = {}) =>
-  ((GAPIR_IZOH[key] || {})[["uz", "ru", "en"].includes(izoh) ? izoh : "uz"] || "").replace("{i}", i).replace("{t}", t);
+  ((GAPIR_IZOH[key] || {})[["uz", "ru", "en", "de", "es"].includes(izoh) ? izoh : "uz"] || "").replace("{i}", i).replace("{t}", t);
 
 /** Yulduzlar: xatosiz — 3, 1–2 xato — 2, ko'p — 1. */
 export const gapirYulduz = (xato) => (xato <= 0 ? 3 : xato <= 2 ? 2 : 1);
