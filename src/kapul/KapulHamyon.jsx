@@ -29,8 +29,11 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
   const [bur, setBur] = useState(null);
   const [xato, setXato] = useState("");
   const [band, setBand] = useState(false);
+  const [shart, setShart] = useState(null);   // v716: sotib olish/sotish shartlari
+  const [rozi, setRozi] = useState(false);
   const [qoldi, setQoldi] = useState(0);
   const [sk, setSk] = useState({ kapul: "", karta: "", xabar: "", band: false });
+  useEffect(() => { if (ochiq && !shart) api(apiBase, token, "/api/kapul/shartlar").then(setShart).catch(() => {}); }, [ochiq]); // eslint-disable-line react-hooks/exhaustive-deps
   const yukla = useCallback(() => api(apiBase, token, "/api/kapul/holat").then(setK).catch(() => {}), [apiBase, token]);
   useEffect(() => { if (token) yukla(); }, [yukla, yangila, token]);
 
@@ -50,7 +53,7 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
   const kam = narx && k.balans < narx;
   const olish = async () => {
     setBand(true); setXato("");
-    try { setBur(await api(apiBase, token, "/api/kapul/buyurtma", { method: "POST", body: { kapul: Number(son) } })); }
+    try { setBur(await api(apiBase, token, "/api/kapul/buyurtma", { method: "POST", body: { kapul: Number(son), shart: true, versiya: shart?.versiya } })); }
     catch (e) { setXato(e.message); } finally { setBand(false); }
   };
   const bekor = async () => { try { await api(apiBase, token, `/api/kapul/buyurtma/${bur.id}/bekor`, { method: "POST" }); } catch { /* */ } setBur(null); };
@@ -69,6 +72,15 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
         <div className="kh-balans"><b>{k.balans}</b> kapul <span>≈ {so(k.balans * som)} so‘m</span></div>
         <p className="kh-narx">1 kapul = {so(som)} so‘m · PPT: har 10 slayd = {k.narx.ppt_10_slayd} kapul · Ochiq dars (AI) = {k.narx.ochiq_dars} kapul</p>
 
+        {shart && !bur && <div className="kh-blok kh-shart">
+          <details>
+            <summary>📄 Sotib olish va sotish shartlari</summary>
+            {shart.sotuvchi && <p className="kh-narx">Sotuvchi: {shart.sotuvchi}</p>}
+            <ol>{shart.band.map((b, i) => <li key={i}>{b}</li>)}</ol>
+          </details>
+          <label className="kh-rozi"><input type="checkbox" checked={rozi} onChange={(e) => setRozi(e.target.checked)} /> Shartlarni o‘qidim va qabul qilaman</label>
+        </div>}
+
         {!bur && (k.tolov_yoqilgan ? <div className="kh-blok">
           <h4>Kapul sotib olish</h4>
           <div className="kh-chips">{[10, 20, 50, 100].map((n) => <button key={n} type="button" className={Number(son) === n ? "on" : ""} onClick={() => setSon(n)}>{n}</button>)}</div>
@@ -76,7 +88,7 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
             <input type="number" min="1" max="1000" value={son} onChange={(e) => setSon(e.target.value)} /></label>
           <p className="kh-narx">1 kapul = {so(sotuv)} so‘m. Taxminan {so(Number(son || 0) * sotuv)} so‘m. Aniq summani keyingi oynada ko‘rasiz.</p>
           {xato && <p className="kh-xato" role="alert">{xato}</p>}
-          <button type="button" className="kh-asosiy" disabled={band || !(Number(son) >= 1)} onClick={olish}>{band ? "Kutib turing…" : "To‘lov summasini olish"}</button>
+          <button type="button" className="kh-asosiy" disabled={band || !rozi || !(Number(son) >= 1)} onClick={olish}>{band ? "Kutib turing…" : "To‘lov summasini olish"}</button>
         </div> : <p className="kh-narx">Kapul sotib olish tez orada yoqiladi.</p>)}
 
         {bur && bur.holat === "kutilmoqda" && <div className="kh-blok">
@@ -104,9 +116,9 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
             <input type="text" inputMode="numeric" placeholder="8600 0000 0000 0000" value={sk.karta} onChange={(e) => setSk({ ...sk, karta: e.target.value, xabar: "" })} /></label>
           {Number(sk.kapul) > 0 && <p className="kh-narx">Olasiz: {so(Number(sk.kapul) * k.qaytarish_narx)} so‘m</p>}
           {sk.xabar && <p className={sk.xabar.startsWith("✅") ? "kh-ok-xabar" : "kh-xato"} role="status">{sk.xabar}</p>}
-          <button type="button" className="kh-ikkinchi" disabled={sk.band || !(Number(sk.kapul) >= 1) || !sk.karta}
+          <button type="button" className="kh-ikkinchi" disabled={sk.band || !rozi || !(Number(sk.kapul) >= 1) || !sk.karta}
             onClick={async () => { setSk((x) => ({ ...x, band: true, xabar: "" }));
-              try { const r = await api(apiBase, token, "/api/kapul/sotish", { method: "POST", body: { kapul: Number(sk.kapul), karta: sk.karta } });
+              try { const r = await api(apiBase, token, "/api/kapul/sotish", { method: "POST", body: { kapul: Number(sk.kapul), karta: sk.karta, shart: true, versiya: shart?.versiya } });
                 setSk({ kapul: "", karta: "", band: false, xabar: `✅ So‘rov yuborildi: ${so(r.summa)} so‘m kartangizga o‘tkaziladi.` }); yukla(); }
               catch (e) { setSk((x) => ({ ...x, band: false, xabar: e.message })); } }}>{sk.band ? "Kutib turing…" : "Sotish so‘rovini yuborish"}</button>
         </div>}
