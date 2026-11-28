@@ -406,7 +406,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = '
       {onClose && <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>}
       <div className="dv-head-matn"><h2><Sparkles size={20} /> Taqdimot tayyorlash</h2>
         <p>Mazmunni bering, dizaynni sozlang — chizmalar, joylashuv va animatsiyani dastur o‘zi qiladi{info ? ` · ${info.jami.toLocaleString('uz')} xil uslub` : ''}.</p></div>
-      <KapulBelgi so={so} yangila={busy} />
+      <KapulBelgi apiBase={apiBase} token={token} yangila={busy} />
       <button type="button" className="dv-back" onClick={() => { setTab('mening'); setQadam(1); royxatYukla(); }}><FolderOpen size={16} />Mening taqdimotlarim</button>
     </header>
 

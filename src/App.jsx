@@ -554,6 +554,8 @@ const bolaQurilmasi = () => { try { return window.localStorage.getItem(BOLA_QURI
 const BolaMarkazi = _samtmLazyRetry(() => import("./parent/BolaMarkazi.jsx"));
 const KursNarxlar = React.lazy(() => import("./admin/KursNarxlar.jsx"));   // REV301
 const BogchaNarxlar = _samtmLazyRetry(() => import("./admin/BogchaNarxlar.jsx"));
+import KapulHamyon from "./kapul/KapulHamyon.jsx";
+const KapulAdmin = _samtmLazyRetry(() => import("./admin/KapulAdmin.jsx"));   // v710: kapul narxlari va to'lov
 const BazaHolati = _samtmLazyRetry(() => import("./admin/BazaHolati.jsx"));   // REV248
 const MarkazPanel = _samtmLazyRetry(() => import("./markaz/MarkazPanel.jsx"));   // REV270: o'quv markazi
 // REV103: bog'cha bolasining kunlik vaqti (dars + erkin o'yin) — vaqt tugasa ekran yopiladi, «Ertaga uchrashamiz».
@@ -15096,6 +15098,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
             </div>
             <button type="button" hidden className={`samtm-belgi ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")} aria-label={uiT("Kabutar")}>
               <MessageCircle size={20} />{!kabutarTezKunda && kabutarOqilmagan > 0 && <b className="samtm-nuqta">{kabutarOqilmagan}</b>}</button>
+            {token && <KapulHamyon apiBase={API_BASE} token={token} />}   {/* v710: hamma akauntda kapul hamyoni */}
             <InterfaceSettingsButton/>
             <div className="samtm-profil">
               <button type="button" className="samtm-belgi samtm-avatar" onClick={() => setProfilMenyu((v) => !v)} aria-haspopup="menu" aria-expanded={profilMenyu}
@@ -15208,7 +15211,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       {korinishRoli === "admin" && tab === "admin_sertifikat" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><AdminSertifikat token={token} /></React.Suspense>}
       {tab === "oquv_markaz" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><MarkazPanel apiBase={API_BASE} token={token} adminMi={korinishRoli === "admin"} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_baza" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><BazaHolati apiBase={API_BASE} token={token} /></React.Suspense>}
-      {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><KursNarxlar apiBase={API_BASE} token={token} /><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
+      {korinishRoli === "admin" && tab === "admin_bogcha" && <React.Suspense fallback={<p className="p-6" role="status">{__kbUi("Yuklanmoqda…")}</p>}><KapulAdmin apiBase={API_BASE} token={token} /><KursNarxlar apiBase={API_BASE} token={token} /><BogchaNarxlar apiBase={API_BASE} token={token} /></React.Suspense>}
       {korinishRoli === "admin" && tab === "admin_mavzular" && (
         <TopikMavzularTab token={token} onTestYarat={(topicCode, scopeId) => { setShablonOldindanTanlangan({scopeId,codes:[topicCode]}); setTab("admin"); }} />
       )}

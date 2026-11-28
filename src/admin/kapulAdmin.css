@@ -1,0 +1,21 @@
+.ka{display:grid;gap:14px;padding:12px 0;max-width:980px}
+.ka h2{margin:0;font-size:1.35rem}.ka h3{margin:0 0 6px;font-size:1.05rem}
+.ka-xabar{padding:10px 14px;border-radius:12px;background:#fff7d6;border:1px solid #f0d36b;font-weight:600}
+.ka-jami{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.ka-jami div{background:#fff;border:1px solid #e3e8ef;border-radius:14px;padding:12px;display:grid;gap:2px}
+.ka-jami b{font-size:1.4rem}.ka-jami span{font-size:.8rem;color:#5b6573}
+.ka-karta{background:#fff;border:1px solid #e3e8ef;border-radius:16px;padding:16px;display:grid;gap:10px}
+.ka-tushuncha{margin:0;color:#3b4552;line-height:1.5}
+.ka-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.ka-m{display:grid;gap:4px}.ka-m span{font-weight:700;font-size:.9rem}
+.ka-m input{padding:10px 12px;border:1.5px solid #cfd6e0;border-radius:10px;font-size:1rem;min-height:44px}
+.ka-m small{color:#5b6573;font-size:.78rem;line-height:1.35}
+.ka-btn{justify-self:start;padding:11px 18px;border:0;border-radius:12px;background:#f5a623;color:#2b1d00;font-weight:800;cursor:pointer;min-height:44px}
+.ka-btn[disabled]{opacity:.5;cursor:default}.ka-kichik{padding:8px 14px;min-height:36px}
+.ka-eslatma{color:#5b6573}
+.ka-holat{font-weight:700;color:#b42318}.ka-holat.on{color:#157f3b}
+.ka-qadam{margin:0;padding-left:20px;display:grid;gap:6px;line-height:1.5}
+.ka code{background:#f2f4f7;padding:2px 6px;border-radius:6px;word-break:break-all;font-size:.82rem}
+.ka-jadval{overflow-x:auto}.ka-jadval table{width:100%;border-collapse:collapse;font-size:.85rem}
+.ka-jadval th,.ka-jadval td{text-align:left;padding:7px 8px;border-bottom:1px solid #eef1f5;vertical-align:top}
+.ka-matn{max-width:380px;word-break:break-word}
