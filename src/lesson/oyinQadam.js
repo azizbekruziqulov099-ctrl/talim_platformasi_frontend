@@ -1,5 +1,5 @@
 // REV325: Miya qadamidagi «O'yin» raqami → o'yin dvigateli uchun ma'lumot (elementlar, sonlar). Sof funksiyalar.
-import { oyinMosmi, oyinOl, DARSDA_YOQ, DARSDA_ALMASH } from "../kid/oyin/oyinRules.js";   // sof qoidalar (JSX emas — node testida ham ishlaydi)
+import { oyinMosmi, oyinOl, oyinYasa, DARSDA_YOQ, DARSDA_ALMASH } from "../kid/oyin/oyinRules.js";   // sof qoidalar (JSX emas — node testida ham ishlaydi)
 
 const EMOJI = /\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/gu;
 const TEG = /\[(\w\w)\](.+?)\[\/\1\]/;
@@ -67,7 +67,30 @@ export function qadamOyini(step, { yosh, darsSozlari = [], darsElementlari: hovu
   const sonlar = qadamSonlari(step);
   const sl = sonlar.length ? sonlar : undefined;
   if (!oyinMosmi(id, { elementlar, yosh, sonlar: sl })) return null;
+  // v712: o'yin o'z hovuzidan begona narsa (dars «to'p» haqida — o'yinda fil va sichqon) ko'rsatmasin: asosiy javoblar darsdagi narsalardan bo'lishi shart
+  if (!mavzuga(id, elementlar, yosh, sl)) {
+    if (id !== 116 && oyinMosmi(116, { elementlar, yosh, sonlar: sl }) && mavzuga(116, elementlar, yosh, sl)) return { id: 116, elementlar, sonlar: sl };
+    return null;
+  }
   return { id, elementlar, sonlar: sl };
+}
+
+const elKalit = (e) => String(e?.rasmId || e?.emoji || e?.say || e?.uz || "");
+/** O'yinning asosiy (to'g'ri javob) narsalari darsdagi narsalar bilan kesishadimi (6 xil urug'da kamida bittasi). Narsa ishlatmaydigan o'yinlar (son, shakl) — doim mos. */
+export function mavzuga(id, elementlar, yosh, sonlar) {
+  const dars = new Set((elementlar || []).flatMap((e) => [elKalit(e), String(e?.emoji || "")]).filter(Boolean));
+  let nishonBor = false;
+  for (let u = 11; u < 17; u++) {
+    let h = null;
+    try { h = oyinYasa(id, { elementlar, yosh, sonlar, urug: u, til: "en", izoh: "uz", kirishDaraja: "yoq" }); } catch { return true; }
+    for (const r of h?.raundlar || []) {
+      const e = r?.savol?.el || (r?.variantlar || []).find((v) => v?.k === r?.togri)?.el;
+      if (!e) continue;
+      nishonBor = true;
+      if (dars.has(elKalit(e)) || (e.emoji && dars.has(String(e.emoji)))) return true;
+    }
+  }
+  return !nishonBor;
 }
 
 export const yoshGuruh = (grade) => {

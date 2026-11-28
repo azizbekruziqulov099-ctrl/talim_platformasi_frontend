@@ -18,8 +18,9 @@ export const HARAKATLAR = ["bosish", "surish", "aytish", "chizish"];
 // REV545: darslarda ishlatilmaydigan o'yinlar. 117 «Ayt va och» (mikrofon: «rasm nomini aytsang, eshik ochiladi») — Azizjon talabi bilan
 // 2–7 yoshlilar darslaridan olib tashlandi. Miya qadamida shu raqam turgan bo'lsa — o'rniga xuddi shu rasmlar bilan 116 «Eshit va bos»
 // o'ynaladi (ustoz aytadi, bola rasmni bosadi). Dvigatel o'chirilmagan: o'yin xonasida («Nutq va eshitish») o'yin hozircha qolgan.
-export const DARSDA_YOQ = new Set([117]);
-export const DARSDA_ALMASH = { 117: 116 };
+// v712: Azizjon talabi bilan «Ayt va och» (eshik) darslarga QAYTARILDI: hayvon ovozi, harakat bilan.
+export const DARSDA_YOQ = new Set([]);
+export const DARSDA_ALMASH = {};
 export const KUN_MS = 24 * 60 * 60 * 1000;
 export const TAKRORLANMASLIK_KUN = 7;
 export const QIYINLIK_MIN = -2;

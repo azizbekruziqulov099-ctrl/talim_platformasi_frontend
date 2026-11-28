@@ -399,3 +399,11 @@ button.oy-esh-quloq,button.oy-sq-ovoz{border:0;background:none;cursor:pointer;pa
 .oy-root .oy-sana-shakl>div{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:300px}.oy-root .oy-sana-nishon{background:#fff;border-radius:10px;padding:2px 8px}
 .oy-root .oy-ketma-son{min-width:52px;height:52px;display:grid;place-items:center;background:#fff;border-radius:12px;font:900 26px system-ui;color:#2b3452;border:2px solid #b9c6d6}
 .oy-root .oy-ketma-son.is-sor{background:#fff3c4;border:2px dashed #f2a000;color:#f2a000}
+
+/* v712: «Ayt va och» — hayvon ovozi yozuvi va futbolchi to'pni tepishi */
+.oy-ayt-ovoz{margin:6px auto;padding:6px 14px;border-radius:999px;background:#fff7d6;border:1.5px solid #f0d36b;font-weight:800;font-size:1.05rem;animation:oy-ayt-pulse 1.2s ease-in-out infinite}
+@keyframes oy-ayt-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.oy-futbolchi{display:flex;align-items:flex-end;justify-content:center;gap:6px;font-size:2.4rem;margin:4px 0}
+.oy-futbolchi-top{display:inline-block;animation:oy-tepish 1.6s ease-in-out infinite}
+@keyframes oy-tepish{0%,30%{transform:translate(0,0)}60%{transform:translate(70px,-34px) rotate(200deg)}100%{transform:translate(0,0)}}
+@media (prefers-reduced-motion:reduce){.oy-ayt-ovoz,.oy-futbolchi-top{animation:none}}

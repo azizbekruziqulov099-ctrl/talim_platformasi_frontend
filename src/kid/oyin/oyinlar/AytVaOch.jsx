@@ -7,6 +7,13 @@ import { belgiSrc } from "../../Belgi.jsx";
 import { mikYoqDeb } from "../mik.js";
 import { Rasm, Soz, Tugma, Variantlar, gapVaqti, tugmaHolati, useTaymer } from "./umumiy.jsx";
 import { oyinRasmTop } from "../oyinRasmTop.js";
+import { useTabiiyOvoz } from "../tabiiyOvoz.js";
+import { HAYVON_OVOZ, TRANSPORT_OVOZ } from "../eshitData.js";
+
+/** Narsa ovoz chiqaradimi (hayvon, transport) — kalit va ovoz matni. Yo'q bo'lsa null. */
+const OVOZ_BOR = new Map([...HAYVON_OVOZ, ...TRANSPORT_OVOZ].map((x) => [x.w.e, x]));
+const TOP_EMOJI = new Set(["⚽", "🏀", "🏐", "🎾", "🏈", "⚾"]);
+export const ovozOl = (el) => OVOZ_BOR.get(el?.emoji) || null;
 const ESHIK = () => oyinRasmTop({ rasmId: "d_en56-u5-door" });   // REV370: haqiqiy eshik rasmi (kutubxonadan)
 
 /** Eshik: qanotida rasm, ochilganda ichidan yulduz chiqadi. */
@@ -57,6 +64,8 @@ export default function AytVaOch(p) {
   }, [raundIdx, mik, gapirmoqda, qayta, kadr, qulf, joriy.bosib]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { joriyMik.current?.stop?.(); joriyMik.current = null; }, [raundIdx]);
 
+  const ovoz = ovozOl(raund.savol.el);   // v712: hayvon/transport — tabiiy ovoz chiqadi; boshqa narsa — darsdagi harakat (to'p — futbolchi tepadi)
+  useTabiiyOvoz(mik ? ovoz?.t : "", gapirmoqda, `${raundIdx}`);
   const ochiq = kadr && (fb?.togri || !mik);
   // REV359: ayta olmagan bola — to'g'ri eshik va yana bittasidan tanlaydi
   const variantlar = joriy.bosib ? [raund.variantlar.find((v) => v.k === raund.togri), raund.variantlar.find((v) => v.k !== raund.togri)].filter(Boolean) : raund.variantlar;
@@ -75,6 +84,8 @@ export default function AytVaOch(p) {
             <span className="oy-eshik2-oyna"><Rasm el={raund.savol.el} rasm={rasm} /></span>
           </span>
         </div>
+        {ovoz?.o && !kadr ? <div className="oy-ayt-ovoz" aria-hidden="true">🔊 {ovoz.o[holat.izoh] || ovoz.o.uz}</div> : null}
+        {!ovoz && TOP_EMOJI.has(raund.savol.el?.emoji) && !kadr ? <div className="oy-futbolchi" aria-hidden="true"><span>🏃</span><span className="oy-futbolchi-top">{raund.savol.el.emoji}</span></div> : null}
         {katta && kadr ? <Soz el={raund.savol.el} /> : null}
         <button type="button" className={`oy-tugma is-ikon oy-mik ${tinglayapti ? "is-tinglayapti" : ""}`} disabled={qulf || tinglayapti}
           onClick={() => { say(nom(raund.savol.el)); taymer(tingla, gapVaqti(nom(raund.savol.el))); }} aria-label="🎤">
