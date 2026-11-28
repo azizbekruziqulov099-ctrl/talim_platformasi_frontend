@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, Check, CircleAlert, Download, FileText, ImagePlus, Library, LoaderCircle, PenLine, Search, Shuffle, Sparkles, Users, Wand2, X, Zap } from 'lucide-react';
 import { dvUrl, yuklabOl } from './api.js';
 import { sinfNomi } from './Kutubxona.jsx';
+import KapulBelgi from './KapulBelgi.jsx';
 
 const DARAJALAR = [['maktab', 'Maktab', 11, 'sinf'], ['bakalavr', 'Bakalavr', 4, 'kurs'], ['magistr', 'Magistratura', 2, 'kurs']];
 const REJIMLAR = [['qolda', PenLine, 'O‘zim tanlayman', 'Har bosqich metodini o‘zingiz tanlaysiz; generator mavzu materiallaridan darsni yig‘adi'],
@@ -185,6 +186,7 @@ export default function OchiqDars({ so, apiBase, token, onClose }) {
       {onClose && <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>}
       <div className="dv-head-matn"><h2><Users size={20} /> Ochiq dars tayyorlash</h2>
         <p>Sinf va mavzuni tanlang — metodlar, guruhlarga bo‘lish, o‘yinlar, ilovalar va Word ishlanma tayyor bo‘ladi.</p></div>
+      <KapulBelgi so={so} yangila={busy} narx={rejim === 'ai' ? 10 : 0} />
     </header>
 
     <ol className="dv-qadamlar" aria-label="Ochiq dars qadamlari">

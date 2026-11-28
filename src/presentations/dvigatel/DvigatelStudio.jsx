@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp, BookOpen, Check, ChevronLeft, ChevronRight, CircleAlert, Copy, Download, Eye, FileSpreadsheet, FileText, Film, FolderOpen, LayoutTemplate, Library, Lightbulb, ListChecks, ListTree, LoaderCircle, Palette, Plus, RefreshCw, RotateCcw, Save, Shuffle, SlidersHorizontal, Sparkles, Trash2, Type, Upload, Users, Wand2, X } from 'lucide-react';
 import SahnaPlayer from './SahnaPlayer.jsx';
+import KapulBelgi from './KapulBelgi.jsx';
 import { dvSorov, yuklabOl } from './api.js';
 import { AiKutubxona, DarsRejasi, KutubxonaAdmin } from './Kutubxona.jsx';
 import './dvigatel.css';
@@ -405,6 +406,7 @@ export default function DvigatelStudio({ apiBase = '', token, onClose, bolim = '
       {onClose && <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>}
       <div className="dv-head-matn"><h2><Sparkles size={20} /> Taqdimot tayyorlash</h2>
         <p>Mazmunni bering, dizaynni sozlang — chizmalar, joylashuv va animatsiyani dastur o‘zi qiladi{info ? ` · ${info.jami.toLocaleString('uz')} xil uslub` : ''}.</p></div>
+      <KapulBelgi so={so} yangila={busy} />
       <button type="button" className="dv-back" onClick={() => { setTab('mening'); setQadam(1); royxatYukla(); }}><FolderOpen size={16} />Mening taqdimotlarim</button>
     </header>
 
