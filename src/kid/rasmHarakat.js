@@ -134,6 +134,26 @@ export function matnId(...matnlar) {
 }
 
 
+/** v709: so'z odamga tegishli («bola», «ona», «ota»…) lekin yoniga HAYVON belgisi qo'yilgan (🐥 bola, 🐔 ona) — rasm
+ *  hayvonniki bo'lsin (tovuq va jo'ja o'rniga odam bolasi chiqmasin). Boshqa hollarda matnId bilan bir xil. */
+export function matnIdEmojiBilan(matn, emoji) {
+  const mt = matnId(matn);
+  const e = tozala(emoji);
+  if (!mt || !e || /\s/.test(e)) return mt;
+  const hayvon = /^[\u{1F400}-\u{1F43F}\u{1F980}-\u{1F9AE}\u{1F54A}\u{1F577}]/u.test(e);
+  const raw = String(mt).replace(/^d_/, "");
+  const odam = (TURKUM.odam || []).includes(raw) || /(^|-)(boy|girl|child|kid|baby|man|woman|people|person|mother|father|family)(-|$)/.test(raw);
+  return hayvon && odam ? null : mt;
+}
+
+/** v709: hayvon belgisi (🐥 🐔 🐣…) yonida turgan umumiy odam so'zi («bola», «ona», «ota») — rasm hayvonniki bo'lsin. */
+const ODAM_SOZ = new Set(["bola", "bolasi", "bolalar", "ona", "onam", "ota", "otam", "odam", "o'g'il", "qiz", "chaqaloq", "kichkina bola"]);
+export function hayvonYonidagiOdamSozi(emoji, soz) {
+  const e = tozala(emoji);
+  if (!e || /\s/.test(e)) return false;
+  return /^[\u{1F400}-\u{1F43F}\u{1F980}-\u{1F9AE}\u{1F54A}\u{1F577}]/u.test(e) && ODAM_SOZ.has(matnNorm(soz));
+}
+
 /** REV680: noaniq so'z (bir nechta rasmga to'g'ri keladi, masalan «pul») uchun — katalogdagi BIRINCHI mos rasm (doska RASM buyrug'i uchun). */
 export function matnIdBirinchi(t) {
   const a = matnNorm(t);

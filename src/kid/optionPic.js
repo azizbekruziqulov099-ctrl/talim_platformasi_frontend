@@ -1,6 +1,6 @@
 // REV123: test variantining rasmi — bog'cha darsi va «O'ynaymiz» testida bir xil qoida.
 import { belgilar, pictureFor, stickerKeys } from "./kidStageRules.js";
-import { emojiRasm, matnId, sozId } from "./rasmHarakat.js";
+import { emojiRasm, matnId, matnIdEmojiBilan, sozId } from "./rasmHarakat.js";
 import { RASM_HAMMA } from "./darsRasm.js";
 import { RASMLAR } from "./xonalar/rasmlar.js";
 
@@ -15,7 +15,7 @@ export function kidOptionPic(o, rasmlar, mediaUrl, rasmSozlar = null) {
     if (ichi.length === 1) { const r = emojiRasm(ichi[0], RASM_HAMMA); if (r?.src) return r.src; }
     return null;   // bir nechta belgi (sanoq) yoki chizilgani yo'q — belgi/rasmlar qatori ko'rsatiladi
   }
-  const mt = matnId(o?.word);   // REV153: so'z istalgan tilda (arab, nemis, rus…) — chizilgan rasm
+  const mt = matnIdEmojiBilan(o?.word, o?.picture);   // REV153: so'z istalgan tilda (arab, nemis, rus…) — chizilgan rasm
   const chizilgan = (mt && RASM_HAMMA[mt] ? { id: mt, src: RASM_HAMMA[mt] } : null) || emojiRasm(o?.picture, RASM_HAMMA) || (() => { const id = sozId({ soz: o?.word, emoji: o?.picture }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : null; })();   // REV144: emoji o'rniga rassom chizgan rasm
   if (chizilgan) return chizilgan.src;
   // REV158: belgisi bor variantga kitobdagi eski (o'yinchoqsimon) rasm qo'yilmaydi — belgi/rasmlar qatori ko'rsatiladi,

@@ -7,13 +7,13 @@ import { HAYOT_RASM } from "./hayotRasm.js";   // REV534: hayotiy ketma-ketlikla
 // Fayllar o'rnida turibdi; yangilari kelgach shu belgini true qilish kifoya.
 const KESILGAN_RASMLAR_YOQILGAN = true;   // REV454: alohida sifatli 69 ta rasm keldi
 const RASM_HAMMA = new Proxy(_ASOSIY, { get: (t, k) => HAYOT_RASM[k] || (KESILGAN_RASMLAR_YOQILGAN && (OYIN_RASM[k] || ESKI_ALMASH[k])) || t[k] });
-import { emojiRasm, matnId, sozId } from "../rasmHarakat.js";
+import { emojiRasm, hayvonYonidagiOdamSozi, matnId, sozId } from "../rasmHarakat.js";
 export function oyinRasmTop(el) {
   if (!el) return "";
   // REV454: yangi sifatli rasm so'z bo'yicha birinchi (quyosh ko'zoynagi, qishki etik, in… endi emoji emas)
   const hk = el.soz?.r || el.rasmId;
   if (hk && HAYOT_RASM[hk]) return HAYOT_RASM[hk];   // REV534: qadamning o'z rasmi har doim birinchi
-  const yangi = SOZ_RASM[String(el.soz?.uz || el.uz || "").trim().toLowerCase()];
+  const yangi = hayvonYonidagiOdamSozi(el.emoji, el.soz?.uz || el.uz) ? "" : SOZ_RASM[String(el.soz?.uz || el.uz || "").trim().toLowerCase()];
   if (yangi) return yangi;
   if (el.faqatEmoji) return "";
   if (el.soz?.r && RASM_HAMMA[el.soz.r]) return RASM_HAMMA[el.soz.r];   // REV459: so'z ichidagi rasm kaliti (o_…)   // REV451: masalan «quyosh ko'zoynagi» — kutubxonadagi oddiy ko'zoynak chalg'itadi, emoji 🕶️ aniq

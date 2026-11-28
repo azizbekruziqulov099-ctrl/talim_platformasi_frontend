@@ -62,12 +62,18 @@ export default function AytVaOch(p) {
   const variantlar = joriy.bosib ? [raund.variantlar.find((v) => v.k === raund.togri), raund.variantlar.find((v) => v.k !== raund.togri)].filter(Boolean) : raund.variantlar;
   if (mik && !joriy.bosib) {
     const mikSrc = belgiSrc("🎤");
-    // REV418: eshik olib tashlandi — narsa katta ko'rinadi, ustoz nomini aytadi, bola takrorlaydi; to'g'ri aytsa — yulduz
+    // v709: eshik qaytarildi — oynada narsa ko'rinadi, bola nomini aytadi, to'g'ri aytsa eshik ochiladi va ichidan yulduz chiqadi
     return (
       <div className="oy-sahna">
-        <div className={`oy-ayt-karta ${ochiq ? "is-togri" : ""} ${kadr && fb?.togri === false ? "is-xato" : ""}`} aria-hidden="true">
-          <Rasm el={raund.savol.el} rasm={rasm} />
-          {ochiq && <img className="oy-ayt-yulduz" src={JR.yulduz} alt="" draggable="false" />}
+        <div className={`oy-eshik2 ${ochiq ? "is-ochiq" : ""} ${kadr && fb?.togri === false ? "is-xato" : ""}`} aria-hidden="true">
+          <span className="oy-eshik2-ichi">
+            <Rasm el={raund.savol.el} rasm={rasm} />
+            {ochiq && <img className="oy-ayt-yulduz" src={JR.yulduz} alt="" draggable="false" />}
+          </span>
+          <span className="oy-eshik2-qanot">
+            {ESHIK() ? <img src={ESHIK()} alt="" draggable="false" /> : <span className="oy-eshik2-yasama" />}
+            <span className="oy-eshik2-oyna"><Rasm el={raund.savol.el} rasm={rasm} /></span>
+          </span>
         </div>
         {katta && kadr ? <Soz el={raund.savol.el} /> : null}
         <button type="button" className={`oy-tugma is-ikon oy-mik ${tinglayapti ? "is-tinglayapti" : ""}`} disabled={qulf || tinglayapti}

@@ -66,7 +66,7 @@ import { bilganSozlar, eslab, oxirgiDars } from "../kid/sozBoyligi.js";
 import { suhbatSavollari } from "../kid/suhbat.js";
 import { boardCards, cardSize, doskaJuftlari, emojiPictures, gameTargets, sanoqBosish, sanashTopshiriq, lessonWords, qoshimchaOyin, isReviewQuestion, kabuMood, kabuSpeech, kidStars, kindBadge, kindCue, pictureFor, questionCard, stepActions, stepKind, stickerKeys, darsBoshi, matnRasmlari, doskaBandlari, sanoqKarta, faolRasm } from "../kid/kidStageRules.js";
 import { belgiQatori, keycapNumber, kidOptionPic, kidOptionQator, qatorNaqshmi } from "../kid/optionPic.js";
-import { emojiRasm, harakatTuri, matnId, sozId } from "../kid/rasmHarakat.js";
+import { emojiRasm, harakatTuri, matnId, matnIdEmojiBilan, sozId } from "../kid/rasmHarakat.js";
 import { RASM_HAMMA } from "../kid/darsRasm.js";
 import { KABU_ISMI } from "../kid/kabuMillat.js";
 // REV242: ruscha interfeysda Kabu — Голу, inglizchada — Pidgi (dars matnidagi ism ham, ovozda ham)
@@ -906,7 +906,7 @@ export default function DarsXonasi({ onTugadi = null, keyingiDars = null, onNati
   // REV355: o'yin elementining rasmi — rasmlar kutubxonasidan (so'zi yoki belgisi bo'yicha); topilmasa o'yin o'z belgisini ko'rsatadi
   const oyinRasmi = oyinRasmTop;   // REV368: aniq rasm (rasmId) → so'z → belgi
   // REV145: so'z rasmi — rassom chizgan rasm (inglizcha so'z yoki emoji orqali)
-  const sozRasmi = (soz, emoji) => { const mt = matnId(soz); if (mt && RASM_HAMMA[mt]) return { id: mt, src: RASM_HAMMA[mt] }; const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : emojiRasm(emoji, RASM_HAMMA); };
+  const sozRasmi = (soz, emoji) => { const mt = matnIdEmojiBilan(soz, emoji); if (mt && RASM_HAMMA[mt]) return { id: mt, src: RASM_HAMMA[mt] }; const id = sozId({ soz: darsTil === "en" ? soz : "", emoji }); return id && RASM_HAMMA[id] ? { id, src: RASM_HAMMA[id] } : emojiRasm(emoji, RASM_HAMMA); };
   // REV145: bugun o'rgangan so'zlar va bola ularni aytdimi — bola natija ekranida va ota-ona hisobotida
   const bugungiSozlar = () => (darsTil ? darsSozlari(steps.slice(opening.length), kinds.slice(opening.length)) : [])
     .map((w) => { const k = w.say.toLowerCase(); return { soz: w.say, emoji: w.emoji || "", aytdi: k in aytganlar.current ? aytganlar.current[k] : null }; });
