@@ -186,7 +186,7 @@ export default function OchiqDars({ so, apiBase, token, onClose }) {
       {onClose && <button type="button" className="dv-back" onClick={onClose}><ArrowLeft size={17} />Orqaga</button>}
       <div className="dv-head-matn"><h2><Users size={20} /> Ochiq dars tayyorlash</h2>
         <p>Sinf va mavzuni tanlang — metodlar, guruhlarga bo‘lish, o‘yinlar, ilovalar va Word ishlanma tayyor bo‘ladi.</p></div>
-      <KapulBelgi so={so} yangila={busy} narx={rejim === 'ai' ? 10 : 0} />
+      <KapulBelgi so={so} yangila={busy} narx={rejim === 'ai' ? 1 : 0} />
     </header>
 
     <ol className="dv-qadamlar" aria-label="Ochiq dars qadamlari">
