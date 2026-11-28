@@ -11,7 +11,7 @@ async function api(apiBase, token, path, { method = "GET", body } = {}) {
   if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : `Xatolik (${res.status})`);
   return data;
 }
-export const kapulSabab = (s = "") => (s.startsWith("qaytarildi:") ? "Qaytarildi · " : "") + ({ sovga: "Sovg‘a", ppt: "PPT tayyorlash", ochiq_dars: "Ochiq dars", tolov: "To‘lov", admin: "Administrator" }[s.replace("qaytarildi:", "")] || s);
+export const kapulSabab = (s = "") => (s.startsWith("qaytarildi:") ? "Qaytarildi · " : "") + ({ sovga: "Sovg‘a", ppt: "PPT tayyorlash", ochiq_dars: "Ochiq dars", tolov: "To‘lov", sotish: "Qaytarib sotish", admin: "Administrator" }[s.replace("qaytarildi:", "")] || s);
 const so = (n) => Number(n || 0).toLocaleString("ru-RU").replace(/ /g, " ");
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -30,6 +30,7 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
   const [xato, setXato] = useState("");
   const [band, setBand] = useState(false);
   const [qoldi, setQoldi] = useState(0);
+  const [sk, setSk] = useState({ kapul: "", karta: "", xabar: "", band: false });
   const yukla = useCallback(() => api(apiBase, token, "/api/kapul/holat").then(setK).catch(() => {}), [apiBase, token]);
   useEffect(() => { if (token) yukla(); }, [yukla, yangila, token]);
 
@@ -54,7 +55,7 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
   };
   const bekor = async () => { try { await api(apiBase, token, `/api/kapul/buyurtma/${bur.id}/bekor`, { method: "POST" }); } catch { /* */ } setBur(null); };
   const som = k.kapul_som || 1000;
-  const sotuv = k.sotuv_narx || som;
+  const sotuv = k.sotib_olish_narx || som;
 
   return <>
     <button type="button" className={`kh-belgi ${kam ? "kam" : ""} ${className}`} onClick={() => { setOchiq(true); yukla(); }}
@@ -93,6 +94,22 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
           <button type="button" className="kh-asosiy" onClick={() => setBur(null)}>Yaxshi</button></div>}
         {bur && (bur.holat === "muddati" || bur.holat === "bekor") && <div className="kh-blok"><p>Buyurtma yopildi. Pul o‘tkazgan bo‘lsangiz — 24 soat ichida kapul tushadi.</p>
           <button type="button" className="kh-ikkinchi" onClick={() => setBur(null)}>Orqaga</button></div>}
+
+        {k.sotiladigan >= (k.yechish_min || 1) && !bur && <div className="kh-blok">
+          <h4>Kapulni qaytarib sotish</h4>
+          <p className="kh-narx">Siz sotib olgan <b>{k.sotiladigan}</b> kapulni qaytarib sotishingiz mumkin: 1 kapul = {so(k.qaytarish_narx)} so‘m. Sovg‘a kapul sotilmaydi. Kamida {k.yechish_min} kapul.</p>
+          <label className="kh-m">Necha kapul
+            <input type="number" min={k.yechish_min} max={k.sotiladigan} value={sk.kapul} onChange={(e) => setSk({ ...sk, kapul: e.target.value, xabar: "" })} /></label>
+          <label className="kh-m">Pul tushadigan karta (16 raqam)
+            <input type="text" inputMode="numeric" placeholder="8600 0000 0000 0000" value={sk.karta} onChange={(e) => setSk({ ...sk, karta: e.target.value, xabar: "" })} /></label>
+          {Number(sk.kapul) > 0 && <p className="kh-narx">Olasiz: {so(Number(sk.kapul) * k.qaytarish_narx)} so‘m</p>}
+          {sk.xabar && <p className={sk.xabar.startsWith("✅") ? "kh-ok-xabar" : "kh-xato"} role="status">{sk.xabar}</p>}
+          <button type="button" className="kh-ikkinchi" disabled={sk.band || !(Number(sk.kapul) >= 1) || !sk.karta}
+            onClick={async () => { setSk((x) => ({ ...x, band: true, xabar: "" }));
+              try { const r = await api(apiBase, token, "/api/kapul/sotish", { method: "POST", body: { kapul: Number(sk.kapul), karta: sk.karta } });
+                setSk({ kapul: "", karta: "", band: false, xabar: `✅ So‘rov yuborildi: ${so(r.summa)} so‘m kartangizga o‘tkaziladi.` }); yukla(); }
+              catch (e) { setSk((x) => ({ ...x, band: false, xabar: e.message })); } }}>{sk.band ? "Kutib turing…" : "Sotish so‘rovini yuborish"}</button>
+        </div>}
 
         <div className="kh-blok">
           <h4>Oxirgi amallar</h4>

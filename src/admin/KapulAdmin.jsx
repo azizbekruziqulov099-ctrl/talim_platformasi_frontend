@@ -33,6 +33,7 @@ export default function KapulAdmin({ apiBase = "", token = "" }) {
       await api(apiBase, token, "/api/kapul/admin/sozlama", { method: "POST", body }); setXabar("✅ Saqlandi"); await yukla(); }
     catch (e) { setXabar("⚠ " + e.message); } finally { setBand(false); }
   };
+  const hal = async (id, amal) => { setBand(true); try { await api(apiBase, token, `/api/kapul/admin/yechish/${id}/${amal}`, { method: "POST" }); setXabar(amal === "tolandi" ? "✅ Belgilandi" : "Rad etildi, kapul qaytarildi"); await yukla(); } catch (e) { setXabar("⚠ " + e.message); } finally { setBand(false); } };
   const maydon = (k, label, yordam, turi = "number") => (
     <label className="ka-m"><span>{label}</span>
       <input type={turi} min="0" value={f[k] ?? ""} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
@@ -49,7 +50,7 @@ export default function KapulAdmin({ apiBase = "", token = "" }) {
       <div><b>{so(d.jami.hamyonlarda)}</b><span>kapul hamyonlarda</span></div>
       <div><b>{so(d.jami.hamyonlar)}</b><span>hamyon (akaunt)</span></div>
       <div><b>{so(d.jami.sotilgan_kapul)}</b><span>sotilgan kapul ({so(d.jami.tolovlar)} ta to‘lov)</span></div>
-      <div><b>{so(d.jami.sotilgan_kapul * (Number(f.sotuv_narx) || som))}</b><span>so‘m tushum (taxminan)</span></div>
+      <div><b>{so(d.jami.sotilgan_kapul * (Number(f.sotib_olish_narx) || som))}</b><span>so‘m tushum (taxminan)</span></div>
     </div>
 
     <div className="ka-karta">
@@ -57,12 +58,14 @@ export default function KapulAdmin({ apiBase = "", token = "" }) {
       <p className="ka-tushuncha">Hamma narx <b>kapul</b>da. Bitta kapul necha so‘m ekanini pastda belgilaysiz — qolgan hamma joyda shu hisoblanadi.</p>
       <div className="ka-grid">
         {maydon("som", "1 kapul = necha so‘m", `Hozir: 1 kapul = ${so(som)} so‘m`)}
-        {maydon("sotuv_narx", "1 kapul SOTIB OLISH narxi (so‘m)", `Mijoz 1 kapulni ${f.sotuv_narx || 0} so‘mga sotib oladi (soliq va xizmat uchun hisobdagi ${so(som)} so‘mdan past). Misol: 50 kapul = ${so(50 * (Number(f.sotuv_narx) || 0))} so‘m.`)}
+        {maydon("sotib_olish_narx", "1 kapulni SOTIB OLISH narxi (so‘m)", `Mijoz 1 kapulni ${so(f.sotib_olish_narx || 0)} so‘mga sotib oladi. Misol: 50 kapul = ${so(50 * (Number(f.sotib_olish_narx) || 0))} so‘m.`)}
+        {maydon("qaytarish_narx", "Qaytarib SOTISH narxi (so‘m)", `Mijoz o‘zi sotib olgan kapulni qaytarib sotsa, 1 kapul uchun ${so(f.qaytarish_narx || 0)} so‘m oladi (soliq va xizmat uchun past). Sovg‘a kapul sotilmaydi.`)}
+        {maydon("yechish_min", "Qaytarib sotishda eng kam kapul", "Bundan kam kapulni sotib bo‘lmaydi.")}
         {maydon("sovga", "Yangi akauntga sovg‘a (kapul)", `Yangi ochilgan har bir hamyonga ${f.sovga || 0} kapul (${so((f.sovga || 0) * som)} so‘m) beriladi. Faqat yangilariga ta’sir qiladi.`)}
         {maydon("ppt_10_slayd", "PPT: har 10 slayd = necha kapul", `Misol: 25 slayd → ${Math.ceil(25 / 10) * (Number(f.ppt_10_slayd) || 0)} kapul (${so(Math.ceil(25 / 10) * (Number(f.ppt_10_slayd) || 0) * som)} so‘m). Yuqoriga yaxlitlanadi.`)}
         {maydon("ochiq_dars", "Ochiq dars (AI) = necha kapul", `Bitta ochiq dars ${f.ochiq_dars || 0} kapul = ${so((f.ochiq_dars || 0) * som)} so‘m.`)}
       </div>
-      <button className="ka-btn" disabled={band} onClick={() => saqla(["som", "sotuv_narx", "sovga", "ppt_10_slayd", "ochiq_dars"])}>Narxlarni saqlash</button>
+      <button className="ka-btn" disabled={band} onClick={() => saqla(["som", "sotib_olish_narx", "qaytarish_narx", "yechish_min", "sovga", "ppt_10_slayd", "ochiq_dars"])}>Narxlarni saqlash</button>
       <small className="ka-eslatma"> Admin hamma narsani bepul ishlatadi. AI ishlamay qolsa — kapul avtomatik qaytariladi.</small>
     </div>
 
@@ -103,7 +106,7 @@ export default function KapulAdmin({ apiBase = "", token = "" }) {
     </div>
 
     <div className="ka-karta">
-      <h3>5. Oxirgi buyurtmalar</h3>
+      <h3>5. Oxirgi buyurtmalar (sotib olish)</h3>
       <div className="ka-jadval"><table><thead><tr><th>Vaqt</th><th>Akaunt</th><th>Kapul</th><th>Summa</th><th>Holat</th></tr></thead><tbody>
         {d.buyurtmalar.map((o) => <tr key={o.id}><td>{new Date(o.vaqt).toLocaleString("ru-RU")}</td><td>{o.uid}</td><td>{o.kapul}</td><td>{so(o.summa)}</td><td>{HOLAT[o.holat] || o.holat}</td></tr>)}
         {!d.buyurtmalar.length && <tr><td colSpan="5">Hali buyurtma yo‘q</td></tr>}
@@ -111,7 +114,17 @@ export default function KapulAdmin({ apiBase = "", token = "" }) {
     </div>
 
     <div className="ka-karta">
-      <h3>6. Kelgan SMS’lar</h3>
+      <h3>6. Kapulni qaytarib sotish so‘rovlari</h3>
+      <p className="ka-tushuncha">Mijoz o‘zi sotib olgan kapulni qaytarib sotmoqchi bo‘lsa, kapul darrov ushlab turiladi. Siz ko‘rsatilgan kartaga pulni o‘tkazib, «To‘landi» tugmasini bosasiz. O‘tkazmasangiz — «Rad etish»: kapul mijozga qaytadi.</p>
+      <div className="ka-jadval"><table><thead><tr><th>Vaqt</th><th>Akaunt</th><th>Kapul</th><th>O‘tkazish kerak</th><th>Karta</th><th>Holat</th></tr></thead><tbody>
+        {(d.yechishlar || []).map((y) => <tr key={y.id}><td>{new Date(y.vaqt).toLocaleString("ru-RU")}</td><td>{y.uid}</td><td>{y.kapul}</td><td><b>{so(y.summa)} so‘m</b></td><td>{y.karta.replace(/(\d{4})(?=\d)/g, "$1 ")}</td>
+          <td>{y.holat === "kutilmoqda" ? <span className="ka-amal"><button className="ka-btn ka-kichik" disabled={band} onClick={() => hal(y.id, "tolandi")}>To‘landi</button> <button className="ka-btn ka-kichik ka-och" disabled={band} onClick={() => hal(y.id, "bekor")}>Rad etish</button></span> : (y.holat === "tolandi" ? "✅ to‘langan" : "✖ rad etilgan")}</td></tr>)}
+        {!(d.yechishlar || []).length && <tr><td colSpan="6">Hali so‘rov yo‘q</td></tr>}
+      </tbody></table></div>
+    </div>
+
+    <div className="ka-karta">
+      <h3>7. Kelgan SMS’lar</h3>
       <div className="ka-jadval"><table><thead><tr><th>Vaqt</th><th>Matn</th><th>Natija</th></tr></thead><tbody>
         {d.sms.map((s) => <tr key={s.id}><td>{new Date(s.vaqt).toLocaleString("ru-RU")}</td><td className="ka-matn">{s.matn}</td><td>{SMS_NATIJA[s.natija] || s.natija}</td></tr>)}
         {!d.sms.length && <tr><td colSpan="3">Hali SMS kelmagan</td></tr>}

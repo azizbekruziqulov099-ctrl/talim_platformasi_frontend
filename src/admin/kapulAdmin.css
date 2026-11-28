@@ -19,3 +19,4 @@
 .ka-jadval{overflow-x:auto}.ka-jadval table{width:100%;border-collapse:collapse;font-size:.85rem}
 .ka-jadval th,.ka-jadval td{text-align:left;padding:7px 8px;border-bottom:1px solid #eef1f5;vertical-align:top}
 .ka-matn{max-width:380px;word-break:break-word}
+.ka-amal{display:flex;gap:6px;flex-wrap:wrap}.ka-och{background:#eef1f5;color:#1c2330}
