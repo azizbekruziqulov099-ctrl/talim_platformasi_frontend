@@ -57,7 +57,7 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
   const sotuv = k.sotuv_narx || som;
 
   return <>
-    <button type="button" className={`kh-belgi ${kam ? "kam" : ""} ${className}`} onClick={() => setOchiq(true)}
+    <button type="button" className={`kh-belgi ${kam ? "kam" : ""} ${className}`} onClick={() => { setOchiq(true); yukla(); }}
       title={`1 kapul = ${so(som)} so‘m. Bosib hamyonni oching`}>
       <Coins size={15} /> {k.balans} kapul
     </button>
