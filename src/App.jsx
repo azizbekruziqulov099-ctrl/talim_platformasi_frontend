@@ -13285,6 +13285,7 @@ function PastkiMenyu({
   foydalanuvchi,
   taqdimotMavjud = false,
   onMenyu = null,
+  token = "",
 }) {
   useKbInterfaceLocale();
   const { t: uiT } = useInterface();
@@ -13394,6 +13395,7 @@ function PastkiMenyu({
         {/* REV549: «Yangi ko'rinish» — hozircha faqat adminga ko'rinadi (sinov). Yoqilmaguncha hech kimda hech narsa o'zgarmaydi. */}
         {foydalanuvchi?.is_admin && <button type="button" className="kb-korinish-tugma" onClick={() => setYangiKorinish(korinishAlmash() === "yangi")}>
           ✨ {uiT(yangiKorinish ? __kbM("Yangi ko‘rinish: yoqilgan") : __kbM("Yangi ko‘rinish: o‘chirilgan"))}</button>}
+        {token && <div className="premium-side-kapul" style={{ padding: "6px 4px" }}><KapulHamyon apiBase={API_BASE} token={token} /></div>}   {/* v711: kapul hamyoni yon menyuda — tepa qator avvalgidek */}
         <div className="premium-side-status">
           <span className="premium-live-dot" />
           <div><strong>{__kbUi("Kabutar")}</strong><small>{uiT("Suhbat va ta’lim maydoni")}</small></div>
@@ -15098,7 +15100,6 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
             </div>
             <button type="button" hidden className={`samtm-belgi ${kabutarOchiq ? "on" : ""}`} onClick={() => kabutarniOch(true)} title={kabutarTezKunda ? uiT("Kabutar — tez kunda") : uiT("Kabutar — suhbatlar")} aria-label={uiT("Kabutar")}>
               <MessageCircle size={20} />{!kabutarTezKunda && kabutarOqilmagan > 0 && <b className="samtm-nuqta">{kabutarOqilmagan}</b>}</button>
-            {token && <KapulHamyon apiBase={API_BASE} token={token} />}   {/* v710: hamma akauntda kapul hamyoni */}
             <InterfaceSettingsButton/>
             <div className="samtm-profil">
               <button type="button" className="samtm-belgi samtm-avatar" onClick={() => setProfilMenyu((v) => !v)} aria-haspopup="menu" aria-expanded={profilMenyu}
@@ -15384,7 +15385,7 @@ function Kabinet({ token, onSessionExpired, onLogout, onToken, onProfiles, readO
       </SectionErrorBoundary>
           </div>
         </main>
-      <PastkiMenyu onMenyu={yonMenyuniAlmashtir} faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : OYIN_TABLARI.has(tab) ? "oyinlar" : tab}
+      <PastkiMenyu token={token} onMenyu={yonMenyuniAlmashtir} faol={tab === "oqituvchi" && muassasaBandi && oqituvchiBoshlanishKorinishi?.korinish === muassasaBandi.korinish ? "oqituvchi_muassasa" : OYIN_TABLARI.has(tab) ? "oyinlar" : tab}
         onTanlash={tabTanlandi} rol={korinishRoli} rang={joriyRang} bloklangan={testDavomida}
         qoshimchaBand={muassasaBandi} foydalanuvchi={foydalanuvchi} taqdimotMavjud={presentationsAllowed && !readOnly} />
       </div>
