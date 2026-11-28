@@ -49,7 +49,7 @@ export default function KapulAdmin({ apiBase = "", token = "" }) {
       <div><b>{so(d.jami.hamyonlarda)}</b><span>kapul hamyonlarda</span></div>
       <div><b>{so(d.jami.hamyonlar)}</b><span>hamyon (akaunt)</span></div>
       <div><b>{so(d.jami.sotilgan_kapul)}</b><span>sotilgan kapul ({so(d.jami.tolovlar)} ta to‘lov)</span></div>
-      <div><b>{so(d.jami.sotilgan_kapul * som)}</b><span>so‘m tushum (taxminan)</span></div>
+      <div><b>{so(d.jami.sotilgan_kapul * (Number(f.sotuv_narx) || som))}</b><span>so‘m tushum (taxminan)</span></div>
     </div>
 
     <div className="ka-karta">
@@ -57,11 +57,12 @@ export default function KapulAdmin({ apiBase = "", token = "" }) {
       <p className="ka-tushuncha">Hamma narx <b>kapul</b>da. Bitta kapul necha so‘m ekanini pastda belgilaysiz — qolgan hamma joyda shu hisoblanadi.</p>
       <div className="ka-grid">
         {maydon("som", "1 kapul = necha so‘m", `Hozir: 1 kapul = ${so(som)} so‘m`)}
+        {maydon("sotuv_narx", "1 kapul SOTIB OLISH narxi (so‘m)", `Mijoz 1 kapulni ${f.sotuv_narx || 0} so‘mga sotib oladi (soliq va xizmat uchun hisobdagi ${so(som)} so‘mdan past). Misol: 50 kapul = ${so(50 * (Number(f.sotuv_narx) || 0))} so‘m.`)}
         {maydon("sovga", "Yangi akauntga sovg‘a (kapul)", `Yangi ochilgan har bir hamyonga ${f.sovga || 0} kapul (${so((f.sovga || 0) * som)} so‘m) beriladi. Faqat yangilariga ta’sir qiladi.`)}
         {maydon("ppt_10_slayd", "PPT: har 10 slayd = necha kapul", `Misol: 25 slayd → ${Math.ceil(25 / 10) * (Number(f.ppt_10_slayd) || 0)} kapul (${so(Math.ceil(25 / 10) * (Number(f.ppt_10_slayd) || 0) * som)} so‘m). Yuqoriga yaxlitlanadi.`)}
         {maydon("ochiq_dars", "Ochiq dars (AI) = necha kapul", `Bitta ochiq dars ${f.ochiq_dars || 0} kapul = ${so((f.ochiq_dars || 0) * som)} so‘m.`)}
       </div>
-      <button className="ka-btn" disabled={band} onClick={() => saqla(["som", "sovga", "ppt_10_slayd", "ochiq_dars"])}>Narxlarni saqlash</button>
+      <button className="ka-btn" disabled={band} onClick={() => saqla(["som", "sotuv_narx", "sovga", "ppt_10_slayd", "ochiq_dars"])}>Narxlarni saqlash</button>
       <small className="ka-eslatma"> Admin hamma narsani bepul ishlatadi. AI ishlamay qolsa — kapul avtomatik qaytariladi.</small>
     </div>
 

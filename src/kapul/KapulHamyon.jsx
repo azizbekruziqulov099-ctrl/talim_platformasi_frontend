@@ -54,6 +54,7 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
   };
   const bekor = async () => { try { await api(apiBase, token, `/api/kapul/buyurtma/${bur.id}/bekor`, { method: "POST" }); } catch { /* */ } setBur(null); };
   const som = k.kapul_som || 1000;
+  const sotuv = k.sotuv_narx || som;
 
   return <>
     <button type="button" className={`kh-belgi ${kam ? "kam" : ""} ${className}`} onClick={() => setOchiq(true)}
@@ -72,7 +73,7 @@ export default function KapulHamyon({ apiBase = "", token = "", yangila = 0, nar
           <div className="kh-chips">{[10, 20, 50, 100].map((n) => <button key={n} type="button" className={Number(son) === n ? "on" : ""} onClick={() => setSon(n)}>{n}</button>)}</div>
           <label className="kh-m">Yoki o‘zingiz yozing
             <input type="number" min="1" max="1000" value={son} onChange={(e) => setSon(e.target.value)} /></label>
-          <p className="kh-narx">Taxminan {so(Number(son || 0) * som)} so‘m. Aniq summani keyingi oynada ko‘rasiz.</p>
+          <p className="kh-narx">1 kapul = {so(sotuv)} so‘m. Taxminan {so(Number(son || 0) * sotuv)} so‘m. Aniq summani keyingi oynada ko‘rasiz.</p>
           {xato && <p className="kh-xato" role="alert">{xato}</p>}
           <button type="button" className="kh-asosiy" disabled={band || !(Number(son) >= 1)} onClick={olish}>{band ? "Kutib turing…" : "To‘lov summasini olish"}</button>
         </div> : <p className="kh-narx">Kapul sotib olish tez orada yoqiladi.</p>)}
